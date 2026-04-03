@@ -230,6 +230,41 @@
         </div>
     </section>
 
+    <section class="section-container" id="game-gallery">
+    <h2 style="font-family:'Orbitron'; text-align:center; margin-bottom:50px;">Casino Game Visuals</h2>
+    <p style="text-align:center; color:var(--text-gray); max-width:800px; margin:0 auto 40px;">
+        Explore visual samples of popular casino games — slots, roulette, blackjack, poker — as inspiration for the gaming experience.
+    </p>
+
+    <div class="grid-3" id="game-examples">
+        <!-- JS will inject game cards here -->
+    </div>
+</section>
+
+<script>
+    const games = [
+        { title: "Roulette Table", img: "https://images.unsplash.com/photo-1618419600303-70c8d5b1c2a4?auto=format&fit=crop&w=400&h=200&q=80", link: "#" },
+        { title: "Blackjack Table", img: "https://images.unsplash.com/photo-1602526219642-9aa2f02d69e5?auto=format&fit=crop&w=400&h=200&q=80", link: "#" },
+        { title: "Slot Machines", img: "https://images.unsplash.com/photo-1600868692554-4f165aef1f58?auto=format&fit=crop&w=400&h=200&q=80", link: "#" },
+        { title: "Poker Game", img: "https://images.unsplash.com/photo-1607564666245-4c3f5a0c5df9?auto=format&fit=crop&w=400&h=200&q=80", link: "#" },
+        { title: "Jackpot Win", img: "https://images.unsplash.com/photo-1571781925828-1e1185a2cc0a?auto=format&fit=crop&w=400&h=200&q=80", link: "#" },
+        { title: "Roulette Spin", img: "https://images.unsplash.com/photo-1576091160550-2173dba9998b?auto=format&fit=crop&w=400&h=200&q=80", link: "#" }
+    ];
+
+    const gameContainer = document.getElementById('game-examples');
+
+    games.forEach(game => {
+        const card = document.createElement('div');
+        card.className = 'sandbox-card';
+        card.innerHTML = `
+            <img src="${game.img}" alt="${game.title}">
+            <h3 style="font-family:'Orbitron'; margin-bottom:10px; font-size:1rem;">${game.title}</h3>
+            <a href="${game.link}" target="_blank">View</a>
+        `;
+        gameContainer.appendChild(card);
+    });
+</script>
+
     <footer style="padding: 50px 5% 120px; text-align:center; border-top: 1px solid #1a1a1f; color:#444;">
         <p>&copy; 2026 Level.casino Acquisition Portal. All Rights Reserved.</p>
     </footer>

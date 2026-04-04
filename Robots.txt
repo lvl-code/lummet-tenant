@@ -1,0 +1,15 @@
+# Robots.txt for Level.casino
+# Managed by EliJul Group Brokerage
+
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /levelcasino.png
+
+# Point to the sitemap on your custom domain
+Sitemap: https://level.casino/sitemap.xml
+
+# Block access to any temporary GitHub folders if they exist
+Disallow: /_site/
+Disallow: /_includes/
+Disallow: /_layouts/

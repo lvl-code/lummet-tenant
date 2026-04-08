@@ -1,13 +1,25 @@
-# Robots.txt for Level.casino
-# Managed by EliJul Group Brokerage
-
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://level.casino/sitemap.xml
+# Explicitly allow key sections
+Allow: /#vision
+Allow: /#valuation
+Allow: /#market-analysis
+Allow: /#faq
+Allow: /#sandbox
+Allow: /#game-gallery
 
-# Block system folders (optional safety)
-Disallow: /_site/
-Disallow: /_includes/
-Disallow: /_layouts/
+# Block unnecessary files
+Disallow: /cgi-bin/
+Disallow: /tmp/
+Disallow: /*.json$
+
+# Allow important assets
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.webp$
+
+# Sitemap location
+Sitemap: https://level.casino/sitemap.xml

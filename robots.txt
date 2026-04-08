@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-# Explicitly allow key sections
+# Explicitly allow key sections (still optional, fragments may not be necessary)
 Allow: /#vision
 Allow: /#valuation
 Allow: /#market-analysis

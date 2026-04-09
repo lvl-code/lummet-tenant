@@ -350,6 +350,164 @@
         font-size: 1rem;
     }
 }
+        /* --- Elite Affiliate Grid Section --- */
+.affiliate-section {
+    width: 100%;
+    background: var(--bg-black);
+    padding: 80px 0 0 0; /* Top padding, zero side/bottom padding for flush grid */
+    border-top: 1px solid #1a1a1f;
+}
+
+.affiliate-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 0 5%;
+}
+
+.affiliate-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    color: #fff;
+    margin-bottom: 15px;
+}
+
+.affiliate-header h2 span {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Edge-to-Edge Grid */
+.affiliate-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    gap: 0; /* Zero gaps for flush edge-to-edge design */
+}
+
+.aff-item {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4/3; 
+    display: block;
+    background: #111;
+    cursor: pointer;
+}
+
+.aff-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    opacity: 0.8; /* Slight dim by default */
+}
+
+/* Vibe Animation for Hover */
+@keyframes vibeGlow {
+    0% { filter: brightness(1) contrast(1); }
+    50% { filter: brightness(1.2) contrast(1.1) drop-shadow(0 0 10px var(--electric-purple)); }
+    100% { filter: brightness(1) contrast(1); }
+}
+
+.aff-item:hover {
+    z-index: 2;
+    animation: vibeGlow 2s infinite alternate;
+}
+
+.aff-item:hover img {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+/* Beautiful "Play" Overlay */
+.aff-play-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(5,5,7,0.9) 0%, rgba(5,5,7,0.2) 50%, rgba(5,5,7,0) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.aff-item:hover .aff-play-overlay {
+    opacity: 1;
+}
+
+.aff-play-btn {
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border: 2px solid var(--neon-pink);
+    padding: 12px 35px;
+    border-radius: 50px;
+    background: rgba(255, 0, 204, 0.15);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 20px rgba(255, 0, 204, 0.4);
+    transform: translateY(20px);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.aff-item:hover .aff-play-btn {
+    transform: translateY(0);
+}
+
+/* Level.casino Animated Watermark */
+@keyframes pulseWatermark {
+    0% { opacity: 0.4; transform: scale(1); text-shadow: none; }
+    50% { opacity: 0.9; transform: scale(1.05); text-shadow: 0 0 8px var(--electric-purple); }
+    100% { opacity: 0.4; transform: scale(1); text-shadow: none; }
+}
+
+.aff-watermark {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 1px;
+    pointer-events: none; /* Prevents it from blocking the link */
+    z-index: 5;
+    font-weight: 600;
+    animation: pulseWatermark 4s infinite ease-in-out;
+}
+
+.aff-watermark span {
+    color: var(--electric-purple);
+}
+
+/* Disclaimer Footer */
+.aff-disclaimer {
+    width: 100%;
+    background: #030305;
+    padding: 25px 5%;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #666;
+    line-height: 1.5;
+    border-bottom: 1px solid #1a1a1f;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .affiliate-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 items per row on mobile */
+    }
+    .aff-play-btn {
+        font-size: 1.1rem;
+        padding: 8px 20px;
+    }
+    .aff-watermark {
+        font-size: 0.6rem;
+        bottom: 10px;
+        right: 10px;
+    }
+}
 
         /* --- Layout Grid (Main Content & Sidebar) --- */
         .page-container { 
@@ -653,6 +811,135 @@
                 </div>
             </div>
         </div>
+    </div>
+</section>
+
+    <section class="affiliate-section" id="affiliate-games">
+    <div class="affiliate-header">
+        <h2>Premium <span>Partner</span> Experiences</h2>
+        <p style="color: var(--text-gray); font-size: 1.1rem; max-width: 700px; margin: 0 auto;">
+            Explore our curated selection of top-tier iGaming environments. Click to launch directly into the action.
+        </p>
+    </div>
+
+    <div class="affiliate-grid">
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagea.png" alt="Casino Environment A" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imageb.png" alt="Casino Environment B" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagec.png" alt="Casino Environment C" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imaged.png" alt="Casino Environment D" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagee.png" alt="Casino Environment E" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagef.png" alt="Casino Environment F" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imageg.png" alt="Casino Environment G" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imageh.png" alt="Casino Environment H" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagei.png" alt="Casino Environment I" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagej.png" alt="Casino Environment J" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagek.jpeg" alt="Casino Environment K" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagem.jpeg" alt="Casino Environment M" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagen.png" alt="Casino Environment N" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imageo.jpeg" alt="Casino Environment O" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imagep.jpeg" alt="Casino Environment P" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imageq.jpeg" alt="Casino Environment Q" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imager.png" alt="Casino Environment R" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="images.png" alt="Casino Environment S" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+
+        <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="aff-item">
+            <img src="imangel.jpeg" alt="Casino Environment Angel" loading="lazy">
+            <div class="aff-play-overlay"><span class="aff-play-btn">Play</span></div>
+            <div class="aff-watermark">LEVEL<span>.CASINO</span></div>
+        </a>
+    </div>
+
+    <div class="aff-disclaimer">
+        <strong>Disclaimer:</strong> The games and platforms featured above are highly recommended partner experiences. Level.casino operates as an independent affiliate and promotional portal. We are not the operators of these platforms and are not responsible for any transactions, wagers, or account actions taken outside of the Level.casino domain. Please play responsibly.
     </div>
 </section>
 

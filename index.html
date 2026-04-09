@@ -244,6 +244,112 @@
     transform: translateY(-3px);
     box-shadow: 0 15px 30px rgba(255,111,97,0.5);
 }
+        /* --- Infinite Casino Carousel Showcase --- */
+.casino-carousel-section {
+    background: #050507;
+    padding: 40px 0;
+    overflow: hidden;
+    border-top: 1px solid #1a1a1f;
+    border-bottom: 1px solid #1a1a1f;
+    width: 100%;
+}
+
+.marquee-container {
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+}
+
+.marquee-content {
+    display: flex;
+    flex-shrink: 0;
+    /* Adjust '50s' to make it faster or slower */
+    animation: scrollMarquee 50s linear infinite; 
+}
+
+/* Optional: Pauses the scroll when a user hovers over an image */
+.marquee-container:hover .marquee-content {
+    animation-play-state: paused; 
+}
+
+.marquee-card {
+    /* Desktop: 50vw ensures exactly 2 images take up the full screen width */
+    width: 50vw; 
+    height: 450px;
+    padding: 0 15px; 
+    box-sizing: border-box;
+    position: relative;
+    flex-shrink: 0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.marquee-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 20px;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* The subtle zoom effect you requested */
+.marquee-card:hover img {
+    transform: scale(1.06); 
+}
+
+.marquee-overlay {
+    position: absolute;
+    top: 0; left: 15px; right: 15px; bottom: 0;
+    background: rgba(0, 0, 0, 0.35); /* Dark tint to make the button pop */
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; 
+}
+
+.marquee-btn {
+    background: var(--accent-gradient);
+    color: white;
+    padding: 16px 40px;
+    border-radius: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 1.2rem;
+    text-decoration: none;
+    box-shadow: 0 10px 20px rgba(157, 80, 187, 0.4);
+    pointer-events: auto; /* Allows the button to be clicked */
+    transition: transform 0.3s, box-shadow 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.marquee-btn:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(157, 80, 187, 0.6);
+}
+
+@keyframes scrollMarquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .marquee-card {
+        /* Mobile: Shows 1 full image and peeks at the next one to encourage scrolling */
+        width: 85vw; 
+        height: 300px;
+        padding: 0 8px;
+    }
+    .marquee-overlay {
+        left: 8px; right: 8px;
+    }
+    .marquee-btn {
+        padding: 12px 28px;
+        font-size: 1rem;
+    }
+}
 
         /* --- Layout Grid (Main Content & Sidebar) --- */
         .page-container { 
@@ -410,6 +516,145 @@
         ⚠️ Active acquisition discussions in progress — availability subject to change without notice.
         </p>
     </section>
+
+    <section class="casino-carousel-section">
+    <div class="marquee-container" id="casinoMarquee">
+        <div class="marquee-content" id="marqueeTrack">
+            <div class="marquee-card">
+                <img src="imagea.png" alt="Casino Game A">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+            
+            <div class="marquee-card">
+                <img src="imageb.png" alt="Casino Game B">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagec.png" alt="Casino Game C">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imaged.png" alt="Casino Game D">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagee.png" alt="Casino Game E">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagef.png" alt="Casino Game F">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imageg.png" alt="Casino Game G">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imageh.png" alt="Casino Game H">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagei.png" alt="Casino Game I">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagej.png" alt="Casino Game J">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagek.jpeg" alt="Casino Game K">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagem.jpeg" alt="Casino Game M">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagen.png" alt="Casino Game N">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imageo.jpeg" alt="Casino Game O">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imagep.jpeg" alt="Casino Game P">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imageq.jpeg" alt="Casino Game Q">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imager.png" alt="Casino Game R">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="images.png" alt="Casino Game S">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+
+            <div class="marquee-card">
+                <img src="imangel.jpeg" alt="Casino Game Angel">
+                <div class="marquee-overlay">
+                    <a href="https://stake.com/?c=eU3bdx7M" target="_blank" class="marquee-btn">Play Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
     <div class="page-container">
         <main>
@@ -678,6 +923,15 @@
             `;
             gameContainer.appendChild(card);
         });
+
+        // Infinite Carousel Track Cloner
+const marqueeTrack = document.getElementById('marqueeTrack');
+if (marqueeTrack) {
+    // Clone the entire set of images
+    const clone = marqueeTrack.cloneNode(true);
+    // Append it right next to the original to create a seamless infinite loop
+    document.getElementById('casinoMarquee').appendChild(clone);
+}
     </script>
 
   <!--  <div style="

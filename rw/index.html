@@ -13,165 +13,231 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top 5 Online Betting Sites in Rwanda 2026 | Level.casino</title>
     
-    <meta name="description" content="Discover the top 5 Rwanda friendly casinos and betting sites. Instant MTN MoMo and Airtel Money deposits. Level.casino - The premium iGaming guide for Rwanda.">
-    <meta name="keywords" content="Gorilla Games, betPawa Rwanda, Winner.rw, Fortebet Rwanda, Stake Rwanda, MoMo betting, Rwanda sports betting">
-
-    <link rel="alternate" hreflang="rw-RW" href="https://level.casino/rw/" />
-    <link rel="alternate" hreflang="x-default" href="https://level.casino/" />
+    <meta name="description" content="Expert guide to the best Rwanda friendly casinos and betting sites. Instant MTN MoMo & Airtel Money deposits. Explore Gorilla Games, betPawa, and more at Level.casino.">
+    <meta name="keywords" content="Gorilla Games, betPawa Rwanda, Winner.rw, Fortebet Rwanda, Rwanda sports betting, MoMo casinos, best betting sites Rwanda 2026">
+    <link rel="canonical" href="https://level.casino/rw/" />
 
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --bg-black: #050507;
+            --bg-dark: #0e0e12;
             --electric-purple: #9d50bb;
+            --neon-pink: #ff00cc;
             --momo-yellow: #ffcb05;
             --text-white: #ffffff;
+            --text-gray: #8b8b9a;
             --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #ff00cc 100%);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-black); color: var(--text-white); }
+        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-black); color: var(--text-white); line-height: 1.6; }
 
-        /* Navigation & Logo */
-        nav { 
-            padding: 20px 5%; 
+        /* --- HEADER & NAVIGATION --- */
+        header { 
+            background: rgba(5, 5, 7, 0.95); 
+            backdrop-filter: blur(15px);
+            padding: 15px 5%; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            background: rgba(5, 5, 7, 0.95);
+            border-bottom: 1px solid #1a1a1f;
             position: sticky;
             top: 0;
             z-index: 1000;
-            border-bottom: 1px solid #1a1a1f;
         }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; text-decoration: none; color: white; }
+        
+        .logo-box { display: flex; align-items: center; gap: 10px; }
+        .logo-img { height: 35px; border-radius: 5px; }
+        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; letter-spacing: 2px; text-decoration: none; color: white; }
         .logo-text span { color: var(--electric-purple); }
 
+        /* Real Personalized Toggle Menu */
+        .nav-links { display: flex; align-items: center; gap: 25px; }
+        .nav-links a { color: var(--text-white); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: 0.3s; }
+        .nav-links a:hover { color: var(--neon-pink); }
+        
         .buy-btn { 
             background: var(--accent-gradient); 
-            color: white; 
-            padding: 10px 20px; 
+            color: white !important; 
+            padding: 10px 22px; 
             border-radius: 50px; 
-            text-decoration: none; 
-            font-weight: 700; 
-            font-size: 0.85rem;
+            font-weight: 800 !important;
             box-shadow: 0 4px 15px rgba(157, 80, 187, 0.4);
         }
 
-        /* Hero */
-        .hero { padding: 40px 5%; text-align: center; }
-        .hero h1 { font-family: 'Orbitron', sans-serif; font-size: 2.2rem; margin-bottom: 10px; }
-        .hero p { color: #8b8b9a; max-width: 600px; margin: 0 auto; }
+        .menu-toggle { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+        .menu-toggle span { width: 25px; height: 3px; background: white; border-radius: 2px; transition: 0.3s; }
 
-        /* Casino List */
-        .list-container { max-width: 800px; margin: 40px auto; padding: 0 5%; }
-        .casino-card { 
-            background: #0e0e12; 
+        /* --- PERSONALIZED HERO SECTION --- */
+        .hero { 
+            padding: 80px 5%; 
+            text-align: center; 
+            background: radial-gradient(circle at 50% -20%, #2a1b3d 0%, #050507 70%); 
+        }
+        .hero h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(2rem, 6vw, 3.5rem); margin-bottom: 15px; }
+        .hero h1 span { background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { color: var(--text-gray); font-size: 1.2rem; max-width: 700px; margin: 0 auto 30px; }
+        
+        .hero-keywords { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
+        .keyword-tag { background: #1a1a1f; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; border: 1px solid #333; color: #00ff88; font-weight: 600; }
+
+        /* --- CASINO LIST LAYOUT --- */
+        .main-content { max-width: 900px; margin: 40px auto; padding: 0 5%; }
+        .list-card { 
+            background: var(--bg-dark); 
             border: 1px solid #1a1a1f; 
-            border-radius: 16px; 
-            padding: 25px; 
-            margin-bottom: 20px; 
+            border-radius: 20px; 
+            padding: 30px; 
+            margin-bottom: 25px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
             transition: 0.3s;
         }
-        .casino-card:hover { border-color: var(--electric-purple); background: #131318; }
+        .list-card:hover { border-color: var(--electric-purple); transform: translateY(-5px); }
         
-        .rank { background: var(--momo-yellow); color: black; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; margin-bottom: 10px; }
-        .info h3 { font-size: 1.4rem; margin-bottom: 5px; }
-        .tags { display: flex; gap: 8px; margin-top: 10px; }
-        .tag { font-size: 0.7rem; background: #1a1a1f; color: #00ff88; padding: 3px 8px; border-radius: 4px; border: 1px solid #333; }
+        .brand-info h3 { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; margin-bottom: 8px; color: #fff; }
+        .momo-badge { background: var(--momo-yellow); color: #000; font-size: 0.7rem; font-weight: 900; padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 10px; }
+        
+        .play-now { 
+            background: white; 
+            color: black; 
+            padding: 15px 35px; 
+            border-radius: 10px; 
+            text-decoration: none; 
+            font-weight: 800; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
-        .play-btn { background: #fff; color: #000; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 0.9rem; }
+        /* --- STRONG FOOTER & DISCLAIMER --- */
+        .disclaimer-box { background: #0c0c10; padding: 30px; border: 1px dashed #333; border-radius: 15px; margin-top: 50px; font-size: 0.85rem; color: #666; }
+        
+        footer { padding: 60px 5%; background: #030305; border-top: 1px solid #1a1a1f; text-align: center; margin-top: 60px; }
+        .footer-logo { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; margin-bottom: 20px; display: block; text-decoration: none; color: white; }
+        .footer-links { margin-bottom: 30px; }
+        .footer-links a { color: #888; text-decoration: none; margin: 0 15px; font-size: 0.9rem; }
+        .copyright { color: #444; font-size: 0.8rem; }
 
-        footer { padding: 40px 5%; text-align: center; font-size: 0.8rem; color: #444; border-top: 1px solid #1a1a1f; }
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-links { 
+                display: none; position: absolute; top: 100%; left: 0; width: 100%; 
+                background: var(--bg-black); flex-direction: column; padding: 20px; border-bottom: 1px solid #1a1a1f;
+            }
+            .nav-links.active { display: flex; }
+            .menu-toggle { display: flex; }
+            .list-card { flex-direction: column; text-align: center; gap: 20px; }
+            .hero h1 { font-size: 2.5rem; }
+        }
     </style>
 </head>
 <body>
 
-    <nav>
-        <a href="/" class="logo-text">LEVEL<span>.CASINO</span></a>
-        <a href="mailto:sales@elijul.com" class="buy-btn">BUY DOMAIN</a>
-    </nav>
+    <header>
+        <a href="/" class="logo-box">
+            <img src="levelcasino.png" alt="Level Casino" class="logo-img" onerror="this.style.display='none'">
+            <div class="logo-text">LEVEL<span>.CASINO</span></div>
+        </a>
+        
+        <div class="menu-toggle" id="mobile-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <nav class="nav-links" id="nav-links">
+            <a href="#top5">Top 5 Sites</a>
+            <a href="https://cluster.casino">Cluster.casino</a>
+            <a href="mailto:sales@elijul.com" class="buy-btn">BUY DOMAIN</a>
+        </nav>
+    </header>
 
     <section class="hero">
-        <h1>Best Betting in <span>Rwanda</span></h1>
-        <p>Top 5 platforms verified for MTN & Airtel Mobile Money</p>
+        <div class="hero-keywords">
+            <span class="keyword-tag">MTN MoMo</span>
+            <span class="keyword-tag">Airtel Money</span>
+            <span class="keyword-tag">Instant Payouts</span>
+            <span class="keyword-tag">High Odds</span>
+        </div>
+        <h1>Elevate Your <span>Gaming Level</span> in Rwanda</h1>
+        <p>Your premium guide to the most trusted, Rwanda-friendly betting platforms and online casinos.</p>
     </section>
 
-    <div class="list-container">
-        <div class="casino-card">
-            <div class="info">
-                <div class="rank">1</div>
-                <h3>Stake Rwanda</h3>
-                <p style="color: #8b8b9a;">Best for Crypto & VIP Gaming</p>
-                <div class="tags">
-                    <span class="tag">VERIFIED MOMO</span>
-                    <span class="tag">FAST CASHOUT</span>
-                </div>
+    <main class="main-content" id="top5">
+        <div class="list-card">
+            <div class="brand-info">
+                <h3>Gorilla Games <span class="momo-badge">LOCAL FAVORITE</span></h3>
+                <p>Licensed by Rwanda Gambling Board. Best for local sports.</p>
             </div>
-            <a href="https://stake.com/?c=eU3bdx7M" class="play-btn">PLAY</a>
+            <a href="https://www.playgorillagames.com/rw/" class="play-now">Play</a>
         </div>
 
-        <div class="casino-card">
-            <div class="info">
-                <div class="rank">2</div>
-                <h3>Gorilla Games</h3>
-                <p style="color: #8b8b9a;">Local Rwandan Favorite</p>
-                <div class="tags">
-                    <span class="tag">MTN/AIRTEL</span>
-                    <span class="tag">LOCAL SHOPS</span>
-                </div>
+        <div class="list-card">
+            <div class="brand-info">
+                <h3>betPawa <span class="momo-badge">LOW STAKES</span></h3>
+                <p>Bet small, win big. Integrated with MTN & Airtel MoMo.</p>
             </div>
-            <a href="https://www.playgorillagames.com/rw/" class="play-btn">PLAY</a>
+            <a href="https://www.betpawa.rw/" class="play-now">Play</a>
         </div>
 
-        <div class="casino-card">
-            <div class="info">
-                <div class="rank">3</div>
-                <h3>betPawa Rwanda</h3>
-                <p style="color: #8b8b9a;">Small Stakes, Big Win Bonus</p>
-                <div class="tags">
-                    <span class="tag">LOW MIN DEPOSIT</span>
-                    <span class="tag">MOMO PAY</span>
-                </div>
+        <div class="list-card">
+            <div class="brand-info">
+                <h3>Winner.rw <span class="momo-badge">BEST ODDS</span></h3>
+                <p>Exclusive football markets and premium virtual gaming.</p>
             </div>
-            <a href="https://www.betpawa.rw/" class="play-btn">PLAY</a>
+            <a href="https://winner.rw/" class="play-now">Play</a>
         </div>
 
-        <div class="casino-card">
-            <div class="info">
-                <div class="rank">4</div>
-                <h3>Winner Rwanda</h3>
-                <p style="color: #8b8b9a;">Great Football Odds</p>
-                <div class="tags">
-                    <span class="tag">24/7 SUPPORT</span>
-                    <span class="tag">RWF CURRENCY</span>
-                </div>
+        <div class="list-card">
+            <div class="brand-info">
+                <h3>Fortebet <span class="momo-badge">FAST PAYOUT</span></h3>
+                <p>Widest range of betting centers and online markets in RW.</p>
             </div>
-            <a href="https://winner.rw/" class="play-btn">PLAY</a>
+            <a href="https://fortebet.rw/" class="play-now">Play</a>
         </div>
 
-        <div class="casino-card">
-            <div class="info">
-                <div class="rank">5</div>
-                <h3>Fortebet RW</h3>
-                <p style="color: #8b8b9a;">Trusted Regional Brand</p>
-                <div class="tags">
-                    <span class="tag">LIVE BETTING</span>
-                    <span class="tag">SECURE</span>
-                </div>
+        <div class="list-card">
+            <div class="brand-info">
+                <h3>Stake Rwanda <span class="momo-badge">VIP CRYPTO</span></h3>
+                <p>The global leader in gamified crypto betting, now localized.</p>
             </div>
-            <a href="https://fortebet.rw/" class="play-btn">PLAY</a>
+            <a href="https://stake.com/?c=eU3bdx7M" class="play-now">Play</a>
         </div>
-    </div>
+
+        <div class="disclaimer-box">
+            <strong>ADVISORY & DISCLAIMER:</strong> 
+            Level.casino operates as an independent affiliate and digital asset portal managed by Elijul Group. We provide curated reviews and links to third-party operators. Level.casino does not directly provide gambling services. Users must be 18+ and are responsible for ensuring compliance with Rwandan local laws. Play responsibly.
+        </div>
+    </main>
 
     <footer>
-        <p>18+ Responsible Gambling | Level.casino is for sale via Elijul Group.</p>
-        <p style="margin-top: 10px;">&copy; 2026 Level.casino Rwanda Hub.</p>
+        <a href="/" class="footer-logo">LEVEL<span>.CASINO</span></a>
+        <div class="footer-links">
+            <a href="mailto:sales@elijul.com">Contact Broker</a>
+            <a href="https://cluster.casino">Partner Assets</a>
+            <a href="http://www.elijul.com">Elijul Group</a>
+        </div>
+        <p class="copyright">© 2026 Level.casino Rwanda Hub. All Rights Reserved. Managed by EliJul Studio.</p>
     </footer>
 
+    <script>
+        // Toggle Menu Logic
+        const mobileMenu = document.getElementById('mobile-menu');
+        const navLinks = document.getElementById('nav-links');
+
+        mobileMenu.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // Close menu when clicking a link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+            });
+        });
+    </script>
 </body>
 </html>

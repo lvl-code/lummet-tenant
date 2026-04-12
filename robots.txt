@@ -1,18 +1,8 @@
-# Robots.txt for Level.casino
-# Optimized for iGaming SEO 2026
-
 User-agent: *
 Allow: /
-Allow: /index.html
-Allow: /images/
-Allow: /css/
-Allow: /js/
 
-# Host
-Host: https://level.casino
+# Disallow indexing of backend or private folders (add more as you expand)
+Disallow: /cgi-bin/
 
-# Sitemaps
+# Point search engine bots directly to your daily updated sitemap
 Sitemap: https://level.casino/sitemap.xml
-
-# Crawl-delay for aggressive bots
-Crawl-delay: 10

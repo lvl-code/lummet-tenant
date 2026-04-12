@@ -1,61 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
     <url>
         <loc>https://level.casino/</loc>
-        <lastmod>2026-04-09</lastmod>
+        <lastmod>2026-04-12</lastmod>
         <changefreq>daily</changefreq>
-        <priority>1.00</priority>
+        <priority>1.0</priority>
     </url>
 
-    <url>
-        <loc>https://level.casino/#vision</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>daily</changefreq>
-        <priority>0.80</priority>
-    </url>
-
-    <url>
-        <loc>https://level.casino/#valuation</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>daily</changefreq>
-        <priority>0.90</priority>
-    </url>
-
-    <url>
-        <loc>https://level.casino/#affiliate-games</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>daily</changefreq>
-        <priority>0.85</priority>
-    </url>
-
-    <url>
-        <loc>https://level.casino/#market-analysis</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.80</priority>
-    </url>
-
-    <url>
-        <loc>https://level.casino/#faq</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.70</priority>
-    </url>
-
-    <url>
-        <loc>https://level.casino/#sandbox</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.60</priority>
-    </url>
-
-    <url>
-        <loc>https://level.casino/#game-gallery</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.60</priority>
-    </url>
-</urlset>
+    </urlset>

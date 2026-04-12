@@ -1201,6 +1201,126 @@
         const mainHeader = document.getElementById('mainHeader');
         
         window.addEventListener('scroll', () => {
+            if (window.innerWidth > 768) {
+                if (window.scrollY > 40) {
+                    headerWrapper.style.transform = 'translateY(-35px)'; 
+                    mainHeader.style.padding = '8px 5%'; 
+                } else {
+                    headerWrapper.style.transform = 'translateY(0)';
+                    mainHeader.style.padding = '15px 5%';
+                }
+            } else {
+                if (window.scrollY > 40) {
+                    mainHeader.style.padding = '10px 5%';
+                } else {
+                    mainHeader.style.padding = '15px 5%';
+                }
+            }
+        });
+
+        // --- Dynamic Grids with Real Image Iteration ---
+        
+        // Array of your actual generated images
+        const myImages = [
+            "level1.png", "level2.png", "level3.png", "level4.png", "level5.png", 
+            "level6.png", "level7.png", "level8.png", "level9.png", "level10.png"
+        ];
+
+        // Expanded 30 Brand Inspirations
+        const brandNames = [
+            "Premium VIP Tables", "Sports Betting Hub", "Mobile First Slots", "Neon Environment", 
+            "Live Dealer UX", "Global Tournaments", "Exclusive VIP Lounge", "Crypto Web3 Casino", 
+            "eSports Betting Arena", "Social Gaming Space", "High Roller Limits", "Metaverse Casino",
+            "Gamified Loyalty", "Agentic AI Dealers", "Provably Fair Crypto", "Telegram Betting UI",
+            "VR Casino Experience", "Boutique iGaming", "Decentralized Casino", "Skill-Based Hub",
+            "Instant Withdrawal UI", "P2P Betting Exchange", "Luxury Casino Brand", "Dark Mode Betting",
+            "Next-Gen Sportsbook", "Micro-Betting Platform", "In-Play Action", "Global Jackpots",
+            "Casino Streamer Hub", "Affiliate Network UI"
+        ];
+
+        const brandContainer = document.getElementById('casino-examples');
+        
+        brandNames.forEach((name, index) => {
+            // Cycles through images 1-10 sequentially
+            const imgSrc = myImages[index % myImages.length]; 
+            const card = document.createElement('div');
+            card.className = 'sandbox-card';
+            card.innerHTML = `
+                <div>
+                    <img src="${imgSrc}" loading="lazy" alt="Level Casino - ${name}">
+                    <h4>${name}</h4>
+                </div>
+                <a href="https://cluster.casino" target="_blank">View Site Concept</a>
+            `;
+            brandContainer.appendChild(card);
+        });
+
+        // Expanded 30 Game Visuals
+        const gameTitles = [
+            "Roulette Action", "High Stakes Blackjack", "Video Slots 3D", "Texas Hold'em Poker", 
+            "Progressive Jackpots", "Live Spin Wheel", "Lucky Dice Craps", "Casino Baccarat", 
+            "Luxury Keno", "Instant Win Scratch", "Quantum Roulette", "Speed Baccarat",
+            "Lightning Dice", "Megaways Slots", "Cluster Pays", "Crash Games (Aviator)",
+            "Plinko Drop", "Minesweeper Crypto", "Sic Bo Tables", "Dragon Tiger",
+            "Punto Banco", "Omaha Hi-Lo", "Caribbean Stud", "Three Card Poker",
+            "Video Poker UI", "Virtual Greyhounds", "Virtual Horse Racing", "Bingo Multiplayer",
+            "Lottery Draws", "Arcade Casino Games"
+        ];
+
+        const gameContainer = document.getElementById('game-examples');
+
+        gameTitles.forEach((title, index) => {
+            // Offset by +3 so the games grid starts on a different image than the brands grid
+            const imgSrc = myImages[(index + 3) % myImages.length];
+            const card = document.createElement('div');
+            card.className = 'sandbox-card';
+            card.innerHTML = `
+                <div>
+                    <img src="${imgSrc}" loading="lazy" alt="Level Casino - ${title}">
+                    <h4>${title}</h4>
+                </div>
+                <a href="https://legendodds.com" target="_blank">Explore Game</a>
+            `;
+            gameContainer.appendChild(card);
+        });
+
+        // --- Infinite Carousel Track Cloner ---
+        const marqueeTrack = document.getElementById('marqueeTrack');
+        if (marqueeTrack) {
+            // Clone the entire set of images
+            const clone = marqueeTrack.cloneNode(true);
+            // Append it right next to the original to create a seamless infinite loop
+            document.getElementById('casinoMarquee').appendChild(clone);
+        }
+    </script>
+
+    <!--
+
+    <script>
+        // --- UI Interactions ---
+        
+        // Menu Toggle Logic
+        const menuToggle = document.getElementById('mobile-menu');
+        const navMenu = document.getElementById('navMenu');
+
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('is-active');
+            navMenu.classList.toggle('active');
+        });
+
+        // Close menu when a link is clicked
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('is-active');
+                navMenu.classList.remove('active');
+            });
+        });
+
+        // Header Shrink on Scroll Logic
+        const headerWrapper = document.getElementById('headerWrapper');
+        const mainHeader = document.getElementById('mainHeader');
+        
+        window.addEventListener('scroll', () => {
             // If screen is wider than 768px, slide the top bar away and shrink header
             if (window.innerWidth > 768) {
                 if (window.scrollY > 40) {
@@ -1298,7 +1418,7 @@ if (marqueeTrack) {
     // Append it right next to the original to create a seamless infinite loop
     document.getElementById('casinoMarquee').appendChild(clone);
 }
-    </script>
+    </script> -->
 
    <div style="
     position: fixed;

@@ -1,14 +1,10 @@
+---
+layout: default
+---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0ZDHXWWX7"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-E0ZDHXWWX7');
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Level.casino – Best Online Casinos Ranked 2026</title>
@@ -96,65 +92,6 @@
             min-height: 100vh;
         }
 
-        .header-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 1000;
-            transition: transform 0.3s ease;
-        }
-
-        .contact-bar-top { 
-            background: #111; 
-            border-bottom: 1px solid #222; 
-            padding: 8px 5%; 
-            display: flex; 
-            justify-content: flex-end; 
-            gap: 20px; 
-            font-size: 0.85rem; 
-            color: var(--text-gray); 
-            height: 35px; 
-        }
-        .contact-bar-top a { color: var(--electric-purple); text-decoration: none; font-weight: 600; transition: 0.3s; }
-        .contact-bar-top a:hover { color: var(--neon-pink); }
-        
-        header { 
-            background: rgba(5, 5, 7, 0.95); 
-            backdrop-filter: blur(15px); 
-            padding: 15px 5%; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 1px solid #1a1a1f; 
-            transition: padding 0.3s ease;
-            width: 100%;
-        }
-        
-        .logo-box { display: flex; align-items: center; gap: 10px; z-index: 1002; }
-        .logo-img { height: 40px; border-radius: 8px; }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; }
-        .logo-text span { color: var(--electric-purple); }
-        
-        nav { display: flex; align-items: center; }
-        nav a { color: var(--text-white); text-decoration: none; margin-left: 20px; font-weight: 500; font-size: 0.9rem; transition: 0.3s; }
-        nav a:hover { color: var(--neon-pink); }
-
-        .menu-toggle {
-            display: none;
-            flex-direction: column;
-            cursor: pointer;
-            gap: 6px;
-            z-index: 1002;
-        }
-        .menu-toggle span {
-            width: 28px;
-            height: 3px;
-            background-color: var(--text-white);
-            border-radius: 2px;
-            transition: all 0.3s ease;
-        }
-
         .hero { 
             flex: 1;
             padding: 120px 5% 80px; 
@@ -220,132 +157,15 @@
             100% { transform: scale(1.5); opacity: 1; }
         }
 
-        /* Affiliate Footer Styles */
-        .affiliate-footer {
-            background: #030305;
-            border-top: 1px solid #1a1a1f;
-            padding: 60px 5% 120px;
-            text-align: center;
-            color: #666;
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-
-        .footer-compliance-logos {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 25px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .age-limit {
-            width: 45px;
-            height: 45px;
-            border: 2px solid #555;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.1rem;
-            color: #888;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin: 25px 0;
-        }
-
-        .footer-links a {
-            color: #8b8b9a;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .footer-links a:hover {
-            color: var(--electric-purple);
-        }
-
-        .fixed-footer { 
-            position: fixed; 
-            bottom: 25px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background: rgba(14, 14, 18, 0.95); 
-            padding: 12px 30px; 
-            border-radius: 50px; 
-            display: flex; 
-            align-items: center; 
-            gap: 25px; 
-            border: 1px solid #333; 
-            z-index: 9999; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8); 
-            backdrop-filter: blur(10px); 
-            width: max-content; 
-            max-width: 90%; 
-        }
-        
-        .fixed-footer a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; white-space: nowrap; transition: 0.3s;}
-        .fixed-footer a:hover { opacity: 0.8; }
-        
-        @media (max-width: 968px) {
-            .menu-toggle { display: flex; }
-            nav {
-                position: absolute; top: 100%; left: 0; width: 100%; background: rgba(5, 5, 7, 0.98);
-                flex-direction: column; align-items: flex-start; padding: 0 5%; max-height: 0;
-                overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease; border-bottom: none;
-            }
-            nav.active { max-height: 400px; padding: 20px 5%; border-bottom: 1px solid #1a1a1f; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-            nav a { margin: 15px 0; font-size: 1.1rem; margin-left: 0; display: block; width: 100%; }
-            nav .btn-main { margin-top: 10px; text-align: center; }
-            .menu-toggle.is-active span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
-            .menu-toggle.is-active span:nth-child(2) { opacity: 0; }
-            .menu-toggle.is-active span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
-        }
-
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.5rem; }
-            .contact-bar-top { display: none; } 
             body { padding-top: 0px; } 
-            .fixed-footer { gap: 15px; padding: 10px 20px; justify-content: center; }
-            .fixed-footer span { display: none; }
         }
     </style>
 </head>
 <body>
     
-    <div class="header-wrapper" id="headerWrapper">
-        <div class="contact-bar-top" id="topBar">
-            <span>Corporate Contact: <a href="mailto:info@level.casino">info@level.casino</a></span>
-        </div>
-
-        <header id="mainHeader">
-            <div class="logo-box">
-                <img src="levelcasino.png" alt="Level Casino Logo" class="logo-img" onerror="this.style.display='none'">
-                <div class="logo-text">LEVEL<span>.CASINO</span></div>
-            </div>
-            
-            <div class="menu-toggle" id="mobile-menu" aria-label="Open mobile menu" role="button" tabindex="0">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-
-            <nav id="navMenu">
-                <a href="/guides/banking.html" style="color: #8b8b9a; text-decoration: none;">Banking Guide</a>
-                <a href="/guides/registration.html" style="color: #8b8b9a; text-decoration: none;">Registration</a>
-                <a href="/crypto/crypto-casino-guide.html" style="color: #8b8b9a; text-decoration: none;">Crypto Casinos</a>
-                <a href="/crypto/provably-fair.html" style="color: #8b8b9a; text-decoration: none;">provably fair</a>
-                <a href="mailto:info@level.casino">Contact Us</a>
-                <a href="https://level.casino/info.html" class="btn-main btn-purple" style="padding: 10px 20px; font-size: 0.8rem; margin-left: 20px;">Acquire Domain</a>
-            </nav>
-        </header>
-    </div>
+    {% include header.html %}
 
     <section class="hero">
         <div class="status-badge">
@@ -367,159 +187,79 @@
         </div>
     </section>
 
-    <footer class="affiliate-footer">
-        <div style="max-width: 1000px; margin: 0 auto;">
-            
-            <div class="footer-compliance-logos">
-                <div class="age-limit">18+</div>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #555; letter-spacing: -1px; text-transform: uppercase;">
-                    BeGamble<span style="color: #888;">Aware</span>.org
-                </div>
+    {% include footer.html %}
+
+    <script>
+        // When the user clicks a country from your flag menu
+        function onCountryChange(countryCode) {
+            setLVCookie("user_geo", countryCode, 30); // Save country for 30 days
+            location.reload(); // Reload to show new ranking
+        }
+
+        // Check if we already know the user's country
+        let savedGeo = getLVCookie("user_geo");
+        if (savedGeo) {
+            console.log("Loading rankings for: " + savedGeo);
+            // Logic to filter your casino table by savedGeo
+        }
+    </script>
+
+    <div id="cookie-consent-banner" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; background: #0e0e12; border: 1px solid #9d50bb; padding: 25px; border-radius: 20px; z-index: 10000; box-shadow: 0 20px 50px rgba(0,0,0,0.7); border-left: 5px solid #ff00cc;">
+        <div style="text-align: center;">
+            <h4 style="font-family: 'Orbitron', sans-serif; color: #fff; margin-bottom: 10px; font-size: 1.1rem; letter-spacing: 1px;">COOKIE SETTINGS</h4>
+            <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5; margin-bottom: 20px;">
+                We use cookies to personalize content and analyze our traffic. We also share information about your use of our site with our social media and analytics partners. 
+                <a href="/cookie-policy.html" style="color: #ff00cc; text-decoration: none;">Read Policy</a>
+            </p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="acceptAllCookies()" style="background: linear-gradient(135deg, #9d50bb, #6e48aa); color: #fff; border: none; padding: 12px 30px; border-radius: 50px; font-weight: 800; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; transition: 0.3s;">ACCEPT ALL</button>
+                <button onclick="closeCookieBanner()" style="background: transparent; color: #8b8b9a; border: 1px solid #333; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-size: 0.75rem;">DECLINE</button>
             </div>
-
-            <p style="margin-bottom: 20px;">
-                <strong>Disclaimer:</strong> Level.casino is an independent casino comparison and affiliate platform. We do not operate any online gambling services or take bets. The availability of the operators and bonuses listed on this site depends heavily on your jurisdiction. 
-            </p>
-            
-            <p style="margin-bottom: 20px;">
-                Users are strictly responsible for complying with local laws and regulations regarding online gambling in their region. We strive to keep our information accurate and up-to-date, but we accept no liability for discrepancies. We may earn a commission when you click on links and register via our site.
-            </p>
-
-            <p style="color: #888; font-weight: 600; margin-bottom: 30px;">
-                Gambling can be addictive. Please play responsibly. If you or someone you know is struggling with a gambling problem, seek help from professional support organizations.
-            </p>
-
-            <div class="footer-links">
-                <a href="/privacy-policy.html">Privacy Policy</a>
-                <a href="/terms-and-conditions.html">Terms & Conditions</a>
-                <a href="/cookie-policy.html">Cookie Policy</a>
-                <a href="/responsible-gambling.html">Responsible Gambling</a>
-                <a href="/guides/banking.html">Banking Guide</a>
-                <a href="/guides/registration.html">Registration</a>
-                <a href="/crypto/crypto-casino-guide.html">Crypto Casinos</a>
-                <a href="/crypto/provably-fair.html">provably fair</a>
-            </div>
-
-            <p>&copy; 2026 Level.casino Portal. All Rights Reserved. General Inquiries: <a href="mailto:info@level.casino" style="color: #888; text-decoration: underline;">info@level.casino</a></p>
         </div>
-    </footer>
-
-    <div class="fixed-footer">
-        <a href="mailto:info@level.casino">📧 info@level.casino</a>
-        <span style="color:#333;">|</span>
-        <a href="https://level.casino/info.html" style="color:var(--neon-pink); font-weight:800; text-transform: uppercase; letter-spacing: 1px;">🛒 Acquire Asset</a>
     </div>
 
     <script>
-        // Menu Toggle Logic
-        const menuToggle = document.getElementById('mobile-menu');
-        const navMenu = document.getElementById('navMenu');
+        // Helper to set a cookie
+        function setLVCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                let date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+        }
 
-        menuToggle.addEventListener('click', () => {
-            menuToggle.classList.toggle('is-active');
-            navMenu.classList.toggle('active');
-        });
+        // Helper to get a cookie
+        function getLVCookie(name) {
+            let nameEQ = name + "=";
+            let ca = document.cookie.split(';');
+            for(let i=0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+            }
+            return null;
+        }
 
-        document.querySelectorAll('nav a').forEach(link => {
-            link.addEventListener('click', () => {
-                menuToggle.classList.remove('is-active');
-                navMenu.classList.remove('active');
-            });
-        });
-
-        // Header Shrink on Scroll Logic
-        const headerWrapper = document.getElementById('headerWrapper');
-        const mainHeader = document.getElementById('mainHeader');
-        
-        window.addEventListener('scroll', () => {
-            if (window.innerWidth > 768) {
-                if (window.scrollY > 40) {
-                    headerWrapper.style.transform = 'translateY(-35px)'; 
-                    mainHeader.style.padding = '8px 5%'; 
-                } else {
-                    headerWrapper.style.transform = 'translateY(0)';
-                    mainHeader.style.padding = '15px 5%';
-                }
-            } else {
-                if (window.scrollY > 40) {
-                    mainHeader.style.padding = '10px 5%';
-                } else {
-                    mainHeader.style.padding = '15px 5%';
-                }
+        // Check on page load
+        window.addEventListener('DOMContentLoaded', (event) => {
+            if (!getLVCookie("lv_consent")) {
+                setTimeout(() => {
+                    document.getElementById("cookie-consent-banner").style.display = "block";
+                }, 2000); // Show after 2 seconds for better UX
             }
         });
 
-        // When the user clicks a country from your flag menu
-function onCountryChange(countryCode) {
-    setLVCookie("user_geo", countryCode, 30); // Save country for 30 days
-    location.reload(); // Reload to show new ranking
-}
+        function acceptAllCookies() {
+            setLVCookie("lv_consent", "accepted", 365); // Remember for 1 year
+            document.getElementById("cookie-consent-banner").style.display = "none";
+            console.log("Cookies Accepted by User");
+        }
 
-// Check if we already know the user's country
-let savedGeo = getLVCookie("user_geo");
-if (savedGeo) {
-    console.log("Loading rankings for: " + savedGeo);
-    // Logic to filter your casino table by savedGeo
-}
+        function closeCookieBanner() {
+            document.getElementById("cookie-consent-banner").style.display = "none";
+        }
     </script>
-
-    
-    <div id="cookie-consent-banner" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; background: #0e0e12; border: 1px solid #9d50bb; padding: 25px; border-radius: 20px; z-index: 10000; box-shadow: 0 20px 50px rgba(0,0,0,0.7); border-left: 5px solid #ff00cc;">
-    <div style="text-align: center;">
-        <h4 style="font-family: 'Orbitron', sans-serif; color: #fff; margin-bottom: 10px; font-size: 1.1rem; letter-spacing: 1px;">COOKIE SETTINGS</h4>
-        <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5; margin-bottom: 20px;">
-            We use cookies to personalize content and analyze our traffic. We also share information about your use of our site with our social media and analytics partners. 
-            <a href="/cookie-policy.html" style="color: #ff00cc; text-decoration: none;">Read Policy</a>
-        </p>
-        <div style="display: flex; gap: 15px; justify-content: center;">
-            <button onclick="acceptAllCookies()" style="background: linear-gradient(135deg, #9d50bb, #6e48aa); color: #fff; border: none; padding: 12px 30px; border-radius: 50px; font-weight: 800; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; transition: 0.3s;">ACCEPT ALL</button>
-            <button onclick="closeCookieBanner()" style="background: transparent; color: #8b8b9a; border: 1px solid #333; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-size: 0.75rem;">DECLINE</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    // Helper to set a cookie
-    function setLVCookie(name, value, days) {
-        let expires = "";
-        if (days) {
-            let date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
-    }
-
-    // Helper to get a cookie
-    function getLVCookie(name) {
-        let nameEQ = name + "=";
-        let ca = document.cookie.split(';');
-        for(let i=0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0)==' ') c = c.substring(1,c.length);
-            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-        }
-        return null;
-    }
-
-    // Check on page load
-    window.addEventListener('DOMContentLoaded', (event) => {
-        if (!getLVCookie("lv_consent")) {
-            setTimeout(() => {
-                document.getElementById("cookie-consent-banner").style.display = "block";
-            }, 2000); // Show after 2 seconds for better UX
-        }
-    });
-
-    function acceptAllCookies() {
-        setLVCookie("lv_consent", "accepted", 365); // Remember for 1 year
-        document.getElementById("cookie-consent-banner").style.display = "none";
-        console.log("Cookies Accepted by User");
-    }
-
-    function closeCookieBanner() {
-        document.getElementById("cookie-consent-banner").style.display = "none";
-    }
-</script>
 </body>
 </html>

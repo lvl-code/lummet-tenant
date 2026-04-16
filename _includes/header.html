@@ -1,3 +1,118 @@
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E0ZDHXWWX7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E0ZDHXWWX7');
+</script>
+
+<style>
+    :root {
+        --bg-black: #050507;
+        --bg-dark: #0e0e12;
+        --electric-purple: #9d50bb;
+        --neon-pink: #ff00cc;
+        --text-white: #ffffff;
+        --text-gray: #8b8b9a;
+        --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%);
+    }
+
+    .header-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+    }
+
+    .contact-bar-top { 
+        background: #111; 
+        border-bottom: 1px solid #222; 
+        padding: 8px 5%; 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 20px; 
+        font-size: 0.85rem; 
+        color: var(--text-gray); 
+        height: 35px; 
+    }
+    .contact-bar-top a { color: var(--electric-purple); text-decoration: none; font-weight: 600; transition: 0.3s; }
+    .contact-bar-top a:hover { color: var(--neon-pink); }
+    
+    header { 
+        background: rgba(5, 5, 7, 0.95); 
+        backdrop-filter: blur(15px); 
+        padding: 15px 5%; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        border-bottom: 1px solid #1a1a1f; 
+        transition: padding 0.3s ease;
+        width: 100%;
+    }
+    
+    .logo-box { display: flex; align-items: center; gap: 10px; z-index: 1002; }
+    .logo-img { height: 40px; border-radius: 8px; }
+    .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; }
+    .logo-text span { color: var(--electric-purple); }
+    
+    nav { display: flex; align-items: center; }
+    nav a { color: var(--text-white); text-decoration: none; margin-left: 20px; font-weight: 500; font-size: 0.9rem; transition: 0.3s; }
+    nav a:hover { color: var(--neon-pink); }
+
+    .menu-toggle {
+        display: none;
+        flex-direction: column;
+        cursor: pointer;
+        gap: 6px;
+        z-index: 1002;
+    }
+    .menu-toggle span {
+        width: 28px;
+        height: 3px;
+        background-color: var(--text-white);
+        border-radius: 2px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-purple { 
+        background: var(--accent-gradient); 
+        color: white; 
+        box-shadow: 0 10px 20px rgba(157, 80, 187, 0.3); 
+        padding: 10px 20px; 
+        border-radius: 12px; 
+        font-weight: 800; 
+        text-decoration: none; 
+        font-size: 0.8rem; 
+        transition: 0.3s; 
+        display: inline-block; 
+        border: none; 
+        cursor: pointer; 
+        text-transform: uppercase; 
+        letter-spacing: 1px;
+        margin-left: 20px;
+    }
+
+    @media (max-width: 968px) {
+        .menu-toggle { display: flex; }
+        nav {
+            position: absolute; top: 100%; left: 0; width: 100%; background: rgba(5, 5, 7, 0.98);
+            flex-direction: column; align-items: flex-start; padding: 0 5%; max-height: 0;
+            overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease; border-bottom: none;
+        }
+        nav.active { max-height: 400px; padding: 20px 5%; border-bottom: 1px solid #1a1a1f; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        nav a { margin: 15px 0; font-size: 1.1rem; margin-left: 0; display: block; width: 100%; }
+        .menu-toggle.is-active span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+        .menu-toggle.is-active span:nth-child(2) { opacity: 0; }
+        .menu-toggle.is-active span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+    }
+
+    @media (max-width: 768px) {
+        .contact-bar-top { display: none; } 
+    }
+</style>
+
 <div class="header-wrapper" id="headerWrapper">
     <div class="contact-bar-top" id="topBar">
         <span>Corporate Contact: <a href="mailto:info@level.casino">info@level.casino</a></span>
@@ -16,14 +131,46 @@
         </div>
 
         <nav id="navMenu">
-            <a href="/">Home</a>
-            <a href="/guides/banking.html">Banking</a>
-            <a href="/guides/registration.html">Registration</a>
-            <a href="/crypto/crypto-casino-guide.html">Crypto Guide</a>
-            <a href="/crypto/provably-fair.html">Provably Fair</a>
-            
             <a href="mailto:info@level.casino">Contact Us</a>
-            <a href="https://level.casino/info.html" class="btn-main btn-purple" style="padding: 10px 20px; font-size: 0.8rem; margin-left: 20px;">Acquire Domain</a>
+            <a href="https://level.casino/info.html" class="btn-purple">Acquire Domain</a>
         </nav>
     </header>
 </div>
+
+<script>
+    (function() {
+        // Menu Toggle Logic
+        const menuToggle = document.getElementById('mobile-menu');
+        const navMenu = document.getElementById('navMenu');
+
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('is-active');
+            navMenu.classList.toggle('active');
+        });
+
+        document.querySelectorAll('#navMenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('is-active');
+                navMenu.classList.remove('active');
+            });
+        });
+
+        // Header Shrink on Scroll Logic
+        const headerWrapper = document.getElementById('headerWrapper');
+        const mainHeader = document.getElementById('mainHeader');
+        
+        window.addEventListener('scroll', () => {
+            if (window.innerWidth > 768) {
+                if (window.scrollY > 40) {
+                    headerWrapper.style.transform = 'translateY(-35px)'; 
+                    mainHeader.style.padding = '8px 5%'; 
+                } else {
+                    headerWrapper.style.transform = 'translateY(0)';
+                    mainHeader.style.padding = '15px 5%';
+                }
+            } else {
+                mainHeader.style.padding = window.scrollY > 40 ? '10px 5%' : '15px 5%';
+            }
+        });
+    })();
+</script>

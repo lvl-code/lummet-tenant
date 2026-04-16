@@ -1,3 +1,85 @@
+<style>
+    /* Affiliate Footer Styles */
+    .affiliate-footer {
+        background: #030305;
+        border-top: 1px solid #1a1a1f;
+        padding: 60px 5% 120px;
+        text-align: center;
+        color: #666;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .footer-compliance-logos {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 25px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .age-limit {
+        width: 45px;
+        height: 45px;
+        border: 2px solid #555;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #888;
+    }
+
+    .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin: 25px 0;
+    }
+
+    .footer-links a {
+        color: #8b8b9a;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+        color: #9d50bb; /* var(--electric-purple) */
+    }
+
+    /* Fixed Floating Footer CTA */
+    .fixed-footer { 
+        position: fixed; 
+        bottom: 25px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        background: rgba(14, 14, 18, 0.95); 
+        padding: 12px 30px; 
+        border-radius: 50px; 
+        display: flex; 
+        align-items: center; 
+        gap: 25px; 
+        border: 1px solid #333; 
+        z-index: 9999; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.8); 
+        backdrop-filter: blur(10px); 
+        width: max-content; 
+        max-width: 90%; 
+    }
+    
+    .fixed-footer a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; white-space: nowrap; transition: 0.3s;}
+    .fixed-footer a:hover { opacity: 0.8; }
+
+    @media (max-width: 768px) {
+        .fixed-footer { gap: 15px; padding: 10px 20px; justify-content: center; }
+        .fixed-footer span { display: none; }
+    }
+</style>
+
 <footer class="affiliate-footer">
     <div style="max-width: 1000px; margin: 0 auto;">
         
@@ -21,12 +103,6 @@
         </p>
 
         <div class="footer-links">
-            <a href="/">Home</a>
-            <a href="/guides/banking.html">Banking</a>
-            <a href="/guides/registration.html">Registration</a>
-            <a href="/crypto/crypto-casino-guide.html">Crypto Guide</a>
-            <a href="/crypto/provably-fair.html">Provably Fair</a>
-
             <a href="/privacy-policy.html">Privacy Policy</a>
             <a href="/terms-and-conditions.html">Terms & Conditions</a>
             <a href="/cookie-policy.html">Cookie Policy</a>
@@ -40,5 +116,5 @@
 <div class="fixed-footer">
     <a href="mailto:info@level.casino">📧 info@level.casino</a>
     <span style="color:#333;">|</span>
-    <a href="https://level.casino/info.html" style="color:var(--neon-pink); font-weight:800; text-transform: uppercase; letter-spacing: 1px;">🛒 Acquire Asset</a>
+    <a href="https://level.casino/info.html" style="color:#ff00cc; font-weight:800; text-transform: uppercase; letter-spacing: 1px;">🛒 Acquire Asset</a>
 </div>

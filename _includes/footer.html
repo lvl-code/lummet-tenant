@@ -1,1 +1,28 @@
 
+<footer class="affiliate-footer">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        <div class="footer-compliance-logos" style="display: flex; justify-content: center; gap: 20px; align-items: center; margin-bottom: 20px;">
+            <div class="age-limit">18+</div>
+            <p style="font-weight: 800; color: #555;">PLAY RESPONSIBLY</p>
+        </div>
+        <p style="margin-bottom: 20px;"><strong>Independent Portal Disclaimer:</strong> Level.casino is not a casino and does not provide gambling services. We provide information for educational purposes. Play at your own risk.</p>
+        <div class="footer-links">
+            <a href="/privacy-policy.html" style="color:#888; text-decoration:none; margin:0 10px;">Privacy Policy</a>
+            <a href="/terms-and-conditions.html" style="color:#888; text-decoration:none; margin:0 10px;">Terms and Conditions</a>
+            <a href="/responsible-gambling.html" style="color:#888; text-decoration:none; margin:0 10px;">Responsible Gambling</a>
+        </div>
+        <p style="margin-top:20px;">&copy; 2026 Level.casino Portal. All Rights Reserved.</p>
+    </div>
+</footer>
+
+<script>
+    function setLVCookie(n,v,d){let e="";if(d){let t=new Date();t.setTime(t.getTime()+(d*24*60*60*1000));e="; expires="+t.toUTCString()}document.cookie=n+"="+(v||"")+e+"; path=/; SameSite=Lax"}
+    function getLVCookie(n){let m=n+"=",c=document.cookie.split(';');for(let i=0;i<c.length;i++){let b=c[i];while(b.charAt(0)==' ')b=b.substring(1);if(b.indexOf(m)==0)return b.substring(m.length,b.length)}return null}
+
+    // Hide links for UK/US Compliance
+    fetch('https://ipapi.co/json/').then(r=>r.json()).then(d=>{
+        if(d.country_code==='GB'||d.country_code==='US'){
+            document.querySelectorAll('.affiliate-link').forEach(a=>a.style.display='none');
+        }
+    });
+</script>

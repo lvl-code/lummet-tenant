@@ -14,26 +14,26 @@ layout: null
 
 <script>
 // ==========================
-// 🔧 CONFIG (ONLY EDIT HERE)
+// 🔧 CASINO CONFIG (EDIT ONLY HERE)
 // ==========================
 const OFFERS = {
     bcgame: {
-        default: "https://bc.game/i-3fmehi429-n/"
+        url: "https://bc.game/i-3fmehi429-n/"
     },
     stake: {
-        default: "https://stake.com/?c=eU3bdx7M"
+        url: "https://stake.com/?c=eU3bdx7M"
     },
     hello: {
-        default: "https://go.superflypartners.net/c/8be2f301"
+        url: "https://go.superflypartners.net/c/8be2f301"
     }
 
-    // 👉 ADD MORE CASINOS LIKE THIS:
-    // slotnite: { default: "https://your-affiliate-link.com" },
-    // skol: { default: "https://your-affiliate-link.com" }
+    // 👉 ADD MORE:
+    // slotnite: { url: "https://your-affiliate-link.com" },
+    // skol: { url: "https://your-affiliate-link.com" }
 };
 
 // ==========================
-// 📊 GET URL PARAMETERS
+// 📊 READ PARAMETERS
 // ==========================
 const params = new URLSearchParams(window.location.search);
 
@@ -44,27 +44,36 @@ const rank = params.get("rank") || "0";
 // ==========================
 // 🚀 REDIRECT ENGINE
 // ==========================
+function redirect(url) {
+    // ALWAYS use replace to avoid showing affiliate URL in history
+    location.replace(url);
+}
+
+// ==========================
+// ❌ INVALID OFFER HANDLER
+// ==========================
 if (!offer || !OFFERS[offer]) {
-    // fallback safe redirect
-    location.replace("/");
+    redirect("/");
 } else {
 
-    // base affiliate URL
-    const baseUrl = new URL(OFFERS[offer].default);
+    // ==========================
+    // 🔥 IMPORTANT FIX
+    // DO NOT append sub1/sub2 to casino URLs
+    // BC.Game & others already handle tracking internally
+    // ==========================
 
-    // ==========================
-    // 📌 TRACKING PARAMETERS
-    // ==========================
-    baseUrl.searchParams.set("sub1", src);
-    baseUrl.searchParams.set("sub2", rank);
+    const cleanUrl = OFFERS[offer].url;
 
-    // Optional extra tracking (safe)
-    baseUrl.searchParams.set("sub3", "levelcasino");
+    // Optional: You can still log tracking locally (analytics, not URL injection)
+    console.log("Click tracked:", {
+        offer: offer,
+        src: src,
+        rank: rank,
+        time: Date.now()
+    });
 
-    // ==========================
-    // 🔥 CLEAN REDIRECT (NO HISTORY CLUTTER)
-    // ==========================
-    location.replace(baseUrl.toString());
+    // Redirect cleanly
+    redirect(cleanUrl);
 }
 </script>
 

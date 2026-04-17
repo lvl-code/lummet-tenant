@@ -14,7 +14,7 @@ layout: null
 
 <script>
 // ==========================
-// 🔧 CONFIG (EDIT ONLY HERE)
+// 🔧 CONFIG (ONLY EDIT HERE)
 // ==========================
 const OFFERS = {
     bcgame: {
@@ -25,44 +25,46 @@ const OFFERS = {
     },
     hello: {
         default: "https://go.superflypartners.net/c/8be2f301"
-    },
+    }
 
-    // 👉 ADD NEW CASINO LIKE THIS:
-    // newcasino: {
-    //     default: "https://your-affiliate-link.com"
-    // }
+    // 👉 ADD MORE CASINOS LIKE THIS:
+    // slotnite: { default: "https://your-affiliate-link.com" },
+    // skol: { default: "https://your-affiliate-link.com" }
 };
 
 // ==========================
-// 🌍 GEO DETECTION
-// ==========================
-function getGeo() {
-    return localStorage.getItem("lv_geo") || "ROW";
-}
-
-// ==========================
-// 📊 GET PARAMS
+// 📊 GET URL PARAMETERS
 // ==========================
 const params = new URLSearchParams(window.location.search);
+
 const offer = params.get("offer");
 const src = params.get("src") || "direct";
 const rank = params.get("rank") || "0";
 
 // ==========================
-// 🚀 REDIRECT LOGIC
+// 🚀 REDIRECT ENGINE
 // ==========================
 if (!offer || !OFFERS[offer]) {
-    window.location.href = "/";
+    // fallback safe redirect
+    location.replace("/");
 } else {
-    let baseUrl = OFFERS[offer].default;
 
-    // Append tracking
-    let finalUrl = baseUrl + 
-        (baseUrl.includes("?") ? "&" : "?") +
-        "sub1=" + src +
-        "&sub2=" + rank;
+    // base affiliate URL
+    const baseUrl = new URL(OFFERS[offer].default);
 
-    window.location.href = finalUrl;
+    // ==========================
+    // 📌 TRACKING PARAMETERS
+    // ==========================
+    baseUrl.searchParams.set("sub1", src);
+    baseUrl.searchParams.set("sub2", rank);
+
+    // Optional extra tracking (safe)
+    baseUrl.searchParams.set("sub3", "levelcasino");
+
+    // ==========================
+    // 🔥 CLEAN REDIRECT (NO HISTORY CLUTTER)
+    // ==========================
+    location.replace(baseUrl.toString());
 }
 </script>
 

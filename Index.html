@@ -1,0 +1,70 @@
+---
+permalink: /go
+layout: null
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Redirecting...</title>
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+
+<script>
+// ==========================
+// 🔧 CONFIG (EDIT ONLY HERE)
+// ==========================
+const OFFERS = {
+    bcgame: {
+        default: "https://bc.game/i-3fmehi429-n/"
+    },
+    stake: {
+        default: "https://stake.com/?c=eU3bdx7M"
+    },
+    hello: {
+        default: "https://go.superflypartners.net/c/8be2f301"
+    },
+
+    // 👉 ADD NEW CASINO LIKE THIS:
+    // newcasino: {
+    //     default: "https://your-affiliate-link.com"
+    // }
+};
+
+// ==========================
+// 🌍 GEO DETECTION
+// ==========================
+function getGeo() {
+    return localStorage.getItem("lv_geo") || "ROW";
+}
+
+// ==========================
+// 📊 GET PARAMS
+// ==========================
+const params = new URLSearchParams(window.location.search);
+const offer = params.get("offer");
+const src = params.get("src") || "direct";
+const rank = params.get("rank") || "0";
+
+// ==========================
+// 🚀 REDIRECT LOGIC
+// ==========================
+if (!offer || !OFFERS[offer]) {
+    window.location.href = "/";
+} else {
+    let baseUrl = OFFERS[offer].default;
+
+    // Append tracking
+    let finalUrl = baseUrl + 
+        (baseUrl.includes("?") ? "&" : "?") +
+        "sub1=" + src +
+        "&sub2=" + rank;
+
+    window.location.href = finalUrl;
+}
+</script>
+
+</body>
+</html>

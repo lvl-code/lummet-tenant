@@ -1,0 +1,52 @@
+[
+  {
+    "id": "bcgame",
+    "name": "BC.GAME",
+    "logo": "https://level.casino/logo/bcgame-logo.jpeg",
+    "score": "4.8/5",
+    "tag": "Licensed Operator",
+    "bonus_title": "Up to 500% Match Deposit",
+    "bonus_desc": "Wager and unlock real cash rewards via the BCD ecosystem.",
+    "features": [
+      "Licensed in: Curaçao / BCLB Kenya",
+      "Accepts: Crypto & Fiat (100+ coins)",
+      "Withdrawal: Instant / No Cap"
+    ],
+    "link": "/go?offer=bcgame",
+    "review": "/reviews/bcgame/"
+  },
+
+  {
+    "id": "stake",
+    "name": "STAKE",
+    "logo": "https://level.casino/logo/stake-logo.png",
+    "score": "4.8/5",
+    "tag": "Licensed Operator",
+    "bonus_title": "200% Up to $3,000 + 10% Rakeback",
+    "bonus_desc": "High-roller crypto casino with instant withdrawals.",
+    "features": [
+      "Licensed by: Curaçao",
+      "Accepts: Crypto & Fiat",
+      "Withdrawal: Instant"
+    ],
+    "link": "/go?offer=stake",
+    "review": "/reviews/stake/"
+  },
+
+  {
+    "id": "hello",
+    "name": "HELLO CASINO",
+    "logo": "https://level.casino/logo/hello-logo.png",
+    "score": "4.6/5",
+    "tag": "MGA Licensed",
+    "bonus_title": "100% up to €300 + 100 Spins",
+    "bonus_desc": "Popular EU-focused casino with strong bonuses.",
+    "features": [
+      "Licensed by: Malta Gaming Authority",
+      "Best for: Slots & Bonuses",
+      "Withdrawal: Fast"
+    ],
+    "link": "/go?offer=hello",
+    "review": "/reviews/hello/"
+  }
+]

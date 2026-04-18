@@ -50,25 +50,20 @@ async function loadCasinos() {
                             </div>
                         `).join("")}
                     </div>
-
+                    <!-- ✅ SINGLE correct footer (no duplication) -->
                     <div style="border-top:1px solid #222; padding-top:15px; margin-bottom:20px;">
-                        <p style="font-size:0.75rem; color:#666;">
-                            18+ | PLAY RESPONSIBLY | T&Cs APPLY
+                        <p style="font-size:0.75rem; color:#666; line-height:1.4;">
+                            <strong style="color:#888;">Region Responsibility:</strong> 
+                            Online gambling laws vary by jurisdiction. It is your sole responsibility to ensure that you comply with local laws before registering.
+                            <br><br>
+                            <span style="color:#999; font-weight:800;">
+                                18+ | PLAY RESPONSIBLY | 
+                                <a href="/terms-and-conditions.html" style="color:var(--text-gray);">
+                                    T&Cs APPLY
+                                </a>
+                            </span>
                         </p>
-                    </div> 
-                    <div style="border-top:1px solid #222; padding-top:15px; margin-bottom:20px;">
-    <p style="font-size:0.75rem; color:#666; line-height:1.4;">
-        <strong style="color:#888;">Region Responsibility:</strong> 
-        Online gambling laws vary by jurisdiction. It is your sole responsibility to ensure that you comply with local laws before registering.
-        <br><br>
-        <span style="color:#999; font-weight:800;">
-            18+ | PLAY RESPONSIBLY | 
-            <a href="/terms-and-conditions.html" style="color:var(--text-gray);">
-                T&Cs APPLY
-            </a>
-        </span>
-    </p>
-</div>
+                    </div>
 
                     <div style="display:flex; gap:10px;">
                         <a href="${casino.link}" class="btn-main btn-purple" style="flex:2; text-align:center;">

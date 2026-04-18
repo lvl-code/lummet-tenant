@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,21 +53,8 @@
     </style>
 </head>
 <body>
-    <div class="contact-bar-top">
-        <span>Corporate Contact: <a href="mailto:info@level.casino">info@level.casino</a></span>
-    </div>
 
-    <header>
-        <div class="logo-box">
-            <a href="/" class="logo-text">LEVEL<span>.CASINO</span></a>
-        </div>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/privacy-policy.html">Privacy Policy</a>
-            <a href="/cookie-policy.html">Cookie Policy</a>
-            <a href="mailto:info@level.casino">Contact</a>
-        </nav>
-    </header>
+    {% include header.html %}
 
     <div class="page-header">
         <h1>About Level.casino</h1>
@@ -102,22 +92,7 @@
         </div>
     </div>
 
-    <footer class="affiliate-footer">
-        <div style="max-width: 1000px; margin: 0 auto;">
-            <div class="footer-compliance-logos">
-                <div class="age-limit">18+</div>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #555; text-transform: uppercase;">
-                    BeGamble<span style="color: #888;">Aware</span>.org
-                </div>
-            </div>
-            <p style="margin-bottom: 20px;"><strong>Disclaimer:</strong> Level.casino is an independent casino comparison and affiliate platform. We do not operate any online gambling services. Users are strictly responsible for complying with local laws regarding online gambling. We may earn a commission when you click on links and register via our site.</p>
-            <div class="footer-links">
-                <a href="/privacy-policy.html">Privacy Policy</a>
-                <a href="/cookie-policy.html">Cookie Policy</a>
-                <a href="/about-us.html">About Us</a>
-            </div>
-            <p>&copy; 2026 Level.casino Portal. Operated by EliJul Group. <a href="mailto:info@level.casino" style="color: #888;">info@level.casino</a></p>
-        </div>
-    </footer>
+    {% include footer.html %}
+
 </body>
 </html>

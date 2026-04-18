@@ -26,7 +26,7 @@ const OFFERS = {
 
     stake: {
         url: "https://stake.com/?c=eU3bdx7M",
-        blocked: ["US", "GB", "RW", "NL"]
+        blocked: ["US", "GB"]
     },
 
     hello: {
@@ -72,9 +72,6 @@ function detectGeo() {
     if (lang.includes("en-us")) return "US";
     if (lang.includes("de")) return "DE";
     if (lang.includes("fr")) return "FR";
-    if (lang.includes("rw")) return "RW";
-    if (lang.includes("en-rw")) return "RW";
-    if (lang.includes("fr-rw")) return "RW";
 
     return "ROW"; // Rest of World
 }

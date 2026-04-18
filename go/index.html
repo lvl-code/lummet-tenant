@@ -1,0 +1,106 @@
+---
+permalink: /go
+layout: null
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Redirecting...</title>
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+
+<script>
+// ==========================
+// 🔧 CASINO CONFIG (EDIT ONLY HERE)
+// ==========================
+const OFFERS = {
+    bcgame: {
+        url: "https://bc.game/i-3fmehi429-n/",
+        blocked: ["US", "GB"]
+    },
+    stake: {
+        url: "https://stake.com/?c=eU3bdx7M",
+        blocked: ["US", "GB", "RW"]
+    },
+    hello: {
+        url: "https://go.superflypartners.net/c/8be2f301",
+        blocked: ["GB"]
+    }
+
+    // 👉 ADD MORE:
+    // slotnite: { url: "...", blocked: ["GB"] },
+    // skol: { url: "...", blocked: ["GB"] }
+};
+
+// ==========================
+// 🌍 GEO DETECTION
+// ==========================
+
+// Option 1: from localStorage (your frontend sets it)
+let geo = localStorage.getItem("lv_geo");
+
+// Option 2: fallback using browser language
+if (!geo) {
+    const lang = navigator.language || "";
+    if (lang.includes("en-GB")) geo = "GB";
+    else if (lang.includes("en-US")) geo = "US";
+    else if (lang.includes("en-RW")) geo = "RW";
+    else geo = "ROW";
+}
+
+// ==========================
+// 📊 READ PARAMETERS
+// ==========================
+const params = new URLSearchParams(window.location.search);
+
+const offer = params.get("offer");
+const src = params.get("src") || "direct";
+const rank = params.get("rank") || "0";
+
+// ==========================
+// 🚀 REDIRECT FUNCTION
+// ==========================
+function redirect(url) {
+    location.replace(url);
+}
+
+// ==========================
+// ❌ INVALID OFFER HANDLER
+// ==========================
+if (!offer || !OFFERS[offer]) {
+    redirect("/");
+} else {
+
+    const config = OFFERS[offer];
+
+    // ==========================
+    // 🚫 GEO BLOCK CHECK
+    // ==========================
+    if (config.blocked && config.blocked.includes(geo)) {
+        redirect("/not-available.html");
+        return;
+    }
+
+    // ==========================
+    // 🔥 CLEAN REDIRECT (NO PARAMS)
+    // ==========================
+    const cleanUrl = config.url;
+
+    // Optional tracking (safe)
+    console.log("Click tracked:", {
+        offer,
+        src,
+        rank,
+        geo,
+        time: Date.now()
+    });
+
+    redirect(cleanUrl);
+}
+</script>
+
+</body>
+</html>

@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,65 +8,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms and Conditions | Level.casino</title>
     <meta name="description" content="Terms and Conditions for Level.casino. Read our rules, disclaimers, and user agreements for our independent casino ranking portal.">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-black: #050507; --bg-dark: #0e0e12;
-            --electric-purple: #9d50bb; --neon-pink: #ff00cc;
-            --text-white: #ffffff; --text-gray: #8b8b9a;
-            --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-black); color: var(--text-white); line-height: 1.7; padding-top: 90px; }
-        
-        .contact-bar-top { background: #111; border-bottom: 1px solid #222; padding: 8px 5%; display: flex; justify-content: flex-end; gap: 20px; font-size: 0.85rem; color: var(--text-gray); }
-        .contact-bar-top a { color: var(--electric-purple); text-decoration: none; font-weight: 600; }
-        
-        header { background: rgba(5, 5, 7, 0.95); backdrop-filter: blur(15px); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a1f; position: fixed; top: 35px; width: 100%; z-index: 1000; }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; text-decoration: none; color: #fff; }
-        .logo-text span { color: var(--electric-purple); }
-        
-        nav { display: flex; gap: 20px; }
-        nav a { color: var(--text-white); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: 0.3s; }
-        nav a:hover { color: var(--neon-pink); }
-        
-        .page-header { text-align: center; padding: 60px 5% 40px; background: radial-gradient(circle at 50% 0%, #2a1b3d 0%, #050507 60%); border-bottom: 1px solid #1a1a1f; }
-        .page-header h1 { font-family: 'Orbitron', sans-serif; font-size: 3rem; margin-bottom: 10px; text-transform: uppercase; }
-        
-        .content-container { max-width: 1000px; margin: 0 auto; padding: 60px 5%; }
-        .document-card { background: var(--bg-dark); padding: 50px; border-radius: 20px; border: 1px solid #1a1a1f; }
-        .document-card h2 { font-family: 'Orbitron', sans-serif; color: var(--electric-purple); margin: 40px 0 20px; font-size: 1.8rem; border-bottom: 1px solid #222; padding-bottom: 10px;}
-        .document-card h3 { color: #fff; margin: 25px 0 15px; font-size: 1.3rem; }
-        .document-card p, .document-card ul { margin-bottom: 20px; color: #bbb; }
-        .document-card li { margin-bottom: 10px; margin-left: 20px; }
-        .document-card a { color: var(--neon-pink); text-decoration: none; }
-
-        .affiliate-footer { background: #030305; border-top: 1px solid #1a1a1f; padding: 60px 5% 50px; text-align: center; color: #666; font-size: 0.85rem; }
-        .age-limit { width: 45px; height: 45px; border: 2px solid #555; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; color: #888; margin-bottom: 20px; }
-
-        @media (max-width: 768px) {
-            .contact-bar-top { display: none; }
-            header { top: 0; flex-direction: column; padding: 15px 5%; }
-            body { padding-top: 120px; }
-        }
-    </style>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+    
+    <link rel="stylesheet" href="/css/merged.css">
 </head>
 <body>
-    <div class="contact-bar-top">
-        <span>Platform Assistance: <a href="mailto:info@level.casino">info@level.casino</a></span>
-    </div>
-
-    <header>
-        <div class="logo-box">
-            <a href="/" class="logo-text">LEVEL<span>.CASINO</span></a>
-        </div>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/about-us.html">About</a>
-            <a href="/privacy-policy.html">Privacy</a>
-            <a href="/responsible-gambling.html">Responsible Play</a>
-        </nav>
-    </header>
+    
+    {% include header.html %}
 
     <div class="page-header">
         <h1>Terms & Conditions</h1>
@@ -83,7 +40,7 @@
             <p>By using this Portal, you signify your irrevocable acceptance of these Terms. If you do not agree with any part of these Terms, you must immediately terminate your use of the Portal. We reserve the right to update these Terms at any time without prior notice.</p>
 
             <h2>3. User Responsibility & Compliance</h2>
-            <p>You are solely responsible for ensuring that your access to and use of Level.casino and any third-party websites linked herein complies with all laws and regulations applicable to you in your jurisdiction. 
+            <p>You are solely responsible for ensuring that your access to and use of Level.casino and any third-party websites linked herein complies with all laws and regulations applicable to you in your jurisdiction.</p> 
             <ul>
                 <li>You must be of legal age (18+ in most jurisdictions).</li>
                 <li>You must ensure online gambling is legal in your current location.</li>
@@ -112,17 +69,7 @@
         </article>
     </div>
 
-    <footer class="affiliate-footer">
-        <div style="max-width: 1000px; margin: 0 auto;">
-            <div class="age-limit">18+</div>
-            <p style="margin-bottom: 20px;"><strong>Independent Portal Disclaimer:</strong> Level.casino is not a casino and does not provide gambling services. We provide information for educational purposes. Play at your own risk. <strong>Play Responsibly.</strong></p>
-            <div class="footer-links">
-                <a href="/privacy-policy.html" style="color:#888; text-decoration:none; margin:0 10px;">Privacy Policy</a>
-                <a href="/terms-and-conditions.html" style="color:#888; text-decoration:none; margin:0 10px;">Terms and Conditions</a>
-                <a href="/responsible-gambling.html" style="color:#888; text-decoration:none; margin:0 10px;">Responsible Gambling</a>
-            </div>
-            <p style="margin-top:20px;">&copy; 2026 Level.casino Portal. All Rights Reserved.</p>
-        </div>
-    </footer>
+    {% include footer.html %}
+
 </body>
 </html>

@@ -3,14 +3,14 @@
     "id": "bcgame",
     "name": "BC.GAME",
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
-    "score": "4.8/5",
+    "score": "4.4/5",
     "tag": "Licensed Operator",
-    "bonus_title": "Up to 500% Match Deposit",
+    "bonus_title": "deposit bonus",
     "bonus_desc": "Wager and unlock real cash rewards via the BCD ecosystem.",
     "features": [
-      "Licensed in: Curaçao / BCLB Kenya",
+      "Licensed in: Curaçao ",
       "Accepts: Crypto & Fiat (100+ coins)",
-      "Withdrawal: Instant / No Cap"
+      "Withdrawal: Instant"
     ],
     "link": "/go?offer=bcgame",
     "review": "/reviews/bcgame/"
@@ -20,9 +20,9 @@
     "id": "stake",
     "name": "STAKE",
     "logo": "https://level.casino/logo/stake-logo.png",
-    "score": "4.8/5",
+    "score": "4.2/5",
     "tag": "Licensed Operator",
-    "bonus_title": "200% Up to $3,000 + 10% Rakeback",
+    "bonus_title": "Rakeback",
     "bonus_desc": "High-roller crypto casino with instant withdrawals.",
     "features": [
       "Licensed by: Curaçao",
@@ -37,7 +37,7 @@
     "id": "shuffle",
     "name": "SHUFFLE",
     "logo": "https://level.casino/logo/shuffle-logo.jpeg",
-    "score": "4.8/5",
+    "score": "4.0/5",
     "tag": "Licensed Operator",
     "bonus_title": "Rakeback + daily rewards",
     "bonus_desc": "Earn rakeback rewards and daily bonuses as you play.",
@@ -54,7 +54,7 @@
     "id": "hello",
     "name": "HELLO CASINO",
     "logo": "https://level.casino/logo/hello-logo.png",
-    "score": "4.6/5",
+    "score": "4.0/5",
     "tag": "MGA Licensed",
     "bonus_title": "100% up to €300 + 100 Spins",
     "bonus_desc": "Popular EU-focused casino with strong bonuses.",

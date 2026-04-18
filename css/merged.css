@@ -209,6 +209,14 @@ nav a.gray-link { color: var(--text-gray); }
     transform: translateY(-3px); 
     box-shadow: 0 10px 20px rgba(255, 0, 204, 0.3); 
 }
+.cta-trust {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: #888;
+    text-align: center;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
 
 /* --- COMPONENTS: CARDS & BADGES --- */
 .acquisition-card {

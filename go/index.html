@@ -9,6 +9,7 @@ layout: null
 <meta charset="UTF-8">
 <title>Redirecting...</title>
 <meta name="robots" content="noindex, nofollow">
+<meta http-equiv="refresh" content="3;url=/" />
 </head>
 <body>
 
@@ -17,39 +18,70 @@ layout: null
 // 🔧 CASINO CONFIG (EDIT ONLY HERE)
 // ==========================
 const OFFERS = {
+
     bcgame: {
         url: "https://bc.game/i-3fmehi429-n/",
         blocked: ["US", "GB"]
     },
+
     stake: {
         url: "https://stake.com/?c=eU3bdx7M",
-        blocked: ["US", "GB", "RW"]
+        blocked: ["US", "GB", "RW", "NL"]
     },
+
     hello: {
         url: "https://go.superflypartners.net/c/8be2f301",
         blocked: ["GB"]
     }
 
-    // 👉 ADD MORE:
-    // slotnite: { url: "...", blocked: ["GB"] },
-    // skol: { url: "...", blocked: ["GB"] }
+    // ==========================
+    // 👉 ADD MORE CASINOS LIKE THIS:
+    // ==========================
+    /*
+    slotnite: {
+        url: "https://your-affiliate-link.com",
+        blocked: ["GB", "DE", "FR"]
+    },
+
+    skol: {
+        url: "https://your-affiliate-link.com",
+        blocked: ["GB"]
+    },
+
+    diamond7: {
+        url: "https://your-affiliate-link.com",
+        blocked: []
+    }
+    */
 };
 
 // ==========================
-// 🌍 GEO DETECTION
+// 🌍 GEO DETECTION (IMPROVED)
 // ==========================
 
-// Option 1: from localStorage (your frontend sets it)
-let geo = localStorage.getItem("lv_geo");
+function detectGeo() {
+    // 1. Try saved geo (best accuracy)
+    let geo = localStorage.getItem("lv_geo");
 
-// Option 2: fallback using browser language
-if (!geo) {
-    const lang = navigator.language || "";
-    if (lang.includes("en-GB")) geo = "GB";
-    else if (lang.includes("en-US")) geo = "US";
-    else if (lang.includes("en-RW")) geo = "RW";
-    else geo = "ROW";
+    if (geo) return geo;
+
+    // 2. Fallback using language
+    const lang = (navigator.language || "").toLowerCase();
+
+    if (lang.includes("en-gb")) return "GB";
+    if (lang.includes("en-us")) return "US";
+    if (lang.includes("de")) return "DE";
+    if (lang.includes("fr")) return "FR";
+    if (lang.includes("rw")) return "RW";
+    if (lang.includes("en-rw")) return "RW";
+    if (lang.includes("fr-rw")) return "RW";
+    if (lang.includes("nl")) return "NL";
+    if (lang.includes("nl-nl")) return "NL";
+
+    return "ROW"; // Rest of World
 }
+
+const geo = detectGeo();
 
 // ==========================
 // 📊 READ PARAMETERS
@@ -57,14 +89,15 @@ if (!geo) {
 const params = new URLSearchParams(window.location.search);
 
 const offer = params.get("offer");
-const src = params.get("src") || "direct";
-const rank = params.get("rank") || "0";
+const src   = params.get("src") || "direct";
+const rank  = params.get("rank") || "0";
 
 // ==========================
-// 🚀 REDIRECT FUNCTION
+// 🚀 SAFE REDIRECT FUNCTION
 // ==========================
 function redirect(url) {
-    location.replace(url);
+    // Use replace so user never sees /go in history
+    window.location.replace(url);
 }
 
 // ==========================
@@ -81,26 +114,32 @@ if (!offer || !OFFERS[offer]) {
     // ==========================
     if (config.blocked && config.blocked.includes(geo)) {
         redirect("/not-available.html");
-        return;
+    } else {
+
+        // ==========================
+        // 🔥 CLEAN REDIRECT (NO PARAMS)
+        // ==========================
+        const finalUrl = config.url;
+
+        // ==========================
+        // 📊 OPTIONAL TRACKING (SAFE)
+        // ==========================
+        console.log("Affiliate Click", {
+            offer,
+            src,
+            rank,
+            geo,
+            time: new Date().toISOString()
+        });
+
+        redirect(finalUrl);
     }
-
-    // ==========================
-    // 🔥 CLEAN REDIRECT (NO PARAMS)
-    // ==========================
-    const cleanUrl = config.url;
-
-    // Optional tracking (safe)
-    console.log("Click tracked:", {
-        offer,
-        src,
-        rank,
-        geo,
-        time: Date.now()
-    });
-
-    redirect(cleanUrl);
 }
 </script>
+
+<noscript>
+<p>Redirecting... <a href="/">Click here</a></p>
+</noscript>
 
 </body>
 </html>

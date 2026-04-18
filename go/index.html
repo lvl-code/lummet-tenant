@@ -15,7 +15,7 @@ layout: null
 <script>
 
 // ==========================
-// 🔧 CASINO CONFIG
+// 🔧 CONFIG
 // ==========================
 const OFFERS = {
 
@@ -32,13 +32,12 @@ const OFFERS = {
     hello: {
         url: "https://go.superflypartners.net/c/8be2f301",
         blocked: ["GB"]
-    },
-
-    // 🔁 FALLBACK (IMPORTANT)
-    fallback: {
-        url: "https://level.casino/"
     }
+
 };
+
+// ✅ SIMPLE fallback (NOT inside OFFERS)
+const FALLBACK_URL = "https://level.casino/";
 
 // ==========================
 // 🌍 GEO DETECTION
@@ -67,7 +66,7 @@ const params = new URLSearchParams(window.location.search);
 const offer = params.get("offer");
 
 // ==========================
-// 🚀 REDIRECT FUNCTION
+// 🚀 REDIRECT
 // ==========================
 function redirect(url) {
     window.location.replace(url);
@@ -76,16 +75,14 @@ function redirect(url) {
 // ==========================
 // 🔥 CORE LOGIC
 // ==========================
-if (!offer || !OFFERS[offer]) {
-
-    // ✅ THIS IS WHERE FALLBACK GOES
-    redirect(OFFERS.fallback.url);
-
+if (!offer) {
+    redirect(FALLBACK_URL);
+} else if (!OFFERS[offer]) {
+    redirect(FALLBACK_URL);
 } else {
 
     const config = OFFERS[offer];
 
-    // 🚫 GEO BLOCK
     if (config.blocked && config.blocked.includes(geo)) {
         redirect("/not-available.html");
     } else {

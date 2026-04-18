@@ -8,26 +8,11 @@ layout: null
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us | Level.casino</title>
     <meta name="description" content="Learn about Level.casino, the premier geo-aware casino ranking intelligence platform operated by the EliJul Group.">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/css/merged.css">
+    
     <style>
-        /* Exact same core styles as Privacy Policy to maintain aesthetic consistency */
-        :root { --bg-black: #050507; --bg-dark: #0e0e12; --electric-purple: #9d50bb; --neon-pink: #ff00cc; --text-white: #ffffff; --text-gray: #8b8b9a; --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%); }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-black); color: var(--text-white); line-height: 1.7; padding-top: 90px; }
-        .contact-bar-top { background: #111; border-bottom: 1px solid #222; padding: 8px 5%; display: flex; justify-content: flex-end; gap: 20px; font-size: 0.85rem; color: var(--text-gray); }
-        .contact-bar-top a { color: var(--electric-purple); text-decoration: none; font-weight: 600; }
-        header { background: rgba(5, 5, 7, 0.95); backdrop-filter: blur(15px); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a1f; position: fixed; top: 35px; width: 100%; z-index: 1000; }
-        .logo-box { display: flex; align-items: center; gap: 10px; }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; text-decoration: none; color: #fff; }
-        .logo-text span { color: var(--electric-purple); }
-        nav { display: flex; gap: 20px; }
-        nav a { color: var(--text-white); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: 0.3s; }
-        nav a:hover { color: var(--neon-pink); }
-        .page-header { text-align: center; padding: 80px 5% 50px; background: radial-gradient(circle at 50% 0%, #2a1b3d 0%, #050507 60%); border-bottom: 1px solid #1a1a1f; }
-        .page-header h1 { font-family: 'Orbitron', sans-serif; font-size: 3.5rem; margin-bottom: 15px; text-transform: uppercase; }
-        .page-header p { color: var(--text-gray); font-size: 1.2rem; max-width: 700px; margin: 0 auto; }
-        .content-container { max-width: 1000px; margin: 0 auto; padding: 60px 5%; }
-        
+        /* Page-specific layout styles not present in global merged.css */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px; }
         .info-card { background: var(--bg-dark); padding: 40px; border-radius: 20px; border: 1px solid #1a1a1f; transition: 0.3s; }
         .info-card:hover { border-color: var(--electric-purple); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(157, 80, 187, 0.1); }
@@ -37,16 +22,7 @@ layout: null
         .full-card h2 { font-family: 'Orbitron', sans-serif; color: #fff; margin-bottom: 20px; font-size: 2rem; }
         .full-card p { color: #bbb; max-width: 800px; margin: 0 auto 20px; }
         
-        .affiliate-footer { background: #030305; border-top: 1px solid #1a1a1f; padding: 60px 5% 50px; text-align: center; color: #666; font-size: 0.85rem; line-height: 1.6; }
-        .footer-compliance-logos { display: flex; justify-content: center; align-items: center; gap: 25px; margin-bottom: 30px; flex-wrap: wrap; }
-        .age-limit { width: 45px; height: 45px; border: 2px solid #555; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #888; }
-        .footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin: 25px 0; }
-        .footer-links a { color: #8b8b9a; text-decoration: none; transition: color 0.3s; }
-        .footer-links a:hover { color: var(--electric-purple); }
         @media (max-width: 768px) {
-            .contact-bar-top { display: none; }
-            header { top: 0; flex-direction: column; gap: 15px; padding: 15px 5%; }
-            body { padding-top: 120px; }
             .grid-2 { grid-template-columns: 1fr; }
             .full-card { padding: 30px 20px; }
         }

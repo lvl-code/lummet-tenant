@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,39 +8,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Responsible Gambling | Level.casino</title>
     <meta name="description" content="Level.casino is committed to safe and responsible gaming. Learn how to stay in control and where to find support.">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+    
+    <link rel="stylesheet" href="/css/merged.css">
+
     <style>
-        :root {
-            --bg-black: #050507; --bg-dark: #0e0e12;
-            --electric-purple: #9d50bb; --neon-pink: #ff00cc;
-            --text-white: #ffffff; --text-gray: #8b8b9a;
-            --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-black); color: var(--text-white); line-height: 1.7; padding-top: 90px; }
-        
-        /* Nav & Header */
-        .contact-bar-top { background: #111; border-bottom: 1px solid #222; padding: 8px 5%; display: flex; justify-content: flex-end; gap: 20px; font-size: 0.85rem; color: var(--text-gray); }
-        .contact-bar-top a { color: var(--electric-purple); text-decoration: none; font-weight: 600; }
-        header { background: rgba(5, 5, 7, 0.95); backdrop-filter: blur(15px); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a1f; position: fixed; top: 35px; width: 100%; z-index: 1000; }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; text-decoration: none; color: #fff; }
-        .logo-text span { color: var(--electric-purple); }
-        nav { display: flex; gap: 20px; }
-        nav a { color: var(--text-white); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: 0.3s; }
-        nav a:hover { color: var(--neon-pink); }
-        
-        /* Layout */
-        .page-header { text-align: center; padding: 60px 5% 40px; background: radial-gradient(circle at 50% 100%, #1a1025 0%, #050507 80%); border-bottom: 1px solid #1a1a1f; }
-        .page-header h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); margin-bottom: 10px; text-transform: uppercase; }
-        
-        .content-container { max-width: 1000px; margin: 0 auto; padding: 60px 5%; }
+        /* Page-specific styles not included in merged.css */
+        .page-header { background: radial-gradient(circle at 50% 100%, #1a1025 0%, #050507 80%); }
         .doc-card { background: var(--bg-dark); padding: 50px; border-radius: 24px; border: 1px solid #1a1a1f; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .doc-card h2 { font-family: 'Orbitron', sans-serif; color: var(--electric-purple); margin: 40px 0 20px; font-size: 1.6rem; }
+        .doc-card h3 { color: #fff; margin: 30px 0 15px; font-size: 1.25rem; }
+        .doc-card p { margin-bottom: 20px; color: #bbb; }
+        .doc-card ul { margin-bottom: 20px; padding-left: 20px; color: #bbb; }
+        .doc-card li { margin-bottom: 10px; }
         
-        h2 { font-family: 'Orbitron', sans-serif; color: var(--electric-purple); margin: 40px 0 20px; font-size: 1.6rem; }
-        h3 { color: #fff; margin: 30px 0 15px; font-size: 1.25rem; }
-        p { margin-bottom: 20px; color: #bbb; }
-        
-        /* Specialized UI Components */
         .checklist-box { background: rgba(157, 80, 187, 0.05); border: 1px solid rgba(157, 80, 187, 0.2); padding: 30px; border-radius: 15px; margin: 30px 0; }
         .checklist-box h3 { margin-top: 0; color: var(--neon-pink); }
         .checklist-item { display: flex; gap: 15px; margin-bottom: 15px; color: #ddd; }
@@ -48,36 +38,15 @@
         .help-card:hover { border-color: var(--electric-purple); transform: translateY(-5px); }
         .help-card strong { display: block; margin-bottom: 10px; color: #fff; font-size: 1.1rem; }
         .help-card a { color: var(--neon-pink); text-decoration: none; font-weight: 700; }
-
-        /* Footer */
-        .affiliate-footer { background: #030305; border-top: 1px solid #1a1a1f; padding: 60px 5% 50px; text-align: center; color: #666; font-size: 0.85rem; }
-        .footer-compliance-logos { display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 30px; opacity: 0.6; }
-        .age-limit { width: 45px; height: 45px; border: 2px solid #555; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #888; }
-
+        
         @media (max-width: 768px) {
-            .contact-bar-top { display: none; }
-            header { top: 0; flex-direction: column; padding: 15px 5%; }
-            body { padding-top: 120px; }
             .doc-card { padding: 30px 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="contact-bar-top">
-        <span>Assistance: <a href="mailto:info@level.casino">info@level.casino</a></span>
-    </div>
-
-    <header>
-        <div class="logo-box">
-            <a href="/" class="logo-text">LEVEL<span>.CASINO</span></a>
-        </div>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/about-us.html">About</a>
-            <a href="/privacy-policy.html">Privacy</a>
-            <a href="mailto:info@level.casino">Help</a>
-        </nav>
-    </header>
+    
+    {% include header.html %}
 
     <div class="page-header">
         <h1>Responsible Gambling</h1>
@@ -151,21 +120,7 @@
         </article>
     </div>
 
-    <footer class="affiliate-footer">
-        <div style="max-width: 1000px; margin: 0 auto;">
-            <div class="footer-compliance-logos">
-                <div class="age-limit">18+</div>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #555; text-transform: uppercase;">BeGambleAware</div>
-                <div style="font-weight: bold; color: #555;">GAMCARE</div>
-            </div>
-            <p style="margin-bottom: 20px;"><strong>Disclaimer:</strong> Level.casino is an independent affiliate site. We do not provide gambling services. Please ensure you meet all regulatory requirements before playing. <strong>Play Responsibly.</strong></p>
-            <div class="footer-links">
-                <a href="/privacy-policy.html" style="color:#888; text-decoration:none; margin:0 10px;">Privacy Policy</a>
-                <a href="/cookie-policy.html" style="color:#888; text-decoration:none; margin:0 10px;">Cookie Policy</a>
-                <a href="/about-us.html" style="color:#888; text-decoration:none; margin:0 10px;">About Us</a>
-            </div>
-            <p style="margin-top:20px;">&copy; 2026 Level.casino. All Rights Reserved.</p>
-        </div>
-    </footer>
+    {% include footer.html %}
+
 </body>
 </html>

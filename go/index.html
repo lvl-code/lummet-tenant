@@ -9,13 +9,13 @@ layout: null
 <meta charset="UTF-8">
 <title>Redirecting...</title>
 <meta name="robots" content="noindex, nofollow">
-<meta http-equiv="refresh" content="3;url=/" />
 </head>
 <body>
 
 <script>
+
 // ==========================
-// 🔧 CASINO CONFIG (EDIT ONLY HERE)
+// 🔧 CASINO CONFIG
 // ==========================
 const OFFERS = {
 
@@ -26,115 +26,74 @@ const OFFERS = {
 
     stake: {
         url: "https://stake.com/?c=eU3bdx7M",
-        blocked: ["US", "GB"]
+        blocked: ["US", "GB", "RW", "NL"]
     },
 
     hello: {
         url: "https://go.superflypartners.net/c/8be2f301",
         blocked: ["GB"]
-    }
-
-    // ==========================
-    // 👉 ADD MORE CASINOS LIKE THIS:
-    // ==========================
-    /*
-    slotnite: {
-        url: "https://your-affiliate-link.com",
-        blocked: ["GB", "DE", "FR"]
     },
 
-    skol: {
-        url: "https://your-affiliate-link.com",
-        blocked: ["GB"]
-    },
-
-    diamond7: {
-        url: "https://your-affiliate-link.com",
-        blocked: []
+    // 🔁 FALLBACK (IMPORTANT)
+    fallback: {
+        url: "https://level.casino/"
     }
-    */
 };
 
 // ==========================
-// 🌍 GEO DETECTION (IMPROVED)
+// 🌍 GEO DETECTION
 // ==========================
-
 function detectGeo() {
-    // 1. Try saved geo (best accuracy)
     let geo = localStorage.getItem("lv_geo");
-
     if (geo) return geo;
 
-    // 2. Fallback using language
     const lang = (navigator.language || "").toLowerCase();
 
     if (lang.includes("en-gb")) return "GB";
     if (lang.includes("en-us")) return "US";
+    if (lang.includes("nl")) return "NL";
     if (lang.includes("de")) return "DE";
-    if (lang.includes("fr")) return "FR";
+    if (lang.includes("rw")) return "RW";
 
-    return "ROW"; // Rest of World
+    return "ROW";
 }
 
 const geo = detectGeo();
 
 // ==========================
-// 📊 READ PARAMETERS
+// 📊 PARAMS
 // ==========================
 const params = new URLSearchParams(window.location.search);
-
 const offer = params.get("offer");
-const src   = params.get("src") || "direct";
-const rank  = params.get("rank") || "0";
 
 // ==========================
-// 🚀 SAFE REDIRECT FUNCTION
+// 🚀 REDIRECT FUNCTION
 // ==========================
 function redirect(url) {
-    // Use replace so user never sees /go in history
     window.location.replace(url);
 }
 
 // ==========================
-// ❌ INVALID OFFER HANDLER
+// 🔥 CORE LOGIC
 // ==========================
 if (!offer || !OFFERS[offer]) {
-    redirect("/");
+
+    // ✅ THIS IS WHERE FALLBACK GOES
+    redirect(OFFERS.fallback.url);
+
 } else {
 
     const config = OFFERS[offer];
 
-    // ==========================
-    // 🚫 GEO BLOCK CHECK
-    // ==========================
+    // 🚫 GEO BLOCK
     if (config.blocked && config.blocked.includes(geo)) {
         redirect("/not-available.html");
     } else {
-
-        // ==========================
-        // 🔥 CLEAN REDIRECT (NO PARAMS)
-        // ==========================
-        const finalUrl = config.url;
-
-        // ==========================
-        // 📊 OPTIONAL TRACKING (SAFE)
-        // ==========================
-        console.log("Affiliate Click", {
-            offer,
-            src,
-            rank,
-            geo,
-            time: new Date().toISOString()
-        });
-
-        redirect(finalUrl);
+        redirect(config.url);
     }
 }
-</script>
 
-<noscript>
-<p>Redirecting... <a href="/">Click here</a></p>
-</noscript>
+</script>
 
 </body>
 </html>

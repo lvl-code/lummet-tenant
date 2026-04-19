@@ -218,6 +218,30 @@ nav a.gray-link { color: var(--text-gray); }
     opacity: 0.8;
 }
 
+.geo-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #9d50bb, #6e48aa);
+    box-shadow: 0 6px 18px rgba(157, 80, 187, 0.35);
+    white-space: nowrap;
+}
+
+.geo-flag {
+    font-size: 1.2rem;
+}
+
+.geo-time {
+    color: #eaeaea;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
 /* --- COMPONENTS: CARDS & BADGES --- */
 .acquisition-card {
     background: rgba(14, 14, 18, 0.7);

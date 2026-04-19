@@ -71,9 +71,10 @@ layout: null
     {% include header.html %}
 
     <section class="hero">
-        <div id="geo-info" style="font-size:0.8rem; color:#aaa;">
-  Detecting your location...
+        <div id="geo-widget" class="geo-widget">
+  🌍 Detecting location...
         </div>
+        
         <div class="status-badge">
             <div class="pulse-dot"></div> Beta Access Coming
         </div>
@@ -139,27 +140,53 @@ Rankings are continuously updated to reflect real market conditions — not prom
         </div>
     </div>
     <script>
-(async function () {
-  try {
-    const res = await fetch("/geo");
-    const data = await res.json();
+function countryToFlag(countryCode) {
+    if (!countryCode) return "🌍";
+    return countryCode
+        .toUpperCase()
+        .replace(/./g, char =>
+            String.fromCodePoint(127397 + char.charCodeAt())
+        );
+}
 
-    // expose globally
-    window.GEO = data;
+async function loadGeoWidget() {
+    try {
+        const res = await fetch("/geo");
+        const data = await res.json();
 
-    const el = document.getElementById("geo-info");
-    if (el) {
-      el.innerHTML =
-        `🌍 ${data.country || "Unknown"} ` +
-        `(${data.city || ""}) — 🕐 ${data.localTime || ""}`;
+        const el = document.getElementById("geo-widget");
+        if (!el) return;
+
+        const flag = countryToFlag(data.country);
+        const city = data.city || "Unknown";
+        const country = data.country || "??";
+        const timezone = data.timezone;
+
+        // formatted local time (real accurate)
+        const now = new Date();
+        const localTime = new Intl.DateTimeFormat("en-GB", {
+            timeZone: timezone,
+            dateStyle: "medium",
+            timeStyle: "short"
+        }).format(now);
+
+        el.innerHTML = `
+            <span class="geo-flag">${flag}</span>
+            <span>${country} (${city})</span>
+            <span class="geo-time">🕐 ${localTime}</span>
+        `;
+
+        // optional global use for casino logic
+        window.GEO = data;
+
+    } catch (err) {
+        document.getElementById("geo-widget").innerText =
+            "🌍 Location unavailable";
     }
+}
 
-  } catch (e) {
-    console.warn("Geo failed", e);
-  }
-})();
+document.addEventListener("DOMContentLoaded", loadGeoWidget);
     </script>
-
 <script>
     // Helper to set a cookie
     function setLVCookie(name, value, days) {

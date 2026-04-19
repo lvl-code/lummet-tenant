@@ -2,6 +2,8 @@
   {
     "id": "bcgame",
     "name": "BC.GAME",
+    "category": ["crypto", "africa_fast"],
+    "restricted": ["GB","US"],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
     "score": "4.4/5",
     "tag": "Operator",
@@ -19,6 +21,8 @@
   {
     "id": "stake",
     "name": "STAKE",
+    "category": ["crypto"],
+    "restricted": ["US","GB"]
     "logo": "https://level.casino/logo/stake-logo.png",
     "score": "4.2/5",
     "tag": "Operator",
@@ -36,6 +40,8 @@
   {
     "id": "shuffle",
     "name": "SHUFFLE",
+    "category": ["crypto","africa_fast"],
+    "restricted": ["US"]
     "logo": "https://level.casino/logo/shuffle-logo.jpeg",
     "score": "4.0/5",
     "tag": "Operator",
@@ -53,6 +59,8 @@
   {
     "id": "hello",
     "name": "HELLO CASINO",
+    "category": ["trusted_mga"],
+    "restricted": ["US","CA"]
     "logo": "https://level.casino/logo/hello-logo.png",
     "score": "4.0/5",
     "tag": "MGA Licensed",

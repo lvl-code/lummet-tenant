@@ -2,7 +2,7 @@
   {
     "id": "bcgame",
     "name": "BC.GAME",
-    "category": ["crypto", "africa_fast"],
+    "category": ["crypto", "africa_fast", "trusted_mga"],
     "restricted": ["GB", "US"],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
     "score": "4.4/5",

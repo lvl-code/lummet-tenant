@@ -149,7 +149,33 @@
 <div class="header-wrapper" id="headerWrapper">
     <div class="contact-bar-top" id="topBar">
         <span>Corporate Contact: <a href="mailto:info@level.casino">info@level.casino</a></span>
+      <div id="geo-info" style="font-size:0.8rem; color:#aaa;">
+  Detecting your location...
+      </div>
     </div>
+  <script>
+async function loadGeo() {
+  try {
+    const res = await fetch("/geo");
+    const data = await res.json();
+
+    const el = document.getElementById("geo-info");
+    if (!el) return;
+
+    el.innerHTML =
+      `🌍 ${data.country || "Unknown"} ` +
+      `(${data.city || ""}) — 🕐 ${data.localTime || ""}`;
+
+    // OPTIONAL: expose globally for your casino logic
+    window.GEO = data;
+
+  } catch (e) {
+    console.warn("Geo failed", e);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadGeo);
+</script>
 
     <header id="mainHeader">
         <a href="/" class="logo-box">
@@ -210,4 +236,5 @@
             }
         });
     })();
+
 </script>

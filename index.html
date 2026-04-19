@@ -71,6 +71,9 @@ layout: null
     {% include header.html %}
 
     <section class="hero">
+        <div id="geo-info" style="font-size:0.8rem; color:#aaa;">
+  Detecting your location...
+        </div>
         <div class="status-badge">
             <div class="pulse-dot"></div> Beta Access Coming
         </div>
@@ -135,6 +138,27 @@ Rankings are continuously updated to reflect real market conditions — not prom
             </div>
         </div>
     </div>
+    <script>
+(async function () {
+  try {
+    const res = await fetch("/geo");
+    const data = await res.json();
+
+    // expose globally
+    window.GEO = data;
+
+    const el = document.getElementById("geo-info");
+    if (el) {
+      el.innerHTML =
+        `🌍 ${data.country || "Unknown"} ` +
+        `(${data.city || ""}) — 🕐 ${data.localTime || ""}`;
+    }
+
+  } catch (e) {
+    console.warn("Geo failed", e);
+  }
+})();
+    </script>
 
 <script>
     // Helper to set a cookie

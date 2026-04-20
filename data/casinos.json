@@ -5,7 +5,7 @@
     "category": ["crypto", "africa_fast", "trusted_mga", "bonus", "EU"],
     "restricted": ["GB", "US"],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
-    "score": "4.4/5",
+    "score": "4.5/5",
     "tag": "Operator",
     "bonus_title": "deposit bonus",
     "bonus_desc": "Wager and unlock real cash rewards via the BCD ecosystem.",
@@ -23,7 +23,7 @@
     "category": ["crypto","africa_fast"],
     "restricted": ["US", "GB"],
     "logo": "https://level.casino/logo/stake-logo.png",
-    "score": "4.2/5",
+    "score": "4.4/5",
     "tag": "Operator",
     "bonus_title": "Rakeback",
     "bonus_desc": "High-roller crypto casino with instant withdrawals.",
@@ -41,7 +41,7 @@
     "category": ["crypto", "africa_fast"],
     "restricted": ["US"],
     "logo": "https://level.casino/logo/shuffle-logo.jpeg",
-    "score": "4.0/5",
+    "score": "4.3/5",
     "tag": "Operator",
     "bonus_title": "Rakeback + daily rewards",
     "bonus_desc": "Earn rakeback rewards and daily bonuses as you play.",
@@ -59,7 +59,7 @@
     "category": ["trusted_mga","crypto","africa_fast"],
     "restricted": ["US", "CA"],
     "logo": "https://level.casino/logo/hello-logo.jpeg",
-    "score": "4.0/5",
+    "score": "4.3/5",
     "tag": "MGA Licensed",
     "bonus_title": "100% up to €300 + 100 Spins",
     "bonus_desc": "Popular EU-focused casino with strong bonuses.",
@@ -77,7 +77,7 @@
     "category": ["trusted_mga","crypto","africa_fast"],
     "restricted": ["US", "CA"],
     "logo": "https://level.casino/logo/hello-logo.jpeg",
-    "score": "4.0/5",
+    "score": "4.3/5",
     "tag": "MGA Licensed",
     "bonus_title": "100% up to €300 + 100 Spins",
     "bonus_desc": "Popular EU-focused casino with strong bonuses.",
@@ -88,6 +88,25 @@
     ],
     "link": "/go?offer=hello2",
     "review": "/reviews/hello2/"
+  },
+  {
+    "id": "slotnite",
+    "name": "SLOTNITE",
+    "category": ["trusted_mga","crypto","africa_fast"],
+    "restricted": ["US", "CA"],
+    "logo": "https://level.casino/logo/slotnite-logo.jpeg",
+    "score": "4.2/5",
+    "tag": "Operator",
+    "bonus_title": "Deposit Bonus",
+    "bonus_desc": "In Review .",
+    "features": [
+      "Licensing: Malta Gaming Authority",
+      "Payments: multiple Options Available",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=slotnite",
+    "review": "/reviews/slotnite/"
   }
+  
   
 ]

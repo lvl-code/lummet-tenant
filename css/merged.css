@@ -130,7 +130,7 @@ nav a.gray-link { color: var(--text-gray); }
 .menu-toggle.is-active span:nth-child(2) { opacity: 0; }
 .menu-toggle.is-active span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
 
-/* --- HERO SECTION --- */
+/* --- HERO SECTION 
 .hero { 
     flex: 1;
     padding: 120px 5% 80px; 
@@ -169,6 +169,52 @@ nav a.gray-link { color: var(--text-gray); }
     color: var(--text-gray); 
     max-width: 700px; 
     margin: 0 auto 40px; 
+}
+ --- */
+
+/* --- HERO SECTION --- */
+.hero { 
+    flex: 1;
+    /* Changed top padding from 120px to 40px to eliminate the huge gap */
+    padding: 40px 5% 60px; 
+    text-align: center; 
+    background: radial-gradient(circle at 50% 0%, #2a1b3d 0%, #050507 60%); 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero h1 { 
+    font-family: 'Orbitron', sans-serif; 
+    /* Slightly tightened font clamp so it doesn't break awkwardly on tablets */
+    font-size: clamp(2.2rem, 5vw, 4rem); 
+    line-height: 1.2; 
+    margin-bottom: 10px; /* Pulled the title closer to the subtitle */
+    text-transform: uppercase; 
+}
+
+.hero-highlight {
+    background: linear-gradient(to right, #9d50bb, #ff00cc); 
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent;
+}
+
+.hero h2 { 
+    font-family: 'Outfit', sans-serif; 
+    font-size: 1.25rem; /* Resized to look like a proper subtitle rather than competing with H1 */
+    font-weight: 400; 
+    margin-bottom: 20px; 
+    color: #fff; 
+    letter-spacing: 1px;
+}
+
+.hero p { 
+    font-size: 1.05rem; 
+    color: var(--text-gray); 
+    max-width: 800px; /* Constrains the width so it doesn't stretch too wide on desktop */
+    line-height: 1.6;
+    margin: 0 auto 30px; /* Keeps it perfectly centered and pulls the button closer */
 }
 
 /* --- BUTTONS --- */

@@ -142,7 +142,25 @@
     ],
     "link": "/go?offer=diamond7casino",
     "review": "/reviews/diamond7casino/"
-  }
+  },
+   {
+    "id": "prive21",
+    "name": "21Prive",
+    "category": ["trusted_mga","crypto","africa_fast"],
+    "restricted": ["US", "CA"],
+    "logo": "https://level.casino/logo/prive21-logo.jpeg",
+    "score": "4.1/5",
+    "tag": "Operator",
+    "bonus_title": "Deposit Bonus",
+    "bonus_desc": "In Review .",
+    "features": [
+      "Licensing: in review",
+      "Payments: multiple Options Available",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=prive21",
+    "review": "/reviews/prive21/"
+   }
   
   
   

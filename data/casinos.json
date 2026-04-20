@@ -106,25 +106,8 @@
     ],
     "link": "/go?offer=slotnite",
     "review": "/reviews/slotnite/"
-  },
-  
-  {
-    "id": "skolcasino",
-    "name": "SKOLCASINO",
-    "category": ["trusted_mga","crypto","africa_fast"],
-    "restricted": ["US", "CA"],
-    "logo": "https://level.casino/logo/hello.jpeg",
-    "score": "4.2/5",
-    "tag": "Operator",
-    "bonus_title": "Deposit Bonus",
-    "bonus_desc": "In Review .",
-    "features": [
-      "Licensing: Malta Gaming Authority",
-      "Payments: multiple Options Available",
-      "Withdrawal: speed varies by method"
-    ],
-    "link": "/go?offer=skolcasino",
-    "review": "/reviews/skolcasino/"
   }
+  
+  
   
 ]

@@ -175,23 +175,43 @@ nav a.gray-link { color: var(--text-gray); }
 /* --- HERO SECTION --- */
 .hero { 
     flex: 1;
-    /* Changed top padding from 120px to 40px to eliminate the huge gap */
-    padding: 40px 5% 60px; 
+    padding: 60px 5% 60px; 
     text-align: center; 
     background: radial-gradient(circle at 50% 0%, #2a1b3d 0%, #050507 60%); 
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative; /* Required to anchor the geo-widget to the top */
 }
 
+/* --- GEO WIDGET (Header-Anchored Tab) --- */
+.geo-widget {
+    position: absolute;
+    top: 0; /* Touches the very top of the hero section/bottom of header */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(14, 14, 18, 0.85);
+    border: 1px solid #1a1a1f;
+    border-top: none; /* Blends into the header */
+    padding: 6px 20px;
+    border-radius: 0 0 12px 12px; /* Tab-like rounded bottom corners */
+    font-size: 0.8rem;
+    color: var(--text-gray);
+    backdrop-filter: blur(10px);
+    z-index: 10;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* --- TYPOGRAPHY (Professional Platform Look) --- */
 .hero h1 { 
     font-family: 'Orbitron', sans-serif; 
-    /* Slightly tightened font clamp so it doesn't break awkwardly on tablets */
-    font-size: clamp(2.2rem, 5vw, 4rem); 
+    font-size: clamp(2rem, 4vw, 3rem); /* Significantly reduced for a cleaner look */
     line-height: 1.2; 
-    margin-bottom: 10px; /* Pulled the title closer to the subtitle */
-    text-transform: uppercase; 
+    margin-top: 30px; /* Clears space for the geo-widget */
+    margin-bottom: 12px; 
+    letter-spacing: 0.5px;
+    /* Removed text-transform: uppercase */
 }
 
 .hero-highlight {
@@ -202,19 +222,19 @@ nav a.gray-link { color: var(--text-gray); }
 
 .hero h2 { 
     font-family: 'Outfit', sans-serif; 
-    font-size: 1.25rem; /* Resized to look like a proper subtitle rather than competing with H1 */
+    font-size: 1.15rem; 
     font-weight: 400; 
-    margin-bottom: 20px; 
-    color: #fff; 
-    letter-spacing: 1px;
+    margin-bottom: 25px; 
+    color: #e0e0e0; /* Slightly softened from pure white */
+    letter-spacing: 0.5px;
 }
 
 .hero p { 
-    font-size: 1.05rem; 
+    font-size: 1rem; /* Scaled down for professional readability */
     color: var(--text-gray); 
-    max-width: 800px; /* Constrains the width so it doesn't stretch too wide on desktop */
-    line-height: 1.6;
-    margin: 0 auto 30px; /* Keeps it perfectly centered and pulls the button closer */
+    max-width: 650px; /* Tighter column width for easier reading */
+    line-height: 1.6; 
+    margin: 0 auto 35px; 
 }
 
 /* --- BUTTONS --- */

@@ -160,7 +160,27 @@
     ],
     "link": "/go?offer=prive21",
     "review": "/reviews/prive21/"
-   }
+   },
+  {
+    "id": "gdaycasino",
+    "name": "G'DAY CASINO",
+    "category": ["trusted_mga","crypto","africa_fast"],
+    "restricted": ["US", "CA"],
+    "logo": "https://level.casino/logo/gdaycasino-logo.png",
+    "score": "4.0/5",
+    "tag": "Operator",
+    "bonus_title": "Deposit Bonus",
+    "bonus_desc": "In Review .",
+    "features": [
+      "Licensing: in review",
+      "Payments: multiple Options Available",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=gdaycasino",
+    "review": "/reviews/gdaycasino/"
+  }
+  
+  
   
   
   

@@ -244,14 +244,16 @@ nav a.gray-link { color: var(--text-gray); }
 
 /* --- COMPONENTS: CARDS & BADGES --- */
 .acquisition-card {
-    background: rgba(14, 14, 18, 0.7);
-    border: 1px dashed #333;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
     border-radius: 20px;
-    padding: 35px;
-    max-width: 650px;
-    margin: 50px auto 0;
-    backdrop-filter: blur(10px);
-    transition: border-color 0.3s ease;
+}
+.acquisition-card * {
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .acquisition-card:hover { border-color: var(--electric-purple); }
@@ -340,11 +342,12 @@ nav a.gray-link { color: var(--text-gray); }
 #casino-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 20px;
-    align-items: stretch;
+    gap: 25px;
     width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
     box-sizing: border-box;
-    padding: 0 10px;
 }
 
 /* --- FOOTER STYLES --- */

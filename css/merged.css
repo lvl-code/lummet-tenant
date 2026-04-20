@@ -337,6 +337,15 @@ nav a.gray-link { color: var(--text-gray); }
     margin: 30px 0; 
     text-align: center; 
 }
+#casino-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 10px;
+}
 
 /* --- FOOTER STYLES --- */
 .affiliate-footer {

@@ -215,7 +215,7 @@ nav a.gray-link { color: var(--text-gray); }
 
 .hero p { 
     font-size: 1rem; /* Scaled down for professional readability */
-    color: var(--text-gray); 
+    color: #e0e0e0;  /* Slightly softened from pure white , ex: var(--text-gray); */
     max-width: 650px; /* Tighter column width for easier reading */
     line-height: 1.6; 
     margin: 0 auto 35px; 

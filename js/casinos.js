@@ -67,7 +67,7 @@ async function loadCasinos() {
             card.innerHTML = `
                 <div style="width:100%; height:180px; background:#1a1a1f; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--electric-purple);">
                     <img src="${casino.logo}" alt="${casino.name}" 
-                        style="width:100%; height:100%; object-fit:cover;"
+                        style="width:100%; height:100%; object-fit:contain;"
                         onerror="this.src='${casino.fallback_logo || ''}'">
                 </div>
 

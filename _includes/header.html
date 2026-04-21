@@ -58,12 +58,38 @@
     .logo-img { height: 40px; border-radius: 8px; }
     .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; color: var(--text-white); }
     .logo-text span { color: var(--electric-purple); }
-    .logo-box,
-.logo-box * {
-    text-decoration: none !important;
-    }
-    
+
+     
+    .logo-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1002;
+    text-decoration: none;   /* remove underline */
+    color: inherit;          /* prevent link color override */
+}
+
+.logo-box:hover,
+.logo-box:focus,
+.logo-box:active {
+    text-decoration: none;
+    color: inherit;
+    outline: none;
+}
+
+.logo-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    font-weight: bold;
+    color: var(--text-white);
+}
+
+.logo-text span {
+    color: var(--electric-purple);
+}
     /* ALWAYS VISIBLE MENU TOGGLE */
+  
     .menu-toggle {
         display: flex;
         flex-direction: column;

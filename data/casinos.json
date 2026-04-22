@@ -21,7 +21,7 @@
     "id": "stake",
     "name": "STAKE",
     "category": ["crypto","africa_fast"],
-    "restricted": ["US", "GB"],
+    "restricted": ["US", "GB", "SG"],
     "logo": "https://level.casino/logo/stake-logo.png",
     "score": "4.4/5",
     "tag": "Operator",

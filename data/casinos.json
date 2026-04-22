@@ -4,7 +4,7 @@
     "name": "BC.GAME",
     "category": ["crypto", "africa_fast", "trusted_mga", "bonus"],
     "restricted": ["GB", "US","SG", "RW"],
-    "allow_override": [],
+    "allow_override": ["RW"],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
     "score": "4.5/5",
     "tag": "Operator",

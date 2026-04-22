@@ -2,9 +2,9 @@
   {
     "id": "bcgame",
     "name": "BC.GAME",
-    "category": ["crypto", "trusted_mga", "bonus", "EU"],
-    "restricted": ["GB", "US","SG"],
-    "allow_override": ["UG"],
+    "category": ["crypto", "africa_fast", "trusted_mga", "bonus"],
+    "restricted": ["GB", "US","SG", "RW"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
     "score": "4.5/5",
     "tag": "Operator",

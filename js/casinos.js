@@ -21,6 +21,11 @@ async function loadCasinos() {
             const isRestricted = casino.restricted && casino.restricted.includes(country) && !hasOverride;
             return (categoryMatch || hasOverride) && !isRestricted;
         });
+        const sorted = filtered.sort((a, b) => {
+            const scoreA = parseFloat(a.score);
+            const scoreB = parseFloat(b.score);
+            return scoreB - scoreA; // highest first
+        });
 
         // Hide loading state once data is processed
         if (loadingState) loadingState.style.display = "none";
@@ -37,7 +42,7 @@ async function loadCasinos() {
         }
 
         // RENDER CARDS (Centered and Professionally Aligned)
-        filtered.forEach((casino, index) => {
+        sorted.forEach((casino, index) => {
             const card = document.createElement("div");
             card.className = "acquisition-card";
             

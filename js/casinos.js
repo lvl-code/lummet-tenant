@@ -21,17 +21,19 @@ async function loadCasinos() {
             const isRestricted = casino.restricted && casino.restricted.includes(country) && !hasOverride;
             return (categoryMatch || hasOverride) && !isRestricted;
         });
+
+        // SORT — highest score first
         const sorted = [...filtered].sort((a, b) => {
-        const scoreA = parseFloat(a.score) || 0;
-        const scoreB = parseFloat(b.score) || 0;
-        return scoreB - scoreA;
+            const scoreA = parseFloat(a.score) || 0;
+            const scoreB = parseFloat(b.score) || 0;
+            return scoreB - scoreA;
         });
 
         // Hide loading state once data is processed
         if (loadingState) loadingState.style.display = "none";
 
         // EMPTY STATE (COMPLIANCE SAFE)
-        if (filtered.length === 0) {
+        if (sorted.length === 0) {
             container.innerHTML = `
                 <div class="acquisition-card" style="margin: 0 auto; border-style: solid; border-color: var(--electric-purple); padding: 40px 25px; text-align: center;">
                     <h3 style="font-family: 'Orbitron'; color: #fff;">No Available Casinos</h3>

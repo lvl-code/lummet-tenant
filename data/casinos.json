@@ -2,7 +2,7 @@
   {
     "id": "bcgame",
     "name": "BC.GAME",
-    "category": ["crypto", "africa_fast", "trusted_mga", "bonus"],
+    "category": ["crypto", "africa_fast"],
     "restricted": ["GB", "US","SG", "RW"],
     "allow_override": ["RW"],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
@@ -11,7 +11,7 @@
     "bonus_title": "deposit bonus",
     "bonus_desc": "Wager and unlock real cash rewards via the BCD ecosystem.",
     "features": [
-      "Licensing: Curaçao (varies by jurisdiction)",
+      "Licensing: Licensed: Anjouan Gaming Authority (Comoros)",
       "Payments: Crypto & Fiat options available",
       "Withdrawal: speed varies by method"
     ],

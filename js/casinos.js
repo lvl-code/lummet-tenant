@@ -21,10 +21,10 @@ async function loadCasinos() {
             const isRestricted = casino.restricted && casino.restricted.includes(country) && !hasOverride;
             return (categoryMatch || hasOverride) && !isRestricted;
         });
-        const sorted = filtered.sort((a, b) => {
-            const scoreA = parseFloat(a.score);
-            const scoreB = parseFloat(b.score);
-            return scoreB - scoreA; // highest first
+        const sorted = [...filtered].sort((a, b) => {
+        const scoreA = parseFloat(a.score) || 0;
+        const scoreB = parseFloat(b.score) || 0;
+        return scoreB - scoreA;
         });
 
         // Hide loading state once data is processed

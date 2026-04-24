@@ -16,7 +16,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=bcgame",
-    "review": "/reviews/bcgame/"
+    "review": "/review.html?id=bcgame"
   },
   {
     "id": "stake",
@@ -35,7 +35,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=stake",
-    "review": "/reviews/stake/"
+    "review": "/review.html?id=stake"
   },
   {
     "id": "shuffle",
@@ -54,7 +54,7 @@
       "Withdrawal: speed varies by method "
     ],
     "link": "/go?offer=shuffle",
-    "review": "/reviews/shuffle/"
+    "review": "/review.html?id=shuffle"
   },
   {
     "id": "hello",
@@ -74,7 +74,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=hello",
-    "review": "/reviews/hello/"
+    "review": "/review.html?id=hello"
   },
   {
     "id": "hello2",
@@ -94,7 +94,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=hello2",
-    "review": "/reviews/hello/"
+    "review": "/review.html?id=hello2"
   },
   {
     "id": "slotnite",
@@ -114,7 +114,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=slotnite",
-    "review": "/reviews/slotnite/"
+    "review": "/review.html?id=slotnite"
   },
   {
     "id": "skolcasino",

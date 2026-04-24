@@ -135,7 +135,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=skolcasino",
-    "review": "/reviews/skolcasino/"
+    "review": "/review.html?id=skolcasino"
   },
   {
     "id": "diamond7casino",
@@ -156,7 +156,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=diamond7casino",
-    "review": "/reviews/diamond7casino/"
+    "review": "/review.html?id=diamond7casino"
   },
   {
     "id": "prive21",
@@ -177,7 +177,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=prive21",
-    "review": "/reviews/prive21/"
+    "review": "/review.html?id=prive21"
   },
   {
     "id": "gdaycasino",
@@ -198,6 +198,6 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go?offer=gdaycasino",
-    "review": "/reviews/gdaycasino/"
+    "review": "/review.html?id=gdaycasino"
   }
 ]

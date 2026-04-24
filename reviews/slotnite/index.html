@@ -1,0 +1,204 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slotnite Casino Review 2026 | Level.casino</title>
+    <meta name="description" content="Expert review of Slotnite Casino. Discover 1,300+ games, MGA/UKGC licensing details, and welcome bonus insights.">
+    <link rel="canonical" href="https://level.casino/reviews/slotnite/">
+    <link rel="stylesheet" href="/css/merged.css">
+    
+    <style>
+        /* Mobile-First Scrollable Data Container */
+        .dynamic-data-container {
+            width: 100%;
+            overflow-x: auto; /* Horizontal scroll for tables/wide data */
+            -webkit-overflow-scrolling: touch;
+            margin: 25px 0;
+            border-radius: 12px;
+            background: #1a1a1f;
+            border: 1px solid #333;
+        }
+
+        /* Comparison Table Styling - Dynamically Filtered */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px; /* Forces scroll on small screens */
+            text-align: left;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #222;
+            white-space: nowrap;
+        }
+        .comparison-table th {
+            background: #111;
+            color: var(--electric-purple);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+        .highlight-row {
+            background: rgba(157, 80, 187, 0.05);
+            border-left: 3px solid var(--electric-purple);
+        }
+
+        .pros-cons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .pros-cons-box {
+            background: rgba(255,255,255,0.02);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #222;
+        }
+        .pros-box { border-top: 3px solid var(--electric-purple); }
+        .cons-box { border-top: 3px solid #ff4444; }
+
+        /* Loader Animation */
+        #table-loader {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-gray);
+            font-family: 'Orbitron';
+        }
+    </style>
+</head>
+<body>
+    
+    {% include header.html %}
+
+    <section class="page-header" style="padding-top: 120px;">
+        <img src="https://level.casino/logo/slotnite-logo.jpeg" alt="Slotnite Casino" style="width: 120px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--electric-purple);">
+        <h1>Slotnite <span class="hero-highlight">Review</span></h1>
+        <div id="dynamic-score-header" class="status-badge">
+            <div class="pulse-dot"></div> LOADING SCORE...
+        </div>
+    </section>
+
+    <section class="content-container">
+        <div class="document-card">
+            <h2>The Experience</h2>
+            <p>Launched in 2019 by <strong>White Hat Gaming Limited</strong>, Slotnite Casino delivers a massive selection of over 1,300 titles. It operates under top-tier regulations from the <strong>MGA (Malta Gaming Authority)</strong> and <strong>UKGC (UK Gambling Commission)</strong>, ensuring a high level of player protection and game integrity.</p>
+
+            <div class="pros-cons-grid">
+                <div class="pros-cons-box pros-box">
+                    <h4 style="color:var(--electric-purple); font-family:'Orbitron';">Top Features</h4>
+                    <ul style="margin-top:15px; font-size:0.9rem;">
+                        <li>Triple-tier welcome package for new players.</li>
+                        <li>Games from NetEnt, Play’n GO, and Evolution.</li>
+                        <li>Unified loyalty points system.</li>
+                    </ul>
+                </div>
+                <div class="pros-cons-box cons-box">
+                    <h4 style="color:#ff4444; font-family:'Orbitron';">Considerations</h4>
+                    <ul style="margin-top:15px; font-size:0.9rem;">
+                        <li>No cryptocurrency support.</li>
+                        <li>Strict 35x wagering on (Bonus + Deposit).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>Live Comparison</h2>
+            <p>Compare Slotnite with other top-ranked operators currently listed in our database. Data is updated in real-time to reflect current scores and bonuses.</p>
+            
+            <div class="dynamic-data-container">
+                <div id="table-loader">Fetching Live Rankings...</div>
+                <table class="comparison-table" id="comparison-table" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Rank & Name</th>
+                            <th>LVL Score</th>
+                            <th>Main Bonus</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-body">
+                        </tbody>
+                </table>
+            </div>
+
+            <h2>Licensing & Security</h2>
+            <p>Slotnite holds two of the most prestigious licenses in the industry, making it a "High-Trust" operator:</p>
+            <ul style="font-size:0.95rem;">
+                <li><strong>United Kingdom:</strong> Gambling Commission Account 52894.</li>
+                <li><strong>Malta:</strong> MGA/B2C/370/2017.</li>
+            </ul>
+        </div>
+
+        <div class="cta-box" style="margin-top:40px;">
+            <h3 id="dynamic-bonus-title">Claim Slotnite Welcome Offer</h3>
+            <p id="dynamic-bonus-desc" style="color:#bbb; margin:15px 0;">100% up to €250 + 100 spins on your first deposit.</p>
+            <a id="dynamic-link" href="/go?offer=slotnite" class="btn-main btn-purple">Visit Slotnite Casino</a>
+        </div>
+    </section>
+
+    {% include footer.html %}
+
+    <script>
+        async function initReviewData() {
+            const tableBody = document.getElementById("comparison-body");
+            const table = document.getElementById("comparison-table");
+            const loader = document.getElementById("table-loader");
+            const headerScore = document.getElementById("dynamic-score-header");
+            const footerLink = document.getElementById("dynamic-link");
+            const bonusTitle = document.getElementById("dynamic-bonus-title");
+            const bonusDesc = document.getElementById("dynamic-bonus-desc");
+
+            try {
+                const response = await fetch('/data/casinos.json');
+                const casinos = await response.json();
+                
+                // 1. Update Page specific data for Slotnite
+                const slotniteData = casinos.find(c => c.id === 'slotnite');
+                if (slotniteData) {
+                    headerScore.innerHTML = `<div class="pulse-dot"></div> LVL SCORE: ${slotniteData.score}`;
+                    footerLink.href = slotniteData.link;
+                    bonusTitle.innerText = slotniteData.bonus_title;
+                    bonusDesc.innerText = slotniteData.bonus_desc;
+                }
+
+                // 2. Generate Comparison Table (ONLY with casinos in JSON)
+                // Sorting by score descending
+                const sorted = casinos.sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
+                
+                tableBody.innerHTML = sorted.map((casino, index) => `
+                    <tr class="${casino.id === 'slotnite' ? 'highlight-row' : ''}">
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="color:#666; font-size:0.8rem;">#${index + 1}</span>
+                                <strong>${casino.name}</strong>
+                            </div>
+                        </td>
+                        <td style="color:var(--electric-purple); font-weight:bold;">${casino.score}</td>
+                        <td style="font-size:0.85rem; color:#ccc;">${casino.bonus_title}</td>
+                        <td><span style="color:#4caf50; font-size:0.75rem;">● ACTIVE</span></td>
+                        <td>
+                            <a href="${casino.review}" style="color:var(--neon-pink); font-size:0.8rem; text-decoration:none; border:1px solid #333; padding:5px 10px; border-radius:4px;">
+                                Review
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+
+                loader.style.display = "none";
+                table.style.display = "table";
+
+            } catch (error) {
+                console.error("Data fetch error:", error);
+                loader.innerText = "Error loading live data.";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", initReviewData);
+    </script>
+</body>
+</html>

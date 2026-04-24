@@ -1,0 +1,127 @@
+<style>
+    /* Affiliate Footer Styles */
+    .affiliate-footer {
+        background: #030305;
+        border-top: 1px solid #1a1a1f;
+        padding: 60px 5% 120px;
+        text-align: center;
+        color: #e0e0e0; /* Updated for high visibility */
+        font-size: 0.85rem;
+        line-height: 1.6;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 500; /* Added base thickness */
+    }
+
+    .footer-compliance-logos {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 25px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .age-limit {
+        width: 45px;
+        height: 45px;
+        border: 2px solid #ffffff; /* Brighter border */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #ffffff; /* Brighter text */
+    }
+
+    .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin: 25px 0;
+    }
+
+    .footer-links a {
+        color: #ffffff; /* High contrast white */
+        font-weight: 600; /* Made bolder */
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+        color: #9d50bb; /* var(--electric-purple) */
+    }
+
+    /* Fixed Floating Footer CTA */
+    .fixed-footer { 
+        position: fixed; 
+        bottom: 25px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        background: rgba(14, 14, 18, 0.95); 
+        padding: 12px 30px; 
+        border-radius: 50px; 
+        display: flex; 
+        align-items: center; 
+        gap: 25px; 
+        border: 1px solid #555; /* Slightly brighter border for visibility */
+        z-index: 9999; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.8); 
+        backdrop-filter: blur(10px); 
+        width: max-content; 
+        max-width: 90%; 
+    }
+    
+    .fixed-footer a { color: white; text-decoration: none; font-weight: bold; font-size: 0.9rem; white-space: nowrap; transition: 0.3s;}
+    .fixed-footer a:hover { opacity: 0.8; }
+
+    @media (max-width: 768px) {
+        .fixed-footer { gap: 15px; padding: 10px 20px; justify-content: center; }
+        .fixed-footer span { display: none; }
+    }
+</style>
+
+<footer class="affiliate-footer">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        
+        <div class="footer-compliance-logos">
+            <div class="age-limit">18+</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: #ffffff; letter-spacing: -1px; text-transform: uppercase;">
+                BeGamble<span style="color: #cccccc;">Aware</span>.org
+            </div>
+        </div>
+
+        <p style="margin-bottom: 20px; font-weight: 600; color: #ffffff;">
+            <strong>Disclaimer:</strong> Level.casino is an independent casino comparison and affiliate platform. We do not operate any online gambling services or take bets. The availability of the operators and bonuses listed on this site depends heavily on your jurisdiction. 
+        </p>
+        
+        <p style="margin-bottom: 20px; font-weight: 600; color: #ffffff;">
+            Users are strictly responsible for complying with local laws and regulations regarding online gambling in their region. We strive to keep our information accurate and up-to-date, but we accept no liability for discrepancies. We may earn a commission when you click on links and register via our site.
+        </p>
+
+        <p style="color: #ffffff; font-weight: bold; margin-bottom: 30px;">
+            Gambling can be addictive. Please play responsibly. If you or someone you know is struggling with a gambling problem, seek help from professional support organizations.
+        </p>
+
+        <div class="footer-links">
+            <a href="/privacy-policy.html">Privacy Policy</a>
+            <a href="/terms-and-conditions.html">Terms & Conditions</a>
+            <a href="/cookie-policy.html">Cookie Policy</a>
+            <a href="/responsible-gambling.html">Responsible Gambling</a>
+            <a href="/guides/banking.html" style="color: #ffffff; text-decoration: none;">Banking Guide</a>
+            <a href="/guides/registration.html" style="color: #ffffff; text-decoration: none;">Registration</a>
+            <a href="/crypto/crypto-casino-guide.html" style="color: #ffffff; text-decoration: none;">Crypto Casinos</a>
+            <a href="/crypto/provably-fair.html" style="color: #ffffff; text-decoration: none;">Provably Fair</a>
+            <a href="/about-us.html">About Us</a>
+        </div>
+
+        <p style="color: #e0e0e0; font-weight: 600;">&copy; 2026 Level.casino Portal. All Rights Reserved. General Inquiries: <a href="mailto:info@level.casino" style="color: #ffffff; font-weight: bold; text-decoration: underline;">info@level.casino</a></p>
+    </div>
+</footer>
+
+<div class="fixed-footer">
+    <a href="mailto:info@level.casino">📧 info@level.casino</a>
+    <span style="color:#ffffff; font-weight: bold;">|</span>
+    <a href="https://level.casino/terms-and-conditions.html" style="color:#ff00cc; font-weight:800; text-transform: uppercase; letter-spacing: 1px;">T&Cs APPLY</a>
+</div>

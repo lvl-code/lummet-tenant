@@ -60,7 +60,7 @@
     "id": "hello",
     "name": "HELLO CASINO",
     "category": ["trusted_mga","crypto","africa_fast"],
-    "restricted": ["US", "CA"],
+    "restricted": ["US", "CA", "GB"],
     "allow_override": [],
     "logo": "https://level.casino/logo/hello-logo.jpeg",
     "score": "4.3/5",

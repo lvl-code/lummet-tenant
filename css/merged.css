@@ -506,7 +506,7 @@ nav a.gray-link { color: var(--text-gray); }
 }
 
 @media (max-width: 768px) {
-    :root { --header-height: 82px; }
+    :root { --header-height: 83px; }
     .contact-bar-top { display: none; }
     header { top: 0; padding: 10px 5%; }
     body { padding-top: var(--header-height); }

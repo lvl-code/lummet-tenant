@@ -10,7 +10,7 @@
     --text-white: #ffffff;
     --text-gray: #8b8b9a;
     --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%);
-    --header-height: 60px;
+    --header-height: 115px;
 }
 
 /* --- BASE RESET & GLOBAL STYLES --- */
@@ -506,7 +506,7 @@ nav a.gray-link { color: var(--text-gray); }
 }
 
 @media (max-width: 768px) {
-    :root { --header-height: 80px; }
+    :root { --header-height: 82px; }
     .contact-bar-top { display: none; }
     header { top: 0; padding: 10px 5%; }
     body { padding-top: var(--header-height); }

@@ -41,7 +41,6 @@ html, body {
     left: 0;
     width: 100%;
     z-index: 1000;
-    transition: transform 0.3s ease;
 }
 
 
@@ -52,7 +51,6 @@ header {
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    border-bottom: 1px solid #1a1a1f; 
     transition: padding 0.3s ease;
     width: 100%;
     box-sizing: border-box;

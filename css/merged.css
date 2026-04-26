@@ -10,7 +10,7 @@
     --text-white: #ffffff;
     --text-gray: #8b8b9a;
     --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%);
-    --header-height: 60px;
+    --header-height: 75px;
 }
 
 /* --- BASE RESET & GLOBAL STYLES --- */
@@ -110,47 +110,6 @@ nav a.gray-link { color: var(--text-gray); }
 .menu-toggle.is-active span:nth-child(2) { opacity: 0; }
 .menu-toggle.is-active span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
 
-/* --- HERO SECTION 
-.hero { 
-    flex: 1;
-    padding: 120px 5% 80px; 
-    text-align: center; 
-    background: radial-gradient(circle at 50% 0%, #2a1b3d 0%, #050507 60%); 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.hero h1 { 
-    font-family: 'Orbitron', sans-serif; 
-    font-size: clamp(2.5rem, 6vw, 4.5rem); 
-    line-height: 1.1; 
-    margin-bottom: 15px; 
-    text-transform: uppercase; 
-}
-
-.hero-highlight {
-    background: linear-gradient(to right, #9d50bb, #ff00cc); 
-    -webkit-background-clip: text; 
-    -webkit-text-fill-color: transparent;
-}
-
-.hero h2 { 
-    font-family: 'Outfit', sans-serif; 
-    font-size: 1.5rem; 
-    font-weight: 300; 
-    margin-bottom: 25px; 
-    color: #fff; 
-}
-
-.hero p { 
-    font-size: 1.15rem; 
-    color: var(--text-gray); 
-    max-width: 700px; 
-    margin: 0 auto 40px; 
-}
- --- */
 
 /* --- HERO SECTION --- */
 .hero { 
@@ -172,7 +131,7 @@ nav a.gray-link { color: var(--text-gray); }
     font-family: 'Orbitron', sans-serif; 
     font-size: clamp(2rem, 4vw, 3rem); /* Significantly reduced for a cleaner look */
     line-height: 1.2; 
-    margin-top: 30px; /* Clears space for the geo-widget */
+    margin-top: 10px; /* Clears space for the geo-widget */
     margin-bottom: 12px; 
     letter-spacing: 0.5px;
     /* Removed text-transform: uppercase */

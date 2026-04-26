@@ -191,6 +191,19 @@ nav a.gray-link:hover { color: var(--neon-pink); }
     line-height: 1.6; 
     margin: 0 auto 35px; 
 }
+#geo-widget {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    white-space: nowrap;
+}
 
 /* --- BUTTONS --- */
 .btn-main { 
@@ -486,3 +499,10 @@ nav .btn-main {
         font-size: 1.1rem;
     }
 }
+@media (max-width: 768px) {
+    #geo-widget {
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    }

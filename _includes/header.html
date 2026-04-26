@@ -31,36 +31,46 @@
     </header>
 </div>
 
+
 <script>
-    (function() {
-        // Menu Toggle Logic
-        const menuToggle = document.getElementById('mobile-menu');
-        const navMenu = document.getElementById('navMenu');
+(function() {
+    const header = document.querySelector('.header-wrapper');
+    const mainHeader = document.getElementById('mainHeader');
 
-        menuToggle.addEventListener('click', () => {
-            menuToggle.classList.toggle('is-active');
-            navMenu.classList.toggle('active');
-        });
+    // Menu Toggle Logic
+    const menuToggle = document.getElementById('mobile-menu');
+    const navMenu = document.getElementById('navMenu');
 
-        // Close menu when a link is clicked
-        document.querySelectorAll('#navMenu a').forEach(link => {
-            link.addEventListener('click', () => {
-                menuToggle.classList.remove('is-active');
-                navMenu.classList.remove('active');
-            });
-        });
+    menuToggle.addEventListener('click', () => {
+        menuToggle.classList.toggle('is-active');
+        navMenu.classList.toggle('active');
+    });
 
-        // Header Shrink on Scroll Logic (Fixed Gap Issue)
-        const mainHeader = document.getElementById('mainHeader');
-        
-        window.addEventListener('scroll', () => {
-            // We ONLY shrink the padding. We do not translate the wrapper.
-            // This ensures the element stays exactly at top: 0, preventing any background gaps.
-            if (window.scrollY > 40) {
-                mainHeader.style.padding = '8px 5%'; 
-            } else {
-                mainHeader.style.padding = '15px 5%';
-            }
+    document.querySelectorAll('#navMenu a').forEach(link => {
+        link.addEventListener('click', () => {
+            menuToggle.classList.remove('is-active');
+            navMenu.classList.remove('active');
         });
-    })();
+    });
+
+    // ✅ Dynamic offset (THIS is your fix)
+    function updateOffset() {
+        document.body.style.paddingTop = header.offsetHeight + 'px';
+    }
+
+    window.addEventListener('load', updateOffset);
+    window.addEventListener('resize', updateOffset);
+
+    // Header shrink on scroll
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 40) {
+            mainHeader.style.padding = '8px 5%'; 
+        } else {
+            mainHeader.style.padding = '15px 5%';
+        }
+
+        updateOffset(); // 🔥 important: recalc when height changes
+    });
+
+})();
 </script>

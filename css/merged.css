@@ -487,8 +487,7 @@ nav a.gray-link { color: var(--text-gray); }
 
 @media (max-width: 768px) {
     :root { --header-height: 60px; }
-    .contact-bar-top { display: none; }
-    header { top: 0; padding: 10px 5%; }
+    header { top: 0; padding: 15px 5%; }
     body { padding-top: var(--header-height); }
     .hero h1 { font-size: 2.5rem; }
     .page-header h1 { font-size: 2.2rem; }

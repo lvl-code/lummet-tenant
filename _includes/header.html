@@ -42,6 +42,7 @@
             navMenu.classList.toggle('active');
         });
 
+        // Close menu when a link is clicked
         document.querySelectorAll('#navMenu a').forEach(link => {
             link.addEventListener('click', () => {
                 menuToggle.classList.remove('is-active');
@@ -53,15 +54,12 @@
         const mainHeader = document.getElementById('mainHeader');
         
         window.addEventListener('scroll', () => {
-            // We only shrink the padding to keep the header strictly fixed at the top
-            if (window.innerWidth > 768) {
-                if (window.scrollY > 40) {
-                    mainHeader.style.padding = '8px 5%'; 
-                } else {
-                    mainHeader.style.padding = '15px 5%';
-                }
+            // We ONLY shrink the padding. We do not translate the wrapper.
+            // This ensures the element stays exactly at top: 0, preventing any background gaps.
+            if (window.scrollY > 40) {
+                mainHeader.style.padding = '8px 5%'; 
             } else {
-                mainHeader.style.padding = window.scrollY > 40 ? '10px 5%' : '15px 5%';
+                mainHeader.style.padding = '15px 5%';
             }
         });
     })();

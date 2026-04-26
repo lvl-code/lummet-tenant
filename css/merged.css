@@ -10,7 +10,7 @@
     --text-white: #ffffff;
     --text-gray: #8b8b9a;
     --accent-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%);
-    --header-height: 115px;
+    --header-height: 113px;
 }
 
 /* --- BASE RESET & GLOBAL STYLES --- */

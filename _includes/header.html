@@ -1,0 +1,68 @@
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E0ZDHXWWX7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E0ZDHXWWX7');
+</script>
+
+<div class="header-wrapper" id="headerWrapper">
+    <header id="mainHeader">
+        <a href="/" class="logo-box">
+            <img src="/levelcasino.png" alt="Level Casino Logo" class="logo-img">
+            <div class="logo-text">LEVEL<span>.CASINO</span></div>
+        </a>
+        
+        <div class="menu-toggle" id="mobile-menu" aria-label="Open mobile menu" role="button" tabindex="0">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <nav id="navMenu">
+            <a href="mailto:info@level.casino">Contact Us</a>
+            <a href="/guides/banking.html" class="gray-link">Banking Guide</a>
+            <a href="/guides/registration.html" class="gray-link">Registration</a>
+            <a href="/crypto/crypto-casino-guide.html" class="gray-link">Crypto Casinos</a>
+            <a href="/crypto/provably-fair.html" class="gray-link">Provably Fair</a>
+            <a href="/review.html" class="gray-link">Casino Review</a>
+            <a href="https://level.casino/info.html" class="btn-main btn-purple">Partnership</a>
+        </nav>
+    </header>
+</div>
+
+<script>
+    (function() {
+        // Menu Toggle Logic
+        const menuToggle = document.getElementById('mobile-menu');
+        const navMenu = document.getElementById('navMenu');
+
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('is-active');
+            navMenu.classList.toggle('active');
+        });
+
+        document.querySelectorAll('#navMenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('is-active');
+                navMenu.classList.remove('active');
+            });
+        });
+
+        // Header Shrink on Scroll Logic (Fixed Gap Issue)
+        const mainHeader = document.getElementById('mainHeader');
+        
+        window.addEventListener('scroll', () => {
+            // We only shrink the padding to keep the header strictly fixed at the top
+            if (window.innerWidth > 768) {
+                if (window.scrollY > 40) {
+                    mainHeader.style.padding = '8px 5%'; 
+                } else {
+                    mainHeader.style.padding = '15px 5%';
+                }
+            } else {
+                mainHeader.style.padding = window.scrollY > 40 ? '10px 5%' : '15px 5%';
+            }
+        });
+    })();
+</script>

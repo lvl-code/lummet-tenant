@@ -125,11 +125,20 @@ nav {
 }
 
 nav.active { 
-    max-height: 500px; 
+    /* Changed from 500px to 80vh so it never goes off-bottom of the screen */
+    max-height: 80vh; 
+    
+    /* This enables the vertical scrollbar */
+    overflow-y: auto; 
+    
     padding: 20px 5%; 
     border-bottom: 1px solid #1a1a1f; 
     box-shadow: 0 10px 30px rgba(0,0,0,0.8); 
-}
+    
+    /* Smooth scrolling inside the menu */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    }
 
 nav a { 
     color: var(--text-white); 

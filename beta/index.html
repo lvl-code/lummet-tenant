@@ -202,6 +202,9 @@ layout: null
     {% include header.html %}
     
     <section class="beta-hero hero">
+        <div id="geo-widget" class="geo-widget">
+            🌍 Detecting location...
+        </div>
         <div class="status-badge" style="margin-bottom: 25px; font-family: 'Outfit', sans-serif;">
             <div class="pulse-dot"></div> Private Beta Testing
         </div>
@@ -243,6 +246,20 @@ layout: null
             <p>Tell the AI exactly what you want ("Fast crypto withdrawals in my region with a no-wager bonus") and get an instant, data-backed match.</p>
         </div>
     </section>
+    <section class="content-container">
+        <h2 id="dynamic-casino-title" style="font-family: 'Orbitron'; text-align: center; margin-bottom: 50px; font-size: 2.2rem;">
+            Top <span class="hero-highlight">Crypto Casinos</span> 2026
+        </h2>
+
+        <div id="casino-list"></div>
+        
+        <div id="loading-state" style="color:var(--electric-purple); font-family: 'Orbitron'; text-align:center; padding:40px; font-size: 1.2rem; letter-spacing: 1px;">
+            Loading Global Rankings...
+        </div>
+    </section>
+
+    <script src="/js/casinos.js"></script>
+    <script src="/js/geo.js"></script>
     
   {% include footer.html %}
 

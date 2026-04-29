@@ -48,13 +48,13 @@ async function initComparisonTable() {
             const isCryptoCat = casino.category && casino.category.includes('crypto');
             
             // Auto-detect Payout Speed from features
-            let payout = "1-3 Days";
+            let payout = "0-3 Days";
             if (featuresStr.includes('instant') || featuresStr.includes('fast')) payout = "Instant - 10m";
             else if (featuresStr.includes('24h') || featuresStr.includes('same day')) payout = "< 24 Hours";
 
             // Auto-detect Payment Support
             let payments = "Fiat & Crypto";
-            if (isCryptoCat || featuresStr.includes('crypto-only')) payments = "Pure Crypto";
+            if (isCryptoCat || featuresStr.includes('crypto-only')) payments = "Hybrid";
             if (featuresStr.includes('fiat') && featuresStr.includes('crypto')) payments = "Hybrid (All)";
 
             const row = document.createElement("tr");

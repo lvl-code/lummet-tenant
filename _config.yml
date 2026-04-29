@@ -1,0 +1,4 @@
+collections:
+  seo_pages:
+    output: true
+    permalink: /:location/:category/

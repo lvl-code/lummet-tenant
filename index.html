@@ -288,6 +288,33 @@ layout: null
                     Loading Regional Data...
                 </div>
             </section>
+            <section class="glass-panel rounded-2xl p-6 md:p-8 neon-border mt-8">
+    <div class="flex items-center justify-between mb-5">
+        <h2 class="text-xl font-orbitron font-bold text-white">Quick Comparison: Top Casinos</h2>
+        <span class="text-xs text-level-gray border border-level-border px-2 py-1 rounded-md bg-level-dark">Geo-Filtered</span>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-level-gray">
+            <thead class="text-xs text-level-purple uppercase bg-level-dark border-b border-level-border">
+                <tr>
+                    <th class="px-4 py-3">Casino</th>
+                    <th class="px-4 py-3">Payout Speed</th>
+                    <th class="px-4 py-3">Crypto Support</th>
+                    <th class="px-4 py-3">Top Feature</th>
+                </tr>
+            </thead>
+            <tbody id="dynamic-comparison-table">
+                </tbody>
+        </table>
+    </div>
+    
+    <div id="table-loading-state" class="text-level-purple font-orbitron text-center py-6 text-xs tracking-widest flex items-center justify-center gap-3">
+        <div class="w-3 h-3 border-2 border-level-purple border-t-transparent rounded-full animate-spin"></div>
+        Loading Table Data...
+    </div>
+</section>
+        <!--
 
             <section class="glass-panel rounded-2xl p-6 md:p-8 neon-border mt-8">
                 <h2 class="text-xl font-orbitron font-bold text-white mb-5">Quick Comparison: Top Casinos</h2>
@@ -323,7 +350,8 @@ layout: null
                         </tbody>
                     </table>
                 </div>
-            </section>
+            </section> 
+            -->
 <!--
             <section class="glass-panel rounded-2xl p-6 neon-border mt-8">
                 <div class="flex items-center justify-between mb-5 border-b border-level-border pb-3">

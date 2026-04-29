@@ -77,7 +77,7 @@
     "review": "/review.html?id=hello"
   },
   {
-    "id": "hello2",
+    "id": "",
     "name": "HELLO CASINO",
     "category": ["trusted_mga","crypto","bonus"],
     "restricted": ["US"],

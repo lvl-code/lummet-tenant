@@ -1,4 +1,4 @@
 collections:
   seo_pages:
     output: true
-    permalink: /:location/:category/:title/
+    permalink: /:location_name/:category_slug/

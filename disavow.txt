@@ -1,0 +1,24 @@
+# Disavow file for level.casino
+# Only spam / artificial backlink networks included
+
+domain:seoexpress.website
+
+domain:theguestposts.shop
+domain:theseomasterhigh.shop
+domain:rent-a-shop.shop
+domain:shopbetreiber-blog.shop
+domain:authority-web-link-resource-hub.theguestpost.shop
+domain:thehighseo.shop
+domain:highseoranking.shop
+
+domain:itxoft-seo-for-higher-rankings.site
+domain:itxoft-results-focused-seo.site
+domain:itxoft-seo-for-modern-business.site
+domain:itxoft-trusted-seo-solutions.site
+domain:itxoft-cost-effective-seo-services.site
+
+domain:buybacklinks.agency
+domain:nexusnext.agency
+domain:rank-optimizer.website
+
+domain:mysky-shop.shop

@@ -601,6 +601,7 @@ layout: null
                 }
 
                 if(data.timezone) startLiveClock(data.timezone);
+                /* ================================
 
                 // Update Dynamic Urgency Strip under Hero (Trusted Wording)
                 const geoAlert = document.getElementById("geo-cta-alert");
@@ -619,6 +620,55 @@ layout: null
                     geoAlert.classList.remove("hidden");
                     geoAlert.classList.add("flex");
                 }
+                ================================ */
+
+/* ================================
+   FIXED GEO LOGIC (IMPORTANT PART)
+================================ */
+function getCountrySlug(data) {
+    const code = (data.countryCode || data.country || "").toUpperCase();
+
+    const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+    const fullName = regionNames.of(code);
+
+    if (!fullName) return code.toLowerCase();
+
+    return fullName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+}
+
+async function loadGeoWidget() {
+    startLiveClock();
+
+    try {
+        const res = await fetch("/geo");
+        const data = await res.json();
+
+        window.GEO = data;
+
+        const countrySlug = getCountrySlug(data);
+        const countryDisplay = data.countryName || data.country || "Your Region";
+
+        const geoAlert = document.getElementById("geo-cta-alert");
+
+        if (geoAlert && data.country) {
+            const dynamicUrl = `/casinos/${countrySlug}/`;
+
+            geoAlert.innerHTML = `
+                <div>
+                    <strong class="text-white">High-demand casinos</strong> in ${countryDisplay} right now.
+                </div>
+                <a href="${dynamicUrl}" class="shrink-0 bg-white text-black hover:bg-gray-200 font-bold py-2 px-5 rounded-lg text-xs transition-colors shadow-md">
+                    View Available →
+                </a>
+            `;
+
+            geoAlert.classList.remove("hidden");
+            geoAlert.classList.add("flex");
+        }
+
 
             } catch (err) {
                 const topGeo = document.getElementById("top-geo-location");

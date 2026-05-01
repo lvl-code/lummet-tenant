@@ -621,54 +621,43 @@ layout: null
                     geoAlert.classList.add("flex");
                 }
                 ================================ */
+                // Update Dynamic Urgency Strip under Hero (FIXED COUNTRY SLUGS)
+const geoAlert = document.getElementById("geo-cta-alert");
 
-/* ================================
-   FIXED GEO LOGIC (IMPORTANT PART)
-================================ */
 function getCountrySlug(data) {
     const code = (data.countryCode || data.country || "").toUpperCase();
 
+    // Convert ISO code → full country name
     const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
     const fullName = regionNames.of(code);
 
-    if (!fullName) return code.toLowerCase();
+    if (!fullName) {
+        return code.toLowerCase();
+    }
 
     return fullName
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+        .replace(/[^a-z0-9]+/g, "-")   // spaces & special chars → "-"
+        .replace(/(^-|-$)/g, "");      // trim edges
 }
 
-async function loadGeoWidget() {
-    startLiveClock();
+if (geoAlert && data.country) {
+    const countrySlug = getCountrySlug(data);
 
-    try {
-        const res = await fetch("/geo");
-        const data = await res.json();
+    const dynamicUrl = `/casinos/${countrySlug}/`;
 
-        window.GEO = data;
+    geoAlert.innerHTML = `
+        <div>
+            <strong class="text-white">High-demand casinos</strong> in ${data.countryName || data.country} right now.
+        </div>
+        <a href="${dynamicUrl}" class="shrink-0 bg-white text-level-black hover:bg-gray-200 font-bold py-2 px-5 rounded-lg text-xs transition-colors shadow-md">
+            View Available →
+        </a>
+    `;
 
-        const countrySlug = getCountrySlug(data);
-        const countryDisplay = data.countryName || data.country || "Your Region";
-
-        const geoAlert = document.getElementById("geo-cta-alert");
-
-        if (geoAlert && data.country) {
-            const dynamicUrl = `/casinos/${countrySlug}/`;
-
-            geoAlert.innerHTML = `
-                <div>
-                    <strong class="text-white">High-demand casinos</strong> in ${countryDisplay} right now.
-                </div>
-                <a href="${dynamicUrl}" class="shrink-0 bg-white text-black hover:bg-gray-200 font-bold py-2 px-5 rounded-lg text-xs transition-colors shadow-md">
-                    View Available →
-                </a>
-            `;
-
-            geoAlert.classList.remove("hidden");
-            geoAlert.classList.add("flex");
+    geoAlert.classList.remove("hidden");
+    geoAlert.classList.add("flex");
         }
-
 
             } catch (err) {
                 const topGeo = document.getElementById("top-geo-location");

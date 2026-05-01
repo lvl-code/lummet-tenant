@@ -621,43 +621,89 @@ layout: null
                     geoAlert.classList.add("flex");
                 }
                 ================================ */
-                // Update Dynamic Urgency Strip under Hero (FIXED COUNTRY SLUGS)
+                // Update Dynamic Urgency Strip under Hero (HYBRID SAFE VERSION)
 const geoAlert = document.getElementById("geo-cta-alert");
 
 function getCountrySlug(data) {
-    const code = (data.countryCode || data.country || "").toUpperCase();
-
-    // Convert ISO code → full country name
     const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
-    const fullName = regionNames.of(code);
 
-    if (!fullName) {
-        return code.toLowerCase();
+    let name = "";
+
+    // 1. If full country name exists → use it (OLD behavior compatibility)
+    if (data.countryName && data.countryName.length > 2) {
+        name = data.countryName;
     }
 
-    return fullName
+    // 2. If we only have ISO code → convert to full name (NEW logic)
+    else if (data.country) {
+        const code = data.country.toUpperCase();
+        const converted = regionNames.of(code);
+
+        if (converted) {
+            name = converted;
+        } else {
+            name = data.country; // fallback to raw
+        }
+    }
+
+    // 3. Final fallback safety
+    if (!name) return "global";
+
+    // 4. Slugify safely (same style as before)
+    return name
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")   // spaces & special chars → "-"
-        .replace(/(^-|-$)/g, "");      // trim edges
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
 }
 
 if (geoAlert && data.country) {
     const countrySlug = getCountrySlug(data);
 
-    const dynamicUrl = `/casinos/${countrySlug}/`;
+    // 🔁 OPTIONAL backward compatibility fallback (important)
+    const isoFallback = (data.country || "").toLowerCase();
+
+    const dynamicUrlPrimary = `/casinos/${countrySlug}/`;
+    const dynamicUrlFallback = `/casinos/${isoFallback}/`;
 
     geoAlert.innerHTML = `
         <div>
             <strong class="text-white">High-demand casinos</strong> in ${data.countryName || data.country} right now.
         </div>
-        <a href="${dynamicUrl}" class="shrink-0 bg-white text-level-black hover:bg-gray-200 font-bold py-2 px-5 rounded-lg text-xs transition-colors shadow-md">
+        <a href="${dynamicUrlPrimary}" 
+           data-fallback="${dynamicUrlFallback}"
+           onclick="handleGeoRedirect(event)"
+           class="shrink-0 bg-white text-level-black hover:bg-gray-200 font-bold py-2 px-5 rounded-lg text-xs transition-colors shadow-md">
             View Available →
         </a>
     `;
 
     geoAlert.classList.remove("hidden");
     geoAlert.classList.add("flex");
-        }
+}
+
+/* =========================
+   SAFE FALLBACK REDIRECT
+========================= */
+function handleGeoRedirect(e) {
+    e.preventDefault();
+
+    const link = e.currentTarget;
+    const primary = link.getAttribute("href");
+    const fallback = link.getAttribute("data-fallback");
+
+    // Try primary first
+    fetch(primary, { method: "HEAD" })
+        .then(res => {
+            if (res.ok) {
+                window.location.href = primary;
+            } else {
+                window.location.href = fallback;
+            }
+        })
+        .catch(() => {
+            window.location.href = fallback;
+        });
+}
 
             } catch (err) {
                 const topGeo = document.getElementById("top-geo-location");

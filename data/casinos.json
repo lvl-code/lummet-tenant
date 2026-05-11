@@ -1,7 +1,7 @@
 [
   {
     "id": "bcgame",
-    "name": "BC.GAME",
+    "name": "BC.GAME CASINO",
     "category": ["crypto","trusted-mga","bonus","africa_fast"],
     "restricted": ["GB", "US","SG","NL"],
     "allow_override": [],
@@ -20,7 +20,7 @@
   },
   {
     "id": "stake",
-    "name": "STAKE",
+    "name": "STAKE CASINO",
     "category": ["crypto","africa_fast", "trusted_mga", "bonus"],
     "restricted": ["US","GB","NL","FR","ES","IT","SE","BE"],
     "allow_override": [],
@@ -39,7 +39,7 @@
   },
   {
     "id": "shuffle",
-    "name": "SHUFFLE",
+    "name": "SHUFFLE CASINO",
     "category": ["crypto", "africa_fast", "trusted_mga","bonus"],
     "restricted":["AU","VG","KY","CW","CY","DE","NL","PT","SG","ES","GB","US"],
     "allow_override": [],
@@ -79,7 +79,7 @@
   },
   {
     "id": "slotnite",
-    "name": "SLOTNITE",
+    "name": "SLOTNITE CASINO",
     "category": ["trusted_mga","crypto","bonus"],
     "restricted": ["US"],
     "allow_override": ["SA"],
@@ -99,7 +99,7 @@
   },
   {
     "id": "skolcasino",
-    "name": "SKOLCASINO",
+    "name": "SKOL CASINO",
     "category": ["trusted_mga","crypto","bonus"],
     "restricted": ["US"],
     "allow_override": ["SA"],
@@ -141,7 +141,7 @@
   },
   {
     "id": "prive21",
-    "name": "21Prive",
+    "name": "21PRIVE CASINO",
     "category": ["trusted_mga","crypto","bonus"],
     "restricted": ["US"],
     "allow_override": ["SA"],

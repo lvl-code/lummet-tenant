@@ -180,5 +180,26 @@
     ],
     "link": "/go?offer=gdaycasino",
     "review": "/review.html?id=gdaycasino"
-  }
+  },
+    {
+    "id": "crownslots",
+    "name": "CROWN SLOTS CASINO",
+    "category": ["trusted_mga","crypto","bonus"],
+    "restricted": ["US"],
+    "allow_override": ["ZA"],
+    "logo": "https://level.casino/logo/crownslots-logo.png",
+    "score": "9.7/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": " (varies)",
+    "features": [
+      "Licensed: ",
+      "Licensed: ",
+      "Operator:",
+      "Payments: multiple Options Available",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=crownslots",
+    "review": "/review.html?id=crownslots"
+      }
 ]

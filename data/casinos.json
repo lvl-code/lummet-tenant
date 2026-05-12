@@ -181,7 +181,10 @@
     "link": "/go?offer=gdaycasino",
     "review": "/review.html?id=gdaycasino"
   },
-    {
+
+
+  
+  {
     "id": "crownslots",
     "name": "CROWN SLOTS CASINO",
     "category": ["trusted_mga","crypto","bonus"],
@@ -201,5 +204,67 @@
     ],
     "link": "/go?offer=crownslots",
     "review": "/review.html?id=crownslots"
-      }
+   },
+    {
+    "id": "evospin",
+    "name": "EVOSPIN CASINO",
+    "category": ["trusted_mga","crypto","bonus"],
+    "restricted": ["US","UK"],
+    "allow_override": ["ZA"],
+    "logo": "https://level.casino/logo/evospin-logo.jpeg",
+    "score": "9.45/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Licensed: ",
+      "Licensed: ",
+      "Payments: multiple Options Available",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=evospin",
+    "review": "/review.html?id=evospin"
+  },
+    {
+    "id": "neospin",
+    "name": "NEOSPIN CASINO",
+    "category": ["trusted_mga","crypto","bonus"],
+    "restricted": ["US","UK"],
+    "allow_override": ["ZA"],
+    "logo": "https://level.casino/logo/neospin-logo.jpeg",
+    "score": "9.35/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit).",
+    "features": [
+      "Licensed: ",
+      "Licensed: ",
+      "Payments: multiple Options Available",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=neospin",
+    "review": "/review.html?id=neospin"
+  },
+    {
+    "id": "gunsbet",
+    "name": "GUNSBET CASINO",
+    "category": ["trusted_mga","crypto","bonus"],
+    "restricted": ["US","UK"],
+    "allow_override": ["ZA"],
+    "logo": "https://level.casino/logo/gunsbet-logo.jpeg",
+    "score": "9.25/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Licensed: ",
+      "Licensed: ",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=gunsbet",
+    "review": "/review.html?id=gunsbet"
+  },
+
+  
 ]

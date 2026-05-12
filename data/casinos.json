@@ -81,7 +81,7 @@
     "id": "slotnite",
     "name": "SLOTNITE CASINO",
     "category": ["trusted_mga","crypto","bonus"],
-    "restricted": ["US"],
+    "restricted": ["US", "NL"],
     "allow_override": ["SA"],
     "logo": "https://level.casino/logo/slotnite-logo.jpeg",
     "score": "9.4/10",

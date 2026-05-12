@@ -61,7 +61,7 @@
     "id": "hello2",
     "name": "HELLO CASINO",
     "category": ["trusted_mga","crypto","bonus"],
-    "restricted": ["US","NL"],
+    "restricted": ["AS","BE","FR","GU","IL","IT","MP","NL","ES","TR","US","UM","VI"],
     "allow_override": ["ZA"],
     "logo": "https://level.casino/logo/hello-logo.jpeg",
     "score": "9.2/10",

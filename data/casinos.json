@@ -279,8 +279,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=reelraven",
-    "review": "/review.html?id=reelraven"
+    "link": "/go?offer=reelrave",
+    "review": "/review.html?id=reelrave"
   },
   {
     "id": "jasminslots",
@@ -298,8 +298,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=jasminslots",
-    "review": "/review.html?id=jasminslots"
+    "link": "/go?offer=jasminslot",
+    "review": "/review.html?id=jasminslot"
   },
   {
     "id": "brucebet",
@@ -317,8 +317,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=brucebet",
-    "review": "/review.html?id=brucebet"
+    "link": "/go?offer=brucebe",
+    "review": "/review.html?id=brucebe"
   },
   {
     "id": "levru",
@@ -336,8 +336,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=levru",
-    "review": "/review.html?id=levru"
+    "link": "/go?offer=lev",
+    "review": "/review.html?id=lev"
   },
   {
     "id": "luckystar",
@@ -360,7 +360,7 @@
   },
   
     {
-    "id": "1winglobal",
+    "id": "onewinglobal",
     "name": "1WIN CASINO",
     "category": ["no"],
     "restricted": ["US"],
@@ -379,8 +379,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=1winglobal",
-    "review": "/review.html?id=1winglobal"
+    "link": "/go?offer=onewinglobal",
+    "review": "/review.html?id=onewinglobal"
   }
 
 

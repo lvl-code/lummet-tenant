@@ -196,9 +196,7 @@
     "bonus_title": "Welcome Bonus",
     "bonus_desc": " (varies)",
     "features": [
-      "Licensed: ",
-      "Licensed: ",
-      "Operator:",
+      "Accepted: AU,CA,DE,IT,CH,AT,FR,SI,IE,NO,NZ",
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
@@ -209,16 +207,15 @@
     "id": "evospin",
     "name": "EVOSPIN CASINO",
     "category": ["no"],
-    "restricted": ["US","UK"],
-    "allow_override": ["CA", "DE", "NL", "UK", "CH", "AT", "SK", "SI", "IE"],
+    "restricted": ["US"],
+    "allow_override": ["CA", "DE", "NL", "GB", "CH", "AT", "SK", "SI", "IE"],
     "logo": "https://level.casino/logo/evospin-logo.png",
     "score": "9.85/10",
     "tag": "Operator",
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit)",
     "features": [
-      "Licensed: ",
-      "Licensed: ",
+      "Accepted: CA,DE,NL,GB,CH,AT,SK,SI,IE",
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
@@ -229,7 +226,7 @@
     "id": "neospin",
     "name": "NEOSPIN CASINO",
     "category": ["no"],
-    "restricted": ["US","UK"],
+    "restricted": ["US","GB"],
     "allow_override": ["AU", "CA", "DE", "CH", "AT", "DK", "NZ"],
     "logo": "https://level.casino/logo/neospin-logo.png",
     "score": "9.75/10",
@@ -237,8 +234,7 @@
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit).",
     "features": [
-      "Licensed: ",
-      "Licensed: ",
+      "Accepted: AU,CA,DE,CH,AT,DK,NZ",
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
@@ -249,7 +245,7 @@
     "id": "gunsbet",
     "name": "GUNSBET CASINO",
     "category": ["no"],
-    "restricted": ["US","UK"],
+    "restricted": ["US","GB"],
     "allow_override": ["NZ"],
     "logo": "https://level.casino/logo/gunsbet-logo.jpeg",
     "score": "9.84/10",
@@ -258,7 +254,6 @@
     "bonus_desc": "(1st deposit)",
     "features": [
       "Accepted: NZ",
-      "Licensed: ",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
@@ -273,14 +268,14 @@
     "name": "REEL RAVEN CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": ["AU","AT","BE","UK","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
+    "allow_override": ["AU","AT","BE","GB","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
     "logo": "https://level.casino/logo/reelraven-logo.png",
     "score": "9.9/10",
     "tag": "Operator",
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit)",
     "features": [
-      "Accepted: AU,AT,BE,UK,DE,ES,NL,NZ,FR,CH,SE,FI,NO,DK,IE,CA,IT,PT",
+      "Accepted: AU,AT,BE,GB,DE,ES,NL,NZ,FR,CH,SE,FI,NO,DK,IE,CA,IT,PT",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
@@ -292,14 +287,14 @@
     "name": "JUSMIN SLOTS CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": ["AU","AT","BE","UK","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
+    "allow_override": ["AU","AT","BE","GB","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
     "logo": "https://level.casino/logo/jasminslots-logo.png",
     "score": "9.84/10",
     "tag": "Operator",
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit)",
     "features": [
-      "Accepted: AU,AT,BE,UK,DE,ES,NL,NZ,FR,CH,SE,FI,NO,DK,IE,CA,IT,PT",
+      "Accepted: AU,AT,BE,GB,DE,ES,NL,NZ,FR,CH,SE,FI,NO,DK,IE,CA,IT,PT",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],

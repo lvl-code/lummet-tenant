@@ -264,11 +264,11 @@
 
 
   {
-    "d": "reelraven",
+    "id": "reelraven",
     "name": "REEL RAVEN CASINO",
     "category": ["no"],
-    "restricted": ["US"],
-    "allow_override": ["AU","AT","BE","GB","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
+    "restricted": ["no"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/reelraven-logo.png",
     "score": "9.9/10",
     "tag": "Operator",
@@ -283,11 +283,11 @@
     "review": "/review.html?id=reelraven"
   },
   {
-    "d": "jasminslots",
+    "id": "jasminslots",
     "name": "JUSMIN SLOTS CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": ["AU","AT","BE","GB","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/jasminslots-logo.png",
     "score": "9.84/10",
     "tag": "Operator",
@@ -302,11 +302,11 @@
     "review": "/review.html?id=jasminslots"
   },
   {
-    "d": "brucebet",
+    "id": "brucebet",
     "name": "BRUCE BET CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": ["AT","BE","DE","GR","PL","CH","SE","DK"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/brucebet-logo.png",
     "score": "9.83/10",
     "tag": "Operator",
@@ -325,7 +325,7 @@
     "name": "LEV CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
-    "allow_override": ["RU"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/levru-logo.png",
     "score": "9.84/10",
     "tag": "Operator",

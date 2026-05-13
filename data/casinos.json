@@ -264,7 +264,7 @@
 
 
   {
-    "id": "reelraven",
+    "d": "reelraven",
     "name": "REEL RAVEN CASINO",
     "category": ["no"],
     "restricted": ["US"],
@@ -283,7 +283,7 @@
     "review": "/review.html?id=reelraven"
   },
   {
-    "id": "jasminslots",
+    "d": "jasminslots",
     "name": "JUSMIN SLOTS CASINO",
     "category": ["no"],
     "restricted": ["US"],
@@ -302,7 +302,7 @@
     "review": "/review.html?id=jasminslots"
   },
   {
-    "id": "brucebet",
+    "d": "brucebet",
     "name": "BRUCE BET CASINO",
     "category": ["no"],
     "restricted": ["US"],
@@ -321,7 +321,7 @@
     "review": "/review.html?id=brucebet"
   },
   {
-    "id": "levru",
+    "d": "levru",
     "name": "LEV CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],

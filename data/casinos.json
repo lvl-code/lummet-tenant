@@ -321,7 +321,7 @@
     "review": "/review.html?id=brucebet"
   },
   {
-    "d": "levru",
+    "id": "levru",
     "name": "LEV CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
@@ -333,6 +333,25 @@
     "bonus_desc": "(1st deposit)",
     "features": [
       "Accepted: RU",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=levru",
+    "review": "/review.html?id=levru"
+  },
+  {
+    "id": "luckystar",
+    "name": "LUCK STAR CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["BR","IN"],
+    "logo": "https://level.casino/logo/levru-logo.png",
+    "score": "9.91/10",
+    "tag": "Operator",
+    "bonus_title": "Bonus",
+    "bonus_desc": "500% casino bonus",
+    "features": [
+      "Accepted: BR,IN",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],

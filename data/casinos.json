@@ -142,9 +142,9 @@
   {
     "id": "prive21",
     "name": "21PRIVE CASINO",
-    "category": ["trusted_mga","crypto","bonus"],
+    "category": ["no"],
     "restricted": ["AU","AS","GU","IL","MP","NL","TR","UM","US","VI"],
-    "allow_override": ["SA"],
+    "allow_override": ["GB","IE","SE","NO","FI","LU","HR","ME","MK","XK","AD","LI","SM","AZ","JP","MY","QA","KZ","UZ","KG","CA","MX","CR","DO","CL","CO","PY","UY"],
     "logo": "https://level.casino/logo/prive21-logo.png",
     "score": "8.8/10",
     "tag": "Operator",

@@ -264,7 +264,88 @@
     ],
     "link": "/go?offer=gunsbet",
     "review": "/review.html?id=gunsbet"
+  },
+
+
+
+  {
+    "id": "reelraven",
+    "name": "REEL RAVEN CASINO",
+    "category": ["no"],
+    "restricted": ["US"],
+    "allow_override": ["AU","AT","BE","UK","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
+    "logo": "https://level.casino/logo/reelraven-logo.jpeg",
+    "score": "9.9/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: NZ",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=reelraven",
+    "review": "/review.html?id=reelraven"
+  },
+  {
+    "id": "jasminslots",
+    "name": "JUSMIN SLOTS CASINO",
+    "category": ["no"],
+    "restricted": ["US"],
+    "allow_override": ["AU","AT","BE","UK","DE","ES","NL","NZ","FR","CH","SE","FI","NO","DK","IE","CA","IT","PT"],
+    "logo": "https://level.casino/logo/jasminslots-logo.jpeg",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: NZ",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=jasminslots",
+    "review": "/review.html?id=jasminslots"
+  },
+  {
+    "id": "brucebet",
+    "name": "BRUCE BET CASINO",
+    "category": ["no"],
+    "restricted": ["US"],
+    "allow_override": ["AT","BE","DE","GR","PL","CH","SE","DK"],
+    "logo": "https://level.casino/logo/brucebet-logo.jpeg",
+    "score": "9.83/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: NZ",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=brucebet",
+    "review": "/review.html?id=brucebet"
+  },
+  {
+    "id": "levru",
+    "name": "LEV CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["RU"],
+    "logo": "https://level.casino/logo/levru-logo.jpeg",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: NZ",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=levru",
+    "review": "/review.html?id=levru"
   }
+
+  
 
   
 ]

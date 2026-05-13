@@ -163,9 +163,9 @@
   {
     "id": "gdaycasino",
     "name": "G'DAY CASINO",
-    "category": ["trusted_mga","crypto","bonus"],
+    "category": ["no"],
     "restricted": ["AU","AS","GU","IL","MP","NL","TR","UM","US","VI"],
-    "allow_override": ["ZA"],
+    "allow_override": ["UK","IE","SE","NO","FI","LU","HR","ME","MK","XK","AD","LI","SM","CA","NZ"],
     "logo": "https://level.casino/logo/gdaycasino-logo.png",
     "score": "8.7/10",
     "tag": "Operator",

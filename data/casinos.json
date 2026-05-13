@@ -341,7 +341,7 @@
   },
   {
     "id": "luckystar",
-    "name": "LUCK STAR CASINO",
+    "name": "LUCKY STAR CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
     "allow_override": ["BR","IN"],
@@ -357,7 +357,32 @@
     ],
     "link": "/go?offer=luckystar",
     "review": "/review.html?id=luckystar"
+  },
+  
+    {
+    "id": "1winglobal",
+    "name": "1WIN CASINO",
+    "category": ["no"],
+    "restricted": ["US"],
+    "allow_override": [
+  "RU","IN","UZ","UA","KG","TJ","AZ","AM","MD","BY","TR","MX","CL","AR","VE","CO","EC","CR","BR","PE","BO","GT","ID","BD","TH","KH","LK","PK","MY","PH","KR","JP","VN","CA","QA","AE","MO",
+  "MW","TN","ET","ZA","NE","CI","CM","BF","KE","SN","UG","GH","BJ","TG","EG","TZ","RW","CD","ZM","MA","DZ","NG",
+  "HU","GR","IE","IT","SK","SI","PL","RO","BG","EE","FI","HR","CZ","LV","LU"
+]  ,
+    "logo": "https://level.casino/logo/1win-logo.png",
+    "score": "9.87/10",
+    "tag": "Operator",
+    "bonus_title": "Bonus",
+    "bonus_desc": "casino bonus",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=1winglobal",
+    "review": "/review.html?id=1winglobal"
   }
+
 
   
 

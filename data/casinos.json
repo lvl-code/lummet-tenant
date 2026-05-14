@@ -508,82 +508,119 @@
     "review": "/review.html?id=fscasino"
   },
   {
-    "id": "jasminslots",
-    "name": "JUSMIN SLOTS CASINO",
+    "id": "icecasino",
+    "name": "ICE CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": [],
-    "logo": "https://level.casino/logo/jasminslots-logo.png",
+    "allow_override": ["PL", "DE", "GR", "HR", "CA"],
+    "logo": "https://level.casino/logo/icecasino-logo.png",
     "score": "9.84/10",
     "tag": "Operator",
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit)",
     "features": [
-      "Accepted: AU,AT,BE,GB,DE,ES,NL,NZ,FR,CH,SE,FI,NO,DK,IE,CA,IT,PT",
+      "Accepted: ☑️",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=jasminslot",
-    "review": "/review.html?id=jasminslot"
+    "link": "/go?offer=icecasino",
+    "review": "/review.html?id=icecasino"
   },
   {
-    "id": "brucebet",
-    "name": "BRUCE BET CASINO",
+    "id": "verdecasino",
+    "name": "VERDE CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": [],
-    "logo": "https://level.casino/logo/brucebet-logo.png",
+    "allow_override": ["DE", "PL", "IT", "LU", "IS", "RO"],
+    "logo": "https://level.casino/logo/verdecasino-logo.png",
     "score": "9.83/10",
     "tag": "Operator",
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit)",
     "features": [
-      "Accepted: AT,BE,DE,GR,PL,CH,SE,DK",
+      "Accepted: ☑️",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=brucebe",
-    "review": "/review.html?id=brucebe"
+    "link": "/go?offer=verdecasino",
+    "review": "/review.html?id=verdecasino"
   },
   {
-    "id": "levru",
-    "name": "LEV CASINO",
+    "id": "ggbet",
+    "name": "GG.BET CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
-    "allow_override": [],
-    "logo": "https://level.casino/logo/levru-logo.png",
+    "allow_override": ["PL", "CH", "SE", "HU", "SK"],
+    "logo": "https://level.casino/logo/ggbet-logo.png",
     "score": "9.84/10",
     "tag": "Operator",
     "bonus_title": "Welcome Bonus",
     "bonus_desc": "(1st deposit)",
     "features": [
-      "Accepted: RU",
+      "Accepted: ☑️",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=lev",
-    "review": "/review.html?id=lev"
+    "link": "/go?offer=ggbet",
+    "review": "/review.html?id=ggbet"
   },
   {
-    "id": "luckystar",
-    "name": "LUCKY STAR CASINO",
+    "id": "hitnspin",
+    "name": "HitNSPIN CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
-    "allow_override": ["BR","IN"],
-    "logo": "https://level.casino/logo/luckystar-logo.jpeg",
+    "allow_override": ["DE", "IT", "PL", "LV", "CH"],
+    "logo": "https://level.casino/logo/hitnspin-logo.jpeg",
     "score": "9.91/10",
     "tag": "Operator",
     "bonus_title": "Bonus",
-    "bonus_desc": "500% casino bonus",
+    "bonus_desc": "multiple casino bonuses",
     "features": [
-      "Accepted: BR,IN",
+      "Accepted: ☑️",
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=luckystar",
-    "review": "/review.html?id=luckystar"
+    "link": "/go?offer=hitnspin",
+    "review": "/review.html?id=hitnspin"
+  },
+  {
+    "id": "fieryplay",
+    "name": "FIERY PLAY CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["PT", "SE", "LV", "DE", "PL"],
+    "logo": "https://level.casino/logo/fieryplay-logo.png",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=fieryplay",
+    "review": "/review.html?id=fieryplay"
+  },
+  {
+    "id": "slotoro",
+    "name": "SLOTORO CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["BG", "PL", "DE", "IT", "RO"],
+    "logo": "https://level.casino/logo/slotoro-logo.jpeg",
+    "score": "9.91/10",
+    "tag": "Operator",
+    "bonus_title": "Bonus",
+    "bonus_desc": "multiple casino bonuses",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=slotoro",
+    "review": "/review.html?id=slotoro"
   }
-  
 
   
 

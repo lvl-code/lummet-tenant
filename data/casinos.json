@@ -358,6 +358,9 @@
     "link": "/go?offer=luckystar",
     "review": "/review.html?id=luckystar"
   },
+
+
+  
   
     {
     "id": "onewinglobal",
@@ -381,8 +384,206 @@
     ],
     "link": "/go?offer=onewinglobal",
     "review": "/review.html?id=onewinglobal"
-  }
+  },
 
+
+  
+
+  {
+    "id": "fresh",
+    "name": "FRESH CASINO",
+    "category": ["no"],
+    "restricted": ["no"],
+    "allow_override": ["CA","GR"],
+    "logo": "https://level.casino/logo/fresh-logo.png",
+    "score": "9.9/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: CA,GR",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=fresh",
+    "review": "/review.html?id=fresh"
+  },
+  {
+    "id": "jet",
+    "name": "JET CASINO",
+    "category": ["no"],
+    "restricted": ["no"],
+    "allow_override": ["CA","GR"],
+    "logo": "https://level.casino/logo/jet-logo.png",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: CA,GR",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=jet",
+    "review": "/review.html?id=jet"
+  },
+  {
+    "id": "irwin",
+    "name": "IRWIN CASINO",
+    "category": ["no"],
+    "restricted": ["no"],
+    "allow_override": ["CA","GR"],
+    "logo": "https://level.casino/logo/irwin-logo.png",
+    "score": "9.83/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: CA,GR",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=irwin",
+    "review": "/review.html?id=irwin"
+  },
+  {
+    "id": "onego",
+    "name": "1GO CASINO",
+    "category": ["no"],
+    "restricted": ["no"],
+    "allow_override": ["CA","GR"],
+    "logo": "https://level.casino/logo/onego-logo.png",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=onego",
+    "review": "/review.html?id=onego"
+  },
+
+
+
+  
+  {
+    "id": "vvegas",
+    "name": "V.VEGAS CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["DE", "PL", "HR", "SI", "SE"],
+    "logo": "https://level.casino/logo/vvegas-logo.jpeg",
+    "score": "9.91/10",
+    "tag": "Operator",
+    "bonus_title": "Bonus",
+    "bonus_desc": "multiple casino bonuses",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=vvegas",
+    "review": "/review.html?id=vvegas"
+  },
+  {
+    "id": "fscasino",
+    "name": "FS CASINO",
+    "category": ["no"],
+    "restricted": ["no"],
+    "allow_override": ["PL", "SK", "PT", "LV", "LT"],
+    "logo": "https://level.casino/logo/fscasino-logo.png",
+    "score": "9.9/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=fscasino",
+    "review": "/review.html?id=fscasino"
+  },
+  {
+    "id": "jasminslots",
+    "name": "JUSMIN SLOTS CASINO",
+    "category": ["no"],
+    "restricted": ["US"],
+    "allow_override": [],
+    "logo": "https://level.casino/logo/jasminslots-logo.png",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: AU,AT,BE,GB,DE,ES,NL,NZ,FR,CH,SE,FI,NO,DK,IE,CA,IT,PT",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=jasminslot",
+    "review": "/review.html?id=jasminslot"
+  },
+  {
+    "id": "brucebet",
+    "name": "BRUCE BET CASINO",
+    "category": ["no"],
+    "restricted": ["US"],
+    "allow_override": [],
+    "logo": "https://level.casino/logo/brucebet-logo.png",
+    "score": "9.83/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: AT,BE,DE,GR,PL,CH,SE,DK",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=brucebe",
+    "review": "/review.html?id=brucebe"
+  },
+  {
+    "id": "levru",
+    "name": "LEV CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": [],
+    "logo": "https://level.casino/logo/levru-logo.png",
+    "score": "9.84/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: RU",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=lev",
+    "review": "/review.html?id=lev"
+  },
+  {
+    "id": "luckystar",
+    "name": "LUCKY STAR CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["BR","IN"],
+    "logo": "https://level.casino/logo/luckystar-logo.jpeg",
+    "score": "9.91/10",
+    "tag": "Operator",
+    "bonus_title": "Bonus",
+    "bonus_desc": "500% casino bonus",
+    "features": [
+      "Accepted: BR,IN",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go?offer=luckystar",
+    "review": "/review.html?id=luckystar"
+  }
+  
 
   
 

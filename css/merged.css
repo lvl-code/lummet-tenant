@@ -516,6 +516,17 @@ nav .btn-main {
     }
     }
 
+/* Lock the header to the top of the viewport */
+.header-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999; /* Ensures dropdowns and header stay above all site content */
+    background-color: var(--bg-black); /* Prevents text from bleeding through */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Optional: subtle edge */
+}
+
 /* --- PRO HEADER v3 STYLES --- */
 #navMenu {
     display: flex;

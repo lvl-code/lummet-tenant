@@ -13,73 +13,60 @@
             <div class="logo-text">LEVEL<span>.CASINO</span></div>
         </a>
         
+        <nav id="navMenu" class="nav-container">
+            <div class="nav-group">
+                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-rankings">
+                    Rankings 
+                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-content" id="dropdown-rankings">
+                    <a href="/casinos/top/">Top Casinos</a>
+                    <a href="/casinos/best/">Best Casinos</a>
+                    <a href="/casinos/featured/">Featured Brands</a>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-casinos">
+                    Casinos 
+                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-content" id="dropdown-casinos">
+                    <a href="/casinos/crypto/">Crypto Casinos</a>
+                    <a href="/casinos/trusted/">Trusted MGA</a>
+                    <a href="/casinos/fast-payout/">Fast Payout</a>
+                    <a href="/casinos/malaysia/">Malaysia</a>
+                    <a href="/casinos/nigeria/">Nigeria</a>
+                    <a href="/casinos/canada/">Canada</a>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-guides">
+                    Guides 
+                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-content" id="dropdown-guides">
+                    <a href="/guides/banking.html">Banking Guide</a>
+                    <a href="/guides/registration.html">Registration</a>
+                    <a href="/crypto/crypto-casino-guide.html">Crypto Guide</a>
+                    <a href="/crypto/provably-fair.html">Provably Fair</a>
+                </div>
+            </div>
+
+            <a href="/review.html" class="nav-item">Reviews</a>
+            
+            <div class="nav-group mobile-only-group">
+                <a href="mailto:info@level.casino" class="nav-item">Contact Us</a>
+            </div>
+
+            <a href="mailto:sales@level.casino" class="btn-main btn-purple partnership-cta">Partnership</a>
+        </nav>
+
         <div class="menu-toggle" id="mobile-menu" aria-label="Open mobile menu" role="button" tabindex="0">
             <span></span>
             <span></span>
             <span></span>
         </div>
-
-        <nav id="navMenu">
-            <a href="mailto:info@level.casino">Contact Us</a>
-            <a href="/casinos/featured/">Featured Casinos 2026</a>
-            <a href="/casinos/top/">Top casinos 2026</a>
-            <a href="/casinos/crypto/">Crypto Casinos 2026</a>
-            <a href="/casinos/best/">best casinos 2026</a>
-            <a href="/casinos/trusted/">Trusted Casinos 2026</a>
-            <a href="/casinos/fast-payout/">Fast payout Casinos 2026</a>
-            <a href="/casinos/malaysia/">Best Casinos Malaysia 2026</a>
-            <a href="/casinos/nigeria/">Crypto casinos Nigeria 2026</a>
-            <a href="/casinos/canada/">crypto Casinos Canada 2026</a>
-            <a href="/guides/banking.html" class="gray-link">Banking Guide</a>
-            <a href="/guides/registration.html" class="gray-link">Registration</a>
-            <a href="/crypto/crypto-casino-guide.html" class="gray-link">Crypto Casinos</a>
-            <a href="/crypto/provably-fair.html" class="gray-link">Provably Fair</a>
-            <a href="/review.html" class="gray-link">Casino Review</a>
-            <a href="mailto:sales@level.casino" class="btn-main btn-purple">Partnership</a>
-        </nav>
     </header>
 </div>
-
-
-<script>
-(function() {
-    const header = document.querySelector('.header-wrapper');
-    const mainHeader = document.getElementById('mainHeader');
-
-    // Menu Toggle Logic
-    const menuToggle = document.getElementById('mobile-menu');
-    const navMenu = document.getElementById('navMenu');
-
-    menuToggle.addEventListener('click', () => {
-        menuToggle.classList.toggle('is-active');
-        navMenu.classList.toggle('active');
-    });
-
-    document.querySelectorAll('#navMenu a').forEach(link => {
-        link.addEventListener('click', () => {
-            menuToggle.classList.remove('is-active');
-            navMenu.classList.remove('active');
-        });
-    });
-
-    // ✅ Dynamic offset (THIS is your fix)
-    function updateOffset() {
-        document.body.style.paddingTop = header.offsetHeight + 'px';
-    }
-
-    window.addEventListener('load', updateOffset);
-    window.addEventListener('resize', updateOffset);
-
-    // Header shrink on scroll
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 40) {
-            mainHeader.style.padding = '8px 5%'; 
-        } else {
-            mainHeader.style.padding = '15px 5%';
-        }
-
-        updateOffset(); // 🔥 important: recalc when height changes
-    });
-
-})();
-</script>

@@ -707,3 +707,192 @@ nav .btn-main {
         text-align: center;
     }
 }
+
+/* --- PRO AFFILIATE FOOTER STYLES --- */
+.affiliate-footer {
+    background: var(--bg-black);
+    border-top: 1px solid #1a1a1f;
+    padding: 80px 5% 40px;
+    color: var(--text-gray);
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.6;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* --- Dedicated Compliance Box (Now at top) --- */
+.footer-compliance-box {
+    background: var(--bg-dark);
+    border: 1px solid #1a1a1f;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 60px; /* Pushes the grid down */
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+}
+
+.compliance-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.compliance-logos .age-limit {
+    width: 45px;
+    height: 45px;
+    border: 2px solid #555;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+/* Image Logo styles */
+.gambleaware-link {
+    display: flex;
+    align-items: center;
+    transition: opacity 0.3s ease;
+}
+
+.gambleaware-link:hover {
+    opacity: 0.8;
+}
+
+.gambleaware-img {
+    height: 32px;
+    width: auto;
+    display: block;
+}
+
+.disclaimer-text {
+    font-size: 0.85rem;
+    color: #8b8b9a;
+    margin-top: 20px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.disclaimer-text strong {
+    color: #fff;
+}
+
+.rg-text {
+    font-size: 0.95rem;
+    color: #fff;
+    font-weight: 600;
+}
+
+.rg-text a {
+    color: var(--neon-pink);
+    text-decoration: none;
+}
+
+.rg-text a:hover {
+    text-decoration: underline;
+}
+
+/* --- Grid Setup --- */
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 60px;
+}
+
+.footer-brand .logo-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    margin-bottom: 15px;
+}
+
+.footer-brand .logo-img { height: 40px; border-radius: 8px; }
+.footer-brand .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 800; color: #fff; }
+.footer-brand .logo-text span { color: var(--electric-purple); }
+
+.brand-desc {
+    font-size: 0.95rem;
+    max-width: 300px;
+    color: #a0a0b0;
+}
+
+/* --- Link Groups --- */
+.footer-links-group h4 {
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+.footer-links-group a {
+    display: block;
+    color: #a0a0b0;
+    text-decoration: none;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.3s ease, padding-left 0.3s ease;
+}
+
+.footer-links-group a:hover {
+    color: var(--neon-pink);
+    padding-left: 5px; 
+}
+
+/* --- Bottom Copyright Area --- */
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #1a1a1f;
+    padding-top: 25px;
+    font-size: 0.9rem;
+    color: #8b8b9a;
+}
+
+.bottom-links {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.bottom-links a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.bottom-links a:hover {
+    color: var(--electric-purple);
+}
+
+.bottom-links span {
+    color: #333;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 1024px) {
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .footer-brand { grid-column: span 2; margin-bottom: 20px; }
+    .brand-desc { max-width: 100%; }
+}
+
+@media (max-width: 768px) {
+    .footer-grid { grid-template-columns: 1fr; gap: 30px; }
+    .footer-brand { grid-column: span 1; }
+    .footer-compliance-box { padding: 30px 20px; }
+    .footer-bottom { flex-direction: column; gap: 15px; text-align: center; }
+}

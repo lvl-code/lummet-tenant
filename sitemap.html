@@ -1,33 +1,142 @@
+---
+layout: null
+title: Sitemap | Level.casino
+---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sitemap - Level Casino</title>
-</head>
-<body>
-    <h1>Level.casino Sitemap</h1>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <h2>Main Page</h2>
-    <ul>
-        <li><a href="https://level.casino/">Home</a></li>
-    </ul>
+    <title>Sitemap | Level.casino – All Casino Rankings & Guides</title>
+    <meta name="description" content="Explore all pages on Level.casino including casino reviews, country rankings, crypto guides, and fast payout platforms.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://level.casino/sitemap.html">
 
-    <h2>Sections & Articles</h2>
-    <ul>
-        <li><a href="https://level.casino/#market-analysis">The 2026 iGaming Shift (Market Analysis)</a></li>
-        <li><a href="https://level.casino/#vision">Strategic Industry Fits</a></li>
-        <li><a href="https://level.casino/#valuation">Acquisition Report & Valuation</a></li>
-        <li><a href="https://level.casino/#affiliate-games">Premium Brand Samples</a></li>
-        <li><a href="https://level.casino/#sandbox">Industry Brand Samples (Sandbox)</a></li>
-        <li><a href="https://level.casino/#game-gallery">Casino Game Visuals Gallery</a></li>
-        <li><a href="https://level.casino/#faq">Frequently Asked Questions (FAQ)</a></li>
-    </ul>
+    <link rel="stylesheet" href="/css/merged.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    <h2>External Portfolio Assets</h2>
-    <ul>
-        <li><a href="https://cluster.casino" target="_blank" rel="noopener">Cluster.casino</a></li>
-        <li><a href="https://legendodds.com" target="_blank" rel="noopener">LegendOdds.com</a></li>
-        <li><a href="http://www.elijul.com" target="_blank" rel="noopener">EliJul Studio & Brokerage</a></li>
-    </ul>
+    <style>
+        .glass-panel {
+            background: rgba(15, 15, 20, 0.65);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #9d50bb 0%, #ff00cc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="bg-[#030305] text-white font-sans">
+
+{% include header.html %}
+
+<div class="max-w-7xl mx-auto px-4 py-10">
+
+    <!-- HERO -->
+    <div class="glass-panel rounded-2xl p-8 mb-10">
+        <h1 class="text-4xl font-bold mb-2">
+            Site <span class="text-gradient">Sitemap</span>
+        </h1>
+        <p class="text-gray-400 text-sm">
+            Complete navigation index of Level.casino — casino reviews, country pages, crypto guides, and ranking systems.
+        </p>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- CORE PAGES -->
+        <div class="glass-panel p-6 rounded-xl">
+            <h2 class="font-bold text-lg mb-3">Core Pages</h2>
+            <ul class="space-y-2 text-sm text-gray-300">
+                <li><a href="/" class="hover:text-pink-400">Home</a></li>
+                <li><a href="/review.html" class="hover:text-pink-400">All Reviews</a></li>
+                <li><a href="/casinos/top/" class="hover:text-pink-400">Top Casinos</a></li>
+                <li><a href="/casinos/featured/" class="hover:text-pink-400">Featured</a></li>
+                <li><a href="/casinos/best/" class="hover:text-pink-400">Best Ranked</a></li>
+            </ul>
+        </div>
+
+        <!-- GUIDES -->
+        <div class="glass-panel p-6 rounded-xl">
+            <h2 class="font-bold text-lg mb-3">Guides</h2>
+            <ul class="space-y-2 text-sm text-gray-300">
+                <li><a href="/crypto/provably-fair.html" class="hover:text-pink-400">Provably Fair</a></li>
+                <li><a href="/crypto/crypto-casino-guide.html" class="hover:text-pink-400">Crypto Casino Guide</a></li>
+                <li><a href="/guides/registration.html" class="hover:text-pink-400">Registration Guide</a></li>
+                <li><a href="/guides/banking.html" class="hover:text-pink-400">Banking Guide</a></li>
+            </ul>
+        </div>
+
+        <!-- LEGAL -->
+        <div class="glass-panel p-6 rounded-xl">
+            <h2 class="font-bold text-lg mb-3">Legal</h2>
+            <ul class="space-y-2 text-sm text-gray-300">
+                <li><a href="/about-us.html" class="hover:text-pink-400">About Us</a></li>
+                <li><a href="/responsible-gambling.html" class="hover:text-pink-400">Responsible Gambling</a></li>
+                <li><a href="/terms-and-conditions.html" class="hover:text-pink-400">Terms</a></li>
+                <li><a href="/privacy-policy.html" class="hover:text-pink-400">Privacy Policy</a></li>
+            </ul>
+        </div>
+
+        <!-- COUNTRIES -->
+        <div class="glass-panel p-6 rounded-xl md:col-span-2 lg:col-span-3">
+            <h2 class="font-bold text-lg mb-4">Casino Countries</h2>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 text-sm text-gray-300">
+                <a href="/casinos/europe/" class="hover:text-pink-400">Europe</a>
+                <a href="/casinos/asia/" class="hover:text-pink-400">Asia</a>
+                <a href="/casinos/africa/" class="hover:text-pink-400">Africa</a>
+                <a href="/casinos/usa/" class="hover:text-pink-400">USA</a>
+                <a href="/casinos/united-kingdom/" class="hover:text-pink-400">UK</a>
+                <a href="/casinos/canada/" class="hover:text-pink-400">Canada</a>
+                <a href="/casinos/australia/" class="hover:text-pink-400">Australia</a>
+                <a href="/casinos/germany/" class="hover:text-pink-400">Germany</a>
+                <a href="/casinos/france/" class="hover:text-pink-400">France</a>
+                <a href="/casinos/spain/" class="hover:text-pink-400">Spain</a>
+                <a href="/casinos/italy/" class="hover:text-pink-400">Italy</a>
+                <a href="/casinos/netherlands/" class="hover:text-pink-400">Netherlands</a>
+                <a href="/casinos/brazil/" class="hover:text-pink-400">Brazil</a>
+                <a href="/casinos/mexico/" class="hover:text-pink-400">Mexico</a>
+                <a href="/casinos/nigeria/" class="hover:text-pink-400">Nigeria</a>
+                <a href="/casinos/south-africa/" class="hover:text-pink-400">South Africa</a>
+            </div>
+        </div>
+
+        <!-- REVIEWS -->
+        <div class="glass-panel p-6 rounded-xl md:col-span-2 lg:col-span-3">
+            <h2 class="font-bold text-lg mb-4">Casino Reviews</h2>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300">
+                <a href="/review.html?id=bcgame" class="hover:text-pink-400">BC.Game</a>
+                <a href="/review.html?id=stake" class="hover:text-pink-400">Stake</a>
+                <a href="/review.html?id=shuffle" class="hover:text-pink-400">Shuffle</a>
+                <a href="/review.html?id=ggbet" class="hover:text-pink-400">GG.bet</a>
+                <a href="/review.html?id=slotnite" class="hover:text-pink-400">Slotnite</a>
+                <a href="/review.html?id=skolcasino" class="hover:text-pink-400">Skol Casino</a>
+                <a href="/review.html?id=diamond7casino" class="hover:text-pink-400">Diamond7</a>
+                <a href="/review.html?id=prive21" class="hover:text-pink-400">Prive21</a>
+                <a href="/review.html?id=gdaycasino" class="hover:text-pink-400">GDay Casino</a>
+                <a href="/review.html?id=crownslots" class="hover:text-pink-400">CrownSlots</a>
+                <a href="/review.html?id=evospin" class="hover:text-pink-400">EvoSpin</a>
+                <a href="/review.html?id=neospin" class="hover:text-pink-400">NeoSpin</a>
+                <a href="/review.html?id=gunsbet" class="hover:text-pink-400">GunsBet</a>
+                <a href="/review.html?id=reelrave" class="hover:text-pink-400">ReelRave</a>
+                <a href="/review.html?id=luckystar" class="hover:text-pink-400">LuckyStar</a>
+                <a href="/review.html?id=icecasino" class="hover:text-pink-400">Ice Casino</a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% include footer.html %}
+
 </body>
 </html>

@@ -774,18 +774,62 @@ nav .btn-main {
 }
 
 .disclaimer-text {
-    font-size: 0.85rem;
-    color: #8b8b9a;
-    margin-top: 20px;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: 980px;
+    margin: 28px auto 0;
+    padding: 24px 30px;
+
+    /* Premium card appearance */
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.06),
+        rgba(255, 255, 255, 0.02)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 4px solid #9d50bb;
+    border-radius: 18px;
+
+    /* Typography */
+    color: #ffffff;
+    font-size: 0.98rem;
+    line-height: 1.85;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.01em;
+
+    /* Depth */
+    box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.35),
+        0 0 30px rgba(157, 80, 187, 0.06);
+    backdrop-filter: blur(8px);
 }
 
 .disclaimer-text strong {
-    color: #fff;
+    color: #ffffff;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
+.disclaimer-text a {
+    color: #ffffff;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.disclaimer-text a:hover {
+    color: #d9b3ff;
+}
+
+@media (max-width: 768px) {
+    .disclaimer-text {
+        padding: 20px 18px;
+        font-size: 0.9rem;
+        line-height: 1.75;
+        border-radius: 14px;
+        text-align: left;
+    }
+}
 .rg-text {
     font-size: 0.95rem;
     color: #fff;

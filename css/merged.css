@@ -825,6 +825,19 @@ nav .btn-main {
         height: 34px;
     }
 }
+.responsible-gambling-link {
+    display: inline-block;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.responsible-gambling-link:hover {
+    color: #9d50bb;
+    transform: translateY(-1px);
+}
 
 /* --- Grid Setup --- */
 .footer-grid {

@@ -827,16 +827,50 @@ nav .btn-main {
 }
 .responsible-gambling-link {
     display: inline-block;
+    padding: 12px 28px;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+
     color: #ffffff;
-    font-weight: 800;
-    font-size: 1rem;
+    font-weight: 900;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
     text-decoration: none;
-    transition: color 0.3s ease, transform 0.3s ease;
+
+    white-space: nowrap;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.35);
+
+    transition:
+        color 0.3s ease,
+        border-color 0.3s ease,
+        background 0.3s ease,
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 }
 
 .responsible-gambling-link:hover {
-    color: #9d50bb;
-    transform: translateY(-1px);
+    color: #ffffff;
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 0 20px rgba(255, 255, 255, 0.18),
+        0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 768px) {
+    .responsible-gambling-link {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        white-space: normal;
+        text-align: center;
+    }
 }
 
 /* --- Grid Setup --- */

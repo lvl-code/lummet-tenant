@@ -800,6 +800,31 @@ nav .btn-main {
 .rg-text a:hover {
     text-decoration: underline;
 }
+/* License logo links (Curaçao + MGA) */
+.license-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.license-link img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.license-link:hover img {
+    transform: translateY(-2px) scale(1.03);
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .license-link img {
+        height: 34px;
+    }
+}
 
 /* --- Grid Setup --- */
 .footer-grid {

@@ -1,10 +1,15 @@
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Get the Casino ID from the URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    let casinoId = urlParams.get('id');
+   // const urlParams = new URLSearchParams(window.location.search);
+   // let casinoId = urlParams.get('id');
 
     // Fallback for testing if no ID is provided in URL
-    if (!casinoId) casinoId = "skolcasino"; 
+   // if (!casinoId) casinoId = "skolcasino"; 
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
+    let casinoId = pathParts[1];
+
+    // Optional fallback for testing
+    if (!casinoId) casinoId = "skolcasino";
 
     try {
         // 2. Fetch the JSON data

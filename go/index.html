@@ -1,6 +1,6 @@
 ---
-permalink: /go
 layout: null
+permalink: /go/
 ---
 
 <!DOCTYPE html>
@@ -147,9 +147,11 @@ const OFFERS = {
 // ==========================
 // 📊 READ PARAMETERS
 // ==========================
-const params = new URLSearchParams(window.location.search);
+// const params = new URLSearchParams(window.location.search);
 
-const offer = params.get("offer");
+// const offer = params.get("offer");
+const pathParts = window.location.pathname.split("/").filter(Boolean);
+const offer = pathParts[1];
 const src = params.get("src") || "direct";
 const rank = params.get("rank") || "0";
 

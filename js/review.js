@@ -32,6 +32,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // 4. Populate the DOM with JSON data
         document.title = `${casino.name} Review 2026 | Level.casino`;
+        const canonical = document.querySelector('link[rel="canonical"]');
+        if (canonical) {
+            canonical.href = `https://level.casino/reviews/${casino.id}/`;
+        }
         
         // Header info
         document.getElementById("dyn-logo").src = casino.logo;

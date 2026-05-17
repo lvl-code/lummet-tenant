@@ -15,8 +15,8 @@
       "Payments: Crypto & Fiat options available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=bcgame",
-    "review": "/review.html?id=bcgame"
+    "link": "/go/bcgame/",
+    "review": "/reviews/bcgame/"
   },
   {
     "id": "stake",
@@ -34,8 +34,8 @@
       "payments: Crypto & Fiat options available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=stake",
-    "review": "/review.html?id=stake"
+    "link": "/go/stake/",
+    "review": "/reviews/stake/"
   },
   {
     "id": "shuffle",
@@ -53,8 +53,8 @@
       "Payments: Crypto & Fiat options available",
       "Withdrawal: speed varies by method "
     ],
-    "link": "/go?offer=shuffle",
-    "review": "/review.html?id=shuffle"
+    "link": "/go/shuffle/",
+    "review": "/reviews/shuffle/"
   },
 
   {
@@ -74,8 +74,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=hello2",
-    "review": "/review.html?id=hello2"
+    "link": "/go/hello2/",
+    "review": "/reviews/hello2/"
   },
   {
     "id": "slotnite",
@@ -94,8 +94,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=slotnite",
-    "review": "/review.html?id=slotnite"
+    "link": "/go/slotnite/",
+    "review": "/reviews/slotnite/"
   },
   {
     "id": "skolcasino",
@@ -115,8 +115,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=skolcasino",
-    "review": "/review.html?id=skolcasino"
+    "link": "/go/skolcasino/",
+    "review": "/reviews/skolcasino/"
   },
   {
     "id": "diamond7casino",
@@ -136,8 +136,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=diamond7casino",
-    "review": "/review.html?id=diamond7casino"
+    "link": "/go/diamond7casino/",
+    "review": "/reviews/diamond7casino/"
   },
   {
     "id": "prive21",
@@ -157,8 +157,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=prive21",
-    "review": "/review.html?id=prive21"
+    "link": "/go/prive21/",
+    "review": "/reviews/prive21/"
   },
   {
     "id": "gdaycasino",
@@ -178,8 +178,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=gdaycasino",
-    "review": "/review.html?id=gdaycasino"
+    "link": "/go/gdaycasino/",
+    "review": "/reviews/gdaycasino/"
   },
 
 
@@ -200,8 +200,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=crownslots",
-    "review": "/review.html?id=crownslots"
+    "link": "/go/crownslots/",
+    "review": "/reviews/crownslots/"
    },
     {
     "id": "evospin",
@@ -219,8 +219,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=evospin",
-    "review": "/review.html?id=evospin"
+    "link": "/go/evospin/",
+    "review": "/reviews/evospin/"
   },
     {
     "id": "neospin",
@@ -238,8 +238,8 @@
       "Payments: multiple Options Available",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=neospin",
-    "review": "/review.html?id=neospin"
+    "link": "/go/neospin/",
+    "review": "/reviews/neospin/"
   },
     {
     "id": "gunsbet",
@@ -257,8 +257,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=gunsbet",
-    "review": "/review.html?id=gunsbet"
+    "link": "/go/gunsbet/",
+    "review": "/reviews/gunsbet/"
   },
 
 
@@ -279,8 +279,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=reelrave",
-    "review": "/review.html?id=reelrave"
+    "link": "/go/reelrave/",
+    "review": "/reviews/reelrave/"
   },
   {
     "id": "jasminslots",
@@ -298,8 +298,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=jasminslot",
-    "review": "/review.html?id=jasminslot"
+    "link": "/go/jasminslot/",
+    "review": "/reviews/jasminslot/"
   },
   {
     "id": "brucebet",
@@ -317,8 +317,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=brucebe",
-    "review": "/review.html?id=brucebe"
+    "link": "/go/brucebe/",
+    "review": "/reviews/brucebe/"
   },
   {
     "id": "levru",
@@ -336,8 +336,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=lev",
-    "review": "/review.html?id=lev"
+    "link": "/go/lev/",
+    "review": "/reviews/lev/"
   },
   {
     "id": "luckystar",
@@ -355,8 +355,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=luckystar",
-    "review": "/review.html?id=luckystar"
+    "link": "/go/luckystar/",
+    "review": "/reviews/luckystar/"
   },
 
 
@@ -382,8 +382,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=onewinglobal",
-    "review": "/review.html?id=onewinglobal"
+    "link": "/go/onewinglobal/",
+    "review": "/reviews/onewinglobal/"
   },
 
 
@@ -405,8 +405,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=fresh",
-    "review": "/review.html?id=fresh"
+    "link": "/go/fresh/",
+    "review": "/reviews/fresh/"
   },
   {
     "id": "jet",
@@ -424,8 +424,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=jet",
-    "review": "/review.html?id=jet"
+    "link": "/go/jet/",
+    "review": "/reviews/jet/"
   },
   {
     "id": "irwin",
@@ -443,8 +443,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=irwin",
-    "review": "/review.html?id=irwin"
+    "link": "/go/irwin/",
+    "review": "/reviews/irwin/"
   },
   {
     "id": "onego",
@@ -462,8 +462,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=onego",
-    "review": "/review.html?id=onego"
+    "link": "/go/onego/",
+    "review": "/reviews/onego/"
   },
 
 
@@ -485,8 +485,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=vvegas",
-    "review": "/review.html?id=vvegas"
+    "link": "/go/vvegas/",
+    "review": "/reviews/vvegas/"
   },
   {
     "id": "fscasino",
@@ -504,8 +504,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=fscasino",
-    "review": "/review.html?id=fscasino"
+    "link": "/go/fscasino/",
+    "review": "/reviews/fscasino/"
   },
   {
     "id": "icecasino",
@@ -523,8 +523,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=icecasino",
-    "review": "/review.html?id=icecasino"
+    "link": "/go/icecasino/",
+    "review": "/reviews/icecasino/"
   },
   {
     "id": "verdecasino",
@@ -542,8 +542,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=verdecasino",
-    "review": "/review.html?id=verdecasino"
+    "link": "/go/verdecasino/",
+    "review": "/reviews/verdecasino/"
   },
   {
     "id": "ggbet",
@@ -561,8 +561,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=ggbet",
-    "review": "/review.html?id=ggbet"
+    "link": "/go/ggbet/",
+    "review": "/reviews/ggbet/"
   },
   {
     "id": "hitnspin",
@@ -580,8 +580,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=hitnspin",
-    "review": "/review.html?id=hitnspin"
+    "link": "/go/hitnspin/",
+    "review": "/reviews/hitnspin/"
   },
   {
     "id": "fieryplay",
@@ -599,8 +599,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=fieryplay",
-    "review": "/review.html?id=fieryplay"
+    "link": "/go/fieryplay/",
+    "review": "/reviews/fieryplay/"
   },
   {
     "id": "slotoro",
@@ -618,8 +618,8 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go?offer=slotoro",
-    "review": "/review.html?id=slotoro"
+    "link": "/go/slotoro/",
+    "review": "/reviews/slotoro/"
   }
 
   

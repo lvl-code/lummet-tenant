@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                             SCORE: ${sister.score}
                         </div>
                     </div>
-                    <a href="/review.html?id=${sister.id}" class="btn-outline" style="padding: 10px; font-size: 0.85rem; border-radius: 8px;">Read Review</a>
+                    <a href="/reviews/${sister.id}/" class="btn-outline" style="padding: 10px; font-size: 0.85rem; border-radius: 8px;">Read Review</a>
                 </div>
             `;
         });

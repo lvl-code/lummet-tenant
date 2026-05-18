@@ -508,7 +508,7 @@
     "review": "/reviews/fscasino/"
   },
   {
-    "id": "icecasino",
+    "id": "0icecasino",
     "name": "ICE CASINO",
     "category": ["no"],
     "restricted": ["US"],
@@ -524,7 +524,7 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/icecasino/",
-    "review": "/reviews/icecasino/"
+    "review": "/reviews/icecasino0/"
   },
   {
     "id": "verdecasino",

@@ -512,7 +512,7 @@
     "name": "ICE CASINO",
     "category": ["no"],
     "restricted": ["US"],
-    "allow_override": ["PL", "GR", "HR", "CA"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/icecasino-logo.png",
     "score": "9.84/10",
     "tag": "Operator",

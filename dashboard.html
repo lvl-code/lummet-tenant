@@ -152,14 +152,15 @@ permalink: /dashboard/
                 // Continue even if /api/me fails
             }
 
-            // Load stats
+            // Load stats - API returns raw array
             let statsHtml = '';
             try {
                 const statsRes = await fetch('/api/stats');
                 const statsData = await statsRes.json();
+                const stats = Array.isArray(statsData) ? statsData : (statsData.stats || []);
 
-                const totalClicks = statsData.stats ? statsData.stats.reduce((sum, s) => sum + s.click_count, 0) : 0;
-                const casinoCount = statsData.stats ? statsData.stats.length : 0;
+                const totalClicks = stats.reduce((sum, s) => sum + (s.click_count || 0), 0);
+                const casinoCount = stats.length;
 
                 statsHtml = `
                     <div class="dash-header">
@@ -187,17 +188,15 @@ permalink: /dashboard/
                                 <tr>
                                     <th>Casino</th>
                                     <th>Clicks</th>
-                                    <th>Last Click</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${statsData.stats ? statsData.stats.map(s => `
+                                ${stats.length > 0 ? stats.map(s => `
                                     <tr>
                                         <td>${s.casino_id}</td>
                                         <td>${s.click_count}</td>
-                                        <td>${s.last_click || '-'}</td>
                                     </tr>
-                                `).join('') : '<tr><td colspan="3">No data yet</td></tr>'}
+                                `).join('') : '<tr><td colspan="2">No clicks tracked yet</td></tr>'}
                             </tbody>
                         </table>
                     </div>`;
@@ -207,19 +206,23 @@ permalink: /dashboard/
                         <h1><span class="hero-highlight">Dashboard</span></h1>
                         <button class="btn-main btn-purple dash-logout" onclick="logout()">Logout</button>
                     </div>
-                    <p style="color:#999;">Could not load stats.</p>`;
+                    <div class="dash-section">
+                        <h2>Click Stats by Casino</h2>
+                        <p style="color:#999;">No clicks tracked yet.</p>
+                    </div>`;
             }
 
-            // Load casinos
+            // Load casinos - API returns raw array
             let casinosHtml = '';
             try {
                 const casinosRes = await fetch('/api/casinos');
                 const casinosData = await casinosRes.json();
+                const casinos = Array.isArray(casinosData) ? casinosData : (casinosData.casinos || []);
 
-                if (casinosData.casinos && casinosData.casinos.length > 0) {
+                if (casinos.length > 0) {
                     casinosHtml = `
                         <div class="dash-section">
-                            <h2>Casinos (${casinosData.casinos.length})</h2>
+                            <h2>Casinos (${casinos.length})</h2>
                             <table class="dash-table">
                                 <thead>
                                     <tr>
@@ -230,7 +233,7 @@ permalink: /dashboard/
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${casinosData.casinos.map(c => `
+                                    ${casinos.map(c => `
                                         <tr>
                                             <td>${c.id}</td>
                                             <td>${c.name}</td>

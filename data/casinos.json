@@ -16,7 +16,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/bcgame/",
-    "review": "/reviews/bcgame/"
+    "review": "/reviews/bcgame/",
+     "deepreview": "/reviews/deep/bcgame.html"
   },
   {
     "id": "stake",
@@ -35,7 +36,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/stake/",
-    "review": "/reviews/stake/"
+    "review": "/reviews/stake/",
+    "deepreview": "/reviews/deep/stake.html"
   },
   {
     "id": "shuffle",
@@ -54,7 +56,8 @@
       "Withdrawal: speed varies by method "
     ],
     "link": "/go/shuffle/",
-    "review": "/reviews/shuffle/"
+    "review": "/reviews/shuffle/",
+    "deepreview": "/reviews/deep/shuffle.html"
   },
 
   {

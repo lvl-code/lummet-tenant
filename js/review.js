@@ -76,6 +76,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             featuresContainer.innerHTML = `<p style="color:var(--text-gray);">Standard features apply.</p>`;
         }
+        // Deep review loader
+if (casino.deepreview) {
+    try {
+        const deepRes = await fetch(casino.deepreview);
+
+        if (deepRes.ok) {
+            const deepHtml = await deepRes.text();
+
+            document.getElementById("deep-review-container").innerHTML = deepHtml;
+        }
+    } catch (err) {
+        console.error("Failed to load deep review:", err);
+    }
+}
+        if (casino.deepreview) {
+   requestIdleCallback(async () => {
+      const res = await fetch(casino.deepreview);
+      const html = await res.text();
+      document.getElementById("deep-review-container").innerHTML = html;
+   });
+        }
 
         // 5. Populate "Sister/Other Casinos" dynamically
         // We filter out the current casino, shuffle the array, and pick the first 3

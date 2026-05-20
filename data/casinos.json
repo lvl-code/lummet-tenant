@@ -17,7 +17,7 @@
     ],
     "link": "/go/bcgame/",
     "review": "/reviews/bcgame/",
-     "deepreview": "/reviews/deep/bcgame.html"
+    "deepreview": "/reviews/deep/bcgame.html"
   },
   {
     "id": "stake",
@@ -78,7 +78,9 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/hello2/",
-    "review": "/reviews/hello2/"
+    "review": "/reviews/hello2/",
+    "deepreview": "/reviews/deep/hello2.html"
+    
   },
   {
     "id": "slotnite",
@@ -98,7 +100,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/slotnite/",
-    "review": "/reviews/slotnite/"
+    "review": "/reviews/slotnite/",
+    "deepreview": "/reviews/deep/slotnite.html"
   },
   {
     "id": "skolcasino",
@@ -119,7 +122,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/skolcasino/",
-    "review": "/reviews/skolcasino/"
+    "review": "/reviews/skolcasino/",
+    "deepreview": "/reviews/deep/skolcasino.html"
   },
   {
     "id": "diamond7casino",
@@ -140,7 +144,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/diamond7casino/",
-    "review": "/reviews/diamond7casino/"
+    "review": "/reviews/diamond7casino/",
+    "deepreview": "/reviews/deep/diamond7casino.html"
   },
   {
     "id": "prive21",
@@ -161,7 +166,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/prive21/",
-    "review": "/reviews/prive21/"
+    "review": "/reviews/prive21/",
+    "deepreview": "/reviews/deep/prive21.html"
   },
   {
     "id": "gdaycasino",
@@ -182,7 +188,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/gdaycasino/",
-    "review": "/reviews/gdaycasino/"
+    "review": "/reviews/gdaycasino/",
+    "deepreview": "/reviews/deep/gdaycasino.html"
   },
 
 
@@ -204,7 +211,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/crownslots/",
-    "review": "/reviews/crownslots/"
+    "review": "/reviews/crownslots/",
+    "deepreview": "/reviews/deep/crownslots.html"
    },
     {
     "id": "evospin",
@@ -223,7 +231,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/evospin/",
-    "review": "/reviews/evospin/"
+    "review": "/reviews/evospin/",
+    "deepreview": "/reviews/deep/evospin.html"
   },
     {
     "id": "neospin",
@@ -242,7 +251,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/neospin/",
-    "review": "/reviews/neospin/"
+    "review": "/reviews/neospin/",
+    "deepreview": "/reviews/deep/neospin.html"
   },
     {
     "id": "gunsbet",

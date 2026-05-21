@@ -654,7 +654,7 @@
     "name": "PARTY CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
-    "allow_override": ["CA"],
+    "allow_override": ["FR", "DK", "DE", "IT", "ES"],
     "logo": "https://level.casino/logo/partycasinoca-logo.png",
     "score": "9.95/10",
     "tag": "Operator",

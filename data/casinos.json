@@ -646,6 +646,28 @@
     "link": "/go/slotoro/",
     "review": "/reviews/slotoro/",
     "deepreview": "/reviews/deep/slotoro.html"
+  },
+
+  
+  {
+    "id": "partycasino-ca",
+    "name": "PARTY CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["CA"],
+    "logo": "https://level.casino/logo/partycasino-ca-logo.png",
+    "score": "9.95/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Offer",
+    "bonus_desc": "multiple casino bonuses",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go/partycasino-ca/",
+    "review": "/reviews/partycasino-ca/",
+    "deepreview": "/reviews/deep/partycasino-ca.html"
   }
 
   

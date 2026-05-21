@@ -650,12 +650,12 @@
 
   
   {
-    "id": "partycasino-ca",
+    "id": "partycasinoca",
     "name": "PARTY CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
     "allow_override": ["CA"],
-    "logo": "https://level.casino/logo/partycasino-ca-logo.png",
+    "logo": "https://level.casino/logo/partycasinoca-logo.png",
     "score": "9.95/10",
     "tag": "Operator",
     "bonus_title": "Welcome Offer",
@@ -665,9 +665,9 @@
       "Payments: multiple Options Availabl ",
       "Withdrawal: speed varies by method"
     ],
-    "link": "/go/partycasino-ca/",
-    "review": "/reviews/partycasino-ca/",
-    "deepreview": "/reviews/deep/partycasino-ca.html"
+    "link": "/go/partycasinoca/",
+    "review": "/reviews/partycasinoca/",
+    "deepreview": "/reviews/deep/partycasinoca.html"
   }
 
   

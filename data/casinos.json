@@ -353,11 +353,11 @@
     "review": "/reviews/lev/"
   },
   {
-    "id": "luckystar",
+    "id": "0luckystar",
     "name": "LUCKY STAR CASINO",
     "category": ["no"],
     "restricted": ["US","UK"],
-    "allow_override": ["BR","IN"],
+    "allow_override": [],
     "logo": "https://level.casino/logo/luckystar-logo.jpeg",
     "score": "9.91/10",
     "tag": "Operator",

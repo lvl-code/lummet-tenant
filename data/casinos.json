@@ -293,7 +293,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/reelraven/",
-    "review": "/reviews/reelraven/"
+    "review": "/reviews/reelraven/",
+    "deepreview": "/reviews/deep/reelraven.html"
   },
   {
     "id": "spinLynx",
@@ -312,7 +313,8 @@
       "Withdrawal: speed varies by method"
     ],
     "link": "/go/spinLynx/",
-    "review": "/reviews/spinLynx/"
+    "review": "/reviews/spinLynx/",
+    "deepreview": "/reviews/deep/spinLynx.html"
   },
 
   {

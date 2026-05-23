@@ -163,11 +163,26 @@ permalink: /dashboard/
                 const casinoCount = stats.length;
 
                 statsHtml = `
-                    <div class="dash-header">
-                        <h1><span class="hero-highlight">Dashboard</span></h1>
-                        <button class="btn-main btn-purple dash-logout" onclick="logout()">Logout</button>
-                    </div>
-                    <div class="dash-stats">
+    <div class="dash-header">
+        <h1><span class="hero-highlight">Dashboard</span></h1>
+        <button class="btn-main btn-purple dash-logout" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="dash-section">
+        <h2>🚧 Dashboard Features in Development</h2>
+        <p style="color:#bbb;line-height:1.8;">
+            Thank you for creating an account on Level.casino.
+            Additional dashboard features are currently being developed and will be released in future updates.
+        </p>
+        <p style="color:#999;">
+            Please check back later for account management, favorite casinos, personalized recommendations, activity history, saved comparisons, and other member features.
+        </p>
+    </div>
+
+    <div class="dash-stats">
+
+        
+    
                         <div class="stat-card">
                             <div class="stat-value">${totalClicks}</div>
                             <div class="stat-label">Total Clicks</div>

@@ -26,41 +26,26 @@ layout: null
         .seo-content a { color: var(--electric-purple); text-decoration: none; }
         .faq-box { background: #1a1a1f; padding: 20px; border-left: 3px solid var(--neon-pink); margin-bottom: 15px; border-radius: 5px; }
         .faq-box h4 { margin: 0 0 10px 0; color: #fff; font-size: 1.1rem; }
-        /* CATEGORY SCROLLER */
-.category-scroll-wrapper {
-    max-width: 1200px;
+        
+        .category-scroll-wrapper {
+    width: 100%;
+    overflow: hidden;
     margin: 25px auto 10px auto;
     padding: 0 20px;
-}
-
-.category-scroll-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-}
-
-.category-scroll-header h2 {
-    color: #fff;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.1rem;
-    margin: 0;
-}
-
-.category-scroll-header span {
-    color: var(--text-gray);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    box-sizing: border-box;
 }
 
 .category-scroll {
     display: flex;
-    gap: 12px;
+    flex-wrap: nowrap; /* IMPORTANT */
     overflow-x: auto;
+    overflow-y: hidden;
+    gap: 12px;
     padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
     scrollbar-width: none;
-    -ms-overflow-style: none;
+    width: 100%;
 }
 
 .category-scroll::-webkit-scrollbar {
@@ -68,33 +53,10 @@ layout: null
 }
 
 .category-pill {
-    flex-shrink: 0;
-    padding: 14px 22px;
-    border-radius: 14px;
-    text-decoration: none;
-    color: #fff;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.85rem;
-    transition: all 0.25s ease;
+    flex: 0 0 auto; /* IMPORTANT */
     white-space: nowrap;
-    backdrop-filter: blur(12px);
+    min-width: max-content;
 }
-
-.category-pill:hover {
-    transform: translateY(-2px);
-    border-color: var(--electric-purple);
-    background: rgba(157,80,187,0.12);
-    box-shadow: 0 0 18px rgba(157,80,187,0.25);
-}
-
-.category-pill.featured {
-    border-color: var(--neon-pink);
-    background: rgba(255,0,204,0.08);
-    box-shadow: 0 0 18px rgba(255,0,204,0.18);
-}
-        
     </style>
 </head>
 <body>

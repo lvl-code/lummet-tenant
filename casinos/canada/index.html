@@ -26,6 +26,75 @@ layout: null
         .seo-content a { color: var(--electric-purple); text-decoration: none; }
         .faq-box { background: #1a1a1f; padding: 20px; border-left: 3px solid var(--neon-pink); margin-bottom: 15px; border-radius: 5px; }
         .faq-box h4 { margin: 0 0 10px 0; color: #fff; font-size: 1.1rem; }
+        /* CATEGORY SCROLLER */
+.category-scroll-wrapper {
+    max-width: 1200px;
+    margin: 25px auto 10px auto;
+    padding: 0 20px;
+}
+
+.category-scroll-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.category-scroll-header h2 {
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.category-scroll-header span {
+    color: var(--text-gray);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.category-scroll {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.category-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.category-pill {
+    flex-shrink: 0;
+    padding: 14px 22px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #fff;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    backdrop-filter: blur(12px);
+}
+
+.category-pill:hover {
+    transform: translateY(-2px);
+    border-color: var(--electric-purple);
+    background: rgba(157,80,187,0.12);
+    box-shadow: 0 0 18px rgba(157,80,187,0.25);
+}
+
+.category-pill.featured {
+    border-color: var(--neon-pink);
+    background: rgba(255,0,204,0.08);
+    box-shadow: 0 0 18px rgba(255,0,204,0.18);
+}
+        
     </style>
 </head>
 <body>
@@ -37,6 +106,46 @@ layout: null
         <h1>Best Online Casino <span class="hero-highlight">Canada</span> (2026 Ranked List)</h1>
         <p>The Canadian iGaming market is booming. Whether you are looking for regulated platforms or feature-rich offshore sites, our experts have ranked the ultimate real money casinos for Canadians based on payout speed, CAD bonuses, and overall trust.</p>
     </section> 
+
+    <!-- Dynamic Category Scroller -->
+<section class="category-scroll-wrapper">
+    <div class="category-scroll-header">
+        <h2>Explore Canadian Casino Categories</h2>
+        <span>Swipe →</span>
+    </div>
+
+    <div class="category-scroll">
+        
+        <a href="/casinos/fast-payout/" class="category-pill featured">
+            ⚡ Fast Payout Casinos
+        </a>
+
+        <a href="/casinos/crypto/" class="category-pill">
+            ₿ Crypto Casinos
+        </a>
+
+        <a href="/casinos/interac/" class="category-pill">
+            🇨🇦 Interac Casinos
+        </a>
+
+        <a href="/casinos/bonuses/" class="category-pill">
+            🎁 Welcome Bonuses
+        </a>
+
+        <a href="/casinos/live-dealer/" class="category-pill">
+            🃏 Live Dealer Casinos
+        </a>
+
+        <a href="/casinos/high-roller/" class="category-pill">
+            💎 VIP High Roller
+        </a>
+
+        <a href="/casinos/mobile/" class="category-pill">
+            📱 Mobile Casinos
+        </a>
+
+    </div>
+</section>
 
     <section class="content-container">
         <script>

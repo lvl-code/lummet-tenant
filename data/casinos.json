@@ -634,7 +634,50 @@
     "link": "/go/partycasinoca/",
     "review": "/reviews/partycasinoca/",
     "deepreview": "/reviews/deep/partycasinoca.html"
+  },
+
+
+  {
+    "id": "levelup",
+    "name": "LEVELUP CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["AU","CA","NZ","DE","AT","CH","IE","NO","DK"],
+    "logo": "https://level.casino/logo/levelup-logo.png",
+    "score": "8.85/10",
+    "tag": "Operator",
+    "bonus_title": "Welcome Bonus",
+    "bonus_desc": "(1st deposit)",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go/levelup/",
+    "review": "/reviews/levelup/",
+    "deepreview": "/reviews/deep/levelup.html"
+  },
+  {
+    "id": "slotoro",
+    "name": "SLOTORO CASINO",
+    "category": ["no"],
+    "restricted": ["US","UK"],
+    "allow_override": ["BG", "PL", "DE", "IT", "RO"],
+    "logo": "https://level.casino/logo/slotoro-logo.png",
+    "score": "8.91/10",
+    "tag": "Operator",
+    "bonus_title": "Bonus",
+    "bonus_desc": "multiple casino bonuses",
+    "features": [
+      "Accepted: ☑️",
+      "Payments: multiple Options Availabl ",
+      "Withdrawal: speed varies by method"
+    ],
+    "link": "/go/slotoro/",
+    "review": "/reviews/slotoro/",
+    "deepreview": "/reviews/deep/slotoro.html"
   }
+
 
   
 

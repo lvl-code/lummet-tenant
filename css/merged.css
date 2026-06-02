@@ -1062,27 +1062,24 @@ nav .btn-main {
 }
 
 .breadcrumbs {
-    font-size: 14px;
-    margin: 10px 0 20px;
-    color: #888;
+    padding: 8px 5%;
+    font-size: 13px;
+    color: #999;
+    background: transparent;
 }
 
 .breadcrumbs a {
-    color: #4da3ff;
+    color: #999;
     text-decoration: none;
+    transition: color 0.2s;
 }
 
 .breadcrumbs a:hover {
-    text-decoration: underline;
-}
-.breadcrumbs {
-    font-size: 14px;
-    margin: 10px 0;
-    color: #aaa;
-    display: block;
+    color: #fff;
 }
 
-.breadcrumbs a {
-    color: #4da3ff;
-    text-decoration: none;
+.breadcrumbs span[aria-current="page"] {
+    color: #ccc;
+    font-weight: 500;
 }
+

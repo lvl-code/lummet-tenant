@@ -4,6 +4,7 @@
         .replace(/\/$/, '')
         .split('/')
         .filter(Boolean);
+    if (path.length === 0) return;
 
     const baseUrl = "https://level.casino";
 

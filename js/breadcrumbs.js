@@ -4,7 +4,6 @@
         .replace(/\/$/, '')
         .split('/')
         .filter(Boolean);
-    if (path.length === 0) return;
 
     const baseUrl = "https://level.casino";
 
@@ -37,16 +36,16 @@
 
     });
 
+    // 1. VISUAL BREADCRUMBS
     const container = document.getElementById("breadcrumbs-container");
 
-    if (container && breadcrumbs.length > 1) {
-
+    if (container) {
         container.innerHTML = `
-            <nav class="breadcrumbs">
+            <nav class="breadcrumbs" aria-label="Breadcrumb">
                 ${breadcrumbs.map((item, index) => {
 
                     if (index === breadcrumbs.length - 1) {
-                        return item.name;
+                        return `<span>${item.name}</span>`;
                     }
 
                     return `<a href="${item.url}">${item.name}</a>`;
@@ -55,27 +54,26 @@
         `;
     }
 
+    // 2. SEO SCHEMA (always inject)
     const schema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": breadcrumbs.map((item, index) => {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": breadcrumbs.map((item, index) => {
+            const node = {
+                "@type": "ListItem",
+                "position": index + 1,
+                "name": item.name
+            };
 
-        const node = {
-            "@type": "ListItem",
-            "position": index + 1,
-            "name": item.name
-        };
+            if (index < breadcrumbs.length - 1) {
+                node.item = item.url;
+            }
 
-        if (index < breadcrumbs.length - 1) {
-            node.item = item.url;
-        }
-
-        return node;
-    })
+            return node;
+        })
     };
 
     const script = document.createElement("script");
-
     script.type = "application/ld+json";
     script.textContent = JSON.stringify(schema);
 

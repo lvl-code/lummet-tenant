@@ -55,14 +55,22 @@
     }
 
     const schema = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": breadcrumbs.map((item, index) => ({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumbs.map((item, index) => {
+
+        const node = {
             "@type": "ListItem",
             "position": index + 1,
-            "name": item.name,
-            "item": item.url
-        }))
+            "name": item.name
+        };
+
+        if (index < breadcrumbs.length - 1) {
+            node.item = item.url;
+        }
+
+        return node;
+    })
     };
 
     const script = document.createElement("script");

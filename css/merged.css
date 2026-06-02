@@ -1060,3 +1060,18 @@ nav .btn-main {
     color: #8d8d95;
     letter-spacing: 0.3px;
 }
+
+.breadcrumbs {
+    font-size: 14px;
+    margin: 10px 0 20px;
+    color: #888;
+}
+
+.breadcrumbs a {
+    color: #4da3ff;
+    text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+    text-decoration: underline;
+}

@@ -1,3 +1,4 @@
+console.log("Breadcrumb JS loaded");
 (function() {
 
     const path = window.location.pathname

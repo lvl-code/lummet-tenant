@@ -2,7 +2,7 @@
   {
     "id": "bcgame",
     "name": "BC.GAME CASINO",
-    "category": ["crypto","bonus","africa_fast"],
+    "category": ["asia","americas","africa","default"],
     "restricted": ["GB", "US","SG","NL"],
     "allow_override": [],
     "logo": "https://level.casino/logo/bcgame-logo.jpeg",
@@ -22,7 +22,7 @@
   {
     "id": "stake",
     "name": "STAKE CASINO",
-    "category": ["crypto","africa_fast","bonus"],
+    "category": ["asia","americas","africa","default"],
     "restricted": ["US","GB","NL","FR","ES","IT","SE","BE"],
     "allow_override": [],
     "logo": "https://level.casino/logo/stake-logo.png",
@@ -42,7 +42,7 @@
   {
     "id": "shuffle",
     "name": "SHUFFLE CASINO",
-    "category": ["crypto", "africa_fast"],
+    "category": ["asia", "africa", "default"],
     "restricted":["AU","VG","KY","CW","CY","DE","NL","PT","SG","ES","GB","US"],
     "allow_override": [],
     "logo": "https://level.casino/logo/shuffle-logo.jpeg",

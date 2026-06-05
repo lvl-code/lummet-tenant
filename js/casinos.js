@@ -7,12 +7,12 @@ async function loadCasinos() {
         if (!res.ok) throw new Error("Failed to load casino data");
         const casinos = await res.json();
 
-        // GEO DATA FROM WORKER (Fallback to crypto/US if worker bypasses)
-        const category = window.USER_CATEGORY || "crypto";
+        // GEO DATA FROM WORKER (Fallback to asia/US if worker bypasses)
+        const category = window.USER_CATEGORY || "asia";
         const country = window.USER_COUNTRY || "US";
 
         // FILTER LOGIC — 3-layer control:
-        // 1. Category match (global category like crypto, bonus, etc.)
+        // 1. Category match (global category like africa, americas, etc.)
         // 2. Country restriction (hard block list)
         // 3. Override (bypasses both category gate AND restriction)
         const filtered = casinos.filter(casino => {
@@ -143,13 +143,13 @@ async function loadCasinos() {
         // DYNAMIC HEADING
         const title = document.querySelector("#dynamic-casino-title");
         if (title) {
-            if (category === "crypto") {
-                title.innerHTML = 'Top <span class="hero-highlight">Crypto Casinos</span> 2026';
-            } else if (category === "trusted_mga") {
+            if (category === "asia") {
+                title.innerHTML = 'Top <span class="hero-highlight">Online Casinos</span> 2026';
+            } else if (category === "europe") {
                 title.innerHTML = 'Top <span class="hero-highlight">Trusted Casinos</span> 2026';
-            } else if (category === "bonus") {
+            } else if (category === "americas") {
                 title.innerHTML = 'Top <span class="hero-highlight">Bonus Casinos</span> 2026';
-            } else if (category === "africa_fast") {
+            } else if (category === "africa") {
                 title.innerHTML = 'Top <span class="hero-highlight">Fast Payout Casinos</span> 2026';
             }
         }

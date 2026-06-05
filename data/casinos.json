@@ -63,7 +63,7 @@
   {
     "id": "hello2",
     "name": "HELLO CASINO",
-    "category": ["trusted_mga"],
+    "category": ["europe"],
     "restricted": ["AS","DE","BE","FR","GU","IL","IT","MP","NL","ES","TR","US","UM","VI"],
     "allow_override": ["GB","CA","NZ","ZA","NO","FI","BR","CL","PE","AU"],
     "logo": "https://level.casino/logo/hello-logo.jpeg",
@@ -85,7 +85,7 @@
   {
     "id": "slotnite",
     "name": "SLOTNITE CASINO",
-    "category": ["trusted_mga"],
+    "category": ["europe"],
     "restricted": ["US","NL","DE","RU","TR","BE","FR","ES","AT","AU","PT"],
     "allow_override": ["GB","CA","NZ","ZA","NO","FI","BR","CL","PE"],
     "logo": "https://level.casino/logo/slotnite-logo.jpeg",
@@ -106,7 +106,7 @@
   {
     "id": "skolcasino",
     "name": "SKOL CASINO",
-    "category": ["trusted_mga"],
+    "category": ["europe"],
     "restricted": ["AU","AS","DE","GU","IL","MP","NL","TR","UM","US","VI"],
     "allow_override": ["GB","CA","NZ","ZA","NO","FI","BR","CL","PE"],
     "logo": "https://level.casino/logo/skolcasino-logo.jpeg",
@@ -128,7 +128,7 @@
   {
     "id": "diamond7casino",
     "name": "DIAMOND7 CASINO",
-    "category": ["trusted_mga"],
+    "category": ["europe"],
     "restricted": ["AU","AS","DE","GU","IL","MP","NL","TR","UM","US","VI"],
     "allow_override": ["GB","CA","NZ","ZA","NO","FI","BR","CL","PE"],
     "logo": "https://level.casino/logo/diamond7casino-logo.jpeg",
@@ -150,7 +150,7 @@
   {
     "id": "prive21",
     "name": "21PRIVE CASINO",
-    "category": ["no"],
+    "category": ["europe"],
     "restricted": ["AU","AS","GU","IL","MP","NL","TR","UM","US","VI"],
     "allow_override": ["GB","CA","NZ","ZA","NO","FI","BR","CL","PE"],
     "logo": "https://level.casino/logo/prive21-logo.png",
@@ -172,7 +172,7 @@
   {
     "id": "gdaycasino",
     "name": "G'DAY CASINO",
-    "category": ["no"],
+    "category": ["europe"],
     "restricted": ["AU","AS","GU","IL","MP","NL","TR","UM","US","VI"],
     "allow_override": ["GB","CA","NZ","ZA","NO","FI","BR","CL","PE"],
     "logo": "https://level.casino/logo/gdaycasino-logo.png",

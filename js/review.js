@@ -79,9 +79,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Deep review loader
 if (casino.deepreview) {
     try {
-        console.log(casino.deepreview);
-const deepRes = await fetch(casino.deepreview);
-console.log(deepRes.url, deepRes.status);
         const deepRes = await fetch(casino.deepreview);
 
         if (deepRes.ok) {

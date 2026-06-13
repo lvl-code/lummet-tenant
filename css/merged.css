@@ -1064,8 +1064,11 @@ nav .btn-main {
 .breadcrumbs {
     padding: 8px 5%;
     font-size: 13px;
-    color: #999;
+    color: #cfcfcf;
     background: transparent;
+}
+.breadcrumbs {
+    padding-top: calc(var(--header-height) + 15px);
 }
 
 .breadcrumbs a {

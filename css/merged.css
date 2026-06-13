@@ -1067,9 +1067,6 @@ nav .btn-main {
     color: #cfcfcf;
     background: transparent;
 }
-.breadcrumbs {
-    padding-top: calc(var(--header-height) + 15px);
-}
 
 .breadcrumbs a {
     color: #999;

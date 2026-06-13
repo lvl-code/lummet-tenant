@@ -1061,31 +1061,40 @@ nav .btn-main {
     letter-spacing: 0.3px;
 }
 
+/* Breadcrumbs */
+#breadcrumbs-container {
+    display: block;
+    width: 100%;
+    background: #0b0b0f;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    z-index: 50;
+}
+
 .breadcrumbs {
-    padding: 8px 5%;
+    display: block;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 12px 5%;
     font-size: 13px;
+    line-height: 1.5;
     color: #999;
-    background: transparent;
+    overflow-wrap: break-word;
 }
 
 .breadcrumbs a {
     color: #999;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color 0.2s ease;
 }
 
 .breadcrumbs a:hover {
     color: #fff;
 }
 
-
+.breadcrumbs span,
 .breadcrumbs span[aria-current="page"] {
-    color: #ccc;
-    font-weight: 500;
-}
-
-#breadcrumbs-container {
-    margin-top: var(--header-height, 75px);
-    position: relative;
-    z-index: 10;
+    color: #fff;
+    font-weight: 600;
 }

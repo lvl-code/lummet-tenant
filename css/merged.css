@@ -1063,12 +1063,14 @@ nav .btn-main {
 
 
 #breadcrumbs-container {
-  background: transparent;
-  padding: 0;
-  margin: 0;
-}
-.breadcrumbs {
   background: #0b0b0b;
   padding: 10px 20px;
-  border-bottom: 1px solid #1a1a1a;
 }
+
+#breadcrumbs-container {
+  outline: 2px solid red;
+}
+
+.breadcrumbs {
+  outline: 2px solid blue;
+    }

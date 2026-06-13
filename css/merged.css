@@ -1064,7 +1064,7 @@ nav .btn-main {
 .breadcrumbs {
     padding: 8px 5%;
     font-size: 13px;
-    color: #cfcfcf;
+    color: #999;
     background: transparent;
 }
 
@@ -1078,8 +1078,14 @@ nav .btn-main {
     color: #fff;
 }
 
+
 .breadcrumbs span[aria-current="page"] {
     color: #ccc;
     font-weight: 500;
 }
 
+#breadcrumbs-container {
+    margin-top: var(--header-height, 75px);
+    position: relative;
+    z-index: 10;
+}

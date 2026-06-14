@@ -1065,10 +1065,11 @@ nav .btn-main {
 #breadcrumbs-container {
     width: 100%;
     max-width: 1200px;
-    margin: 20px auto 0;
+    margin: 30px auto 0; /* Increased to push it down from the header */
     padding: 0 5%;
     position: relative;
-    z-index: 10;
+    z-index: 50; /* Increased to ensure it sits above background elements */
+    min-height: 25px; /* Prevents the bar from collapsing completely */
 }
 
 .breadcrumbs {

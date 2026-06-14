@@ -1061,44 +1061,39 @@ nav .btn-main {
     letter-spacing: 0.3px;
 }
 
-/* --- BREADCRUMBS MASTER RESET --- */
+/* --- CLEAN BREADCRUMB PLACEMENT --- */
 #breadcrumbs-container {
-    display: flex !important;
+    display: block !important;
     width: 100%;
     max-width: 1200px;
-    margin: 25px auto 15px auto; /* Adds clean spacing below the header */
-    padding: 0 5%;
+    margin: 10px auto 0 auto !important;
+    padding: 0 5% !important;
     position: relative;
-    z-index: 50; 
-    background: transparent !important; /* This removes the black bar! */
-    box-sizing: border-box;
+    z-index: 90;
+    background: transparent !important;       /* Forces background to vanish */
+    background-color: transparent !important; /* Double down to kill the black bar */
+    box-shadow: none !important;              /* Removes any rogue styling shadows */
+    border: none !important;                  /* Erases any accidental lines */
 }
 
 .breadcrumbs {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-family: 'Outfit', sans-serif;
     color: var(--text-gray);
+    background: transparent !important;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    background: transparent;
+    gap: 6px;
 }
 
 .breadcrumbs a {
     color: var(--electric-purple);
     text-decoration: none;
     font-weight: 600;
-    transition: color 0.2s ease;
 }
 
 .breadcrumbs a:hover {
     color: var(--neon-pink);
     text-decoration: underline;
-}
-
-.breadcrumbs span[aria-current="page"] {
-    color: var(--text-white);
-    font-weight: 400;
-    opacity: 0.85;
 }

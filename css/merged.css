@@ -1061,103 +1061,22 @@ nav .btn-main {
     letter-spacing: 0.3px;
 }
 
-/* ==========================================================
-   BREADCRUMBS
-   ========================================================== */
-
-/* Container */
-#breadcrumbs-container {
-    width: 100%;
-    background: #0b0b0b;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-
-    /* Push below fixed header */
-    margin-top: 80px;
-
-    padding: 12px 5%;
-
-    position: relative;
-    z-index: 1;
-
-    display: block;
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Breadcrumb Navigation */
 .breadcrumbs {
-    max-width: 1200px;
-    margin: 0 auto;
-
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-
-    font-family: 'Outfit', sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #666;
 }
 
-/* Links */
 .breadcrumbs a {
-    color: #ffffff;
-    text-decoration: none;
-    transition: color 0.3s ease;
-    font-weight: 500;
+  color: #007bff; /* Change to match your site's link color */
+  text-decoration: none;
 }
 
 .breadcrumbs a:hover {
-    color: var(--electric-purple);
+  text-decoration: underline;
 }
 
-/* Current Page */
-.breadcrumbs span {
-    color: var(--text-gray);
-    font-weight: 600;
-}
-
-/* Separator */
-.breadcrumbs a:not(:last-child)::after {
-    content: "›";
-    color: #666;
-    margin-left: 8px;
-}
-
-/* Optional Purple Glow */
-.breadcrumbs a:hover {
-    text-shadow: 0 0 10px rgba(157, 80, 187, 0.5);
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-    #breadcrumbs-container {
-        margin-top: 70px;
-        padding: 10px 20px;
-    }
-
-    .breadcrumbs {
-        font-size: 13px;
-        gap: 6px;
-    }
-
-    .breadcrumbs a:not(:last-child)::after {
-        margin-left: 6px;
-    }
-}
-
-/* Very Small Screens */
-@media (max-width: 480px) {
-    .breadcrumbs {
-        font-size: 12px;
-        line-height: 1.4;
-    }
-
-    #breadcrumbs-container {
-        padding: 8px 15px;
-    }
-}
-#breadcrumbs-container {
-    padding-top: calc(var(--header-height) + 10px);
-    margin-top: 0;
+.breadcrumbs span[aria-current="page"] {
+  color: #333;
+  font-weight: bold;
 }

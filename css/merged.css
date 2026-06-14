@@ -1061,27 +1061,33 @@ nav .btn-main {
     letter-spacing: 0.3px;
 }
 
-/* --- BREADCRUMBS (DARK THEME COMPATIBLE) --- */
+/* --- BREADCRUMBS MASTER RESET --- */
 #breadcrumbs-container {
+    display: block !important;
     width: 100%;
     max-width: 1200px;
-    margin: 30px auto 0; /* Increased to push it down from the header */
+    margin: 15px auto 0px auto; /* Forces strict spacing below header padding */
     padding: 0 5%;
     position: relative;
-    z-index: 50; /* Increased to ensure it sits above background elements */
-    min-height: 25px; /* Prevents the bar from collapsing completely */
+    z-index: 99; /* Higher than hero content, below sticky nav */
+    box-sizing: border-box;
 }
 
 .breadcrumbs {
-    font-size: 0.95rem;
-    margin-bottom: 20px;
-    color: var(--text-gray); 
+    font-size: 0.9rem;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-gray);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
 }
 
 .breadcrumbs a {
-    color: var(--electric-purple); 
+    color: var(--electric-purple);
     text-decoration: none;
-    transition: 0.3s ease;
+    font-weight: 600;
+    transition: color 0.2s ease;
 }
 
 .breadcrumbs a:hover {
@@ -1089,7 +1095,13 @@ nav .btn-main {
     text-decoration: underline;
 }
 
+/* For the arrow separators inside your buildBreadcrumbs function */
+.breadcrumbs th, .breadcrumbs td {
+    color: var(--text-gray);
+}
+
 .breadcrumbs span[aria-current="page"] {
     color: var(--text-white);
-    font-weight: 600;
+    font-weight: 400;
+    opacity: 0.85;
 }

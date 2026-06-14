@@ -1080,3 +1080,25 @@ nav .btn-main {
 .breadcrumbs a:hover {
     color: var(--electric-purple);
 }
+#breadcrumbs-container {
+    background: #0b0b0b;
+    padding: 10px 20px;
+    border: 3px solid red;
+}
+
+.breadcrumbs {
+    border: 3px solid blue;
+}
+#breadcrumbs-container {
+    position: relative;
+    z-index: 10;
+    margin-top: 20px;
+}
+#breadcrumbs-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 40px;
+    background: red;
+    color: white;
+}

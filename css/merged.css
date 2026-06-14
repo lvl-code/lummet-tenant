@@ -1063,13 +1063,14 @@ nav .btn-main {
 
 /* --- BREADCRUMBS MASTER RESET --- */
 #breadcrumbs-container {
-    display: block !important;
+    display: flex !important;
     width: 100%;
     max-width: 1200px;
-    margin: 15px auto 0px auto; /* Forces strict spacing below header padding */
+    margin: 25px auto 15px auto; /* Adds clean spacing below the header */
     padding: 0 5%;
     position: relative;
-    z-index: 99; /* Higher than hero content, below sticky nav */
+    z-index: 50; 
+    background: transparent !important; /* This removes the black bar! */
     box-sizing: border-box;
 }
 
@@ -1080,7 +1081,8 @@ nav .btn-main {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    background: transparent;
 }
 
 .breadcrumbs a {
@@ -1093,11 +1095,6 @@ nav .btn-main {
 .breadcrumbs a:hover {
     color: var(--neon-pink);
     text-decoration: underline;
-}
-
-/* For the arrow separators inside your buildBreadcrumbs function */
-.breadcrumbs th, .breadcrumbs td {
-    color: var(--text-gray);
 }
 
 .breadcrumbs span[aria-current="page"] {

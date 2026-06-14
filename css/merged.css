@@ -1061,16 +1061,22 @@ nav .btn-main {
     letter-spacing: 0.3px;
 }
 
-
 #breadcrumbs-container {
-  background: #0b0b0b;
-  padding: 10px 20px;
+    background: #0b0b0b;
+    padding: 10px 20px;
 }
 
-#breadcrumbs-container {
-  outline: 2px solid red;
+.breadcrumbs,
+.breadcrumbs a,
+.breadcrumbs span {
+    color: #fff;
+    font-size: 14px;
 }
 
-.breadcrumbs {
-  outline: 2px solid blue;
-    }
+.breadcrumbs a {
+    text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+    color: var(--electric-purple);
+}

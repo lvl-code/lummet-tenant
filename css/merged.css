@@ -1061,22 +1061,34 @@ nav .btn-main {
     letter-spacing: 0.3px;
 }
 
+/* --- BREADCRUMBS (DARK THEME COMPATIBLE) --- */
+#breadcrumbs-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto 0;
+    padding: 0 5%;
+    position: relative;
+    z-index: 10;
+}
+
 .breadcrumbs {
-  font-size: 14px;
-  margin-bottom: 20px;
-  color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    color: var(--text-gray); 
 }
 
 .breadcrumbs a {
-  color: #007bff; /* Change to match your site's link color */
-  text-decoration: none;
+    color: var(--electric-purple); 
+    text-decoration: none;
+    transition: 0.3s ease;
 }
 
 .breadcrumbs a:hover {
-  text-decoration: underline;
+    color: var(--neon-pink);
+    text-decoration: underline;
 }
 
 .breadcrumbs span[aria-current="page"] {
-  color: #333;
-  font-weight: bold;
+    color: var(--text-white);
+    font-weight: 600;
 }

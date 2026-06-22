@@ -1,0 +1,12 @@
+name = "levelcasino"
+main = "en/worker/index.js"
+compatibility_date = "2024-04-01"
+
+# Automatically bundle assets and modules
+[[d1_databases]]
+binding = "DB"
+database_name = "levelcasino-db"
+database_id = "8e68c1f7-e284-415c-a67c-6ba0c5d0a1f8"
+
+[compatibility_flags]
+nodejs_compat = true

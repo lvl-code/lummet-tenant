@@ -1,75 +1,376 @@
-import { authEngine } from './auth.js';
-import { aiEngine } from './ai.js';
+// =====================================================
+// LEVELCASINO API v1
+// Cloudflare Worker Controller Layer
+// =====================================================
 
-export const apiEngine = {
-  async handleRequest(request, env) {
-    const url = new URL(request.url);
-    const path = url.pathname;
+import * as casinos from "./database/casinos.js";
+import * as reviews from "./database/reviews.js";
+import * as pages from "./database/pages.js";
+import * as geo from "./database/geo.js";
+import * as settings from "./database/settings.js";
+import * as ai from "./database/ai.js";
 
-    // Direct Security Perimeter Interception Gate
-    const isAuthorized = await authEngine.validateAdminRequest(request, env);
-    if (!isAuthorized) {
-      return new Response(JSON.stringify({ error: "Access Violation: Security Token Invalid" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" }
-      });
-    }
+// =====================================================
+// MAIN API HANDLER
+// =====================================================
 
-    // 1. CREATE NEW OPERATOR: POST /en/api/casinos
-    if (path === '/en/api/casinos' && request.method === 'POST') {
-      try {
-        const data = await request.json();
-        await env.DB.prepare(`
-          INSERT INTO casinos (slug, name, logo, rating, bonus_title, bonus_value, features, supported_countries, restricted_countries)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          data.slug, data.name, data.logo, data.rating, data.bonus_title, data.bonus_value,
-          JSON.stringify(data.features || []), JSON.stringify(data.supported_countries || []), JSON.stringify(data.restricted_countries || [])
-        ).run();
+export async function handleAPI(
+  request,
+  env,
+  path,
+  user = null
+) {
 
-        return new Response(JSON.stringify({ success: true, message: `Casino asset '${data.name}' deployed.` }), { status: 201 });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 400 });
-      }
-    }
+  // ----------------------------------
+  // Require Login
+  // ----------------------------------
 
-    // 2. LIVE JURISDICTION OVERRIDE MATRIX ALTERATION: POST /en/api/geo-rules
-    if (path === '/en/api/geo-rules' && request.method === 'POST') {
-      try {
-        const data = await request.json();
-        await env.DB.prepare(`
-          INSERT INTO geo_rules (casino_slug, country, status, bonus_override, notes)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(casino_slug, country) DO UPDATE SET status=excluded.status, bonus_override=excluded.bonus_override, notes=excluded.notes
-        `).bind(data.casino_slug, data.country.toUpperCase(), data.status, data.bonus_override, data.notes).run();
-
-        return new Response(JSON.stringify({ success: true, message: `Geo rule map synced for ${data.country}.` }), { status: 200 });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 400 });
-      }
-    }
-
-    // 3. ONDEMAND EDGE AI COPYWRITING FACTORY TASK: POST /en/api/ai/generate-review
-    if (path === '/en/api/ai/generate-review' && request.method === 'POST') {
-      try {
-        const data = await request.json(); // Expected: { casino_name, slug, country }
-        
-        // Fires Llama-3 at the edge to build the copy variables instantly
-        const aiGeneratedCopy = await aiEngine.generateReviewSummary(env, data.casino_name, data.country);
-
-        // Instantly commit the generated content to your D1 cache block
-        await env.DB.prepare(`
-          INSERT INTO reviews (casino_slug, country, title, content, created_by_ai)
-          VALUES (?, ?, ?, ?, 1)
-          ON CONFLICT(casino_slug, country) DO UPDATE SET content=excluded.content, created_by_ai=1
-        `).bind(data.slug, data.country, `${data.casino_name} Localized Analysis Guide`, aiGeneratedCopy).run();
-
-        return new Response(JSON.stringify({ success: true, content: aiGeneratedCopy }), { status: 200 });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 400 });
-      }
-    }
-
-    return new Response(JSON.stringify({ error: "API Endpoint Allocation Missing" }), { status: 404 });
+  if (!user) {
+    return json({
+      success: false,
+      error: "Unauthorized"
+    }, 401);
   }
-};
+
+  try {
+
+    // ==================================
+    // CASINOS
+    // ==================================
+
+    if (
+      path === "/api/v1/casino/create" &&
+      request.method === "POST"
+    ) {
+      return createCasino(request, env);
+    }
+
+    if (
+      path === "/api/v1/casino/update" &&
+      request.method === "POST"
+    ) {
+      return updateCasino(request, env);
+    }
+
+    if (
+      path === "/api/v1/casino/delete" &&
+      request.method === "POST"
+    ) {
+      return deleteCasino(request, env);
+    }
+
+    // ==================================
+    // REVIEWS
+    // ==================================
+
+    if (
+      path === "/api/v1/review/create" &&
+      request.method === "POST"
+    ) {
+      return createReview(request, env);
+    }
+
+    if (
+      path === "/api/v1/review/update" &&
+      request.method === "POST"
+    ) {
+      return updateReview(request, env);
+    }
+
+    // ==================================
+    // PAGES
+    // ==================================
+
+    if (
+      path === "/api/v1/page/create" &&
+      request.method === "POST"
+    ) {
+      return createPage(request, env);
+    }
+
+    if (
+      path === "/api/v1/page/update" &&
+      request.method === "POST"
+    ) {
+      return updatePage(request, env);
+    }
+
+    // ==================================
+    // GEO RULES
+    // ==================================
+
+    if (
+      path === "/api/v1/geo/save" &&
+      request.method === "POST"
+    ) {
+      return saveGeoRule(request, env);
+    }
+
+    // ==================================
+    // AI REVIEW
+    // ==================================
+
+    if (
+      path === "/api/v1/ai/review" &&
+      request.method === "POST"
+    ) {
+      return generateReview(request, env);
+    }
+
+    // ==================================
+    // SETTINGS
+    // ==================================
+
+    if (
+      path === "/api/v1/settings/save" &&
+      request.method === "POST"
+    ) {
+      return saveSettings(request, env);
+    }
+
+    return json({
+      success: false,
+      error: "Endpoint not found"
+    }, 404);
+
+  } catch (error) {
+
+    return json({
+      success: false,
+      error: error.message
+    }, 500);
+
+  }
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+
+function json(data, status = 200) {
+  return new Response(
+    JSON.stringify(data),
+    {
+      status,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
+
+// =====================================================
+// CASINOS
+// =====================================================
+
+async function createCasino(request, env) {
+
+  const body = await request.json();
+
+  await casinos.createCasino(
+    env.DB,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+async function updateCasino(request, env) {
+
+  const body = await request.json();
+
+  await casinos.updateCasino(
+    env.DB,
+    body.slug,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+async function deleteCasino(request, env) {
+
+  const body = await request.json();
+
+  await casinos.deleteCasino(
+    env.DB,
+    body.slug
+  );
+
+  return json({
+    success: true
+  });
+}
+
+// =====================================================
+// REVIEWS
+// =====================================================
+
+async function createReview(request, env) {
+
+  const body = await request.json();
+
+  await reviews.createReview(
+    env.DB,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+async function updateReview(request, env) {
+
+  const body = await request.json();
+
+  await reviews.updateReview(
+    env.DB,
+    body.slug,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+// =====================================================
+// PAGES
+// =====================================================
+
+async function createPage(request, env) {
+
+  const body = await request.json();
+
+  await pages.createPage(
+    env.DB,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+async function updatePage(request, env) {
+
+  const body = await request.json();
+
+  await pages.updatePage(
+    env.DB,
+    body.slug,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+// =====================================================
+// GEO RULES
+// =====================================================
+
+async function saveGeoRule(request, env) {
+
+  const body = await request.json();
+
+  await geo.saveGeoRule(
+    env.DB,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+// =====================================================
+// SETTINGS
+// =====================================================
+
+async function saveSettings(request, env) {
+
+  const body = await request.json();
+
+  await settings.saveSettings(
+    env.DB,
+    body
+  );
+
+  return json({
+    success: true
+  });
+}
+
+// =====================================================
+// AI REVIEW GENERATION
+// =====================================================
+
+async function generateReview(
+  request,
+  env
+) {
+
+  const body = await request.json();
+
+  const prompt = `
+Write a professional casino review.
+
+Casino: ${body.casino}
+Country: ${body.country}
+
+Requirements:
+- 1500+ words
+- SEO optimized
+- Include pros and cons
+- Include FAQ section
+`;
+
+  const response = await fetch(
+    env.OPENAI_URL,
+    {
+      method: "POST",
+      headers: {
+        Authorization:
+          `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      })
+    }
+  );
+
+  const result =
+    await response.json();
+
+  const content =
+    result.choices?.[0]
+      ?.message?.content || "";
+
+  await ai.logAIGeneration(
+    env.DB,
+    "review",
+    body.slug,
+    prompt,
+    env.OPENAI_MODEL
+  );
+
+  return json({
+    success: true,
+    content
+  });
+}

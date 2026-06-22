@@ -1,34 +1,88 @@
-import { router } from './worker/routes.js';
+import { getRoute } from "./worker/routes.js";
 
 export default {
-  /**
-   * Global Fetch Event Hook
-   * Intercepts edge execution strings and marshals dependencies
-   */
-  async fetch(request, env, ctx) {
-    try {
-      // Extract live geographic telemetry (Country code, city, coordinates)
-      const geoContext = request.cf || {
-        country: 'RW',
-        city: 'Kigali',
-        region: 'Kigali City',
-        timezone: 'Africa/Kigali'
-      };
 
-      // Pass request context down to the central routing matrix
-      return await router.handle(request, env, ctx, geoContext);
-      
-    } catch (error) {
-      console.error(`Fatal Edge Crash: ${error.message}`);
-      
-      // High resilience fallback payload
-      return new Response(`Level Casino Core Exception Engine: ${error.message}`, {
-        status: 500,
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "X-Robots-Tag": "noindex, nofollow"
-        }
-      });
+  async fetch(request, env, ctx) {
+
+    const route = getRoute(request);
+
+    switch (route.type) {
+
+      case "home":
+        return renderHome(request, env);
+
+      case "casino":
+        return renderCasino(
+          request,
+          env,
+          route.slug
+        );
+
+      case "review":
+        return renderReview(
+          request,
+          env,
+          route.slug
+        );
+
+      case "country":
+        return renderCountry(
+          request,
+          env,
+          route.slug
+        );
+
+      case "category":
+        return renderCategory(
+          request,
+          env,
+          route.slug
+        );
+
+      case "affiliate":
+        return renderAffiliate(
+          request,
+          env,
+          route.slug
+        );
+
+      case "go":
+        return handleAffiliateRedirect(
+          request,
+          env,
+          route.slug
+        );
+
+      case "dashboard":
+        return renderDashboard(
+          request,
+          env
+        );
+
+      case "api":
+        return handleAPI(
+          request,
+          env,
+          route.path
+        );
+
+      case "sitemap":
+        return generateSitemap(env);
+
+      case "page":
+        return renderDynamicPage(
+          request,
+          env,
+          route.slug
+        );
+
+      default:
+        return new Response(
+          "Not Found",
+          {
+            status: 404
+          }
+        );
     }
   }
 };

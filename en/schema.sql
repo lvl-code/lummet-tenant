@@ -1,107 +1,326 @@
--- 1. Core Casino Directory Table
-CREATE TABLE IF NOT EXISTS casinos (
+-- =====================================================
+-- LEVELCASINO CMS
+-- Cloudflare D1 Schema v1
+-- =====================================================
+
+PRAGMA foreign_keys = ON;
+
+-- =====================================================
+-- USERS
+-- =====================================================
+
+CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    logo TEXT,
-    rating REAL DEFAULT 5.0,
-    bonus_title TEXT,
-    bonus_value REAL DEFAULT 0.0,
-    features TEXT, -- JSON Array formatted string
-    supported_countries TEXT, -- JSON Array formatted string
-    restricted_countries TEXT, -- JSON Array formatted string
-    license TEXT,
-    owner TEXT,
+
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+
+    role TEXT NOT NULL DEFAULT 'editor',
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Localized Review Text Engine
-CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    casino_slug TEXT NOT NULL,
-    country TEXT NOT NULL, -- Target ISO-2 identifier (e.g., RW, CA, DE)
-    title TEXT,
-    content TEXT, -- Long-form specialized copy or AI text payloads
-    pros TEXT, -- JSON Array formatted string
-    cons TEXT, -- JSON Array formatted string
-    rating REAL,
-    seo_title TEXT,
-    seo_description TEXT,
-    created_by_ai INTEGER DEFAULT 0, -- 0 = Manual, 1 = Edge AI
+CREATE INDEX idx_users_email
+ON users(email);
+
+-- =====================================================
+-- SESSIONS
+-- =====================================================
+
+CREATE TABLE sessions (
+    id TEXT PRIMARY KEY,
+
+    user_id INTEGER NOT NULL,
+
+    expires_at DATETIME NOT NULL,
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(casino_slug, country),
-    FOREIGN KEY(casino_slug) REFERENCES casinos(slug) ON DELETE CASCADE
+
+    FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
--- 3. Jurisdiction Compliance Metrics
-CREATE TABLE IF NOT EXISTS countries (
-    code TEXT PRIMARY KEY, -- ISO-2 country keys (e.g., RW)
+CREATE INDEX idx_sessions_user
+ON sessions(user_id);
+
+-- =====================================================
+-- COUNTRIES
+-- =====================================================
+
+CREATE TABLE countries (
+    code TEXT PRIMARY KEY,
+
     name TEXT NOT NULL,
+
     currency TEXT,
-    language TEXT DEFAULT 'en',
-    legal_status TEXT, -- Allowed, Blocked, Regulated
-    recommended_casinos TEXT, -- JSON Array ordered ranking map
-    seo_text TEXT
-);
+    language TEXT,
 
--- 4. Category Classification Matrix
-CREATE TABLE IF NOT EXISTS categories (
-    slug TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    seo_title TEXT,
-    seo_description TEXT
-);
+    legal_status TEXT,
 
--- 5. Real-Time News Stream
-CREATE TABLE IF NOT EXISTS news (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug TEXT NOT NULL UNIQUE,
-    title TEXT NOT NULL,
-    content TEXT,
-    author TEXT DEFAULT 'Staff Editor',
-    ai_generated INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- 6. Identity Access Management
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    role TEXT DEFAULT 'editor', -- admin, editor, viewer
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- 7. High-Precision Geo Override Overlord
-CREATE TABLE IF NOT EXISTS geo_rules (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    casino_slug TEXT NOT NULL,
-    country TEXT NOT NULL,
-    status TEXT DEFAULT 'allowed', -- allowed, blocked, restricted
-    bonus_override TEXT, -- Custom target offer string for specific markets
-    notes TEXT,
-    UNIQUE(casino_slug, country),
-    FOREIGN KEY(casino_slug) REFERENCES casinos(slug) ON DELETE CASCADE
-);
-
--- 8. Dynamic Page Infrastructure (The Ultimate Routing Component)
-CREATE TABLE IF NOT EXISTS pages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug TEXT NOT NULL UNIQUE, -- E.g., 'affiliate/become'
-    type TEXT NOT NULL, -- affiliate, landing, category, static
-    template TEXT NOT NULL, -- Target HTML layout template pointer
-    title TEXT NOT NULL,
     seo_title TEXT,
     seo_description TEXT,
-    content_json TEXT, -- Highly structured blocks data model payload
-    ai_generated INTEGER DEFAULT 0,
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create structural tracking indexes for high-speed lookups
-CREATE INDEX IF NOT EXISTS idx_casinos_slug ON casinos(slug);
-CREATE INDEX IF NOT EXISTS idx_reviews_lookup ON reviews(casino_slug, country);
-CREATE INDEX IF NOT EXISTS idx_geo_rules_lookup ON geo_rules(casino_slug, country);
-CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug);
+-- =====================================================
+-- CASINOS
+-- =====================================================
+
+CREATE TABLE casinos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    slug TEXT UNIQUE NOT NULL,
+
+    name TEXT NOT NULL,
+
+    logo TEXT,
+
+    website_url TEXT NOT NULL,
+
+    affiliate_url TEXT NOT NULL,
+
+    rating REAL DEFAULT 0,
+
+    bonus_title TEXT,
+    bonus_value TEXT,
+
+    license TEXT,
+    owner TEXT,
+
+    features TEXT,
+
+    supported_countries TEXT,
+
+    restricted_countries TEXT,
+
+    seo_title TEXT,
+    seo_description TEXT,
+
+    published INTEGER DEFAULT 1,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_casinos_slug
+ON casinos(slug);
+
+CREATE INDEX idx_casinos_published
+ON casinos(published);
+
+-- =====================================================
+-- GEO RULES
+-- =====================================================
+
+CREATE TABLE geo_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    casino_slug TEXT NOT NULL,
+
+    country_code TEXT NOT NULL,
+
+    status TEXT NOT NULL,
+
+    bonus_override TEXT,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_geo_casino
+ON geo_rules(casino_slug);
+
+CREATE INDEX idx_geo_country
+ON geo_rules(country_code);
+
+-- =====================================================
+-- REVIEWS
+-- =====================================================
+
+CREATE TABLE reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    casino_slug TEXT NOT NULL,
+
+    country_code TEXT,
+
+    slug TEXT UNIQUE NOT NULL,
+
+    title TEXT NOT NULL,
+
+    content TEXT NOT NULL,
+
+    pros TEXT,
+
+    cons TEXT,
+
+    rating REAL,
+
+    seo_title TEXT,
+    seo_description TEXT,
+
+    ai_generated INTEGER DEFAULT 0,
+
+    published INTEGER DEFAULT 1,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_reviews_slug
+ON reviews(slug);
+
+CREATE INDEX idx_reviews_casino
+ON reviews(casino_slug);
+
+CREATE INDEX idx_reviews_country
+ON reviews(country_code);
+
+-- =====================================================
+-- NEWS
+-- =====================================================
+
+CREATE TABLE news (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    slug TEXT UNIQUE NOT NULL,
+
+    title TEXT NOT NULL,
+
+    content TEXT NOT NULL,
+
+    author TEXT,
+
+    ai_generated INTEGER DEFAULT 0,
+
+    seo_title TEXT,
+    seo_description TEXT,
+
+    published INTEGER DEFAULT 1,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_news_slug
+ON news(slug);
+
+-- =====================================================
+-- CATEGORIES
+-- =====================================================
+
+CREATE TABLE categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    slug TEXT UNIQUE NOT NULL,
+
+    name TEXT NOT NULL,
+
+    description TEXT,
+
+    seo_title TEXT,
+    seo_description TEXT,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_categories_slug
+ON categories(slug);
+
+-- =====================================================
+-- DYNAMIC PAGES
+-- =====================================================
+
+CREATE TABLE pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    slug TEXT UNIQUE NOT NULL,
+
+    type TEXT NOT NULL,
+
+    template TEXT NOT NULL,
+
+    title TEXT NOT NULL,
+
+    content_json TEXT,
+
+    seo_title TEXT,
+    seo_description TEXT,
+
+    ai_generated INTEGER DEFAULT 0,
+
+    published INTEGER DEFAULT 1,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_pages_slug
+ON pages(slug);
+
+CREATE INDEX idx_pages_type
+ON pages(type);
+
+-- =====================================================
+-- CLICK TRACKING
+-- Keep because affiliate sites need it
+-- =====================================================
+
+CREATE TABLE clicks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    casino_slug TEXT NOT NULL,
+
+    country_code TEXT,
+
+    city TEXT,
+
+    ip_hash TEXT,
+
+    user_agent TEXT,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_clicks_casino
+ON clicks(casino_slug);
+
+CREATE INDEX idx_clicks_date
+ON clicks(created_at);
+
+-- =====================================================
+-- AI GENERATION HISTORY
+-- Useful for dashboard auditing
+-- =====================================================
+
+CREATE TABLE ai_generations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    entity_type TEXT NOT NULL,
+
+    entity_slug TEXT NOT NULL,
+
+    prompt TEXT,
+
+    model TEXT,
+
+    status TEXT DEFAULT 'completed',
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ai_entity
+ON ai_generations(entity_slug);
+
+-- =====================================================
+-- SETTINGS
+-- Global CMS settings
+-- =====================================================
+
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+
+    value TEXT,
+
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,72 +1,200 @@
-export const renderEngine = {
-  /**
-   * High-speed token interpolator for mapping database keys to template syntax
-   * Targets formatting like: {{ variable_name }} or {{TITLE}}
-   */
-  interpolate(templateStr, dataMap) {
-    if (!templateStr) return '';
-    return templateStr.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (match, token) => {
-      // Handles nested object syntax path selection (e.g., geo.country)
-      const value = token.split('.').reduce((obj, key) => (obj && obj[key] !== undefined) ? obj[key] : undefined, dataMap);
-      return value !== undefined ? value : '';
-    });
-  },
+// =====================================================
+// LEVELCASINO TEMPLATE ENGINE
+// =====================================================
 
-  /**
-   * Compiles dynamic arrays of object entities against isolated UI components
-   * Ideal for scaling casino cards, bonus lists, and content snippets
-   */
-  renderCollection(componentStr, dataArray, globalContext = {}) {
-    if (!componentStr || !Array.isArray(dataArray)) return '';
-    return dataArray
-      .map(item => this.interpolate(componentStr, { ...item, global: globalContext }))
-      .join('\n');
-  },
+export class Renderer {
 
-  /**
-   * Core orchestrator: Stitches layouts, sections, and loop blocks into unified DOM outputs
-   */
-  async view(layouts, pageTemplate, data) {
-    const { base, header, footer, sidebar, components = {} } = layouts;
-
-    // 1. Process structured sub-loop structures before main framework integration
-    let processedPage = pageTemplate;
-    if (data.casinos && components['casino-card.html']) {
-      const casinoCardsHtml = this.renderCollection(components['casino-card.html'], data.casinos, data.geo);
-      processedPage = processedPage.replace('{{CASINO_LIST_LOOP}}', casinoCardsHtml);
-    }
-    
-    if (data.bonuses && components['bonus-box.html']) {
-      const bonusBoxesHtml = this.renderCollection(components['bonus-box.html'], data.bonuses, data.geo);
-      processedPage = processedPage.replace('{{BONUS_LIST_LOOP}}', bonusBoxesHtml);
-    }
-
-    // 2. Interpolate variables directly into the inner content layer
-    const compiledBody = this.interpolate(processedPage, data);
-
-    // 3. Build layout shell infrastructure fragments
-    const renderedHeader = this.interpolate(header, data);
-    const renderedFooter = this.interpolate(footer, data);
-    const renderedSidebar = sidebar ? this.interpolate(sidebar, data) : '';
-
-    // 4. Inject structural layers into the core system base frame
-    const completeHtml = this.interpolate(base, {
-      ...data,
-      HEADER: renderedHeader,
-      FOOTER: renderedFooter,
-      SIDEBAR: renderedSidebar,
-      CONTENT: compiledBody
-    });
-
-    // 5. Ship edge optimized streaming response payload
-    return new Response(completeHtml, {
-      status: data.httpStatus || 200,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, no-transform, max-age=120", // 2-min edge execution caching
-        "X-Frame-Options": "DENY",
-        "X-Content-Type-Options": "nosniff"
-      }
-    });
+  constructor(env) {
+    this.env = env;
   }
-};
+
+  // =====================================================
+  // LOAD TEMPLATE FILE
+  // =====================================================
+
+  async loadTemplate(name) {
+
+    const file = await this.env.ASSETS.fetch(
+      new Request(
+        `https://assets.local/en/templates/${name}`
+      )
+    );
+
+    return await file.text();
+  }
+
+  // =====================================================
+  // REPLACE {{variables}}
+  // =====================================================
+
+  replaceVariables(template, data = {}) {
+
+    return template.replace(
+      /\{\{(.*?)\}\}/g,
+      (_, key) => {
+
+        key = key.trim();
+
+        return data[key] ?? "";
+
+      }
+    );
+  }
+
+  // =====================================================
+  // INCLUDE COMPONENTS
+  // =====================================================
+
+  async injectComponents(html) {
+
+    const header =
+      await this.loadTemplate(
+        "layout/header.html"
+      );
+
+    const footer =
+      await this.loadTemplate(
+        "layout/footer.html"
+      );
+
+    const sidebar =
+      await this.loadTemplate(
+        "layout/sidebar.html"
+      );
+
+    const breadcrumbs =
+      await this.loadTemplate(
+        "components/breadcrumbs.html"
+      );
+
+    html = html.replace(
+      "{{HEADER}}",
+      header
+    );
+
+    html = html.replace(
+      "{{FOOTER}}",
+      footer
+    );
+
+    html = html.replace(
+      "{{SIDEBAR}}",
+      sidebar
+    );
+
+    html = html.replace(
+      "{{BREADCRUMBS}}",
+      breadcrumbs
+    );
+
+    return html;
+  }
+
+  // =====================================================
+  // BUILD SEO
+  // =====================================================
+
+  buildSEO(data = {}) {
+
+    return `
+<title>${data.seo_title || ""}</title>
+
+<meta
+name="description"
+content="${data.seo_description || ""}"
+>
+
+<link
+rel="canonical"
+href="${data.canonical || ""}"
+>
+
+<meta
+property="og:title"
+content="${data.seo_title || ""}"
+>
+
+<meta
+property="og:description"
+content="${data.seo_description || ""}"
+>
+`;
+  }
+
+  // =====================================================
+  // JSON-LD
+  // =====================================================
+
+  buildSchema(schema = {}) {
+
+    return `
+<script type="application/ld+json">
+${JSON.stringify(schema)}
+</script>
+`;
+  }
+
+  // =====================================================
+  // FULL PAGE RENDER
+  // =====================================================
+
+  async render(
+    pageTemplate,
+    data = {},
+    schema = {}
+  ) {
+
+    // ---------------------------------
+    // page
+    // ---------------------------------
+
+    let page =
+      await this.loadTemplate(
+        `pages/${pageTemplate}`
+      );
+
+    page =
+      this.replaceVariables(
+        page,
+        data
+      );
+
+    page =
+      await this.injectComponents(
+        page
+      );
+
+    // ---------------------------------
+    // layout
+    // ---------------------------------
+
+    let base =
+      await this.loadTemplate(
+        "layout/base.html"
+      );
+
+    const seo =
+      this.buildSEO(data);
+
+    const jsonld =
+      this.buildSchema(schema);
+
+    base = base.replace(
+      "{{SEO}}",
+      seo
+    );
+
+    base = base.replace(
+      "{{SCHEMA}}",
+      jsonld
+    );
+
+    base = base.replace(
+      "{{CONTENT}}",
+      page
+    );
+
+    return base;
+  }
+
+}

@@ -1,1 +1,43 @@
+<article class="casino-profile-wrapper">
+    <!-- Hero Brand Banner Component Section -->
+    <section class="casino-hero-card">
+        <div class="brand-identity-block">
+            <img src="{{CASINO_LOGO}}" alt="{{CASINO_NAME}} Visual Logo" class="operator-logo" loading="eager">
+            <h1 class="operator-headline">{{CASINO_NAME}} Review & Market Analysis</h1>
+        </div>
+        
+        <!-- Live Geo-Targeted Localized Conversion Card Box -->
+        <div class="geo-offer-conversion-box">
+            <div class="geo-badge">Localized Offer for: <span class="country-pill">{{GEO_COUNTRY_NAME}}</span></div>
+            <h2 class="bonus-highlight-title">{{LOCALIZED_BONUS_TITLE}}</h2>
+            <p class="bonus-subtext">Terms apply. Min deposit required. 18+</p>
+            <a href="{{AFFILIATE_REDIRECT_LINK}}" class="cta-conversion-button" target="_blank" rel="nofollow noopener noreferrer">
+                Claim {{CASINO_NAME}} Bonus
+            </a>
+        </div>
+    </section>
 
+    <!-- Context Flow Restrictions Indicator (Rendered if blocked/restricted) -->
+    {{JURISDICTION_COMPLIANCE_BANNER}}
+
+    <!-- Multi-Column Editorial Copy Layout Structure -->
+    <section class="casino-editorial-body">
+        <div class="main-copy-column">
+            <h2>Detailed Operator Analysis</h2>
+            <div class="longform-text-block">
+                {{LONGFORM_REVIEW_CONTENT}}
+            </div>
+        </div>
+        
+        <aside class="sidebar-data-column">
+            <div class="spec-matrix-card">
+                <h3>Technical Specifications</h3>
+                <ul>
+                    <li><strong>Platform Rating:</strong> {{CASINO_RATING}} / 5</li>
+                    <li><strong>Licensed Regulator:</strong> {{CASINO_LICENSE}}</li>
+                    <li><strong>Corporate Owner:</strong> {{CASINO_OWNER}}</li>
+                </ul>
+            </div>
+        </aside>
+    </section>
+</article>

@@ -1,1 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{SEO_TITLE}}</title>
+    <meta name="description" content="{{SEO_DESCRIPTION}}">
+    
+    <!-- Open Graph Social Matrix Hooks -->
+    <meta property="og:title" content="{{SEO_TITLE}}">
+    <meta property="og:description" content="{{SEO_DESCRIPTION}}">
+    <meta property="og:type" content="website">
+    
+    <!-- Performance injection of localized global styling rules -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    
+    <!-- JSON-LD Structured Data Schema Dynamic Slot -->
+    <script type="application/ld+json">
+        {{SCHEMA_MARKUP}}
+    </script>
+</head>
+<body>
 
+    <!-- Unified Header Injection Spot -->
+    {{HEADER_COMPONENT}}
+
+    <main class="main-container">
+        <!-- Core Dynamic Page Processing Slot -->
+        {{MAIN_CONTENT}}
+    </main>
+
+    <!-- Unified Footer Injection Spot -->
+    {{FOOTER_COMPONENT}}
+
+    <!-- Minimal client interaction script hook -->
+    <script src="/static/js/app.js" async></script>
+</body>
+</html>

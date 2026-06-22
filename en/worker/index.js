@@ -1,4 +1,4 @@
-import { getRoute } from "./worker/routes.js";
+import { getRoute } from "./routes.js";
 
 export default {
 

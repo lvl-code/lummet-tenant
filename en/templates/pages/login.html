@@ -1,21 +1,82 @@
-{{HEADER}}
+<div class="max-w-md mx-auto mt-16 bg-gray-900 p-8 rounded-xl">
 
-<h1>Login</h1>
+    <h1 class="text-3xl font-bold mb-6">
+        Login
+    </h1>
 
-<form id="loginForm">
-<input
-type="email"
-name="email"
-placeholder="Email">
+    <form id="loginForm">
 
-<input
-type="password"
-name="password"
-placeholder="Password">
+        <input
+            type="email"
+            id="email"
+            placeholder="Email"
+            class="w-full mb-4 p-3 rounded bg-gray-800"
+        >
 
-<button>
-Login
-</button>
-</form>
+        <input
+            type="password"
+            id="password"
+            placeholder="Password"
+            class="w-full mb-4 p-3 rounded bg-gray-800"
+        >
 
-{{FOOTER}}
+        <button
+            class="w-full bg-indigo-600 py-3 rounded"
+        >
+            Login
+        </button>
+
+    </form>
+
+    <div
+        id="message"
+        class="mt-4 text-center"
+    ></div>
+
+</div>
+
+<script>
+document
+.getElementById("loginForm")
+.addEventListener(
+"submit",
+async e => {
+
+e.preventDefault();
+
+const res =
+await fetch(
+"/api/v1/auth/login",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+email:
+document.getElementById("email").value,
+password:
+document.getElementById("password").value
+})
+}
+);
+
+const data =
+await res.json();
+
+if(data.success){
+
+location.href =
+"/en/dashboard";
+
+}else{
+
+document.getElementById(
+"message"
+).innerHTML =
+data.error;
+
+}
+});
+</script>
+

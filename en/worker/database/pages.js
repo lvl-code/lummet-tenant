@@ -35,3 +35,28 @@ export async function createPage(db, page) {
     )
     .run();
 }
+
+export async function updatePage(
+ db,
+ slug,
+ page
+) {
+ return db.prepare(`
+ UPDATE pages
+ SET
+ title=?,
+ content_json=?,
+ seo_title=?,
+ seo_description=?,
+ updated_at=CURRENT_TIMESTAMP
+ WHERE slug=?
+ `)
+ .bind(
+ page.title,
+ JSON.stringify(page.content_json || {}),
+ page.seo_title,
+ page.seo_description,
+ slug
+ )
+ .run();
+}

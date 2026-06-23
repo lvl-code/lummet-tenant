@@ -1,4 +1,36 @@
-import { getRoute } from "./routes.js";
+import { getRoute }
+from "./routes.js";
+
+import {
+  renderHome,
+  renderCasino,
+  renderReview,
+  renderCountry,
+  renderCategory,
+  renderAffiliate,
+  renderDashboard,
+  renderDynamicPage,
+  handleAffiliateRedirect,
+  renderLogin,
+  renderRegister,
+  robots
+}
+from "./controllers.js";
+
+import {
+  handleAPI
+}
+from "./api.js";
+
+import {
+  sitemapEngine
+}
+from "./sitemap.js";
+import {
+  getCurrentUser
+}
+from "./auth.js";
+
 
 export default {
 
@@ -10,6 +42,17 @@ export default {
 
       case "home":
         return renderHome(request, env);
+      case "login":
+  return renderLogin(
+    request,
+    env
+  );
+      case "register":
+  return renderRegister(
+    request,
+    env
+  );
+
 
       case "casino":
         return renderCasino(
@@ -60,14 +103,27 @@ export default {
         );
 
       case "api":
-        return handleAPI(
-          request,
-          env,
-          route.path
-        );
+
+  const user =
+    await getCurrentUser(
+      request,
+      env
+    );
+
+  return handleAPI(
+    request,
+    env,
+    route.path,
+    user
+  );
 
       case "sitemap":
-        return generateSitemap(env);
+        return sitemapEngine.generate(
+  env.DB
+);
+      case "robots":
+  return robots();
+      
 
       case "page":
         return renderDynamicPage(

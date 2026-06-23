@@ -315,3 +315,41 @@ function json(
         }
     );
 }
+
+
+export async function
+register(
+  request,
+  env
+){
+
+  const body =
+    await request.json();
+
+  const passwordHash =
+    await hashPassword(
+      body.password
+    );
+
+  await env.DB.prepare(`
+    INSERT INTO users(
+      email,
+      password_hash,
+      role
+    )
+    VALUES(
+      ?,
+      ?,
+      'editor'
+    )
+  `)
+  .bind(
+    body.email,
+    passwordHash
+  )
+  .run();
+
+  return json({
+    success:true
+  });
+}

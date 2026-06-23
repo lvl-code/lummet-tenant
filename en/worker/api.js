@@ -9,6 +9,12 @@ import * as pages from "./database/pages.js";
 import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import * as ai from "./database/ai.js";
+import {
+  login,
+  logout,
+  register
+}
+from "./auth.js";
 
 // =====================================================
 // MAIN API HANDLER
@@ -24,6 +30,18 @@ export async function handleAPI(
   // ----------------------------------
   // Require Login
   // ----------------------------------
+  if(path === "/api/v1/auth/login"){
+  return login(request,env);
+}
+
+if(path === "/api/v1/auth/register"){
+  return register(request,env);
+}
+
+if(path === "/api/v1/auth/logout"){
+  return logout(request,env);
+}
+
 
   if (!user) {
     return json({
@@ -58,7 +76,7 @@ export async function handleAPI(
     ) {
       return deleteCasino(request, env);
     }
-
+    
     // ==================================
     // REVIEWS
     // ==================================

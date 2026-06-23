@@ -14,3 +14,25 @@ export async function getGeoRule(
     .bind(casinoSlug, countryCode)
     .first();
 }
+
+export async function saveGeoRule(
+ db,
+ rule
+){
+ return db.prepare(`
+ INSERT INTO geo_rules(
+ casino_slug,
+ country_code,
+ status,
+ bonus_override
+ )
+ VALUES(?,?,?,?)
+ `)
+ .bind(
+ rule.casino_slug,
+ rule.country_code,
+ rule.status,
+ rule.bonus_override
+ )
+ .run();
+}

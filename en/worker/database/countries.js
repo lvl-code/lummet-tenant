@@ -9,3 +9,16 @@ export async function getCountry(db, code) {
     .bind(code)
     .first();
 }
+export async function getAllCountries(
+  db
+) {
+
+  const result =
+    await db.prepare(`
+      SELECT *
+      FROM countries
+      ORDER BY name
+    `).all();
+
+  return result.results;
+}

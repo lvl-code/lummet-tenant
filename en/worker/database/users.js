@@ -56,3 +56,17 @@ export async function deleteSession(
         .bind(token)
         .run();
 }
+
+export async function getUserByEmail(
+ db,
+ email
+){
+ return db.prepare(`
+ SELECT *
+ FROM users
+ WHERE email=?
+ LIMIT 1
+ `)
+ .bind(email)
+ .first();
+}

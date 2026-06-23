@@ -60,3 +60,50 @@ export async function createReview(db, review) {
     )
     .run();
 }
+
+export async function updateReview(
+  db,
+  slug,
+  review
+) {
+  return db.prepare(`
+    UPDATE reviews
+    SET
+      title=?,
+      content=?,
+      pros=?,
+      cons=?,
+      rating=?,
+      seo_title=?,
+      seo_description=?,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE slug=?
+  `)
+  .bind(
+    review.title,
+    review.content,
+    JSON.stringify(review.pros || []),
+    JSON.stringify(review.cons || []),
+    review.rating,
+    review.seo_title,
+    review.seo_description,
+    slug
+  )
+  .run();
+}
+
+export async function getCasinoReviews(
+  db,
+  casinoSlug
+) {
+  const result = await db.prepare(`
+    SELECT *
+    FROM reviews
+    WHERE casino_slug=?
+    ORDER BY created_at DESC
+  `)
+  .bind(casinoSlug)
+  .all();
+
+  return result.results;
+}

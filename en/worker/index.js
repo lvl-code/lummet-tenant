@@ -118,9 +118,11 @@ export default {
   );
 
       case "sitemap":
-        return sitemapEngine.generate(
-  env.DB
-);
+        return sitemapEngine.generate(env.DB, "all");
+      case "sitemap-casinos":
+        return sitemapEngine.generate(env.DB, "casinos");
+      case "sitemap-reviews":
+        return sitemapEngine.generate(env.DB, "reviews");
       case "robots":
   return robots();
       

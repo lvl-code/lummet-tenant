@@ -116,6 +116,33 @@ export async function renderReview(
   });
 }
 
+async function hashIP(ip){
+
+  if(!ip){
+    return "";
+  }
+
+  const data =
+    new TextEncoder()
+      .encode(ip);
+
+  const hash =
+    await crypto.subtle.digest(
+      "SHA-256",
+      data
+    );
+
+  return Array
+    .from(
+      new Uint8Array(hash)
+    )
+    .map(b =>
+      b.toString(16)
+       .padStart(2,"0")
+    )
+    .join("");
+}
+
 export async function
 handleAffiliateRedirect(
   request,
@@ -136,17 +163,23 @@ handleAffiliateRedirect(
     );
   }
 
-  await logClick(
-    env.DB,
-    slug,
-    request.cf?.country || "RW",
-    request.cf?.city || "",
-    "",
+  const ipHash =
+  await hashIP(
     request.headers.get(
-      "user-agent"
+      "CF-Connecting-IP"
     )
   );
 
+await logClick(
+  env.DB,
+  slug,
+  request.cf?.country || "RW",
+  request.cf?.city || "",
+  ipHash,
+  request.headers.get(
+    "user-agent"
+  )
+);
   return Response.redirect(
     casino.affiliate_url,
     302

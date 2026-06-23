@@ -324,3 +324,41 @@ CREATE TABLE settings (
 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE media (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    filename TEXT NOT NULL,
+    url TEXT NOT NULL,
+
+    mime_type TEXT,
+    size INTEGER,
+
+    uploaded_by INTEGER,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    user_id INTEGER,
+
+    action TEXT,
+
+    entity_type TEXT,
+
+    entity_id TEXT,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE casino_categories (
+    casino_slug TEXT,
+    category_slug TEXT,
+
+    PRIMARY KEY(
+      casino_slug,
+      category_slug
+    )
+);

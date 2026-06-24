@@ -45,7 +45,7 @@ export function getRoute(request) {
   // =====================================================
 
   const reviewMatch =
-    path7.match(/^\/en\/review\/([^/]+)$/);
+    path.match(/^\/en\/review\/([^/]+)$/);
 
   if (reviewMatch) {
     return {
@@ -60,7 +60,7 @@ export function getRoute(request) {
   // =====================================================
 
   const newsMatch =
-    path.match(/^\\/en\/news\/([^/]+)$/);
+    path.match(/^\/en\/news\/([^/]+)$/);
 
   if (newsMatch) {
     return {

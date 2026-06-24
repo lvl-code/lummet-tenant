@@ -5,6 +5,9 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "assets": {
+    "directory": "./en"
+  },
   "d1_databases": [
     {
       "binding": "DB",

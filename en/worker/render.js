@@ -16,7 +16,7 @@ export class Renderer {
 
     const file = await this.env.ASSETS.fetch(
       new Request(
-        `https://assets.local/en/templates/${name}`
+        `https://assets.local/templates/${name}`
       )
     );
 

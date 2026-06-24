@@ -93,6 +93,13 @@ export class Renderer {
   // =====================================================
   // BUILD SEO
   // =====================================================
+function escapeHtml(str=""){
+  return str
+   .replace(/&/g,"&amp;")
+   .replace(/"/g,"&quot;")
+   .replace(/</g,"&lt;")
+   .replace(/>/g,"&gt;");
+}
 
   buildSEO(data = {}) {
 
@@ -101,14 +108,12 @@ export class Renderer {
 
 <meta
 name="description"
-content="${data.seo_description || ""}"
+content="${escapeHtml(data.seo_description)}"
 >
-
 <link
 rel="canonical"
 href="${data.canonical || ""}"
 >
-
 <meta
 property="og:title"
 content="${data.seo_title || ""}"

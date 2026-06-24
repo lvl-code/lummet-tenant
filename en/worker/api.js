@@ -35,7 +35,10 @@ export async function handleAPI(
 }
 
 if(path === "/api/v1/auth/register"){
-  return register(request,env);
+  return json({
+    success:false,
+    error:"Registration disabled"
+  },403);
 }
 
 if(path === "/api/v1/auth/logout"){
@@ -49,6 +52,17 @@ if(path === "/api/v1/auth/logout"){
       error: "Unauthorized"
     }, 401);
   }
+  const writeMethods = ["POST","PUT","DELETE"];
+
+if(
+  writeMethods.includes(request.method) &&
+  user.role !== "admin"
+){
+  return json({
+    success:false,
+    error:"Forbidden"
+  },403);
+}
 
   try {
 

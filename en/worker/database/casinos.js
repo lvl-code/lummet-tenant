@@ -4,6 +4,7 @@ export async function getCasino(db, slug) {
       SELECT *
       FROM casinos
       WHERE slug = ?
+      AND published = 1
       LIMIT 1
     `)
     .bind(slug)

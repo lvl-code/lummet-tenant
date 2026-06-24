@@ -30,7 +30,7 @@ export function getRoute(request) {
   // =====================================================
 
   const casinoMatch =
-    path.match(/^\/en\/casino\/([^\/]+)$/);
+    path.match(/^\/en\/casino\/([^/]+)$/);
 
   if (casinoMatch) {
     return {
@@ -45,7 +45,7 @@ export function getRoute(request) {
   // =====================================================
 
   const reviewMatch =
-    path.match(/^\/en\/review\/([^\/]+)$/);
+    path7.match(/^\/en\/review\/([^/]+)$/);
 
   if (reviewMatch) {
     return {
@@ -60,7 +60,7 @@ export function getRoute(request) {
   // =====================================================
 
   const newsMatch =
-    path.match(/^\/en\/news\/([^\/]+)$/);
+    path.match(/^\\/en\/news\/([^/]+)$/);
 
   if (newsMatch) {
     return {

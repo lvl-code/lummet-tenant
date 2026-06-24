@@ -91,24 +91,25 @@ export class Renderer {
   }
 
   // =====================================================
-  // BUILD SEO
-  // =====================================================
-function escapeHtml(str=""){
-  return str
-   .replace(/&/g,"&amp;")
-   .replace(/"/g,"&quot;")
-   .replace(/</g,"&lt;")
-   .replace(/>/g,"&gt;");
+// BUILD SEO
+// =====================================================
+
+escapeHtml(str = "") {
+  return (str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
-  buildSEO(data = {}) {
+buildSEO(data = {}) {
 
-    return `
+  return `
 <title>${data.seo_title || ""}</title>
 
 <meta
 name="description"
-content="${escapeHtml(data.seo_description)}"
+content="${this.escapeHtml(data.seo_description)}"
 >
 <link
 rel="canonical"
@@ -121,11 +122,10 @@ content="${data.seo_title || ""}"
 
 <meta
 property="og:description"
-content="${data.seo_description || ""}"
+content="${this.escapeHtml(data.seo_description)}"
 >
 `;
-  }
-
+}
   // =====================================================
   // JSON-LD
   // =====================================================

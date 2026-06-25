@@ -316,40 +316,28 @@ function json(
     );
 }
 
+export async function register(request, env) {
+  const body = await request.json();
 
-export async function
-register(
-  request,
-  env
-){
+  const email = body.email?.trim();
+  const password = body.password;
 
-  const body =
-    await request.json();
+  if (!email || !password) {
+    return json({ success: false, error: "Missing fields" }, 400);
+  }
 
-  const passwordHash =
-    await hashPassword(
-      body.password
-    );
+  const existing = await getUserByEmail(env.DB, email);
+
+  if (existing) {
+    return json({ success: false, error: "User already exists" }, 409);
+  }
+
+  const passwordHash = await hashPassword(password);
 
   await env.DB.prepare(`
-    INSERT INTO users(
-      email,
-      password_hash,
-      role
-    )
-    VALUES(
-      ?,
-      ?,
-      'editor'
-    )
-  `)
-  .bind(
-    body.email,
-    passwordHash
-  )
-  .run();
+    INSERT INTO users(email, password_hash, role)
+    VALUES (?, ?, 'editor')
+  `).bind(email, passwordHash).run();
 
-  return json({
-    success:true
-  });
+  return json({ success: true });
 }

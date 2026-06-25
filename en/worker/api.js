@@ -34,11 +34,8 @@ export async function handleAPI(
   return login(request,env);
 }
 
-if(path === "/api/v1/auth/register"){
-  return json({
-    success:false,
-    error:"Registration disabled"
-  },403);
+if (path === "/api/v1/auth/register") {
+  return register(request, env);
 }
 
 if(path === "/api/v1/auth/logout"){

@@ -6,6 +6,7 @@
     "nodejs_compat"
   ],
   "assets": {
+    "binding": "ASSETS",
     "directory": "./en"
   },
   "d1_databases": [

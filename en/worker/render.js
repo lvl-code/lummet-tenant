@@ -15,9 +15,7 @@ export class Renderer {
   async loadTemplate(name) {
 
     const file = await this.env.ASSETS.fetch(
-      new Request(
-        `https://assets.local/templates/${name}`
-      )
+      Request(`/templates/${name}`)
     );
 
     return await file.text();

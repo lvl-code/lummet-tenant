@@ -1,0 +1,27 @@
+<h1>Create Casino</h1>
+
+<form id="form">
+  <input name="slug" placeholder="slug" />
+  <input name="name" placeholder="name" />
+  <input name="website_url" placeholder="website" />
+  <input name="affiliate_url" placeholder="affiliate" />
+  <input name="rating" placeholder="rating" />
+
+  <button type="submit">Create</button>
+</form>
+
+<script>
+document.getElementById("form").onsubmit = async (e) => {
+  e.preventDefault();
+
+  const data = Object.fromEntries(new FormData(e.target));
+
+  await fetch("/api/v1/casino/create", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(data)
+  });
+
+  window.location.href = "/en/admin/casinos";
+};
+</script>

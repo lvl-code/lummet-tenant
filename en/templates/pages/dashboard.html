@@ -1,109 +1,42 @@
-<div class="p-8">
+<div class="dashboard">
 
-<h1
-class="text-4xl font-bold mb-8"
->
-LevelCasino CMS
-</h1>
+    <h1>Admin Dashboard</h1>
 
-<div
-class="grid grid-cols-4 gap-6"
->
+    <div id="stats" class="stats-grid">
+        <div class="card">
+            <h3>Casinos</h3>
+            <p id="casinos">0</p>
+        </div>
 
-<div
-class="bg-gray-900 p-6 rounded-xl"
->
-<h3>Casinos</h3>
-<p
-id="casinoCount"
-class="text-3xl font-bold"
->
-0
-</p>
-</div>
+        <div class="card">
+            <h3>Reviews</h3>
+            <p id="reviews">0</p>
+        </div>
 
-<div
-class="bg-gray-900 p-6 rounded-xl"
->
-<h3>Reviews</h3>
-<p
-id="reviewCount"
-class="text-3xl font-bold"
->
-0
-</p>
-</div>
+        <div class="card">
+            <h3>Clicks</h3>
+            <p id="clicks">0</p>
+        </div>
 
-<div
-class="bg-gray-900 p-6 rounded-xl"
->
-<h3>Clicks</h3>
-<p
-id="clickCount"
-class="text-3xl font-bold"
->
-0
-</p>
-</div>
+        <div class="card">
+            <h3>Pages</h3>
+            <p id="pages">0</p>
+        </div>
+    </div>
 
-<div
-class="bg-gray-900 p-6 rounded-xl"
->
-<h3>Pages</h3>
-<p
-id="pageCount"
-class="text-3xl font-bold"
->
-0
-</p>
-</div>
+    <div class="actions">
+        <button onclick="location.href='/en/admin/casino/new'">
+            + New Casino
+        </button>
+
+        <button onclick="location.href='/en/admin/review/new'">
+            + New Review
+        </button>
+
+        <button onclick="location.href='/en/admin/page/new'">
+            + New Page
+        </button>
+    </div>
 
 </div>
-
-<div
-class="mt-10"
->
-
-<h2
-class="text-2xl mb-4"
->
-Quick Actions
-</h2>
-
-<div
-class="flex gap-4"
->
-
-<button
-onclick="showCasinoForm()"
-class="bg-indigo-600 px-5 py-3 rounded"
->
-Add Casino
-</button>
-
-<button
-onclick="showReviewForm()"
-class="bg-green-600 px-5 py-3 rounded"
->
-Add Review
-</button>
-
-<button
-onclick="showPageForm()"
-class="bg-yellow-600 px-5 py-3 rounded"
->
-Add Page
-</button>
-
-</div>
-
-</div>
-
-<div
-id="editorArea"
-class="mt-10"
-></div>
-
-</div>
-
-<script src="/public/dashboard.js"></script>
+<script src="/en/static/js/dashboard.js"></script>

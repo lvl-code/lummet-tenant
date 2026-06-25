@@ -1,118 +1,21 @@
 async function loadDashboard() {
+    try {
+        const res = await fetch('/api/v1/dashboard', {
+            credentials: 'include'
+        });
 
-const res =
-await fetch(
-"/en/dashboard"
-);
+        const data = await res.json();
 
-const data =
-await res.json();
+        if (!data) return;
 
-document.getElementById(
-"casinoCount"
-).textContent =
-data.casinos;
+        document.getElementById('casinos').innerText = data.casinos || 0;
+        document.getElementById('reviews').innerText = data.reviews || 0;
+        document.getElementById('clicks').innerText = data.clicks || 0;
+        document.getElementById('pages').innerText = data.pages || 0;
 
-document.getElementById(
-"reviewCount"
-).textContent =
-data.reviews;
-
-document.getElementById(
-"clickCount"
-).textContent =
-data.clicks;
-
-document.getElementById(
-"pageCount"
-).textContent =
-data.pages;
+    } catch (err) {
+        console.error("Dashboard load failed", err);
+    }
 }
 
-function showCasinoForm(){
-
-document.getElementById(
-"editorArea"
-).innerHTML =
-`
-<h2>Add Casino</h2>
-
-<form id="casinoForm">
-
-<input
-placeholder="slug"
-id="slug"
->
-
-<input
-placeholder="name"
-id="name"
->
-
-<button>
-Save
-</button>
-
-</form>
-`;
-
-document
-.getElementById(
-"casinoForm"
-)
-.addEventListener(
-"submit",
-saveCasino
-);
-}
-
-async function saveCasino(e){
-
-e.preventDefault();
-
-await fetch(
-"/api/v1/casino/create",
-{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-slug:
-document.getElementById("slug").value,
-name:
-document.getElementById("name").value
-})
-}
-);
-
-alert(
-"Casino saved"
-);
-
-loadDashboard();
-}
-
-function showReviewForm(){
-
-document.getElementById(
-"editorArea"
-).innerHTML =
-`
-<h2>Add Review</h2>
-<p>Review editor here</p>
-`;
-}
-
-function showPageForm(){
-
-document.getElementById(
-"editorArea"
-).innerHTML =
-`
-<h2>Add Page</h2>
-<p>Page editor here</p>
-`;
-}
-
-loadDashboard();
+window.addEventListener('DOMContentLoaded', loadDashboard);

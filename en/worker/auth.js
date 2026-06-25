@@ -225,11 +225,14 @@ export async function requireAuth(
     env
 ) {
 
-    const user =
-        await getCurrentUser(
-            request,
-            env
-        );
+    const session = await getCurrentUser(request, env);
+
+let user = null;
+if (session?.user_id) {
+  user = await env.DB.prepare(
+    "SELECT id, email, role FROM users WHERE id = ?"
+  ).bind(session.user_id).first();
+}
 
     if (!user) {
 

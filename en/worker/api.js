@@ -60,6 +60,9 @@ if(
     error:"Forbidden"
   },403);
 }
+if (path === "/api/v1/dashboard") {
+  return renderDashboard(request, env);
+}
 
   try {
 
@@ -87,6 +90,14 @@ if(
     ) {
       return deleteCasino(request, env);
     }
+
+    if (path === "/api/v1/casinos/list") {
+  const casinos = await env.DB.prepare(
+    "SELECT slug, name, rating FROM casinos ORDER BY created_at DESC"
+  ).all();
+
+  return json2({ casinos: casinos.results });
+}
     
     // ==================================
     // REVIEWS
@@ -402,4 +413,12 @@ Requirements:
     success: true,
     content
   });
+}
+
+
+function requireAdmin(user) {
+  if (!user || user.role !== "admin") {
+    return new Response("Forbidden", { status: 403 });
+  }
+  return null;
 }

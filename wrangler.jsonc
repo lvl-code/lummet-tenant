@@ -7,7 +7,7 @@
   ],
   "assets": {
     "binding": "ASSETS",
-    "directory": "./en/templates"
+    "directory": "./en"
   },
   "d1_databases": [
     {

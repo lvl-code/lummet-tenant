@@ -13,7 +13,7 @@ export class Renderer {
   // =====================================================
   async loadTemplate(name) {
   const res = await this.env.ASSETS.fetch(
-    new Request(`/templates/${name}`)
+    new Request(`/${name}`)
   );
 
   if (!res.ok) {
@@ -21,8 +21,7 @@ export class Renderer {
   }
 
   return await res.text();
-}
-  
+} 
   
   // =====================================================
   // REPLACE {{variables}}

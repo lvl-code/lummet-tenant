@@ -11,16 +11,19 @@ export class Renderer {
   // =====================================================
   // LOAD TEMPLATE FILE
   // =====================================================
-
   async loadTemplate(name) {
+  const res = await this.env.ASSETS.fetch(
+    new Request(`/templates/${name}`)
+  );
 
-    const file = await this.env.ASSETS.fetch(
-      new Request(`https://assets.local/templates/${name}`)
-    );
-
-    return await file.text();
+  if (!res.ok) {
+    throw new Error("Template not found: " + name);
   }
 
+  return await res.text();
+}
+  
+  
   // =====================================================
   // REPLACE {{variables}}
   // =====================================================

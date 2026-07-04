@@ -13,7 +13,7 @@ import {
   handleAffiliateRedirect,
   renderLogin,
   renderRegister,
-  robots
+  robots,
   render404
 }
 from "./controllers.js";

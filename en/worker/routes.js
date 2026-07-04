@@ -224,6 +224,7 @@ export function getRoute(request) {
   // =====================================================
 
   return {
-    type: "404"
+    type: "not_found"
   };
+
 }

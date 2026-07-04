@@ -511,8 +511,8 @@ export async function render404(request, env) {
   const renderer = new Renderer(env);
 
   const html = await renderer.render("404.html", {
-    seo_title: "Page Not Found",
-    seo_description: "404 error page"
+    seo_title: "404 - Page Not Found",
+    seo_description: "Sorry, this page does not exist on Level Casino."
   });
 
   return new Response(html, {

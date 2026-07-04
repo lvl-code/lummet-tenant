@@ -143,6 +143,8 @@ export default {
           env,
           route.slug
         );
+      case "not_found":
+        return render404(request, env);
 
       default:
         return render404(request, env);

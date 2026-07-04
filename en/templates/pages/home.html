@@ -4,6 +4,249 @@
 Welcome to LevelCasino.
 </p>
 
+<style>
+/* =========================
+   GLOBAL
+========================= */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: #0b0f1a;
+  color: #ffffff;
+}
+
+/* =========================
+   HERO
+========================= */
+.hero {
+  background: radial-gradient(circle at top, #1a2238, #0b0f1a);
+  padding: 80px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.hero-content h1 {
+  font-size: 42px;
+  margin-bottom: 12px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.hero-content p {
+  font-size: 16px;
+  color: #b7c0d8;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* =========================
+   CONTAINER
+========================= */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* =========================
+   SECTION TITLE
+========================= */
+.casino-listings h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+/* =========================
+   GRID
+========================= */
+.casino-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* =========================
+   CARD
+========================= */
+.casino-card {
+  background: linear-gradient(145deg, #141a2b, #0e1322);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 18px;
+  transition: 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.casino-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 204, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* =========================
+   FEATURED BADGE
+========================= */
+.featured-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #ffcc00;
+  color: #000;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* =========================
+   HEADER
+========================= */
+.card-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.casino-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  background: #0b0f1a;
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.casino-meta h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+/* =========================
+   RATING
+========================= */
+.rating {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #b7c0d8;
+}
+
+.stars {
+  color: #ffcc00;
+  margin-right: 6px;
+}
+
+/* =========================
+   BONUS BOX
+========================= */
+.bonus-box {
+  background: rgba(255,255,255,0.03);
+  padding: 12px;
+  border-radius: 10px;
+  margin: 12px 0;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.bonus-label {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.bonus-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.bonus-value {
+  color: #ffcc00;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+/* =========================
+   TAGS
+========================= */
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #cbd5e1;
+}
+
+/* =========================
+   FOOTER BUTTONS
+========================= */
+.card-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.btn-primary {
+  background: #ffcc00;
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: #ffd84d;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+/* =========================
+   STATES
+========================= */
+.loading,
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #aaa;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 28px;
+  }
+
+  .card-footer {
+    flex-direction: column;
+  }
+}
+</style>
+
 <!-- templates/pages/home.html -->
 <section class="hero">
   <div class="hero-content">

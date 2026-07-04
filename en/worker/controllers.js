@@ -4,6 +4,7 @@ import * as casinos from "./database/casinos.js";
 import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
 import * as countries from "./database/countries.js";
+import * as news from "./database/news.js";
 
 import { logClick }
 from "./database/clicks.js";
@@ -108,6 +109,42 @@ export async function renderReview(
   });
 }
 
+export async function renderNews(
+  request,
+  env,
+  slug
+){
+
+  const article =
+    await news.getNews(
+      env.DB,
+      slug
+    );
+
+  if (!article) {
+    return render404(request, env);
+  }
+
+  const renderer =
+    new Renderer(env);
+
+  const html =
+    await renderer.render(
+      "news.html",
+      article
+    );
+
+  return new Response(
+    html,
+    {
+      headers:{
+        "Content-Type":"text/html"
+      }
+    }
+  );
+
+}
+
 async function hashIP(ip){
 
   if(!ip){
@@ -175,60 +212,64 @@ await logClick(
   );
 }
 
-export async function renderDashboard(
-  request,
-  env
-){
 
-  const user =
-    await getCurrentUser(
-      request,
-      env
+export async function renderDashboardPage(request, env) {
+
+    const user = await getCurrentUser(request, env);
+
+    if (!user || user.role !== "admin") {
+        return new Response("Forbidden", { status: 403 });
+    }
+
+    const renderer = new Renderer(env);
+
+    const html = await renderer.render(
+        "admin/dashboard.html",
+        {
+            seo_title: "Admin Dashboard",
+            seo_description: "Level Casino CMS"
+        }
     );
 
-  if(
-    !user ||
-    user.role !== "admin"
-  ){
-    return new Response(
-      "Forbidden",
-      {
-        status:403
-      }
-    );
-  }
+    return new Response(html, {
+        headers: {
+            "Content-Type": "text/html"
+        }
+    });
+}
 
-  const casinos =
-    await env.DB.prepare(`
-      SELECT COUNT(*) c
-      FROM casinos
-    `).first();
+export async function dashboardStatsAPI(request, env) {
 
-  const reviews =
-    await env.DB.prepare(`
-      SELECT COUNT(*) c
-      FROM reviews
-    `).first();
+    const user = await getCurrentUser(request, env);
 
-  const clicks =
-    await env.DB.prepare(`
-      SELECT COUNT(*) c
-      FROM clicks
-    `).first();
+    if (!user || user.role !== "admin") {
+        return new Response("Forbidden", {
+            status: 403
+        });
+    }
 
-  const pages =
-    await env.DB.prepare(`
-      SELECT COUNT(*) c
-      FROM pages
-    `).first();
+    const casinos = await env.DB.prepare(
+        "SELECT COUNT(*) c FROM casinos"
+    ).first();
 
-  return Response.json({
-    casinos: casinos.c,
-    reviews: reviews.c,
-    clicks: clicks.c,
-    pages: pages.c
-  });
+    const reviews = await env.DB.prepare(
+        "SELECT COUNT(*) c FROM reviews"
+    ).first();
 
+    const clicks = await env.DB.prepare(
+        "SELECT COUNT(*) c FROM clicks"
+    ).first();
+
+    const pages = await env.DB.prepare(
+        "SELECT COUNT(*) c FROM pages"
+    ).first();
+
+    return Response.json({
+        casinos: casinos.c,
+        reviews: reviews.c,
+        clicks: clicks.c,
+        pages: pages.c
+    });
 }
 
 export function robots() {

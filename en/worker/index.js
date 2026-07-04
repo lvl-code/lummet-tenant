@@ -3,12 +3,14 @@ from "./routes.js";
 
 import {
   renderHome,
+  renderNews,
   renderCasino,
   renderReview,
   renderCountry,
   renderCategory,
   renderAffiliate,
-  renderDashboard,
+  renderDashboardPage,
+  dashboardStatsAPI,
   renderDynamicPage,
   handleAffiliateRedirect,
   renderLogin,
@@ -31,7 +33,7 @@ import {
   getCurrentUser
 }
 from "./auth.js";
-
+import { cleanupExpiredSessions } from "./cron.js";
 
 export default {
 
@@ -77,6 +79,12 @@ export default {
           env,
           route.slug
         );
+      case "news":
+        return renderNews(
+          request,
+          env,
+          route.slug
+        );
 
       case "country":
         return renderCountry(
@@ -107,7 +115,7 @@ export default {
         );
 
       case "dashboard":
-        return renderDashboard(
+        return renderDashboardPage(
           request,
           env
         );
@@ -150,5 +158,12 @@ export default {
         return render404(request, env);
 
     }
-  }
+  },
+  async scheduled(event, env, ctx) {
+
+        ctx.waitUntil(
+            cleanupExpiredSessions(env)
+        );
+
+    }
 };

@@ -15,6 +15,7 @@ import {
   register
 }
 from "./auth.js";
+import { dashboardStatsAPI } from "./controllers.js";
 
 // =====================================================
 // MAIN API HANDLER
@@ -61,7 +62,7 @@ if(
   },403);
 }
 if (path === "/api/v1/dashboard") {
-  return renderDashboard(request, env);
+  return dashboardStatsAPI(request, env);
 }
 
   try {
@@ -96,7 +97,7 @@ if (path === "/api/v1/dashboard") {
     "SELECT slug, name, rating FROM casinos ORDER BY created_at DESC"
   ).all();
 
-  return json2({ casinos: casinos.results });
+  return json({ casinos: casinos.results });
 }
     
     // ==================================

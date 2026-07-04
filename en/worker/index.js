@@ -14,6 +14,7 @@ import {
   renderLogin,
   renderRegister,
   robots
+  render404
 }
 from "./controllers.js";
 
@@ -144,12 +145,8 @@ export default {
         );
 
       default:
-        return new Response(
-          "Not Found",
-          {
-            status: 404
-          }
-        );
+        return render404(request, env);
+
     }
   }
 };

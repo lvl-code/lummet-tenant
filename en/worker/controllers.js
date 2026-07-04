@@ -507,3 +507,18 @@ export async function renderRegister(
 
 }
 
+export async function render404(request, env) {
+  const renderer = new Renderer(env);
+
+  const html = await renderer.render("404.html", {
+    seo_title: "Page Not Found",
+    seo_description: "404 error page"
+  });
+
+  return new Response(html, {
+    status: 404,
+    headers: {
+      "Content-Type": "text/html"
+    }
+  });
+}

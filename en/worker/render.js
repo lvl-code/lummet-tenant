@@ -160,11 +160,6 @@ ${JSON.stringify(schema)}
         data
       );
 
-    page =
-      await this.injectComponents(
-        page
-      );
-
     // ---------------------------------
     // layout
     // ---------------------------------
@@ -194,6 +189,10 @@ ${JSON.stringify(schema)}
       "{{CONTENT}}",
       page
     );
+
+    // Inject header, footer, sidebar and breadcrumbs
+    base =
+      await this.injectComponents(base);
 
     return base;
   }

@@ -36,6 +36,15 @@ export default {
 
   async fetch(request, env, ctx) {
 
+    const url = new URL(request.url);
+
+    // Serve static assets
+    if (
+      url.pathname.startsWith("/en/static/")
+    ) {
+      return env.ASSETS.fetch(request);
+    }
+
     const route = getRoute(request);
 
     switch (route.type) {

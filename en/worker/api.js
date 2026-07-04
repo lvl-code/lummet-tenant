@@ -90,22 +90,23 @@ if (path === "/api/v1/dashboard") {
     }
 
     if (path === "/api/v1/casinos/list") {
-  const casinos = await env.DB.prepare('
-    SELECT
-       id,
-       slug,
-       name,
-       rating,
-       featured,
-       sort_order,
-       status,
-       published
-     FROM casinos
-     ORDER BY
-       featured DESC,
-       sort_order ASC,
-       rating DESC"
-  ').all();
+  const casinos = await env.DB.prepare(`
+SELECT
+  id,
+  slug,
+  name,
+  rating,
+  featured,
+  sort_order,
+  status,
+  published
+FROM casinos
+ORDER BY
+  featured DESC,
+  sort_order ASC,
+  rating DESC
+`)
+.all();
 
   return json({ casinos: casinos.results });
 }

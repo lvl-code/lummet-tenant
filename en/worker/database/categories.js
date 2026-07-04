@@ -38,11 +38,16 @@ export async function getCategoryCasinos(
   const result =
     await db.prepare(`
       SELECT c.*
-      FROM casinos c
-      JOIN casino_categories cc
-      ON cc.casino_slug=c.slug
-      WHERE cc.category_slug=?
-      ORDER BY c.rating DESC
+      FROM casino_categories cc
+      JOIN casinos c
+      ON c.id = cc.casino_id
+      JOIN categories cat
+      ON cat.id = cc.category_id
+      WHERE cat.slug = ?
+      ORDER BY
+        c.featured DESC,
+        c.sort_order ASC,
+        c.rating DESC
     `)
     .bind(slug)
     .all();

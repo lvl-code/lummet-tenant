@@ -90,8 +90,8 @@ if (path === "/api/v1/dashboard") {
     }
 
     if (path === "/api/v1/casinos/list") {
-  const casinos = await env.DB.prepare(
-    "SELECT
+  const casinos = await env.DB.prepare('
+    SELECT
        id,
        slug,
        name,
@@ -105,7 +105,7 @@ if (path === "/api/v1/dashboard") {
        featured DESC,
        sort_order ASC,
        rating DESC"
-  ).all();
+  ').all();
 
   return json({ casinos: casinos.results });
 }

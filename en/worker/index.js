@@ -40,7 +40,7 @@ export default {
 
     // Serve static assets
     if (
-      url.pathname.startsWith("/en/static/")
+      url.pathname.startsWith("/static/")
     ) {
       return env.ASSETS.fetch(request);
     }

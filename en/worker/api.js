@@ -200,6 +200,40 @@ function json(data, status = 200) {
   );
 }
 
+function success(data = {}) {
+
+    return json({
+        success: true,
+        ...data
+    });
+
+}
+
+function failure(message, status = 400) {
+
+    return json({
+        success: false,
+        error: message
+    }, status);
+
+}
+
+function validate(body, required) {
+
+    for (const field of required) {
+
+        if (
+            body[field] === undefined ||
+            body[field] === null ||
+            body[field] === ""
+        ) {
+            throw new Error(`${field} is required`);
+        }
+
+    }
+
+}
+
 // =====================================================
 // CASINOS
 // =====================================================

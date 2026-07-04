@@ -354,11 +354,30 @@ CREATE TABLE audit_logs (
 );
 
 CREATE TABLE casino_categories (
-    casino_slug TEXT,
-    category_slug TEXT,
+    casino_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
 
-    PRIMARY KEY(
-      casino_slug,
-      category_slug
-    )
+    PRIMARY KEY (casino_id, category_id),
+
+    FOREIGN KEY (casino_id) REFERENCES casinos(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_cc_casino
+ON casino_categories(casino_id);
+
+CREATE INDEX idx_cc_category
+ON casino_categories(category_id);
+
+CREATE TABLE affiliates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    casino_slug TEXT,
+    network TEXT,
+    manager_name TEXT,
+    manager_email TEXT,
+    revshare REAL,
+    cpa REAL,
+    hybrid TEXT,
+    tracking_url TEXT,
+    status TEXT DEFAULT 'active'
 );

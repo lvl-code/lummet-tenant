@@ -4,250 +4,152 @@
 Welcome to LevelCasino.
 </p>
 
+<!-- templates/pages/home.html -->
 <style>
-/* =========================
-   GLOBAL
-========================= */
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: #0b0f1a;
-  color: #ffffff;
-}
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0b0f1a;
+    color: #fff;
+  }
 
-/* =========================
-   HERO
-========================= */
-.hero {
-  background: radial-gradient(circle at top, #1a2238, #0b0f1a);
-  padding: 80px 20px;
-  text-align: center;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
+  .hero {
+    padding: 80px 20px;
+    text-align: center;
+    background: linear-gradient(135deg, #141e30, #243b55);
+  }
 
-.hero-content h1 {
-  font-size: 42px;
-  margin-bottom: 12px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
+  .hero h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+  }
 
-.hero-content p {
-  font-size: 16px;
-  color: #b7c0d8;
-  max-width: 700px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
+  .hero p {
+    font-size: 18px;
+    opacity: 0.85;
+  }
 
-/* =========================
-   CONTAINER
-========================= */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
+  .container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 40px 20px;
+  }
 
-/* =========================
-   SECTION TITLE
-========================= */
-.casino-listings h2 {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: #ffffff;
-}
+  h2 {
+    margin-bottom: 20px;
+  }
 
-/* =========================
-   GRID
-========================= */
-.casino-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
+  .casino-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
 
-/* =========================
-   CARD
-========================= */
-.casino-card {
-  background: linear-gradient(145deg, #141a2b, #0e1322);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 18px;
-  transition: 0.25s ease;
-  position: relative;
-  overflow: hidden;
-}
+  .casino-card {
+    background: #151c2e;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: 0.3s;
+  }
 
-.casino-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(255, 204, 0, 0.5);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-}
+  .casino-card:hover {
+    transform: translateY(-5px);
+  }
 
-/* =========================
-   FEATURED BADGE
-========================= */
-.featured-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #ffcc00;
-  color: #000;
-  font-size: 11px;
-  font-weight: bold;
-  padding: 4px 8px;
-  border-radius: 6px;
-}
+  .featured {
+    border: 2px solid gold;
+  }
 
-/* =========================
-   HEADER
-========================= */
-.card-header {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 12px;
-}
+  .featured-badge {
+    background: gold;
+    color: #000;
+    padding: 4px 8px;
+    font-size: 12px;
+    display: inline-block;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
 
-.casino-logo {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  background: #0b0f1a;
-  border-radius: 10px;
-  padding: 6px;
-}
+  .card-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
 
-.casino-meta h3 {
-  margin: 0;
-  font-size: 18px;
-}
+  .casino-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+  }
 
-/* =========================
-   RATING
-========================= */
-.rating {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #b7c0d8;
-}
+  .rating {
+    font-size: 14px;
+    opacity: 0.9;
+  }
 
-.stars {
-  color: #ffcc00;
-  margin-right: 6px;
-}
+  .stars {
+    color: gold;
+  }
 
-/* =========================
-   BONUS BOX
-========================= */
-.bonus-box {
-  background: rgba(255,255,255,0.03);
-  padding: 12px;
-  border-radius: 10px;
-  margin: 12px 0;
-  border: 1px solid rgba(255,255,255,0.04);
-}
+  .bonus-box {
+    background: #0f1628;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+  }
 
-.bonus-label {
-  font-size: 11px;
-  color: #aaa;
-  text-transform: uppercase;
-}
+  .bonus-title {
+    font-weight: bold;
+  }
 
-.bonus-title {
-  font-size: 15px;
-  font-weight: 700;
-  margin-top: 4px;
-}
+  .bonus-value {
+    color: #00ff99;
+  }
 
-.bonus-value {
-  color: #ffcc00;
-  font-weight: bold;
-  margin-top: 4px;
-}
+  .features {
+    margin-top: 10px;
+  }
 
-/* =========================
-   TAGS
-========================= */
-.features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tag {
-  font-size: 11px;
-  background: rgba(255,255,255,0.06);
-  padding: 4px 8px;
-  border-radius: 6px;
-  color: #cbd5e1;
-}
-
-/* =========================
-   FOOTER BUTTONS
-========================= */
-.card-footer {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.btn {
-  flex: 1;
-  text-align: center;
-  padding: 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: bold;
-  text-decoration: none;
-  transition: 0.2s;
-}
-
-.btn-primary {
-  background: #ffcc00;
-  color: #000;
-}
-
-.btn-primary:hover {
-  background: #ffd84d;
-}
-
-.btn-secondary {
-  background: rgba(255,255,255,0.06);
-  color: #fff;
-}
-
-.btn-secondary:hover {
-  background: rgba(255,255,255,0.12);
-}
-
-/* =========================
-   STATES
-========================= */
-.loading,
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #aaa;
-}
-
-/* =========================
-   RESPONSIVE
-========================= */
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 28px;
+  .tag {
+    display: inline-block;
+    background: #2b3550;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 5px;
+    font-size: 12px;
   }
 
   .card-footer {
-    flex-direction: column;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
   }
-}
+
+  .btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+  }
+
+  .btn-primary {
+    background: #00c853;
+    color: #fff;
+  }
+
+  .btn-secondary {
+    background: #1e2a44;
+    color: #fff;
+  }
+
+  .loading, .empty-state {
+    text-align: center;
+    padding: 40px;
+    opacity: 0.7;
+  }
 </style>
 
-<!-- templates/pages/home.html -->
 <section class="hero">
   <div class="hero-content">
     <h1>Premium Casino Reviews & Bonuses</h1>
@@ -265,71 +167,64 @@ body {
 </section>
 
 <script>
-  // Parse casinos injected by server
-  const casinoData = JSON.parse('{{casinos}}' || '[]');
-  
+  // ✅ FIXED: safe JSON injection (this was causing infinite loading issue)
+  const casinoData = {{casinos}};
+
   function renderStars(rating) {
     const stars = Math.round(rating || 0);
     return '★'.repeat(stars) + '☆'.repeat(5 - stars);
   }
-  
+
   function renderCasinos() {
     const grid = document.getElementById('casino-grid');
-    
+
     if (!casinoData || casinoData.length === 0) {
       grid.innerHTML = '<div class="empty-state">No casinos available at the moment.</div>';
       return;
     }
-    
-    // Sort featured first
+
     const sorted = [...casinoData].sort((a, b) => (b.featured || 0) - (a.featured || 0));
-    
+
     grid.innerHTML = sorted.map(casino => {
-      const features = JSON.parse(casino.features || '[]');
-      const featureTags = features.slice(0, 3).map(f => `<span class="tag">${f}</span>`).join('');
-      
+      let features = [];
+      try {
+        features = JSON.parse(casino.features || '[]');
+      } catch (e) {}
+
+      const featureTags = features.slice(0, 3)
+        .map(f => `<span class="tag">${f}</span>`)
+        .join('');
+
       return `
-        <article class="casino-card ${casino.featured ? 'featured' : ''}" data-slug="${casino.slug}">
+        <article class="casino-card ${casino.featured ? 'featured' : ''}">
           ${casino.featured ? '<div class="featured-badge">FEATURED</div>' : ''}
+
           <div class="card-header">
-            <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-logo" loading="lazy">
-            <div class="casino-meta">
+            <img src="${casino.logo || '/en/static/images/logo.png'}" class="casino-logo">
+            <div>
               <h3>${casino.name}</h3>
-              <div class="rating" title="Rating: ${casino.rating}/5">
+              <div class="rating">
                 <span class="stars">${renderStars(casino.rating)}</span>
-                <span class="rating-value">${casino.rating || '0.0'}</span>
+                ${casino.rating || '0.0'}/5
               </div>
             </div>
           </div>
-          
-          <div class="card-body">
-            <div class="bonus-box">
-              <div class="bonus-label">Welcome Bonus</div>
-              <div class="bonus-title">${casino.bonus_title || 'Exclusive Offer'}</div>
-              <div class="bonus-value">${casino.bonus_value || ''}</div>
-            </div>
-            <div class="features">
-              ${featureTags}
-            </div>
+
+          <div class="bonus-box">
+            <div class="bonus-title">${casino.bonus_title || 'Bonus'}</div>
+            <div class="bonus-value">${casino.bonus_value || ''}</div>
           </div>
-          
+
+          <div class="features">${featureTags}</div>
+
           <div class="card-footer">
-            <a href="/en/go/${casino.slug}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-              Play Now
-            </a>
-            <a href="/en/casino/${casino.slug}" class="btn btn-secondary">
-              Read Review
-            </a>
+            <a class="btn btn-primary" href="/en/go/${casino.slug}" target="_blank">Play Now</a>
+            <a class="btn btn-secondary" href="/en/casino/${casino.slug}">Review</a>
           </div>
         </article>
       `;
     }).join('');
   }
-  
-  // Initialize
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', renderCasinos);
-  } else {
-    renderCasinos();
-  }
+
+  document.addEventListener('DOMContentLoaded', renderCasinos);
 </script>

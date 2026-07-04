@@ -91,7 +91,20 @@ if (path === "/api/v1/dashboard") {
 
     if (path === "/api/v1/casinos/list") {
   const casinos = await env.DB.prepare(
-    "SELECT slug, name, rating FROM casinos ORDER BY created_at DESC"
+    "SELECT
+       id,
+       slug,
+       name,
+       rating,
+       featured,
+       sort_order,
+       status,
+       published
+     FROM casinos
+     ORDER BY
+       featured DESC,
+       sort_order ASC,
+       rating DESC"
   ).all();
 
   return json({ casinos: casinos.results });
@@ -231,6 +244,7 @@ function validate(body, required) {
 
 }
 
+
 // =====================================================
 // CASINOS
 // =====================================================
@@ -244,29 +258,45 @@ async function createCasino(request, env) {
     "affiliate_url"
   ]);
 
-  await casinos.createCasino(
-    env.DB,
-    body
-  );
-
+  const casinoId = await casinos.createCasino(env.DB, body);
+  if (Array.isArray(body.category_ids)) {
+    await casinos.setCasinoCategories(
+      env.DB,
+      casinoId,
+      body.category_ids
+    );
+  }
   return success();
 }
 
 async function updateCasino(request, env) {
 
   const body = await request.json();
+
   validate(body, [
     "slug",
     "name",
     "affiliate_url"
   ]);
-  
+
   await casinos.updateCasino(
     env.DB,
     body.slug,
     body
   );
 
+  const casinoId = await casinos.getCasinoIdBySlug(
+    env.DB,
+    body.slug
+  );
+
+  if (casinoId && Array.isArray(body.category_ids)) {
+    await casinos.setCasinoCategories(
+      env.DB,
+      casinoId,
+      body.category_ids
+    );
+  }
   return success();
 }
 

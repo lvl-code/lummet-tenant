@@ -17,7 +17,10 @@ export async function getAllCasinos(db) {
       SELECT *
       FROM casinos
       WHERE published = 1
-      ORDER BY rating DESC
+     ORDER BY
+featured DESC,
+sort_order ASC,
+rating DESC
     `)
     .all();
 
@@ -25,7 +28,7 @@ export async function getAllCasinos(db) {
 }
 
 export async function createCasino(db, casino) {
-  return await db
+  const result = await db
     .prepare(`
       INSERT INTO casinos (
         slug,
@@ -38,9 +41,14 @@ export async function createCasino(db, casino) {
         bonus_value,
         features,
         seo_title,
-        seo_description
+        seo_description,
+        featured,
+        sort_order,
+        status,
+        logo_media_id,
+        hero_image_media_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       casino.slug,
@@ -48,14 +56,21 @@ export async function createCasino(db, casino) {
       casino.logo,
       casino.website_url,
       casino.affiliate_url,
-      casino.rating,
+      casino.rating || 0,
       casino.bonus_title,
       casino.bonus_value,
       JSON.stringify(casino.features || []),
       casino.seo_title,
-      casino.seo_description
+      casino.seo_description,
+      casino.featured || 0,
+      casino.sort_order || 0,
+      casino.status || "draft",
+      casino.logo_media_id || null,
+      casino.hero_image_media_id || null
     )
     .run();
+
+  return result.meta.last_row_id;
 }
 
 export async function updateCasino(db, slug, casino) {
@@ -73,6 +88,11 @@ export async function updateCasino(db, slug, casino) {
         features = ?,
         seo_title = ?,
         seo_description = ?,
+        featured = ?,
+        sort_order = ?,
+        status = ?,
+        logo_media_id = ?,
+        hero_image_media_id = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE slug = ?
     `)
@@ -87,6 +107,11 @@ export async function updateCasino(db, slug, casino) {
       JSON.stringify(casino.features || []),
       casino.seo_title,
       casino.seo_description,
+      casino.featured || 0,
+      casino.sort_order || 0,
+      casino.status || "draft",
+      casino.logo_media_id || null,
+      casino.hero_image_media_id || null,
       slug
     )
     .run();
@@ -100,4 +125,53 @@ export async function deleteCasino(db, slug) {
     `)
     .bind(slug)
     .run();
+}
+
+export async function setCasinoCategories(db, casino_id, category_ids) {
+  await db.prepare(`
+    DELETE FROM casino_categories
+    WHERE casino_id = ?
+  `)
+  .bind(casino_id)
+  .run();
+
+  if (!category_ids.length) {
+    return;
+  }
+
+  for (const category_id of category_ids) {
+    await db.prepare(`
+      INSERT INTO casino_categories (
+        casino_id,
+        category_id
+      )
+      VALUES (?, ?)
+    `)
+    .bind(casino_id, category_id)
+    .run();
+  }
+}
+export async function getCasinoCategories(db, casino_id) {
+  const result = await db.prepare(`
+    SELECT category_id
+    FROM casino_categories
+    WHERE casino_id = ?
+  `)
+  .bind(casino_id)
+  .all();
+
+  return result.results.map(r => r.category_id);
+}
+
+export async function getCasinoIdBySlug(db, slug) {
+  const row = await db.prepare(`
+    SELECT id
+    FROM casinos
+    WHERE slug = ?
+    LIMIT 1
+  `)
+  .bind(slug)
+  .first();
+
+  return row?.id ?? null;
 }

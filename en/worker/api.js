@@ -45,10 +45,7 @@ if(path === "/api/v1/auth/logout"){
 
 
   if (!user) {
-    return json({
-      success: false,
-      error: "Unauthorized"
-    }, 401);
+    return failure("Unauthorized", 401);
   }
   const writeMethods = ["POST","PUT","DELETE"];
 
@@ -241,44 +238,52 @@ function validate(body, required) {
 async function createCasino(request, env) {
 
   const body = await request.json();
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
 
   await casinos.createCasino(
     env.DB,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 async function updateCasino(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
+  
   await casinos.updateCasino(
     env.DB,
     body.slug,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 async function deleteCasino(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await casinos.deleteCasino(
     env.DB,
     body.slug
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 // =====================================================
@@ -288,30 +293,34 @@ async function deleteCasino(request, env) {
 async function createReview(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await reviews.createReview(
     env.DB,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 async function updateReview(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await reviews.updateReview(
     env.DB,
     body.slug,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 // =====================================================
@@ -321,30 +330,34 @@ async function updateReview(request, env) {
 async function createPage(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await pages.createPage(
     env.DB,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 async function updatePage(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await pages.updatePage(
     env.DB,
     body.slug,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 // =====================================================
@@ -354,15 +367,17 @@ async function updatePage(request, env) {
 async function saveGeoRule(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await geo.saveGeoRule(
     env.DB,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 // =====================================================
@@ -372,15 +387,17 @@ async function saveGeoRule(request, env) {
 async function saveSettings(request, env) {
 
   const body = await request.json();
-
+  validate(body, [
+    "slug",
+    "name",
+    "affiliate_url"
+  ]);
   await settings.saveSettings(
     env.DB,
     body
   );
 
-  return json({
-    success: true
-  });
+  return success();
 }
 
 // =====================================================

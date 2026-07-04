@@ -208,7 +208,7 @@ export function getRoute(request) {
   // =====================================================
 
   const dynamicPage =
-    path.match(/^\/en\/([a-z0-9-]+)$/);
+    path.match(/^\/en\/(.+)$/);
 
   if (dynamicPage) {
 

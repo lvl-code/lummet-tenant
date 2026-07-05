@@ -111,6 +111,70 @@ ORDER BY
 
   return json({ casinos: casinos.results });
 }
+
+// ==================================
+// READ ENDPOINTS (add to api.js route handler)
+// ==================================
+
+// List reviews
+if (path === "/api/v1/reviews/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC
+  `).all();
+  return json({ reviews: result.results });
+}
+
+// List news
+if (path === "/api/v1/news/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM news WHERE published = 1 ORDER BY created_at DESC
+  `).all();
+  return json({ news: result.results });
+}
+
+// List categories
+if (path === "/api/v1/categories/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM categories ORDER BY name
+  `).all();
+  return json({ categories: result.results });
+}
+
+// List media
+if (path === "/api/v1/media/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM media ORDER BY created_at DESC
+  `).all();
+  return json({ media: result.results });
+}
+
+// Get settings
+if (path === "/api/v1/settings/get") {
+  const result = await env.DB.prepare(`
+    SELECT key, value FROM settings
+  `).all();
+  const settings = {};
+  for (const row of result.results) {
+    settings[row.key] = row.value;
+  }
+  return json({ settings });
+}
+
+// Get stats (already exists but move here for consistency)
+if (path === "/api/v1/stats") {
+  const casinos = await env.DB.prepare("SELECT COUNT(*) c FROM casinos").first();
+  const reviews = await env.DB.prepare("SELECT COUNT(*) c FROM reviews").first();
+  const clicks = await env.DB.prepare("SELECT COUNT(*) c FROM clicks").first();
+  const pages = await env.DB.prepare("SELECT COUNT(*) c FROM pages").first();
+  return json({
+    casinos: casinos.c,
+    reviews: reviews.c,
+    clicks: clicks.c,
+    pages: pages.c
+  });
+}
+
+
     
     // ==================================
     // REVIEWS
@@ -169,6 +233,7 @@ ORDER BY
     ) {
       return generateReview(request, env);
     }
+
 
     // ==================================
     // SETTINGS

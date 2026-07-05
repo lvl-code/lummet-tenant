@@ -11,6 +11,8 @@ from "./database/clicks.js";
 import {
   getCurrentUser
 } from "./auth.js";
+import { getGeoRule } from "./database/geo.js";
+import { geoEngine } from "./geo.js";
 
 export async function renderHome(
   request,
@@ -64,12 +66,22 @@ export async function renderCasino(
 
   const renderer =
     new Renderer(env);
+  
+  // Add to renderCasino in controllers.js, after fetching the casino:
 
-  const html =
-    await renderer.render(
-      "casino.html",
-      casino
-    );
+const edgeGeo = {
+  country: request.cf?.country || 'RW',
+  city: request.cf?.city || 'Unknown'
+};
+const geoInfo = geoEngine.process(request, edgeGeo);
+const geoRule = await getGeoRule(env.DB, slug, geoInfo.country);
+
+// Pass to template
+const html = await renderer.render("casino.html", {
+  ...casino,
+  geo: geoInfo,
+  geoRule: geoRule || { status: 'allowed', bonus_override: null }
+});
 
   return new Response(html,{
     headers:{

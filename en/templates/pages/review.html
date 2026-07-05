@@ -1,5 +1,31 @@
-<h1>{{title}}</h1>
+<article class="review-detail">
+  <div class="container">
+    <header class="review-header">
+      <h1>{{title}}</h1>
+      <div class="review-meta">
+        <span class="rating-stars">{{rating}} / 5</span>
+      </div>
+    </header>
 
-<div>
-{{content}}
-</div>
+    <div class="review-body">
+      <div class="review-content">
+        {{content}}
+      </div>
+
+      <div class="review-pros-cons">
+        <div class="pros-cons-block pros">
+          <h3>Pros</h3>
+          {{pros_html}}
+        </div>
+        <div class="pros-cons-block cons">
+          <h3>Cons</h3>
+          {{cons_html}}
+        </div>
+      </div>
+    </div>
+
+    <div class="review-cta">
+      <a href="/en/go/{{casino_slug}}" class="btn btn--primary btn--lg" rel="nofollow sponsored">Visit Casino</a>
+    </div>
+  </div>
+</article>

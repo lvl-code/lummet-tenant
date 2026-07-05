@@ -1,43 +1,59 @@
-<article class="casino-profile-wrapper">
-    <!-- Hero Brand Banner Component Section -->
-    <section class="casino-hero-card">
-        <div class="brand-identity-block">
-            <img src="{{CASINO_LOGO}}" alt="{{CASINO_NAME}} Visual Logo" class="operator-logo" loading="eager">
-            <h1 class="operator-headline">{{CASINO_NAME}} Review & Market Analysis</h1>
+<section class="casino-detail">
+  <div class="container">
+    <div class="casino-hero">
+      <div class="casino-hero__left">
+        <img src="{{logo}}" alt="{{name}}" class="casino-hero__logo" onerror="this.src='/en/static/images/logo.png'">
+        <div>
+          <h1>{{name}}</h1>
+          <div class="rating-stars">{{rating_display}}</div>
         </div>
-        
-        <!-- Live Geo-Targeted Localized Conversion Card Box -->
-        <div class="geo-offer-conversion-box">
-            <div class="geo-badge">Localized Offer for: <span class="country-pill">{{GEO_COUNTRY_NAME}}</span></div>
-            <h2 class="bonus-highlight-title">{{LOCALIZED_BONUS_TITLE}}</h2>
-            <p class="bonus-subtext">Terms apply. Min deposit required. 18+</p>
-            <a href="{{AFFILIATE_REDIRECT_LINK}}" class="cta-conversion-button" target="_blank" rel="nofollow noopener noreferrer">
-                Claim {{CASINO_NAME}} Bonus
-            </a>
+       </div>
+      <div class="casino-hero__right">
+        <div class="bonus-box">
+          <span class="bonus-label">{{bonus_title}}</span>
+          <span class="bonus-amount">{{bonus_value}}</span>
         </div>
-    </section>
+        <a href="/en/go/{{slug}}" class="btn btn--primary btn--lg" rel="nofollow sponsored noopener">Claim Bonus</a>
+        <a href="{{website_url}}" class="btn btn--ghost" target="_blank" rel="noopener">Visit Site</a>
+      </div>
+    </div>
 
-    <!-- Context Flow Restrictions Indicator (Rendered if blocked/restricted) -->
-    {{JURISDICTION_COMPLIANCE_BANNER}}
-
-    <!-- Multi-Column Editorial Copy Layout Structure -->
-    <section class="casino-editorial-body">
-        <div class="main-copy-column">
-            <h2>Detailed Operator Analysis</h2>
-            <div class="longform-text-block">
-                {{LONGFORM_REVIEW_CONTENT}}
-            </div>
+    <div class="casino-body">
+      <div class="casino-main">
+        <div class="info-block">
+          <h2>About {{name}}</h2>
+          <p class="casino-description">{{seo_description}}</p>
         </div>
-        
-        <aside class="sidebar-data-column">
-            <div class="spec-matrix-card">
-                <h3>Technical Specifications</h3>
-                <ul>
-                    <li><strong>Platform Rating:</strong> {{CASINO_RATING}} / 5</li>
-                    <li><strong>Licensed Regulator:</strong> {{CASINO_LICENSE}}</li>
-                    <li><strong>Corporate Owner:</strong> {{CASINO_OWNER}}</li>
-                </ul>
-            </div>
-        </aside>
-    </section>
-</article>
+
+        <div class="info-block">
+          <h3>Features</h3>
+          <div class="features-list">
+            {{features_html}}
+          </div>
+        </div>
+
+        <div class="info-block" id="casinoReviews">
+          <h3>Reviews</h3>
+          <div id="reviewsContainer">
+            <p class="muted">Loading reviews...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="casino-aside">
+        <div class="info-card">
+          <h4>Casino Info</h4>
+          <dl>
+            <dt>Rating</dt><dd>{{rating}} / 5</dd>
+            <dt>Website</dt><dd><a href="{{website_url}}" target="_blank" rel="noopener">{{website_url}}</a></dd>
+            <dt>Status</dt><dd>{{status}}</dd>
+          </dl>
+        </div>
+        <div class="info-card" id="geoCard">
+          <h4>Your Region</h4>
+          <p class="muted">Detecting...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

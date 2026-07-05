@@ -1,29 +1,54 @@
-<div class="admin-container">
-  <h1>Admin Dashboard</h1>
+<div class="admin-wrapper">
+  <nav class="admin-nav">
+    <a href="/en/dashboard" class="active">Overview</a>
+    <a href="/en/dashboard/casinos">Casinos</a>
+    <a href="/en/dashboard/casino/create">Add Casino</a>
+    <a href="/en/dashboard/reviews">Reviews</a>
+    <a href="/en/dashboard/news">News</a>
+    <a href="/en/dashboard/pages">Pages</a>
+    <a href="/en/dashboard/settings">Settings</a>
+    <a href="/en/dashboard/ai">AI Generator</a>
+    <a href="/api/v1/auth/logout" class="admin-logout">Logout</a>
+  </nav>
 
-  <div class="grid">
-    <div class="card">
-      <h3>Casinos</h3>
-      <p id="count-casinos">...</p>
+  <div class="admin-content">
+    <h1>Dashboard Overview</h1>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-icon">🎰</div>
+        <div class="stat-value" id="statCasinos">—</div>
+        <div class="stat-label">Casinos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-value" id="statReviews">—</div>
+        <div class="stat-label">Reviews</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🖱</div>
+        <div class="stat-value" id="statClicks">—</div>
+        <div class="stat-label">Clicks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📄</div>
+        <div class="stat-value" id="statPages">—</div>
+        <div class="stat-label">Pages</div>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>Reviews</h3>
-      <p id="count-reviews">...</p>
+    <div class="admin-section">
+      <h2>Top Casinos by Clicks</h2>
+      <div id="topCasinosTable">
+        <p class="muted">Loading...</p>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>Clicks</h3>
-      <p id="count-clicks">...</p>
-    </div>
-
-    <div class="card">
-      <h3>Pages</h3>
-      <p id="count-pages">...</p>
+    <div class="admin-section">
+      <h2>Clicks by Country</h2>
+      <div id="topCountriesTable">
+        <p class="muted">Loading...</p>
+      </div>
     </div>
   </div>
-
-  <a href="/en/admin/casinos">Manage Casinos</a>
 </div>
-
-<script src="/static/js/admin.js"></script>

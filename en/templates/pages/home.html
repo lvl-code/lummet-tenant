@@ -30,6 +30,10 @@
     padding: 40px 20px;
   }
 
+  h2 {
+    margin-bottom: 20px;
+  }
+
   .casino-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -41,6 +45,11 @@
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: 0.3s;
+  }
+
+  .casino-card:hover {
+    transform: translateY(-5px);
   }
 
   .featured {
@@ -94,6 +103,12 @@
     font-size: 12px;
   }
 
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+
   .btn {
     padding: 8px 12px;
     border-radius: 6px;
@@ -111,73 +126,79 @@
     color: #fff;
   }
 
-  .loading, .error {
+  .loading,
+  .empty-state {
     text-align: center;
     padding: 40px;
-    opacity: 0.8;
+    opacity: 0.7;
+  }
+
+  .error {
+    color: #ff4d4d;
+    text-align: center;
+    padding: 20px;
   }
 </style>
 
 <section class="hero">
-  <h1>Premium Casino Reviews & Bonuses</h1>
-  <p>Discover trusted online casinos with expert reviews and exclusive bonuses.</p>
+  <div class="hero-content">
+    <h1>Premium Casino Reviews & Bonuses</h1>
+    <p>Discover trusted online casinos with expert rankings and VIP bonuses.</p>
+  </div>
 </section>
 
-<section class="container">
-  <h2>Top Rated Casinos</h2>
-  <div id="casino-grid" class="casino-grid">
-    <div class="loading">Loading casinos...</div>
+<section class="casino-listings">
+  <div class="container">
+    <h2>Top Rated Casinos</h2>
+    <div id="casino-grid" class="casino-grid">
+      <div class="loading">Loading casinos...</div>
+    </div>
   </div>
 </section>
 
 <script>
-  const API = "/api/v1/casinos/list";
+  const API_URL = "/api/v1/casinos/list";
 
-  function stars(rating = 0) {
-    const r = Math.round(rating);
-    return "★".repeat(r) + "☆".repeat(5 - r);
+  function renderStars(rating) {
+    const stars = Math.round(rating || 0);
+    return "★".repeat(stars) + "☆".repeat(5 - stars);
   }
 
-  function parseFeatures(features) {
+  function renderCasinoCard(casino) {
+    let features = [];
     try {
-      if (!features) return [];
-      if (Array.isArray(features)) return features;
-      return JSON.parse(features);
-    } catch {
-      return [];
-    }
-  }
+      features = casino.features ? JSON.parse(casino.features) : [];
+    } catch (e) {}
 
-  function renderCard(c) {
-    const features = parseFeatures(c.features).slice(0, 3);
+    const featureTags = features.slice(0, 3)
+      .map(f => `<span class="tag">${f}</span>`)
+      .join("");
 
     return `
-      <article class="casino-card ${c.featured ? "featured" : ""}">
-        ${c.featured ? `<div class="featured-badge">FEATURED</div>` : ""}
+      <article class="casino-card ${casino.featured ? "featured" : ""}">
+        ${casino.featured ? `<div class="featured-badge">FEATURED</div>` : ""}
 
         <div class="card-header">
-          <img src="${c.logo || "/en/static/images/logo.png"}" class="casino-logo" />
+          <img src="${casino.logo || "/en/static/images/logo.png"}" class="casino-logo">
           <div>
-            <h3>${c.name}</h3>
+            <h3>${casino.name}</h3>
             <div class="rating">
-              <span class="stars">${stars(c.rating)}</span>
-              ${c.rating || 0}/5
+              <span class="stars">${renderStars(casino.rating)}</span>
+              ${casino.rating || "0.0"}/5
             </div>
           </div>
         </div>
 
         <div class="bonus-box">
-          <div><b>${c.bonus_title || "Bonus"}</b></div>
-          <div style="color:#00ff99">${c.bonus_value || ""}</div>
+          <div><strong>${casino.bonus_title || "Bonus"}</strong></div>
+          <div style="color:#00ff99">${casino.bonus_value || ""}</div>
         </div>
 
-        <div style="margin-top:10px">
-          ${features.map(f => `<span class="tag">${f}</span>`).join("")}
-        </div>
+        <div>${featureTags}</div>
 
-        <div style="display:flex;justify-content:space-between;margin-top:15px">
-          <a class="btn btn-primary" href="/en/go/${c.slug}">Play Now</a>
-          <a class="btn btn-secondary" href="/en/casino/${c.slug}">Review</a>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="/en/go/${casino.slug}">Play Now</a>
+          <a class="btn btn-secondary" href="/en/casino/${casino.slug}">Review</a>
         </div>
       </article>
     `;
@@ -187,27 +208,31 @@
     const grid = document.getElementById("casino-grid");
 
     try {
-      const res = await fetch(API);
+      const res = await fetch(API_URL);
+
       if (!res.ok) throw new Error("API failed");
 
       const data = await res.json();
       const casinos = data.casinos || [];
 
       if (!casinos.length) {
-        grid.innerHTML = `<div class="error">No casinos found in database.</div>`;
+        grid.innerHTML = `<div class="empty-state">No casinos available.</div>`;
         return;
       }
 
-      casinos.sort((a, b) =>
-        (b.featured || 0) - (a.featured || 0) ||
-        (b.rating || 0) - (a.rating || 0)
+      const sorted = casinos.sort((a, b) =>
+        (b.featured || 0) - (a.featured || 0)
       );
 
-      grid.innerHTML = casinos.map(renderCard).join("");
+      grid.innerHTML = sorted.map(renderCasinoCard).join("");
 
     } catch (err) {
-      grid.innerHTML = `<div class="error">Failed to load casinos. Please try again.</div>`;
       console.error(err);
+      grid.innerHTML = `
+        <div class="error">
+          Failed to load casinos. Please try again later.
+        </div>
+      `;
     }
   }
 

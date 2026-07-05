@@ -90,6 +90,30 @@ const html = await renderer.render("casino.html", {
   });
 }
 
+function buildCasinoCards(casinoList) {
+  return casinoList.map(casino => `
+    <div class="casino-card">
+      <div class="casino-card__header">
+        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo">
+        <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
+      </div>
+      <div class="casino-card__body">
+        <h3>${casino.name}</h3>
+        <div class="casino-card__bonus">
+          <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
+          <span class="bonus-value">${casino.bonus_value || ''}</span>
+        </div>
+      </div>
+      <div class="casino-card__actions">
+        <a href="/en/casino/${casino.slug}" class="btn btn--secondary">Review</a>
+        <a href="/en/go/${casino.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
+      </div>
+    </div>
+  `).join('');
+}
+
+
+
 export async function renderReview(
   request,
   env,

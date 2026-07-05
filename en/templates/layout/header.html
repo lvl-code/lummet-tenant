@@ -6,178 +6,27 @@
   gtag('config', 'G-E0ZDHXWWX7');
 </script>
 
-<div class="header-wrapper" id="headerWrapper">
-    <header id="mainHeader">
-        <a href="/en" class="logo-box">
-            <img src="/leveliconlogo.png" alt="Level Casino Logo" class="logo-img">
-            <div class="logo-text">LEVEL<span>.CASINO</span></div>
-        </a>
-        
-        <nav id="navMenu" class="nav-container">
-
-            <div class="nav-group">
-                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-rankings">
-                    My Account 
-                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-content" id="dropdown-rankings">
-                    <a href="/en/login/">Login</a>
-                    <a href="/en/register/">Register</a>
-                    <a href="/en/dashboard/">Dashboard</a>
-                </div>
-            </div>
-            <div class="nav-group">
-                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-rankings">
-                    Rankings 
-                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-content" id="dropdown-rankings">
-                    <a href="/en/casino/">Casinos</a>
-                    <a href="/en/casino/best/">Best Casinos</a>
-                    <a href="/en/casino/featured/">Featured Brands</a>
-                </div>
-            </div>
-
-            <div class="nav-group">
-                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-casinos">
-                    Casinos 
-                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-content" id="dropdown-casinos">
-                    <a href="/en/category/crypto/">Crypto Casinos</a>
-                    <a href="/en/casino/trusted/">Trusted Operators</a>
-                    <a href="/en/casino/fast-payout/">Fast Payout</a>
-                    <a href="/en/casino/europe/">Europe</a>
-                    <a href="/en/casino/asia/">Asia</a>
-                    <a href="/en/casino/africa/">Africa</a>
-                    <a href="/en/casino/brazil/">Brazil</a>
-                    <a href="/en/casino/canada/">Canada</a>
-                </div>
-            </div>
-
-            <div class="nav-group">
-                <button class="nav-trigger" aria-expanded="false" aria-controls="dropdown-guides">
-                    Guides 
-                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-content" id="dropdown-guides">
-                    <a href="/en/guide/banking.html">Banking Guide</a>
-                    <a href="/en/guide/registration.html">Registration</a>
-                    <a href="/en/crypto/crypto-casino-guide.html">Crypto Guide</a>
-                    <a href="/en/crypto/provably-fair.html">Provably Fair</a>
-                </div>
-            </div>
-
-            <a href="/en/review/" class="nav-item">Reviews</a>
-            <a href="/en/news/" class="nav-item">News</a>
-            
-            <div class="nav-group mobile-only-group">
-                <a href="mailto:info@level.casino" class="nav-item">Contact Us</a>
-            </div>
-
-            <a href="mailto:sales@level.casino" class="btn-main btn-purple partnership-cta">Partnership</a>
-        </nav>
-
-        <div class="menu-toggle" id="mobile-menu" aria-label="Open mobile menu" role="button" tabindex="0">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
-    </header>
-  <script>
-(function() {
-    const headerWrapper = document.getElementById('headerWrapper');
-    const mainHeader = document.getElementById('mainHeader');
-    const menuToggle = document.getElementById('mobile-menu');
-    const navMenu = document.getElementById('navMenu');
-    const navTriggers = document.querySelectorAll('.nav-trigger');
-
-    // Mobile Menu Main Toggle
-    menuToggle.addEventListener('click', () => {
-        const isActive = menuToggle.classList.toggle('is-active');
-        navMenu.classList.toggle('active');
-        document.body.style.overflow = isActive ? 'hidden' : ''; // Prevent double scroll
-    });
-
-    // Accessible Dropdown & Mobile Accordion Engine
-    navTriggers.forEach(trigger => {
-        trigger.addEventListener('click', (e) => {
-            const isMobile = window.innerWidth <= 1024;
-            const dropdown = trigger.nextElementSibling;
-            const isExpanded = trigger.getAttribute('aria-expanded') === 'true';
-
-            if (isMobile) {
-                e.preventDefault();
-                
-                // Close other accordions for clean UX
-                navTriggers.forEach(t => {
-                    if (t !== trigger) {
-                        t.setAttribute('aria-expanded', 'false');
-                        t.nextElementSibling.classList.remove('open');
-                    }
-                });
-
-                // Toggle the clicked one
-                trigger.setAttribute('aria-expanded', !isExpanded);
-                dropdown.classList.toggle('open');
-            }
-        });
-
-        // Desktop keyboard a11y (Space/Enter to focus)
-        trigger.addEventListener('keydown', (e) => {
-            if (window.innerWidth > 1024 && (e.key === 'Enter' || e.key === ' ')) {
-                e.preventDefault();
-                trigger.parentElement.focus(); // Triggers CSS :focus-within
-            }
-        });
-    });
-
-    // Clean up menu on link click (for one-page routing or jumping)
-    document.querySelectorAll('.dropdown-content a, .nav-item').forEach(link => {
-        link.addEventListener('click', () => {
-            if (window.innerWidth <= 1024) {
-                menuToggle.classList.remove('is-active');
-                navMenu.classList.remove('active');
-                document.body.style.overflow = '';
-                
-                // Reset internal accordions
-                document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('open'));
-                navTriggers.forEach(t => t.setAttribute('aria-expanded', 'false'));
-            }
-        });
-    });
-
-    // Dynamic offset layout adjustment
-    function updateOffset() {
-        if(headerWrapper) {
-            document.body.style.paddingTop = headerWrapper.offsetHeight + 'px';
-        }
-    }
-
-    window.addEventListener('load', updateOffset);
-    
-    // Resize handler to clean up states when shifting desktop <-> mobile
-    window.addEventListener('resize', () => {
-        updateOffset();
-        if (window.innerWidth > 1024) {
-            menuToggle.classList.remove('is-active');
-            navMenu.classList.remove('active');
-            document.body.style.overflow = '';
-            document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('open'));
-            navTriggers.forEach(t => t.setAttribute('aria-expanded', 'false'));
-        }
-    });
-
-    // Shrink header on scroll
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 40) {
-            mainHeader.style.padding = '8px 5%'; 
-        } else {
-            mainHeader.style.padding = '15px 5%';
-        }
-        updateOffset(); 
-    });
-
-})();
-</script>
-</div>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="/en" class="logo">
+      <img src="/en/static/images/logo.png" alt="Level Casino" height="36">
+      <span>Level<span class="logo-accent">Casino</span></span>
+    </a>
+    <nav class="main-nav" id="mainNav">
+      <a href="/en">Home</a>
+      <a href="/en/casino">Casinos</a>
+      <a href="/en/review">Reviews</a>
+      <a href="/en/news">News</a>
+      <a href="/en/category/crypto">Crypto</a>
+      <a href="/en/dashboard">Dashboard</a>
+    </nav>
+    <div class="header-actions">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search casinos..." autocomplete="off">
+        <div id="searchResults" class="search-results"></div>
+      </div>
+      <a href="/en/login" class="btn btn--ghost">Login</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+    </div>
+  </div>
+</header>

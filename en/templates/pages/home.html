@@ -158,115 +158,38 @@
 </section>
 
 <script>
-(function () {
+const casinoData = {{casinos}};
 
-const raw = `{{casinos}}`;
+function renderStars(rating) {
+  rating = Math.round(Number(rating) || 0);
+  return "★".repeat(rating) + "☆".repeat(5 - rating);
+}
 
-let casinoData = [];
+function renderCasinos() {
+  const grid = document.getElementById("casino-grid");
 
-try {
-    casinoData = JSON.parse(raw);
-} catch (err) {
-    console.error("Casino JSON error:", err);
-    console.log(raw);
-
-    document.getElementById("casino-grid").innerHTML =
-        "<div class='empty-state'>Failed to load casinos.</div>";
-
+  if (!Array.isArray(casinoData) || casinoData.length === 0) {
+    grid.innerHTML = "<div class='empty-state'>No casinos available.</div>";
     return;
+  }
+
+  casinoData.sort((a, b) => (b.featured || 0) - (a.featured || 0));
+
+  grid.innerHTML = casinoData.map(casino => {
+    let features = [];
+
+    try {
+      features = JSON.parse(casino.features || "[]");
+    } catch (e) {}
+
+    return `
+      <article class="casino-card ${casino.featured ? "featured" : ""}">
+        <h3>${casino.name}</h3>
+        <p>${casino.bonus_value || ""}</p>
+      </article>
+    `;
+  }).join("");
 }
 
-function renderStars(rating){
-    rating = Math.round(Number(rating)||0);
-    return "★".repeat(rating)+"☆".repeat(5-rating);
-}
-
-function renderCasinos(){
-
-    const grid=document.getElementById("casino-grid");
-
-    if(!Array.isArray(casinoData) || casinoData.length===0){
-        grid.innerHTML="<div class='empty-state'>No casinos available.</div>";
-        return;
-    }
-
-    casinoData.sort((a,b)=>(b.featured||0)-(a.featured||0));
-
-    grid.innerHTML=casinoData.map(casino=>{
-
-        let features=[];
-
-        try{
-            features=JSON.parse(casino.features||"[]");
-        }catch(e){}
-
-        return `
-<article class="casino-card ${casino.featured ? "featured" : ""}">
-
-${casino.featured ? '<div class="featured-badge">FEATURED</div>' : ""}
-
-<div class="card-header">
-
-<img
-class="casino-logo"
-src="${casino.logo || "/en/static/images/logo.png"}"
-alt="${casino.name}"
->
-
-<div>
-
-<h3>${casino.name}</h3>
-
-<div class="rating">
-<span class="stars">${renderStars(casino.rating)}</span>
-${casino.rating || 0}/5
-</div>
-
-</div>
-</div>
-
-<div class="bonus-box">
-<div class="bonus-title">${casino.bonus_title || "Bonus"}</div>
-<div class="bonus-value">${casino.bonus_value || ""}</div>
-</div>
-
-<div class="features">
-
-${features.slice(0,3).map(f=>`<span class="tag">${f}</span>`).join("")}
-
-</div>
-
-<div class="card-footer">
-
-<a
-class="btn btn-primary"
-href="/en/go/${casino.slug}"
-target="_blank"
->
-Play Now
-</a>
-
-<a
-class="btn btn-secondary"
-href="/en/casino/${casino.slug}"
->
-Review
-</a>
-
-</div>
-
-</article>
-`;
-
-    }).join("");
-
-}
-
-if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",renderCasinos);
-}else{
-    renderCasinos();
-}
-
-})();
+renderCasinos();
 </script>

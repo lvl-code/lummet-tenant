@@ -143,13 +143,14 @@
 <section class="hero">
   <div class="hero-content">
     <h1>Premium Casino Reviews & Bonuses</h1>
-    <p>Discover trusted online casinos with expert rankings and VIP bonuses.</p>
+    <p>Discover the world's most trusted online casinos with exclusive VIP bonuses and expert reviews.</p>
   </div>
 </section>
 
 <section class="casino-listings">
   <div class="container">
     <h2>Top Rated Casinos</h2>
+
     <div id="casino-grid" class="casino-grid">
       <div class="loading">Loading casinos...</div>
     </div>
@@ -157,84 +158,115 @@
 </section>
 
 <script>
-  const API_URL = "/api/v1/casinos/list";
+(function () {
 
-  function renderStars(rating) {
-    const stars = Math.round(rating || 0);
-    return "★".repeat(stars) + "☆".repeat(5 - stars);
-  }
+const raw = `{{casinos}}`;
 
-  function renderCasinoCard(casino) {
-    let features = [];
-    try {
-      features = casino.features ? JSON.parse(casino.features) : [];
-    } catch (e) {}
+let casinoData = [];
 
-    const featureTags = features.slice(0, 3)
-      .map(f => `<span class="tag">${f}</span>`)
-      .join("");
+try {
+    casinoData = JSON.parse(raw);
+} catch (err) {
+    console.error("Casino JSON error:", err);
+    console.log(raw);
 
-    return `
-      <article class="casino-card ${casino.featured ? "featured" : ""}">
-        ${casino.featured ? `<div class="featured-badge">FEATURED</div>` : ""}
+    document.getElementById("casino-grid").innerHTML =
+        "<div class='empty-state'>Failed to load casinos.</div>";
 
-        <div class="card-header">
-          <img src="${casino.logo || "/en/static/images/logo.png"}" class="casino-logo">
-          <div>
-            <h3>${casino.name}</h3>
-            <div class="rating">
-              <span class="stars">${renderStars(casino.rating)}</span>
-              ${casino.rating || "0.0"}/5
-            </div>
-          </div>
-        </div>
+    return;
+}
 
-        <div class="bonus-box">
-          <div><strong>${casino.bonus_title || "Bonus"}</strong></div>
-          <div style="color:#00ff99">${casino.bonus_value || ""}</div>
-        </div>
+function renderStars(rating){
+    rating = Math.round(Number(rating)||0);
+    return "★".repeat(rating)+"☆".repeat(5-rating);
+}
 
-        <div>${featureTags}</div>
+function renderCasinos(){
 
-        <div class="card-footer">
-          <a class="btn btn-primary" href="/en/go/${casino.slug}">Play Now</a>
-          <a class="btn btn-secondary" href="/en/casino/${casino.slug}">Review</a>
-        </div>
-      </article>
-    `;
-  }
+    const grid=document.getElementById("casino-grid");
 
-  async function loadCasinos() {
-    const grid = document.getElementById("casino-grid");
-
-    try {
-      const res = await fetch(API_URL);
-
-      if (!res.ok) throw new Error("API failed");
-
-      const data = await res.json();
-      const casinos = data.casinos || [];
-
-      if (!casinos.length) {
-        grid.innerHTML = `<div class="empty-state">No casinos available.</div>`;
+    if(!Array.isArray(casinoData) || casinoData.length===0){
+        grid.innerHTML="<div class='empty-state'>No casinos available.</div>";
         return;
-      }
-
-      const sorted = casinos.sort((a, b) =>
-        (b.featured || 0) - (a.featured || 0)
-      );
-
-      grid.innerHTML = sorted.map(renderCasinoCard).join("");
-
-    } catch (err) {
-      console.error(err);
-      grid.innerHTML = `
-        <div class="error">
-          Failed to load casinos. Please try again later.
-        </div>
-      `;
     }
-  }
 
-  document.addEventListener("DOMContentLoaded", loadCasinos);
+    casinoData.sort((a,b)=>(b.featured||0)-(a.featured||0));
+
+    grid.innerHTML=casinoData.map(casino=>{
+
+        let features=[];
+
+        try{
+            features=JSON.parse(casino.features||"[]");
+        }catch(e){}
+
+        return `
+<article class="casino-card ${casino.featured ? "featured" : ""}">
+
+${casino.featured ? '<div class="featured-badge">FEATURED</div>' : ""}
+
+<div class="card-header">
+
+<img
+class="casino-logo"
+src="${casino.logo || "/en/static/images/logo.png"}"
+alt="${casino.name}"
+>
+
+<div>
+
+<h3>${casino.name}</h3>
+
+<div class="rating">
+<span class="stars">${renderStars(casino.rating)}</span>
+${casino.rating || 0}/5
+</div>
+
+</div>
+</div>
+
+<div class="bonus-box">
+<div class="bonus-title">${casino.bonus_title || "Bonus"}</div>
+<div class="bonus-value">${casino.bonus_value || ""}</div>
+</div>
+
+<div class="features">
+
+${features.slice(0,3).map(f=>`<span class="tag">${f}</span>`).join("")}
+
+</div>
+
+<div class="card-footer">
+
+<a
+class="btn btn-primary"
+href="/en/go/${casino.slug}"
+target="_blank"
+>
+Play Now
+</a>
+
+<a
+class="btn btn-secondary"
+href="/en/casino/${casino.slug}"
+>
+Review
+</a>
+
+</div>
+
+</article>
+`;
+
+    }).join("");
+
+}
+
+if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",renderCasinos);
+}else{
+    renderCasinos();
+}
+
+})();
 </script>

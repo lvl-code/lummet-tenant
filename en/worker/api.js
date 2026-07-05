@@ -16,6 +16,7 @@ import {
 }
 from "./auth.js";
 import { dashboardStatsAPI } from "./controllers.js";
+import { aiEngine } from "./ai.js";
 
 // =====================================================
 // MAIN API HANDLER
@@ -302,13 +303,8 @@ async function updateCasino(request, env) {
 }
 
 async function deleteCasino(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+  validate(body, ["slug"]);
   await casinos.deleteCasino(
     env.DB,
     body.slug
@@ -317,18 +313,14 @@ async function deleteCasino(request, env) {
   return success();
 }
 
+
 // =====================================================
 // REVIEWS
 // =====================================================
 
 async function createReview(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+  validate(body, ["slug", "title", "content", "casino_slug"]);
   await reviews.createReview(
     env.DB,
     body
@@ -338,13 +330,8 @@ async function createReview(request, env) {
 }
 
 async function updateReview(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+  validate(body, ["slug", "title", "content"]);
   await reviews.updateReview(
     env.DB,
     body.slug,
@@ -354,18 +341,15 @@ async function updateReview(request, env) {
   return success();
 }
 
+
+
 // =====================================================
 // PAGES
 // =====================================================
 
 async function createPage(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+  validate(body, ["slug", "type", "template", "title"]);
   await pages.createPage(
     env.DB,
     body
@@ -375,13 +359,8 @@ async function createPage(request, env) {
 }
 
 async function updatePage(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+  validate(body, ["slug", "title"]);
   await pages.updatePage(
     env.DB,
     body.slug,
@@ -391,18 +370,14 @@ async function updatePage(request, env) {
   return success();
 }
 
+
 // =====================================================
 // GEO RULES
 // =====================================================
 
 async function saveGeoRule(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+  validate(body, ["casino_slug", "country_code", "status"]);
   await geo.saveGeoRule(
     env.DB,
     body
@@ -411,18 +386,18 @@ async function saveGeoRule(request, env) {
   return success();
 }
 
+
 // =====================================================
 // SETTINGS
 // =====================================================
 
 async function saveSettings(request, env) {
-
   const body = await request.json();
-  validate(body, [
-    "slug",
-    "name",
-    "affiliate_url"
-  ]);
+
+  if (!body || typeof body !== "object" || Object.keys(body).length === 0) {
+    return failure("Settings object cannot be empty");
+  }
+
   await settings.saveSettings(
     env.DB,
     body
@@ -431,65 +406,28 @@ async function saveSettings(request, env) {
   return success();
 }
 
+
 // =====================================================
 // AI REVIEW GENERATION
 // =====================================================
 
-async function generateReview(
-  request,
-  env
-) {
-
+async function generateReview(request, env) {
   const body = await request.json();
+  validate(body, ["casino", "country", "slug"]);
 
-  const prompt = `
-Write a professional casino review.
-
-Casino: ${body.casino}
-Country: ${body.country}
-
-Requirements:
-- 1500+ words
-- SEO optimized
-- Include pros and cons
-- Include FAQ section
-`;
-
-  const response = await fetch(
-    env.OPENAI_URL,
-    {
-      method: "POST",
-      headers: {
-        Authorization:
-          `Bearer ${env.OPENAI_API_KEY}`,
-        "Content-Type":
-          "application/json"
-      },
-      body: JSON.stringify({
-        model: env.OPENAI_MODEL,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      })
-    }
+  const content = await aiEngine.generateFullReview(
+    env,
+    body.casino,
+    body.country,
+    body.slug
   );
-
-  const result =
-    await response.json();
-
-  const content =
-    result.choices?.[0]
-      ?.message?.content || "";
 
   await ai.logAIGeneration(
     env.DB,
     "review",
     body.slug,
-    prompt,
-    env.OPENAI_MODEL
+    `Full review generation for ${body.casino} (${body.country})`,
+    "@cf/meta/llama-3-8b-instruct"
   );
 
   return json({
@@ -497,6 +435,7 @@ Requirements:
     content
   });
 }
+
 
 
 function requireAdmin(user) {

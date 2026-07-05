@@ -1,5 +1,5 @@
 import { Renderer } from "./render.js";
-
+import * as categories from "./database/categories.js";
 import * as casinos from "./database/casinos.js";
 import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
@@ -344,16 +344,26 @@ export async function renderCountry(
 
 }
 
-
 export async function renderCategory(
   request,
   env,
   slug
-){
+) {
+
+  const category =
+    await categories.getCategory(
+      env.DB,
+      slug
+    );
+
+  if (!category) {
+    return render404(request, env);
+  }
 
   const casinoList =
-    await casinos.getAllCasinos(
-      env.DB
+    await categories.getCategoryCasinos(
+      env.DB,
+      slug
     );
 
   const renderer =
@@ -364,32 +374,32 @@ export async function renderCategory(
       "category.html",
       {
         slug,
-        category: slug,
+        category: category.name,
+        description: category.description,
         casinos:
           JSON.stringify(
             casinoList
           ),
         seo_title:
-          slug +
-          " Casinos",
+          category.seo_title ||
+          category.name + " Casinos",
         seo_description:
-          "Top " +
-          slug +
-          " casinos reviewed by Level Casino"
+          category.seo_description ||
+          "Top " + category.name + " casinos reviewed by Level Casino"
       }
     );
 
   return new Response(
     html,
     {
-      headers:{
-        "Content-Type":
-          "text/html"
+      headers: {
+        "Content-Type": "text/html"
       }
     }
   );
 
 }
+
 
 export async function renderAffiliate(
   request,

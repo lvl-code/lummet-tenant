@@ -1,11 +1,5 @@
 <h1>Best Online Casinos</h1>
 
-<p>
-Welcome to LevelCasino.
-</p>
-
-<!-- templates/pages/home.html -->
-
 <style>
   body {
     margin: 0;
@@ -58,8 +52,8 @@ Welcome to LevelCasino.
     color: #000;
     padding: 4px 8px;
     font-size: 12px;
-    border-radius: 5px;
     display: inline-block;
+    border-radius: 5px;
     margin-bottom: 10px;
   }
 
@@ -77,6 +71,7 @@ Welcome to LevelCasino.
 
   .rating {
     font-size: 14px;
+    opacity: 0.9;
   }
 
   .stars {
@@ -90,10 +85,6 @@ Welcome to LevelCasino.
     margin-top: 10px;
   }
 
-  .bonus-value {
-    color: #00ff99;
-  }
-
   .tag {
     display: inline-block;
     background: #2b3550;
@@ -101,12 +92,6 @@ Welcome to LevelCasino.
     margin: 2px;
     border-radius: 5px;
     font-size: 12px;
-  }
-
-  .card-footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 15px;
   }
 
   .btn {
@@ -126,98 +111,103 @@ Welcome to LevelCasino.
     color: #fff;
   }
 
-  .loading {
+  .loading, .error {
     text-align: center;
     padding: 40px;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 </style>
 
 <section class="hero">
   <h1>Premium Casino Reviews & Bonuses</h1>
-  <p>Discover the world's most trusted online casinos with exclusive VIP bonuses and expert reviews.</p>
+  <p>Discover trusted online casinos with expert reviews and exclusive bonuses.</p>
 </section>
 
-<section class="casino-listings">
-  <div class="container">
-    <h2>Top Rated Casinos</h2>
-    <div id="casino-grid" class="casino-grid">
-      <div class="loading">Loading casinos...</div>
-    </div>
+<section class="container">
+  <h2>Top Rated Casinos</h2>
+  <div id="casino-grid" class="casino-grid">
+    <div class="loading">Loading casinos...</div>
   </div>
 </section>
 
 <script>
-  function renderStars(rating = 0) {
-    const stars = Math.round(rating);
-    return "★".repeat(stars) + "☆".repeat(5 - stars);
+  const API = "/api/v1/casinos/list";
+
+  function stars(rating = 0) {
+    const r = Math.round(rating);
+    return "★".repeat(r) + "☆".repeat(5 - r);
+  }
+
+  function parseFeatures(features) {
+    try {
+      if (!features) return [];
+      if (Array.isArray(features)) return features;
+      return JSON.parse(features);
+    } catch {
+      return [];
+    }
+  }
+
+  function renderCard(c) {
+    const features = parseFeatures(c.features).slice(0, 3);
+
+    return `
+      <article class="casino-card ${c.featured ? "featured" : ""}">
+        ${c.featured ? `<div class="featured-badge">FEATURED</div>` : ""}
+
+        <div class="card-header">
+          <img src="${c.logo || "/en/static/images/logo.png"}" class="casino-logo" />
+          <div>
+            <h3>${c.name}</h3>
+            <div class="rating">
+              <span class="stars">${stars(c.rating)}</span>
+              ${c.rating || 0}/5
+            </div>
+          </div>
+        </div>
+
+        <div class="bonus-box">
+          <div><b>${c.bonus_title || "Bonus"}</b></div>
+          <div style="color:#00ff99">${c.bonus_value || ""}</div>
+        </div>
+
+        <div style="margin-top:10px">
+          ${features.map(f => `<span class="tag">${f}</span>`).join("")}
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:15px">
+          <a class="btn btn-primary" href="/en/go/${c.slug}">Play Now</a>
+          <a class="btn btn-secondary" href="/en/casino/${c.slug}">Review</a>
+        </div>
+      </article>
+    `;
   }
 
   async function loadCasinos() {
     const grid = document.getElementById("casino-grid");
 
     try {
-      const res = await fetch("/api/v1/casinos/list");
-      const data = await res.json();
+      const res = await fetch(API);
+      if (!res.ok) throw new Error("API failed");
 
+      const data = await res.json();
       const casinos = data.casinos || [];
 
       if (!casinos.length) {
-        grid.innerHTML = "<div class='loading'>No casinos available.</div>";
+        grid.innerHTML = `<div class="error">No casinos found in database.</div>`;
         return;
       }
 
-      const sorted = casinos.sort((a, b) =>
-        (b.featured || 0) - (a.featured || 0)
+      casinos.sort((a, b) =>
+        (b.featured || 0) - (a.featured || 0) ||
+        (b.rating || 0) - (a.rating || 0)
       );
 
-      grid.innerHTML = sorted.map(casino => {
-        let features = [];
-        try {
-          features = JSON.parse(casino.features || "[]");
-        } catch (e) {}
-
-        const tags = features.slice(0, 3)
-          .map(f => `<span class="tag">${f}</span>`)
-          .join("");
-
-        return `
-          <article class="casino-card ${casino.featured ? "featured" : ""}">
-            ${casino.featured ? `<div class="featured-badge">FEATURED</div>` : ""}
-
-            <div class="card-header">
-              <img src="${casino.logo || "/en/static/images/logo.png"}" class="casino-logo">
-              <div>
-                <h3>${casino.name}</h3>
-                <div class="rating">
-                  <span class="stars">${renderStars(casino.rating)}</span>
-                  ${casino.rating || "0.0"}/5
-                </div>
-              </div>
-            </div>
-
-            <div class="bonus-box">
-              <div>${casino.bonus_title || "Bonus"}</div>
-              <div class="bonus-value">${casino.bonus_value || ""}</div>
-            </div>
-
-            <div>${tags}</div>
-
-            <div class="card-footer">
-              <a class="btn btn-primary" href="/en/go/${casino.slug}" target="_blank">
-                Play Now
-              </a>
-              <a class="btn btn-secondary" href="/en/casino/${casino.slug}">
-                Review
-              </a>
-            </div>
-          </article>
-        `;
-      }).join("");
+      grid.innerHTML = casinos.map(renderCard).join("");
 
     } catch (err) {
-      console.error("Casino load failed:", err);
-      grid.innerHTML = "<div class='loading'>Failed to load casinos.</div>";
+      grid.innerHTML = `<div class="error">Failed to load casinos. Please try again.</div>`;
+      console.error(err);
     }
   }
 

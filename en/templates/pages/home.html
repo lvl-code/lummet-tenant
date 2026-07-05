@@ -1,5 +1,7 @@
 <h1>Best Online Casinos</h1>
 
+<h1>Best Online Casinos</h1>
+
 <style>
 body{
 margin:0;
@@ -34,7 +36,7 @@ padding:40px 20px;
 
 .casino-grid{
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
 gap:24px;
 }
 
@@ -44,6 +46,8 @@ border-radius:14px;
 padding:18px;
 box-shadow:0 10px 30px rgba(0,0,0,.35);
 transition:.25s;
+display:flex;
+flex-direction:column;
 }
 
 .casino-card:hover{
@@ -61,7 +65,7 @@ color:#000;
 font-weight:bold;
 padding:5px 10px;
 border-radius:5px;
-margin-bottom:12px;
+margin-bottom:14px;
 font-size:12px;
 }
 
@@ -69,21 +73,21 @@ font-size:12px;
 display:flex;
 gap:14px;
 align-items:center;
-margin-bottom:15px;
+margin-bottom:18px;
 }
 
 .casino-logo{
-width:60px;
-height:60px;
+width:70px;
+height:70px;
 object-fit:contain;
 background:#fff;
 border-radius:10px;
-padding:6px;
+padding:8px;
 }
 
 .card-header h3{
 margin:0;
-font-size:20px;
+font-size:22px;
 }
 
 .rating{
@@ -98,20 +102,20 @@ margin-right:5px;
 
 .bonus-box{
 background:#0d1426;
-padding:12px;
+padding:14px;
 border-radius:10px;
-margin-bottom:14px;
+margin-bottom:18px;
 }
 
 .bonus-title{
 font-size:13px;
-opacity:.75;
+opacity:.7;
+margin-bottom:5px;
 }
 
 .bonus-value{
-font-size:18px;
+font-size:20px;
 font-weight:bold;
-margin-top:4px;
 }
 
 .features{
@@ -130,6 +134,7 @@ margin:3px;
 .card-footer{
 display:flex;
 gap:10px;
+margin-top:auto;
 }
 
 .btn{
@@ -139,11 +144,12 @@ padding:12px;
 text-decoration:none;
 border-radius:8px;
 font-weight:bold;
+transition:.2s;
 }
 
 .btn-primary{
 background:#00c853;
-color:white;
+color:#fff;
 }
 
 .btn-primary:hover{
@@ -152,7 +158,11 @@ background:#00b248;
 
 .btn-secondary{
 background:#243b55;
-color:white;
+color:#fff;
+}
+
+.btn-secondary:hover{
+background:#30496b;
 }
 
 .loading,
@@ -165,54 +175,149 @@ opacity:.7;
 </style>
 
 <section class="hero">
-  <div class="hero-content">
-    <h1>Premium Casino Reviews & Bonuses</h1>
-    <p>Discover the world's most trusted online casinos with exclusive VIP bonuses and expert reviews.</p>
-  </div>
+    <div class="hero-content">
+        <h1>Premium Casino Reviews & Bonuses</h1>
+        <p>
+            Discover trusted online casinos, exclusive welcome bonuses,
+            expert reviews and safe gambling recommendations.
+        </p>
+    </div>
 </section>
 
 <section class="casino-listings">
-  <div class="container">
-    <h2>Top Rated Casinos</h2>
+    <div class="container">
 
-    <div id="casino-grid" class="casino-grid">
-      <div class="loading">Loading casinos...</div>
+        <h2>Top Rated Casinos</h2>
+
+        <div id="casino-grid" class="casino-grid">
+            <div class="loading">
+                Loading casinos...
+            </div>
+        </div>
+
     </div>
-  </div>
 </section>
 
 <script>
 const casinoData = {{casinos}};
 
-function renderStars(rating) {
-  rating = Math.round(Number(rating) || 0);
-  return "★".repeat(rating) + "☆".repeat(5 - rating);
+function renderStars(rating){
+    rating=Math.round(Number(rating)||0);
+    return "★".repeat(rating)+"☆".repeat(5-rating);
 }
 
-function renderCasinos() {
-  const grid = document.getElementById("casino-grid");
+function renderCasinos(){
 
-  if (!Array.isArray(casinoData) || casinoData.length === 0) {
-    grid.innerHTML = "<div class='empty-state'>No casinos available.</div>";
-    return;
-  }
+    const grid=document.getElementById("casino-grid");
 
-  casinoData.sort((a, b) => (b.featured || 0) - (a.featured || 0));
+    if(!Array.isArray(casinoData)||casinoData.length===0){
+        grid.innerHTML="<div class='empty-state'>No casinos available.</div>";
+        return;
+    }
 
-  grid.innerHTML = casinoData.map(casino => {
-    let features = [];
+    casinoData.sort((a,b)=>(b.featured||0)-(a.featured||0));
 
-    try {
-      features = JSON.parse(casino.features || "[]");
-    } catch (e) {}
+    grid.innerHTML=casinoData.map(casino=>{
 
-    return `
-      <article class="casino-card ${casino.featured ? "featured" : ""}">
-        <h3>${casino.name}</h3>
-        <p>${casino.bonus_value || ""}</p>
-      </article>
-    `;
-  }).join("");
+        let features=[];
+
+        try{
+            features=JSON.parse(casino.features||"[]");
+        }catch(e){
+            features=[];
+        }
+
+        return `
+<article class="casino-card ${casino.featured ? "featured":""}">
+
+    ${casino.featured ? `
+    <div class="featured-badge">
+        ⭐ Editor's Choice
+    </div>
+    `:""}
+
+    <div class="card-header">
+
+        <img
+            class="casino-logo"
+            src="${casino.logo||'/en/static/images/casino-placeholder.svg'}"
+            alt="${casino.name}"
+        >
+
+        <div>
+
+            <h3>${casino.name}</h3>
+
+            <div class="rating">
+
+                <span class="stars">
+                    ${renderStars(casino.rating)}
+                </span>
+
+                <strong>
+                    ${Number(casino.rating||0).toFixed(1)}/5
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="bonus-box">
+
+        <div class="bonus-title">
+            ${casino.bonus_title||"Welcome Bonus"}
+        </div>
+
+        <div class="bonus-value">
+            ${casino.bonus_value||"Bonus Available"}
+        </div>
+
+    </div>
+
+    <div class="features">
+
+        ${
+            features.length
+            ?
+            features.map(feature=>`
+                <span class="tag">${feature}</span>
+            `).join("")
+            :
+            `
+            <span class="tag">Licensed</span>
+            <span class="tag">Fast Withdrawals</span>
+            <span class="tag">Secure Payments</span>
+            `
+        }
+
+    </div>
+
+    <div class="card-footer">
+
+        <a
+            class="btn btn-primary"
+            href="/en/go/${casino.slug}"
+            rel="nofollow sponsored"
+        >
+            ▶ Play Now
+        </a>
+
+        <a
+            class="btn btn-secondary"
+            href="/en/casino/${casino.slug}"
+        >
+            Read Review
+        </a>
+
+    </div>
+
+</article>
+`;
+
+    }).join("");
+
 }
 
 renderCasinos();

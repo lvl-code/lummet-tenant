@@ -7,15 +7,13 @@ import * as geo from "./database/geo.js";
 import * as clicks from "./database/clicks.js";
 import * as ai from "./database/ai.js";
 import * as settings from "./database/settings.js";
+import * as categories from "./database/categories.js";
+import * as news from "./database/news.js";
+import * as stats from "./database/stats.js";
+import * as media from "./database/media.js";
 
 export {
-  casinos,
-  reviews,
-  pages,
-  countries,
-  users,
-  geo,
-  clicks,
-  ai,
-  settings
+  casinos, reviews, pages, countries, users,
+  geo, clicks, ai, settings, categories,
+  news, stats, media
 };

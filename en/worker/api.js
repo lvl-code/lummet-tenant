@@ -44,6 +44,27 @@ if(path === "/api/v1/auth/logout"){
   return logout(request,env);
 }
 
+  // One-time admin bootstrap — DELETE after first use
+  if (path === "/api/v1/setup/admin" && request.method === "POST") {
+    const body = await request.json();
+    if (!body.email || !body.password) {
+      return failure("Email and password required");
+    }
+    const existing = await env.DB.prepare(
+      "SELECT COUNT(*) c FROM users WHERE role = 'admin'"
+    ).first();
+    if (existing.c > 0) {
+      return failure("Admin already exists. Remove this endpoint for security.", 403);
+    }
+    const { hashPassword } = await import("./auth.js");
+    const hash = await hashPassword(body.password);
+    await env.DB.prepare(
+      "INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'admin')"
+    ).bind(body.email, hash).run();
+    return json({ success: true, message: "Admin created. Remove this endpoint now." });
+  }
+
+
 
   if (!user) {
     return failure("Unauthorized", 401);

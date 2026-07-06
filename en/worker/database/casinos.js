@@ -1,10 +1,8 @@
 export async function getCasino(db, slug) {
   return await db
     .prepare(`
-      SELECT *
-      FROM casinos
-      WHERE slug = ?
-      AND published = 1
+      SELECT * FROM casinos
+      WHERE slug = ? AND published = 1 AND status = 'published'
       LIMIT 1
     `)
     .bind(slug)
@@ -14,18 +12,14 @@ export async function getCasino(db, slug) {
 export async function getAllCasinos(db) {
   const result = await db
     .prepare(`
-      SELECT *
-      FROM casinos
-      WHERE published = 1
-     ORDER BY
-featured DESC,
-sort_order ASC,
-rating DESC
+      SELECT * FROM casinos
+      WHERE published = 1 AND status = 'published'
+      ORDER BY featured DESC, sort_order ASC, rating DESC
     `)
     .all();
-
   return result.results;
 }
+
 
 export async function createCasino(db, casino) {
   const result = await db

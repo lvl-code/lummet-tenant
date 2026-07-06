@@ -25,7 +25,7 @@ async function initSidebar() {
   if (!container) return;
 
   try {
-    const res = await fetch("/api/v1/casinos/list");
+    const res = await fetch("/en/api/v1/casinos/list");
     const data = await res.json();
 
     if (!data.casinos || data.casinos.length === 0) {
@@ -58,7 +58,7 @@ async function initHomeNews() {
   if (!container) return;
 
   try {
-    const res = await fetch("/api/v1/news/list");
+    const res = await fetch("/en/api/v1/news/list");
     const data = await res.json();
 
     if (!data.news || data.news.length === 0) {

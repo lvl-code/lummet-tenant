@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ---- Stats ----
 async function loadStats() {
   try {
-    const res = await fetch("/api/v1/dashboard");
+    const res = await fetch("/en/api/v1/dashboard");
     const data = await res.json();
 
     const el = (id) => document.getElementById(id);
@@ -32,7 +32,7 @@ async function loadTopCasinos() {
   if (!container) return;
 
   try {
-    const res = await fetch("/api/v1/stats/top-casinos");
+    const res = await fetch("/en/api/v1/stats/top-casinos");
     const data = await res.json();
     const items = data.casinos || [];
 
@@ -62,7 +62,7 @@ async function loadTopCountries() {
   if (!container) return;
 
   try {
-    const res = await fetch("/api/v1/stats/countries");
+    const res = await fetch("/en/api/v1/stats/countries");
     const data = await res.json();
     const items = data.countries || [];
 
@@ -92,7 +92,7 @@ async function loadCasinosTable() {
   if (!tbody) return;
 
   try {
-    const res = await fetch("/api/v1/casinos/list");
+    const res = await fetch("/en/api/v1/casinos/list");
     const data = await res.json();
     const casinos = data.casinos || [];
 
@@ -128,7 +128,7 @@ async function deleteCasino(slug) {
   if (!confirm(`Delete casino "${slug}"? This cannot be undone.`)) return;
 
   try {
-    const res = await fetch("/api/v1/casino/delete", {
+    const res = await fetch("/en/api/v1/casino/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug }),
@@ -175,7 +175,7 @@ function initCasinoForm() {
     };
 
     try {
-      const res = await fetch("/api/v1/casino/create", {
+      const res = await fetch("/en/api/v1/casino/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

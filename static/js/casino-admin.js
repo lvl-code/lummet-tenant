@@ -15,7 +15,7 @@ async function initCasinoEditForm() {
   if (!slug) return;
 
   try {
-    const res = await fetch("/api/v1/casinos/list");
+    const res = await fetch("/en/api/v1/casinos/list");
     const data = await res.json();
     const casino = (data.casinos || []).find((c) => c.slug === slug);
 

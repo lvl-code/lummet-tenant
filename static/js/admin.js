@@ -24,7 +24,7 @@ async function loadReviewsTable() {
   if (!tbody) return;
 
   try {
-    const res = await fetch("/api/v1/reviews/list");
+    const res = await fetch("/en/api/v1/reviews/list");
     const data = await res.json();
     const reviews = data.reviews || [];
 
@@ -77,7 +77,7 @@ function initReviewForm() {
     };
 
     try {
-      const res = await fetch("/api/v1/review/create", {
+      const res = await fetch("/en/api/v1/review/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -118,7 +118,7 @@ async function loadNewsTable() {
   if (!tbody) return;
 
   try {
-    const res = await fetch("/api/v1/news/list");
+    const res = await fetch("/en/api/v1/news/list");
     const data = await res.json();
     const news = data.news || [];
 
@@ -166,7 +166,7 @@ function initNewsForm() {
     };
 
     try {
-      const res = await fetch("/api/v1/news/create", {
+      const res = await fetch("/en/api/v1/news/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -207,7 +207,7 @@ async function loadPagesTable() {
   if (!tbody) return;
 
   try {
-    const res = await fetch("/api/v1/pages/list");
+    const res = await fetch("/en/api/v1/pages/list");
     const data = await res.json();
     const pages = data.pages || [];
 
@@ -265,7 +265,7 @@ function initPageForm() {
     }
 
     try {
-      const res = await fetch("/api/v1/page/create", {
+      const res = await fetch("/en/api/v1/page/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -306,7 +306,7 @@ async function loadSettingsForm() {
   if (!form) return;
 
   try {
-    const res = await fetch("/api/v1/settings/get");
+    const res = await fetch("/en/api/v1/settings/get");
     const data = await res.json();
     const settings = data.settings || {};
 
@@ -336,7 +336,7 @@ function initSettingsForm() {
     }
 
     try {
-      const res = await fetch("/api/v1/settings/save", {
+      const res = await fetch("/en/api/v1/settings/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -395,7 +395,7 @@ function initAIGenerator() {
     };
 
     try {
-      const res = await fetch("/api/v1/ai/review", {
+      const res = await fetch("/en/api/v1/ai/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

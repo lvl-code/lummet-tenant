@@ -13,7 +13,7 @@ async function initGeoDisplay() {
   const slug = window.location.pathname.split("/").pop();
 
   try {
-    const res = await fetch(`/api/v1/geo/check?slug=${slug}`);
+    const res = await fetch(`/en/api/v1/geo/check?slug=${slug}`);
     if (!res.ok) throw new Error("Geo check failed");
     const data = await res.json();
 

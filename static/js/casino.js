@@ -15,7 +15,7 @@ async function loadCasinoReviews() {
   const slug = window.location.pathname.split("/").pop();
 
   try {
-    const res = await fetch(`/api/v1/reviews/list`);
+    const res = await fetch(`/en/api/v1/reviews/list`);
     const data = await res.json();
 
     const casinoReviews = (data.reviews || []).filter(
@@ -51,7 +51,7 @@ async function loadGeoInfo() {
   const slug = window.location.pathname.split("/").pop();
 
   try {
-    const res = await fetch(`/api/v1/geo/check?slug=${slug}`);
+    const res = await fetch(`/en/api/v1/geo/check?slug=${slug}`);
     const data = await res.json();
 
     if (data.status === "allowed") {

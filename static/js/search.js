@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     debounceTimer = setTimeout(async () => {
       try {
-        const res = await fetch("/api/v1/casinos/list");
+        const res = await fetch("/en/api/v1/casinos/list");
         const data = await res.json();
 
         const matches = (data.casinos || []).filter((c) =>

@@ -17,6 +17,10 @@
       "database_id": "8e68c1f7-e284-415c-a67c-6ba0c5d0a1f8"
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
+
   "triggers": {
     "crons": [
       "0 */6 * * *"

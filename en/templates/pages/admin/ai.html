@@ -1,0 +1,29 @@
+<div class="admin-wrapper">
+  <nav class="admin-nav">
+    <a href="/en/dashboard">Overview</a>
+    <a href="/en/dashboard/casinos">Casinos</a>
+    <a href="/en/dashboard/casino/create">Add Casino</a>
+    <a href="/en/dashboard/reviews">Reviews</a>
+    <a href="/en/dashboard/news">News</a>
+    <a href="/en/dashboard/pages">Pages</a>
+    <a href="/en/dashboard/settings">Settings</a>
+    <a href="/en/dashboard/ai" class="active">AI Generator</a>
+    <a href="/api/v1/auth/logout" class="admin-logout">Logout</a>
+  </nav>
+  <div class="admin-content">
+    <h1>AI Review Generator</h1>
+    <form id="aiForm" class="admin-form">
+      <div class="form-group"><label>Casino Name *</label><input type="text" name="casino" required placeholder="BC.Game"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Country</label><input type="text" name="country" value="Global"></div>
+        <div class="form-group"><label>Slug (auto if blank)</label><input type="text" name="slug" placeholder="bc-game"></div>
+      </div>
+      <div id="aiAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Generate Review</button>
+    </form>
+    <div class="admin-section" style="margin-top:24px">
+      <h2>Generated Content</h2>
+      <textarea id="aiOutput" style="width:100%;min-height:400px;font-family:monospace;font-size:13px;padding:12px;border:1px solid var(--light-gray);border-radius:8px" placeholder="Generated review will appear here..."></textarea>
+    </div>
+  </div>
+</div>

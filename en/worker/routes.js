@@ -138,7 +138,6 @@ export function getRoute(request) {
   // =====================================================
   // DASHBOARD
   // =====================================================
-    // DASHBOARD
   if (path === "/en/dashboard") return { type: "dashboard" };
   if (path === "/en/dashboard/casinos") return { type: "dashboardCasinos" };
   if (path === "/en/dashboard/casino/create") return { type: "dashboardCasinoCreate" };

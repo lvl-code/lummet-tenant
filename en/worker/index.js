@@ -10,6 +10,16 @@ import {
   renderCategory,
   renderAffiliate,
   renderDashboardPage,
+  renderCasinoList,
+  renderReviewList,
+  renderNewsList,
+  renderDashboardCasinos,
+  renderDashboardCasinoCreate,
+  renderDashboardReviews,
+  renderDashboardNews,
+  renderDashboardPages,
+  renderDashboardSettings,
+  renderDashboardAI,
   dashboardStatsAPI,
   renderDynamicPage,
   handleAffiliateRedirect,
@@ -66,6 +76,7 @@ export default {
   );
 
 
+
       case "casino":
         return renderCasino(
           request,
@@ -119,6 +130,27 @@ export default {
           request,
           env
         );
+
+      case "casinoList":
+        return renderCasinoList(request, env);
+      case "reviewList":
+        return renderReviewList(request, env);
+      case "newsList":
+        return renderNewsList(request, env);
+      case "dashboardCasinos":
+        return renderDashboardCasinos(request, env);
+      case "dashboardCasinoCreate":
+        return renderDashboardCasinoCreate(request, env);
+      case "dashboardReviews":
+        return renderDashboardReviews(request, env);
+      case "dashboardNews":
+        return renderDashboardNews(request, env);
+      case "dashboardPages":
+        return renderDashboardPages(request, env);
+      case "dashboardSettings":
+        return renderDashboardSettings(request, env);
+      case "dashboardAI":
+        return renderDashboardAI(request, env);
 
       case "api":
 

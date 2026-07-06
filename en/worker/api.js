@@ -62,6 +62,28 @@ if(
 if (path === "/api/v1/dashboard") {
   return dashboardStatsAPI(request, env);
 }
+if (path === "/api/v1/geo/check") {
+    const url = new URL(request.url);
+    const slug = url.searchParams.get("slug");
+    if (!slug) return failure("slug is required");
+
+    const country = request.cf?.country || "RW";
+    const rule = await geo.getGeoRule(env.DB, slug, country);
+
+    if (rule) {
+      return json({
+        status: rule.status,
+        country,
+        bonusOverride: rule.bonus_override || null
+      });
+    }
+
+    return json({
+      status: "allowed",
+      country,
+      bonusOverride: null
+    });
+  }
 
   try {
 
@@ -173,6 +195,27 @@ if (path === "/api/v1/stats") {
     pages: pages.c
   });
 }
+if (path === "/api/v1/stats/top-casinos") {
+    const result = await env.DB.prepare(`
+      SELECT casino_slug, COUNT(*) as clicks
+      FROM clicks
+      GROUP BY casino_slug
+      ORDER BY clicks DESC
+      LIMIT 20
+    `).all();
+    return json({ casinos: result.results });
+  }
+
+  if (path === "/api/v1/stats/countries") {
+    const result = await env.DB.prepare(`
+      SELECT country_code, COUNT(*) as clicks
+      FROM clicks
+      GROUP BY country_code
+      ORDER BY clicks DESC
+      LIMIT 100
+    `).all();
+    return json({ countries: result.results });
+  }
 
 
     

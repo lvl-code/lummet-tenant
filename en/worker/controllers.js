@@ -32,44 +32,51 @@ export async function renderHome(request, env) {
 }
 
 
-export async function renderCasino(
-  request,
-  env,
-  slug
-){
+export async function renderCasino(request, env, slug) {
+  const casino = await casinos.getCasino(env.DB, slug);
+  if (!casino) return render404(request, env);
 
-  const casino =
-    await casinos.getCasino(
-      env.DB,
-      slug
-    );
-  if (!casino) {
-    return render404(request, env);
-  }
+  const renderer = new Renderer(env);
 
-  const renderer =
-    new Renderer(env);
-  
-  // Add to renderCasino in controllers.js, after fetching the casino:
+  // Parse features from JSON string
+  let features = [];
+  try { features = JSON.parse(casino.features || "[]"); } catch { features = []; }
 
-const edgeGeo = {
-  country: request.cf?.country || 'RW',
-  city: request.cf?.city || 'Unknown'
-};
-const geoInfo = geoEngine.process(request, edgeGeo);
-const geoRule = await getGeoRule(env.DB, slug, geoInfo.country);
+  const featuresHtml = features
+    .map(f => `<span class="feature-tag">${f}</span>`)
+    .join("");
 
-// Pass to template
-const html = await renderer.render("casino.html", {
-  ...casino,
-  geo: geoInfo,
-  geoRule: geoRule || { status: 'allowed', bonus_override: null }
-});
+  // Build star display
+  const rating = casino.rating || 0;
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  const ratingDisplay =
+    "★".repeat(fullStars) +
+    (hasHalf ? "½" : "") +
+    "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
 
-  return new Response(html,{
-    headers:{
-      "Content-Type":"text/html"
-    }
+  const edgeGeo = {
+    country: request.cf?.country || "RW",
+    city: request.cf?.city || "Unknown"
+  };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+  const geoRule = await getGeoRule(env.DB, slug, geoInfo.country);
+
+  const html = await renderer.render("casino.html", {
+    ...casino,
+    rating_display: ratingDisplay,
+    features_html: featuresHtml,
+    bonus_title: casino.bonus_title || "Welcome Bonus",
+    bonus_value: casino.bonus_value || "",
+    website_url: casino.website_url || "",
+    seo_description: casino.seo_description || casino.name + " casino review.",
+    status: casino.status || "published",
+    geo: geoInfo,
+    geoRule: geoRule || { status: "allowed", bonus_override: null }
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
   });
 }
 
@@ -96,35 +103,34 @@ function buildCasinoCards(casinoList) {
 }
 
 
+export async function renderReview(request, env, slug) {
+  const review = await reviews.getReview(env.DB, slug);
+  if (!review) return render404(request, env);
 
-export async function renderReview(
-  request,
-  env,
-  slug
-){
+  const renderer = new Renderer(env);
 
-  const review =
-    await reviews.getReview(
-      env.DB,
-      slug
-    );
-  if (!review) {
-    return render404(request, env);
-  }
+  // Parse pros/cons from JSON strings
+  let pros = [], cons = [];
+  try { pros = JSON.parse(review.pros || "[]"); } catch {}
+  try { cons = JSON.parse(review.cons || "[]"); } catch {}
 
-  const renderer =
-    new Renderer(env);
+  const prosHtml = pros.length
+    ? `<ul>${pros.map(p => `<li>${p}</li>`).join("")}</ul>`
+    : "<p class='muted'>No pros listed.</p>";
 
-  const html =
-    await renderer.render(
-      "review.html",
-      review
-    );
+  const consHtml = cons.length
+    ? `<ul>${cons.map(c => `<li>${c}</li>`).join("")}</ul>`
+    : "<p class='muted'>No cons listed.</p>";
 
-  return new Response(html,{
-    headers:{
-      "Content-Type":"text/html"
-    }
+  const html = await renderer.render("review.html", {
+    ...review,
+    pros_html: prosHtml,
+    cons_html: consHtml,
+    casino_slug: review.casino_slug || ""
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
   });
 }
 
@@ -338,10 +344,7 @@ export async function renderCountry(
       "country.html",
       {
         ...country,
-        casinos:
-          JSON.stringify(
-            casinoList
-          ),
+        casino_cards: buildCasinoCards(casinoList),
         seo_title:
           country.name +
           " Online Casinos",
@@ -395,10 +398,7 @@ export async function renderCategory(
         slug,
         category: category.name,
         description: category.description,
-        casinos:
-          JSON.stringify(
-            casinoList
-          ),
+        casino_cards: buildCasinoCards(casinoList),
         seo_title:
           category.seo_title ||
           category.name + " Casinos",
@@ -420,75 +420,47 @@ export async function renderCategory(
 }
 
 
-export async function renderAffiliate(
-  request,
-  env,
-  slug
-){
-
-  const page =
-    await pages.getPage(
-      env.DB,
-      slug
-    );
-
-  if (!page) {
-    return render404(request, env);
+function parseContentJson(contentJson) {
+  if (!contentJson) return "";
+  try {
+    const parsed = JSON.parse(contentJson);
+    if (typeof parsed === "string") return parsed;
+    if (parsed.text) return parsed.text;
+    if (parsed.html) return parsed.html;
+    return Object.values(parsed).join("<br><br>");
+  } catch {
+    return contentJson;
   }
-
-  const renderer =
-    new Renderer(env);
-
-  const html =
-    await renderer.render(
-      "affiliate.html",
-      page
-    );
-
-  return new Response(
-    html,
-    {
-      headers:{
-        "Content-Type":
-          "text/html"
-      }
-    }
-  );
-
 }
 
-export async function renderDynamicPage(
-  request,
-  env,
-  slug
-){
-  const page =
-    await pages.getPage(
-      env.DB,
-      slug
-    );
+export async function renderDynamicPage(request, env, slug) {
+  const page = await pages.getPage(env.DB, slug);
+  if (!page) return render404(request, env);
 
-  if (!page) {
-    return render404(request, env);
-  }
+  const renderer = new Renderer(env);
+  const html = await renderer.render("page.html", {
+    ...page,
+    content_json: parseContentJson(page.content_json)
+  });
 
-  const renderer =
-    new Renderer(env);
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
 
-  const html =
-    await renderer.render(
-      "page.html",
-      page
-    );
+export async function renderAffiliate(request, env, slug) {
+  const page = await pages.getPage(env.DB, slug);
+  if (!page) return render404(request, env);
 
-  return new Response(
-    html,
-    {
-      headers:{
-        "Content-Type":"text/html"
-      }
-    }
-  );
+  const renderer = new Renderer(env);
+  const html = await renderer.render("affiliate.html", {
+    ...page,
+    content_json: parseContentJson(page.content_json)
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
 }
 
 export async function renderLogin(
@@ -567,4 +539,119 @@ export async function render404(request, env) {
       "Content-Type": "text/html"
     }
   });
+}
+
+export async function renderCasinoList(request, env) {
+  const renderer = new Renderer(env);
+  const casinoList = await casinos.getAllCasinos(env.DB);
+
+  const html = await renderer.render("category.html", {
+    category: "All Casinos",
+    description: "Browse our complete directory of reviewed online casinos.",
+    casino_cards: buildCasinoCards(casinoList),
+    seo_title: "All Online Casinos — Level Casino",
+    seo_description: "Complete directory of reviewed online casinos with bonuses and ratings."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderReviewList(request, env) {
+  const renderer = new Renderer(env);
+  const reviewList = await env.DB.prepare(
+    "SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC"
+  ).all();
+
+  const reviewCards = (reviewList.results || []).map(r => `
+    <div class="casino-card">
+      <div class="casino-card__body">
+        <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
+        <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
+        <p class="muted">${(r.content || "").substring(0, 120)}...</p>
+      </div>
+      <div class="casino-card__actions">
+        <a href="/en/review/${r.slug}" class="btn btn--primary">Read Review</a>
+      </div>
+    </div>
+  `).join("");
+
+  const html = await renderer.render("category.html", {
+    category: "All Reviews",
+    description: "Browse our complete collection of casino reviews.",
+    casino_cards: reviewCards,
+    seo_title: "All Casino Reviews — Level Casino",
+    seo_description: "In-depth casino reviews with pros, cons, and ratings."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderNewsList(request, env) {
+  const renderer = new Renderer(env);
+  const newsList = await news.getAllNews(env.DB);
+
+  const newsCards = newsList.map(n => `
+    <a href="/en/news/${n.slug}" class="news-card">
+      <h3>${n.title}</h3>
+      <p>${(n.content || "").substring(0, 120)}...</p>
+      <span class="news-date">${new Date(n.created_at).toLocaleDateString()}</span>
+    </a>
+  `).join("");
+
+  const html = await renderer.render("category.html", {
+    category: "Latest News",
+    description: "Latest iGaming industry news and updates.",
+    casino_cards: `<div class="news-grid">${newsCards}</div>`,
+    seo_title: "Casino News — Level Casino",
+    seo_description: "Latest iGaming and online casino industry news."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+
+async function renderAdminPage(request, env, template, extraData = {}) {
+  const user = await getCurrentUser(request, env);
+  if (!user || user.role !== "admin") {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  const renderer = new Renderer(env);
+  const html = await renderer.render(template, {
+    seo_title: "Admin — Level Casino",
+    seo_description: "Level Casino CMS Admin",
+    ...extraData
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderDashboardCasinos(request, env) {
+  return renderAdminPage(request, env, "admin/casinos.html");
+}
+export async function renderDashboardCasinoCreate(request, env) {
+  return renderAdminPage(request, env, "admin/casino-create.html");
+}
+export async function renderDashboardReviews(request, env) {
+  return renderAdminPage(request, env, "admin/reviews.html");
+}
+export async function renderDashboardNews(request, env) {
+  return renderAdminPage(request, env, "admin/news.html");
+}
+export async function renderDashboardPages(request, env) {
+  return renderAdminPage(request, env, "admin/pages.html");
+}
+export async function renderDashboardSettings(request, env) {
+  return renderAdminPage(request, env, "admin/settings.html");
+}
+export async function renderDashboardAI(request, env) {
+  return renderAdminPage(request, env, "admin/ai.html");
 }

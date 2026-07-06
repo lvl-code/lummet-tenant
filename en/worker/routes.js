@@ -168,10 +168,10 @@ export function getRoute(request) {
   // API
   // =====================================================
 
-  if (path.startsWith("/api/")) {
+  if (path.startsWith("/api/") || path.startsWith("/en/api/")) {
     return {
       type: "api",
-      path
+      path: path.replace(/^\/en/, "")
     };
   }
 

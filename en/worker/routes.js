@@ -146,7 +146,18 @@ export function getRoute(request) {
   if (path === "/en/dashboard/pages") return { type: "dashboardPages" };
   if (path === "/en/dashboard/settings") return { type: "dashboardSettings" };
   if (path === "/en/dashboard/ai") return { type: "dashboardAI" };
+  
+  if (path === "/en/dashboard/categories")
+   return { type:"dashboardCategories" };
 
+  if (path === "/en/dashboard/countries")
+   return { type:"dashboardCountries" };
+
+  if (path === "/en/dashboard/geo")
+   return { type:"dashboardGeo" };
+
+  if (path === "/en/dashboard/sitemap")
+   return { type:"dashboardSitemap" };
 
   // =====================================================
   // AUTH

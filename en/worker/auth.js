@@ -220,20 +220,14 @@ export async function logout(
         );
     }
 
-    return new Response(
-        JSON.stringify({
-            success: true
-        }),
-        {
-            headers: {
-                "Content-Type":
-                    "application/json",
+    return new Response(null, {
+  status: 302,
+  headers: {
+    "Location": "/en/login",
+    "Set-Cookie": "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
+  }
+});
 
-                "Set-Cookie":
-                    "session=; Path=/; Max-Age=0"
-            }
-        }
-    );
 }
 
 /**

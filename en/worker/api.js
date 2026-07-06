@@ -9,6 +9,7 @@ import * as pages from "./database/pages.js";
 import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import * as ai from "./database/ai.js";
+import * as news from "./database/news.js";
 import {
   login,
   logout,
@@ -238,7 +239,30 @@ if (path === "/api/v1/stats/top-casinos") {
     return json({ countries: result.results });
   }
 
+    // ==================================
+// NEWS
+// ==================================
 
+if (
+  path === "/api/v1/news/create" &&
+  request.method === "POST"
+) {
+  return createNews(request, env);
+}
+
+if (
+  path === "/api/v1/news/update" &&
+  request.method === "POST"
+) {
+  return updateNews(request, env);
+}
+
+if (
+  path === "/api/v1/news/delete" &&
+  request.method === "POST"
+) {
+  return deleteNews(request, env);
+}
     
     // ==================================
     // REVIEWS
@@ -565,6 +589,55 @@ async function generateReview(request, env) {
   });
 }
 
+
+// ==================================
+// NEWS
+// ==================================
+
+async function createNews(request, env) {
+  const body = await request.json();
+
+  validate(body, [
+    "slug",
+    "title",
+    "content"
+  ]);
+
+  await news.createNews(env.DB, body);
+
+  return success();
+}
+
+async function updateNews(request, env) {
+  const body = await request.json();
+
+  validate(body, [
+    "slug",
+    "title",
+    "content"
+  ]);
+
+  await news.updateNews(
+    env.DB,
+    body.slug,
+    body
+  );
+
+  return success();
+}
+
+async function deleteNews(request, env) {
+  const body = await request.json();
+
+  validate(body, ["slug"]);
+
+  await news.deleteNews(
+    env.DB,
+    body.slug
+  );
+
+  return success();
+}
 
 
 function requireAdmin(user) {

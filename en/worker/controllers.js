@@ -14,40 +14,23 @@ import {
 import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
 
-export async function renderHome(
-  request,
-  env
-) {
 
-  const renderer =
-    new Renderer(env);
+export async function renderHome(request, env) {
+  const renderer = new Renderer(env);
+  const casinoList = await casinos.getAllCasinos(env.DB);
 
-  const casinoList =
-    await casinos.getAllCasinos(
-      env.DB
-    );
+  const html = await renderer.render("home.html", {
+    seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
+    seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
+    casino_cards: buildCasinoCards(casinoList),
+    casino_count: casinoList.length
+  });
 
-  const html =
-    await renderer.render(
-      "home.html",
-      {
-        seo_title:
-          "Level Casino",
-        seo_description:
-          "Casino Reviews",
-        casinos:
-          JSON.stringify(
-            casinoList
-          )
-      }
-    );
-
-  return new Response(html,{
-    headers:{
-      "Content-Type":"text/html"
-    }
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
   });
 }
+
 
 export async function renderCasino(
   request,

@@ -24,6 +24,12 @@ export function getRoute(request) {
     };
   }
 
+    // LISTING PAGES
+  if (path === "/en/casino") return { type: "casinoList" };
+  if (path === "/en/review") return { type: "reviewList" };
+  if (path === "/en/news") return { type: "newsList" };
+
+
   // =====================================================
   // CASINO
   // /en/casino/bcgame
@@ -132,12 +138,16 @@ export function getRoute(request) {
   // =====================================================
   // DASHBOARD
   // =====================================================
+    // DASHBOARD
+  if (path === "/en/dashboard") return { type: "dashboard" };
+  if (path === "/en/dashboard/casinos") return { type: "dashboardCasinos" };
+  if (path === "/en/dashboard/casino/create") return { type: "dashboardCasinoCreate" };
+  if (path === "/en/dashboard/reviews") return { type: "dashboardReviews" };
+  if (path === "/en/dashboard/news") return { type: "dashboardNews" };
+  if (path === "/en/dashboard/pages") return { type: "dashboardPages" };
+  if (path === "/en/dashboard/settings") return { type: "dashboardSettings" };
+  if (path === "/en/dashboard/ai") return { type: "dashboardAI" };
 
-  if (path === "/en/dashboard") {
-    return {
-      type: "dashboard"
-    };
-  }
 
   // =====================================================
   // AUTH

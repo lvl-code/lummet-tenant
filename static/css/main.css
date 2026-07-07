@@ -47,7 +47,7 @@ a:hover { text-decoration: underline; }
   background: var(--dark);
   text-decoration: none;
 }
-.btn--ghost { background: transparent; border: 2px solid var(--light-gray); color: var(--white); }
+.btn--ghost { background: transparent; border: 2px solid var(--light-gray); color: var(--dark); }
 .btn--ghost:hover { border-color: var(--primary); color: var(--primary); text-decoration: none; }
 .btn--lg { padding: 14px 28px; font-size: 16px; }
 .btn--block { width: 100%; }
@@ -124,6 +124,16 @@ a:hover { text-decoration: underline; }
 .hero h1 { font-size: 42px; margin-bottom: 12px; }
 .hero p { font-size: 18px; opacity: 0.85; margin-bottom: 24px; }
 .hero-actions { display: flex; gap: 12px; justify-content: center; }
+.hero .btn--ghost {
+  color: var(--white);
+  border-color: rgba(255,255,255,0.5);
+}
+
+.hero .btn--ghost:hover {
+  background: var(--white);
+  color: var(--dark);
+  border-color: var(--white);
+}
 
 /* Sections */
 .section { padding: 50px 0; }

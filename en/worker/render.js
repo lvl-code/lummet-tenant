@@ -40,48 +40,17 @@ export class Renderer {
   // =====================================================
   // INCLUDE COMPONENTS
   // =====================================================
+    async injectComponents(html, breadcrumbHtml = null) {
+    const header = await this.loadTemplate("layout/header.html");
+    const footer = await this.loadTemplate("layout/footer.html");
+    const sidebar = await this.loadTemplate("layout/sidebar.html");
 
-  async injectComponents(html) {
+    const breadcrumbs = breadcrumbHtml || await this.loadTemplate("components/breadcrumbs.html");
 
-    const header =
-      await this.loadTemplate(
-        "layout/header.html"
-      );
-
-    const footer =
-      await this.loadTemplate(
-        "layout/footer.html"
-      );
-
-    const sidebar =
-      await this.loadTemplate(
-        "layout/sidebar.html"
-      );
-
-    const breadcrumbs =
-      await this.loadTemplate(
-        "components/breadcrumbs.html"
-      );
-
-    html = html.replace(
-      "{{HEADER}}",
-      header
-    );
-
-    html = html.replace(
-      "{{FOOTER}}",
-      footer
-    );
-
-    html = html.replace(
-      "{{SIDEBAR}}",
-      sidebar
-    );
-
-    html = html.replace(
-      "{{BREADCRUMBS}}",
-      breadcrumbs
-    );
+    html = html.replace("{{HEADER}}", header);
+    html = html.replace("{{FOOTER}}", footer);
+    html = html.replace("{{SIDEBAR}}", sidebar);
+    html = html.replace("{{BREADCRUMBS}}", breadcrumbs);
 
     return html;
   }
@@ -139,62 +108,30 @@ ${JSON.stringify(schema)}
   // FULL PAGE RENDER
   // =====================================================
 
-  async render(
-    pageTemplate,
-    data = {},
-    schema = {}
-  ) {
+  async render(pageTemplate, data = {}, schema = {}, breadcrumbs = null) {
+    let page = await this.loadTemplate(`pages/${pageTemplate}`);
+    page = this.replaceVariables(page, data);
 
-    // ---------------------------------
-    // page
-    // ---------------------------------
+    let base = await this.loadTemplate("layout/base.html");
+    const seo = this.buildSEO(data);
+    const jsonld = this.buildSchema(schema);
 
-    let page =
-      await this.loadTemplate(
-        `pages/${pageTemplate}`
+    base = base.replace("{{SEO}}", seo);
+    base = base.replace("{{SCHEMA}}", jsonld);
+    base = base.replace("{{CONTENT}}", page);
+
+    let breadcrumbHtml = null;
+    if (breadcrumbs && breadcrumbs.length > 0) {
+      const parts = breadcrumbs.map(c =>
+        c.url
+          ? `<a href="${c.url}">${c.label}</a>`
+          : `<span class="breadcrumb-current">${c.label}</span>`
       );
+      breadcrumbHtml = `<nav class="breadcrumbs" id="breadcrumbs">${parts.join(" / ")}</nav>`;
+    }
 
-    page =
-      this.replaceVariables(
-        page,
-        data
-      );
-
-    // ---------------------------------
-    // layout
-    // ---------------------------------
-
-    let base =
-      await this.loadTemplate(
-        "layout/base.html"
-      );
-
-    const seo =
-      this.buildSEO(data);
-
-    const jsonld =
-      this.buildSchema(schema);
-
-    base = base.replace(
-      "{{SEO}}",
-      seo
-    );
-
-    base = base.replace(
-      "{{SCHEMA}}",
-      jsonld
-    );
-
-    base = base.replace(
-      "{{CONTENT}}",
-      page
-    );
-
-    // Inject header, footer, sidebar and breadcrumbs
-    base =
-      await this.injectComponents(base);
-
+    base = await this.injectComponents(base, breadcrumbHtml);
     return base;
-  }
+  } 
 
 }

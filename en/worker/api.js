@@ -9,6 +9,7 @@ import * as pages from "./database/pages.js";
 import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import * as ai from "./database/ai.js";
+import * as categories from "./database/categories.js";
 import * as news from "./database/news.js";
 import {
   login,
@@ -338,6 +339,86 @@ if (
       request.method === "POST"
     ) {
       return saveSettings(request, env);
+    }
+
+    // ==================================
+    // CATEGORIES CRUD
+    // ==================================
+
+    if (path === "/api/v1/category/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug", "name"]);
+      await categories.createCategory(env.DB, body);
+      return success();
+    }
+
+    if (path === "/api/v1/category/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug", "name"]);
+      await env.DB.prepare(`
+        UPDATE categories SET name=?, description=?, seo_title=?, seo_description=? WHERE slug=?
+      `).bind(body.name, body.description, body.seo_title, body.seo_description, body.slug).run();
+      return success();
+    }
+
+    if (path === "/api/v1/category/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug"]);
+      await env.DB.prepare("DELETE FROM categories WHERE slug=?").bind(body.slug).run();
+      return success();
+    }
+
+    // ==================================
+    // COUNTRIES CRUD
+    // ==================================
+
+    if (path === "/api/v1/countries/list") {
+      const result = await env.DB.prepare("SELECT * FROM countries ORDER BY name").all();
+      return json({ countries: result.results });
+    }
+
+    if (path === "/api/v1/country/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["code", "name"]);
+      await env.DB.prepare(`
+        INSERT INTO countries (code, name, currency, language, legal_status, seo_title, seo_description)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(body.code.toUpperCase(), body.name, body.currency, body.language, body.legal_status, body.seo_title, body.seo_description).run();
+      return success();
+    }
+
+    if (path === "/api/v1/country/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["code", "name"]);
+      await env.DB.prepare(`
+        UPDATE countries SET name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=? WHERE code=?
+      `).bind(body.name, body.currency, body.language, body.legal_status, body.seo_title, body.seo_description, body.code.toUpperCase()).run();
+      return success();
+    }
+
+    if (path === "/api/v1/country/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["code"]);
+      await env.DB.prepare("DELETE FROM countries WHERE code=?").bind(body.code.toUpperCase()).run();
+      return success();
+    }
+
+    // ==================================
+    // REVIEW DELETE + PAGE DELETE
+    // ==================================
+
+    if (path === "/api/v1/review/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug"]);
+      await env.DB.prepare("DELETE FROM reviews WHERE slug=?").bind(body.slug).run();
+      return success();
+    }
+
+    if (path === "/api/v1/page/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug"]);
+      await env.DB.prepare("DELETE FROM pages WHERE slug=?").bind(body.slug).run();
+      return success();
     }
 
     return json({

@@ -15,6 +15,45 @@ import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
 
 
+function buildBreadcrumbs(path, data = {}) {
+  const crumbs = [{ label: "Home", url: "/en" }];
+
+  if (path === "casinoList") {
+    crumbs.push({ label: "All Casinos", url: "/en/casino" });
+  } else if (path === "casino" && data.name) {
+    crumbs.push({ label: "All Casinos", url: "/en/casino" });
+    crumbs.push({ label: data.name, url: null });
+  } else if (path === "reviewList") {
+    crumbs.push({ label: "All Reviews", url: "/en/review" });
+  } else if (path === "review" && data.title) {
+    crumbs.push({ label: "All Reviews", url: "/en/review" });
+    crumbs.push({ label: data.title, url: null });
+  } else if (path === "newsList") {
+    crumbs.push({ label: "News", url: "/en/news" });
+  } else if (path === "news" && data.title) {
+    crumbs.push({ label: "News", url: "/en/news" });
+    crumbs.push({ label: data.title, url: null });
+  } else if (path === "categoryList") {
+    crumbs.push({ label: "Categories", url: "/en/category" });
+  } else if (path === "category" && data.category) {
+    crumbs.push({ label: "Categories", url: "/en/category" });
+    crumbs.push({ label: data.category, url: null });
+  } else if (path === "countryList") {
+    crumbs.push({ label: "Countries", url: "/en/country" });
+  } else if (path === "country" && data.name) {
+    crumbs.push({ label: "Countries", url: "/en/country" });
+    crumbs.push({ label: data.name, url: null });
+  } else if (path === "dashboard") {
+    crumbs.push({ label: "Dashboard", url: null });
+  } else if (path === "page" && data.title) {
+    crumbs.push({ label: data.title, url: null });
+  } else if (path === "affiliate" && data.title) {
+    crumbs.push({ label: data.title, url: null });
+  }
+
+  return crumbs;
+}
+
 export async function renderHome(request, env) {
   const renderer = new Renderer(env);
   const casinoList = await casinos.getAllCasinos(env.DB);
@@ -41,7 +80,7 @@ export async function renderHome(request, env) {
     seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
     casino_cards: buildCasinoCards(casinoList),
     casino_count: casinoList.length
-  }, homeSchema);
+  }, homeSchema, buildBreadcrumbs("home"));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -111,7 +150,7 @@ export async function renderCasino(request, env, slug) {
     status: casino.status || "published",
     geo: geoInfo,
     geoRule: geoRule || { status: "allowed", bonus_override: null }
-  }, casinoSchema);
+  }, casinoSchema, buildBreadcrumbs("casino", { name: casino.name }));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -186,7 +225,7 @@ export async function renderReview(request, env, slug) {
     pros_html: prosHtml,
     cons_html: consHtml,
     casino_slug: review.casino_slug || ""
-  }, reviewSchema);
+  }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -228,7 +267,8 @@ export async function renderNews(
     await renderer.render(
       "news.html",
       article,
-      newsSchema
+      newsSchema,
+      buildBreadcrumbs("news", { title: article.title })
     );
 
   return new Response(
@@ -441,7 +481,8 @@ export async function renderCountry(
           "Best online casinos available in " +
           country.name
       },
-      countrySchema
+      countrySchema,
+      buildBreadcrumbs("country", { name: country.name})
     );
 
   return new Response(
@@ -507,7 +548,8 @@ export async function renderCategory(
           category.seo_description ||
           "Top " + category.name + " casinos reviewed by Level Casino"
       },
-      categorySchema
+      categorySchema,
+      buildBreadcrumbs("category", { category: category.name})
     );
 
   return new Response(
@@ -551,7 +593,7 @@ export async function renderDynamicPage(request, env, slug) {
   const html = await renderer.render("page.html", {
     ...page,
     content_json: parseContentJson(page.content_json)
-  }, pageSchema);
+  }, pageSchema,buildBreadcrumbs("page", { title: page.title }));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -572,7 +614,7 @@ export async function renderAffiliate(request, env, slug) {
   const html = await renderer.render("affiliate.html", {
     ...page,
     content_json: parseContentJson(page.content_json)
-  }, pageSchema);
+  }, pageSchema, buildBreadcrumbs("affiliate", { title: page.title }));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -677,7 +719,7 @@ export async function renderCasinoList(request, env) {
     casino_cards: buildCasinoCards(casinoList),
     seo_title: "All Online Casinos — Level Casino",
     seo_description: "Complete directory of reviewed online casinos with bonuses and ratings."
-  }, listSchema);
+  }, listSchema, buildBreadcrumbs("casinoList"));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -720,7 +762,7 @@ export async function renderReviewList(request, env) {
     casino_cards: reviewCards,
     seo_title: "All Casino Reviews — Level Casino",
     seo_description: "In-depth casino reviews with pros, cons, and ratings."
-  }, listSchema);
+  }, listSchema, buildBreadcrumbs("reviewList"));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -756,7 +798,7 @@ export async function renderNewsList(request, env) {
     casino_cards: `<div class="news-grid">${newsCards}</div>`,
     seo_title: "Casino News — Level Casino",
     seo_description: "Latest iGaming and online casino industry news."
-  }, listSchema);
+  }, listSchema, buildBreadcrumbs("newsList"));
 
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
@@ -870,4 +912,58 @@ export async function renderUserNotifications(request, env) {
   return new Response(html, {
     headers: { "Content-Type": "text/html" }
   });
+}
+
+
+export async function renderCategoryList(request, env) {
+  const renderer = new Renderer(env);
+  const cats = await categories.getAllCategories(env.DB);
+
+  const categoryCards = cats.map(c => `
+    <div class="feature-card">
+      <h3><a href="/en/category/${c.slug}">${c.name}</a></h3>
+      <p>${c.description || ""}</p>
+    </div>
+  `).join("");
+
+  const html = await renderer.render("category.html", {
+    category: "All Categories",
+    description: "Browse casinos by category.",
+    casino_cards: `<div class="features-grid">${categoryCards}</div>`,
+    seo_title: "Casino Categories — Level Casino",
+    seo_description: "Browse online casinos by category."
+  }, {}, buildBreadcrumbs("categoryList"));
+
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
+}
+
+export async function renderCountryList(request, env) {
+  const renderer = new Renderer(env);
+  const countriesList = await countries.getAllCountries(env.DB);
+
+  const countryChips = countriesList.map(c => `
+    <a href="/en/country/${c.code}" class="chip">${c.name}</a>
+  `).join("");
+
+  const html = await renderer.render("category.html", {
+    category: "All Countries",
+    description: "Browse online casinos available in your country.",
+    casino_cards: `<div class="country-chips" style="justify-content:center;padding:20px">${countryChips}</div>`,
+    seo_title: "Online Casinos by Country — Level Casino",
+    seo_description: "Find online casinos available in your country."
+  }, {}, buildBreadcrumbs("countryList"));
+
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
+}
+
+export async function renderDashboardCategories(request, env) {
+  return renderAdminPage(request, env, "admin/categories.html");
+}
+
+export async function renderDashboardCountries(request, env) {
+  return renderAdminPage(request, env, "admin/countries.html");
+}
+
+export async function renderDashboardCasinoEdit(request, env, slug) {
+  return renderAdminPage(request, env, "admin/casino-edit.html", { slug });
 }

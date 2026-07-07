@@ -146,12 +146,13 @@ export function getRoute(request) {
   if (path === "/en/dashboard/pages") return { type: "dashboardPages" };
   if (path === "/en/dashboard/settings") return { type: "dashboardSettings" };
   if (path === "/en/dashboard/ai") return { type: "dashboardAI" };
-  
-  if (path === "/en/dashboard/categories")
-   return { type:"dashboardCategories" };
+  if (path === "/en/category") return { type: "categoryList" };
+  if (path === "/en/country") return { type: "countryList" };
+  if (path === "/en/dashboard/categories") return { type: "dashboardCategories" };
+  if (path === "/en/dashboard/countries") return { type: "dashboardCountries" };
 
-  if (path === "/en/dashboard/countries")
-   return { type:"dashboardCountries" };
+  const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
+  if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };
 
   if (path === "/en/dashboard/geo")
    return { type:"dashboardGeo" };

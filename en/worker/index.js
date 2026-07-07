@@ -20,6 +20,11 @@ import {
   renderDashboardPages,
   renderDashboardSettings,
   renderDashboardAI,
+  renderCategoryList,
+  renderCountryList,
+  renderDashboardCategories,
+  renderDashboardCountries,
+  renderDashboardCasinoEdit,
   dashboardStatsAPI,
 
   renderUserDashboard,
@@ -144,6 +149,10 @@ export default {
         return renderReviewList(request, env);
       case "newsList":
         return renderNewsList(request, env);
+      case "categoryList":
+        return renderCategoryList(request, env);
+      case "countryList":
+        return renderCountryList(request, env);
       case "dashboardCasinos":
         return renderDashboardCasinos(request, env);
       case "dashboardCasinoCreate":
@@ -158,7 +167,12 @@ export default {
         return renderDashboardSettings(request, env);
       case "dashboardAI":
         return renderDashboardAI(request, env);
-
+      case "dashboardCategories":
+        return renderDashboardCategories(request, env);
+      case "dashboardCountries":
+        return renderDashboardCountries(request, env);
+      case "dashboardCasinoEdit":
+        return renderDashboardCasinoEdit(request, env, route.slug);
       case "userDashboard":
   return renderUserDashboard(request, env);
 

@@ -84,3 +84,29 @@ function initCasinoEditSubmit() {
     }
   });
 }
+
+
+async function deletePage(slug) {
+  if (!confirm(`Delete page "${slug}"?`)) return;
+
+  try {
+    const res = await fetch("/api/v1/page/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ slug })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      loadPagesTable();
+    } else {
+      alert(data.error || "Delete failed");
+    }
+
+  } catch (error) {
+    alert("Network error");
+  }
+}

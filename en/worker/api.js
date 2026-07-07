@@ -175,6 +175,12 @@ if (path === "/api/v1/news/list") {
   `).all();
   return json({ news: result.results });
 }
+if (path === "/api/v1/pages/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM pages ORDER BY created_at DESC
+  `).all();
+  return json({ pages: result.results });
+}
 
 // List categories
 if (path === "/api/v1/categories/list") {

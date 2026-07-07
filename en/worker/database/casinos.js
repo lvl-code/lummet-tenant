@@ -169,3 +169,26 @@ export async function getCasinoIdBySlug(db, slug) {
 
   return row?.id ?? null;
 }
+
+
+export async function getCasinosByCountry(db, countryCode) {
+  const result = await db
+    .prepare(`
+      SELECT c.* FROM casinos c
+      WHERE c.published = 1 AND c.status = 'published'
+      AND (
+        c.supported_countries LIKE ?
+        OR c.supported_countries IS NULL
+        OR c.supported_countries = ''
+      )
+      AND (
+        c.restricted_countries IS NULL
+        OR c.restricted_countries = ''
+        OR c.restricted_countries NOT LIKE ?
+      )
+      ORDER BY c.featured DESC, c.sort_order ASC, c.rating DESC
+    `)
+    .bind(`%${countryCode}%`, `%${countryCode}%`)
+    .all();
+  return result.results;
+}

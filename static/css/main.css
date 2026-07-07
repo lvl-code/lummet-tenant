@@ -59,6 +59,16 @@ a:hover { text-decoration: underline; }
   background: var(--dark); color: var(--white);
   position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
 }
+.site-header .btn--ghost {
+  color: var(--white);
+  border-color: rgba(255,255,255,.35);
+}
+
+.site-header .btn--ghost:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
 .header-inner {
   display: flex; align-items: center; justify-content: space-between;
   height: 64px; gap: 20px;
@@ -92,6 +102,7 @@ a:hover { text-decoration: underline; }
 .search-result-item img { width: 32px; height: 32px; border-radius: 6px; }
 
 .nav-toggle { display: none; background: none; border: none; color: var(--white); font-size: 24px; cursor: pointer; }
+
 
 /* Layout */
 .layout-wrapper {

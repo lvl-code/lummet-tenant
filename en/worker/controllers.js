@@ -314,19 +314,28 @@ export async function renderDashboardPage(request, env) {
 
     const user = await getCurrentUser(request, env);
 
-    if (!user || user.role !== "admin") {
-        return new Response("Forbidden", { status: 403 });
+    if (!user) {
+        return new Response(null, {
+            status: 302,
+            headers: {
+                Location: "/en/login"
+            }
+        });
     }
 
     const renderer = new Renderer(env);
 
-    const html = await renderer.render(
-        "admin/dashboard.html",
-        {
-            seo_title: "Admin Dashboard",
-            seo_description: "Level Casino CMS"
-        }
-    );
+    const template =
+        user.role === "admin"
+            ? "admin/dashboard.html"
+            : "users/dashboard.html";
+
+    const html = await renderer.render(template, {
+        seo_title: "Dashboard",
+        seo_description: "Level Casino Dashboard",
+        email: user.email,
+        role: user.role
+    });
 
     return new Response(html, {
         headers: {

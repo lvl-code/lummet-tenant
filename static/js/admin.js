@@ -13,6 +13,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initPageForm();
   initSettingsForm();
   initAIGenerator();
+  loadCategoriesTable();
+  initCategoryForm();
+  loadCountriesTable();
+  initCountryForm();
 });
 
 // ============================================
@@ -43,6 +47,7 @@ async function loadReviewsTable() {
         <td>★ ${r.rating || "N/A"}</td>
         <td class="table-actions">
           <a href="/en/review/${r.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
+          <button class="btn btn--danger btn--sm" onclick="deleteReview('${r.slug}')">Delete</button>
         </td>
       </tr>
     `
@@ -225,6 +230,7 @@ async function loadPagesTable() {
         <td>${p.type}</td>
         <td class="table-actions">
           <a href="/en/${p.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
+          <button class="btn btn--danger btn--sm" onclick="deletePage('${p.slug}')">Delete</button>
         </td>
       </tr>
     `
@@ -431,4 +437,181 @@ function initAIGenerator() {
       }
     }
   });
+}
+
+
+
+// ============================================
+// CATEGORIES
+// ============================================
+
+async function loadCategoriesTable() {
+  const tbody = document.getElementById("categoriesTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch("/en/api/v1/categories/list");
+    const data = await res.json();
+    const cats = data.categories || [];
+    if (cats.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No categories yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = cats.map(c => `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.slug}</td>
+        <td>${c.description || ""}</td>
+        <td class="table-actions">
+          <button class="btn btn--danger btn--sm" onclick="deleteCategory('${c.slug}')">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function deleteCategory(slug) {
+  if (!confirm(`Delete category "${slug}"?`)) return;
+  try {
+    const res = await fetch("/en/api/v1/category/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    const data = await res.json();
+    if (data.success) loadCategoriesTable();
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+function initCategoryForm() {
+  const form = document.getElementById("categoryForm");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("categoryFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+    const formData = new FormData(form);
+    const payload = {
+      slug: formData.get("slug"),
+      name: formData.get("name"),
+      description: formData.get("description") || null,
+      seo_title: formData.get("seo_title") || null,
+      seo_description: formData.get("seo_description") || null,
+    };
+    try {
+      const res = await fetch("/en/api/v1/category/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = "Category created!"; alertEl.style.display = "block"; }
+        form.reset();
+        loadCategoriesTable();
+      } else {
+        if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
+      }
+    } catch {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Network error"; alertEl.style.display = "block"; }
+    }
+  });
+}
+
+// ============================================
+// COUNTRIES
+// ============================================
+
+async function loadCountriesTable() {
+  const tbody = document.getElementById("countriesTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch("/en/api/v1/countries/list");
+    const data = await res.json();
+    const countriesList = data.countries || [];
+    if (countriesList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No countries yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = countriesList.map(c => `
+      <tr>
+        <td><strong>${c.code}</strong></td>
+        <td>${c.name}</td>
+        <td>${c.currency || "—"}</td>
+        <td>${c.legal_status || "—"}</td>
+        <td class="table-actions">
+          <button class="btn btn--danger btn--sm" onclick="deleteCountry('${c.code}')">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function deleteCountry(code) {
+  if (!confirm(`Delete country "${code}"?`)) return;
+  try {
+    const res = await fetch("/en/api/v1/country/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (data.success) loadCountriesTable();
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+function initCountryForm() {
+  const form = document.getElementById("countryForm");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("countryFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+    const formData = new FormData(form);
+    const payload = {
+      code: formData.get("code"),
+      name: formData.get("name"),
+      currency: formData.get("currency") || null,
+      language: formData.get("language") || null,
+      legal_status: formData.get("legal_status") || null,
+      seo_title: formData.get("seo_title") || null,
+      seo_description: formData.get("seo_description") || null,
+    };
+    try {
+      const res = await fetch("/en/api/v1/country/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = "Country created!"; alertEl.style.display = "block"; }
+        form.reset();
+        loadCountriesTable();
+      } else {
+        if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
+      }
+    } catch {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Network error"; alertEl.style.display = "block"; }
+    }
+  });
+}
+
+async function deleteReview(slug) {
+  if (!confirm(`Delete review "${slug}"?`)) return;
+  try {
+    const res = await fetch("/en/api/v1/review/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    const data = await res.json();
+    if (data.success) loadReviewsTable();
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
 }

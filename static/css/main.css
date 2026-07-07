@@ -47,7 +47,7 @@ a:hover { text-decoration: underline; }
   background: var(--dark);
   text-decoration: none;
 }
-.btn--ghost { background: transparent; border: 2px solid var(--light-gray); color: var(--dark); }
+.btn--ghost { background: transparent; border: 2px solid var(--light-gray); color: var(--white); }
 .btn--ghost:hover { border-color: var(--primary); color: var(--primary); text-decoration: none; }
 .btn--lg { padding: 14px 28px; font-size: 16px; }
 .btn--block { width: 100%; }

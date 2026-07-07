@@ -111,6 +111,7 @@ async function loadCasinosTable() {
         <td>${c.featured ? "⭐ Yes" : "—"}</td>
         <td><span class="status-badge ${c.status === "published" ? "status-published" : "status-draft"}">${c.status || "draft"}</span></td>
         <td class="table-actions">
+          <a href="/en/dashboard/casino/edit/${c.slug}" class="btn btn--ghost btn--sm">Edit</a>
           <a href="/en/casino/${c.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
           <button class="btn btn--danger btn--sm" onclick="deleteCasino('${c.slug}')">Delete</button>
         </td>

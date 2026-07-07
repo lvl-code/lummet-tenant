@@ -175,6 +175,13 @@ export function getRoute(request) {
     };
   }
 
+
+
+  if (path === "/en/user/dashboard") return { type: "userDashboard" };
+  if (path === "/en/user/submit-casino") return { type: "userSubmitCasino" };
+  if (path === "/en/user/inquiries") return { type: "userInquiries" };
+  if (path === "/en/user/profile") return { type: "userProfile" };
+  if (path === "/en/user/notifications") return { type: "userNotifications" };
   // =====================================================
   // API
   // =====================================================

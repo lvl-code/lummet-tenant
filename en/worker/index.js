@@ -21,6 +21,12 @@ import {
   renderDashboardSettings,
   renderDashboardAI,
   dashboardStatsAPI,
+
+  renderUserDashboard,
+  renderUserSubmitCasino,
+  renderUserInquiries,
+  renderUserProfile,
+  renderUserNotifications,
   renderDynamicPage,
   handleAffiliateRedirect,
   renderLogin,
@@ -153,6 +159,20 @@ export default {
       case "dashboardAI":
         return renderDashboardAI(request, env);
 
+      case "userDashboard":
+  return renderUserDashboard(request, env);
+
+case "userSubmitCasino":
+  return renderUserSubmitCasino(request, env);
+
+case "userInquiries":
+  return renderUserInquiries(request, env);
+
+case "userProfile":
+  return renderUserProfile(request, env);
+
+case "userNotifications":
+  return renderUserNotifications(request, env);
       case "api":
 
   const user =

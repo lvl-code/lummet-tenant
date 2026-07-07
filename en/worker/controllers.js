@@ -805,3 +805,69 @@ export async function renderDashboardSettings(request, env) {
 export async function renderDashboardAI(request, env) {
   return renderAdminPage(request, env, "admin/ai.html");
 }
+
+
+export async function renderUserDashboard(request, env) {
+  const renderer = new Renderer(env);
+
+  const html = await renderer.render("users/dashboard.html", {
+    seo_title: "User Dashboard",
+    seo_description: "Manage your Level Casino account."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderUserSubmitCasino(request, env) {
+  const renderer = new Renderer(env);
+
+  const html = await renderer.render("users/submit-casino.html", {
+    seo_title: "Submit Casino",
+    seo_description: "Submit a casino for review."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderUserInquiries(request, env) {
+  const renderer = new Renderer(env);
+
+  const html = await renderer.render("users/inquiries.html", {
+    seo_title: "My Inquiries",
+    seo_description: "View your inquiries."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderUserProfile(request, env) {
+  const renderer = new Renderer(env);
+
+  const html = await renderer.render("users/profile.html", {
+    seo_title: "Profile",
+    seo_description: "Manage your profile."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderUserNotifications(request, env) {
+  const renderer = new Renderer(env);
+
+  const html = await renderer.render("users/notifications.html", {
+    seo_title: "Notifications",
+    seo_description: "Your notifications."
+  });
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}

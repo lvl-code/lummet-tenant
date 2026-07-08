@@ -173,8 +173,6 @@ export default {
         return renderDashboardCountries(request, env);
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);
-      case "userDashboard":
-  return renderUserDashboard(request, env);
 
       case "userDashboard":
         return renderUserDashboard(request, env);

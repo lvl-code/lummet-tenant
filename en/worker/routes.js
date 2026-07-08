@@ -154,11 +154,6 @@ export function getRoute(request) {
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };
 
-  if (path === "/en/dashboard/geo")
-   return { type:"dashboardGeo" };
-
-  if (path === "/en/dashboard/sitemap")
-   return { type:"dashboardSitemap" };
 
   // =====================================================
   // AUTH

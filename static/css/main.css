@@ -343,18 +343,3 @@ a:hover { text-decoration: underline; }
 
 
 
-@media (max-width:768px) {
-
-  .main-nav.active .search-box{
-    display:block;
-    margin-bottom:16px;
-  }
-
-  .header-actions > .search-box{
-    display:none;
-  }
-
-  .main-nav.active .search-box input{
-    width:100%;
-  }
-}

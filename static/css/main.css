@@ -338,3 +338,35 @@ a:hover { text-decoration: underline; }
 .main-nav.active a:hover {
   color: var(--primary);
 }
+
+
+.mobile-search {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .search-box {
+    display: none;
+  }
+
+  .mobile-search {
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .mobile-search input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar {
+    order: -1;
+    margin-bottom: 20px;
+  }
+}

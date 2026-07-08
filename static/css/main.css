@@ -67,7 +67,7 @@ a:hover { text-decoration: underline; }
 .logo { display: flex; align-items: center; gap: 8px; color: var(--white); font-weight: 700; font-size: 20px; }
 .logo:hover { text-decoration: none; }
 .logo-accent { color: var(--primary); }
-.main-nav { display: flex; gap: 24px; }
+.main-nav { display: none; gap: 24px; }
 .main-nav a { color: var(--light-gray); font-size: 14px; font-weight: 500; }
 .main-nav a:hover { color: var(--white); text-decoration: none; }
 .header-actions { display: flex; align-items: center; gap: 12px; margin-left: auto;}
@@ -310,4 +310,31 @@ a:hover { text-decoration: underline; }
   background: var(--white);
   color: var(--dark);
   border-color: var(--white);
+}
+
+.main-nav {
+  display: none;
+}
+
+.main-nav.active {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 64px;
+  right: 20px;
+  width: 240px;
+  background: var(--dark);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  gap: 12px;
+  z-index: 1000;
+}
+
+.main-nav.active a {
+  color: var(--white);
+}
+
+.main-nav.active a:hover {
+  color: var(--primary);
 }

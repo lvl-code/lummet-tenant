@@ -67,7 +67,7 @@ a:hover { text-decoration: underline; }
 .logo { display: flex; align-items: center; gap: 8px; color: var(--white); font-weight: 700; font-size: 20px; }
 .logo:hover { text-decoration: none; }
 .logo-accent { color: var(--primary); }
-.main-nav { display: none; gap: 24px; }
+.main-nav { display: flex; gap: 24px; }
 .main-nav a { color: var(--light-gray); font-size: 14px; font-weight: 500; }
 .main-nav a:hover { color: var(--white); text-decoration: none; }
 .header-actions { display: flex; align-items: center; gap: 12px; margin-left: auto;}

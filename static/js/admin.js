@@ -620,7 +620,7 @@ async function deleteReview(slug) {
 async function deletePage(slug) {
   if (!confirm(`Delete page "${slug}"?`)) return;
   try {
-    const res = await fetch("/api/v1/page/delete", {
+    const res = await fetch("/en/api/v1/page/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug }),

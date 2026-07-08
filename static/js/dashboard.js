@@ -156,7 +156,7 @@ function initCasinoForm() {
   if (countryBox && !countryBox.dataset.loaded) {
     countryBox.dataset.loaded = "1";
     try {
-      const res = await fetch("/api/v1/countries/list");
+      const res = await fetch("/en/api/v1/countries/list");
       const data = await res.json();
       const countries = data.countries || [];
       countryBox.innerHTML = countries.map(c => `
@@ -217,7 +217,7 @@ function initCasinoForm() {
             status: geoMode === "allow" ? "allowed" : "blocked",
             bonus_override: null
           }));
-          await fetch("/api/v1/geo/sync", {
+          await fetch("/en/api/v1/geo/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ casino_slug: payload.slug, rules })

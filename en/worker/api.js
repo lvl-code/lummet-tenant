@@ -317,6 +317,27 @@ if (
     ) {
       return saveGeoRule(request, env);
     }
+        // ==================================
+    // GEO RULES — BULK SYNC + LISTING
+    // ==================================
+
+    if (path === "/api/v1/geo/sync" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["casino_slug", "rules"]);
+      const { setCasinoGeoRules } = await import("./database/geo.js");
+      await setCasinoGeoRules(env.DB, body.casino_slug, body.rules);
+      return success();
+    }
+
+    if (path === "/api/v1/geo/list" && request.method === "GET") {
+      const url = new URL(request.url);
+      const casinoSlug = url.searchParams.get("casino_slug");
+      if (!casinoSlug) return failure("casino_slug is required");
+      const { getGeoRulesForCasino } = await import("./database/geo.js");
+      const rules = await getGeoRulesForCasino(env.DB, casinoSlug);
+      return json({ rules });
+    }
+
 
     // ==================================
     // AI REVIEW
@@ -355,53 +376,54 @@ if (
     if (path === "/api/v1/category/update" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug", "name"]);
-      await env.DB.prepare(`
-        UPDATE categories SET name=?, description=?, seo_title=?, seo_description=? WHERE slug=?
-      `).bind(body.name, body.description, body.seo_title, body.seo_description, body.slug).run();
+      const { updateCategory } = await import("./database/categories.js");
+      await updateCategory(env.DB, body.slug, body);
       return success();
     }
 
     if (path === "/api/v1/category/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
-      await env.DB.prepare("DELETE FROM categories WHERE slug=?").bind(body.slug).run();
+      const { deleteCategory } = await import("./database/categories.js");
+      await deleteCategory(env.DB, body.slug);
       return success();
     }
+
+
 
     // ==================================
     // COUNTRIES CRUD
     // ==================================
-
-    if (path === "/api/v1/countries/list") {
-      const result = await env.DB.prepare("SELECT * FROM countries ORDER BY name").all();
-      return json({ countries: result.results });
-    }
-
     if (path === "/api/v1/country/create" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["code", "name"]);
-      await env.DB.prepare(`
-        INSERT INTO countries (code, name, currency, language, legal_status, seo_title, seo_description)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(body.code.toUpperCase(), body.name, body.currency, body.language, body.legal_status, body.seo_title, body.seo_description).run();
+      const { createCountry } = await import("./database/countries.js");
+      await createCountry(env.DB, body);
       return success();
     }
 
     if (path === "/api/v1/country/update" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["code", "name"]);
-      await env.DB.prepare(`
-        UPDATE countries SET name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=? WHERE code=?
-      `).bind(body.name, body.currency, body.language, body.legal_status, body.seo_title, body.seo_description, body.code.toUpperCase()).run();
+      const { updateCountry } = await import("./database/countries.js");
+      await updateCountry(env.DB, body.code, body);
       return success();
     }
 
     if (path === "/api/v1/country/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["code"]);
-      await env.DB.prepare("DELETE FROM countries WHERE code=?").bind(body.code.toUpperCase()).run();
+      const { deleteCountry } = await import("./database/countries.js");
+      await deleteCountry(env.DB, body.code);
       return success();
     }
+
+
+    if (path === "/api/v1/countries/list") {
+      const result = await env.DB.prepare("SELECT * FROM countries ORDER BY name").all();
+      return json({ countries: result.results });
+    }
+
 
     // ==================================
     // REVIEW DELETE + PAGE DELETE
@@ -410,14 +432,16 @@ if (
     if (path === "/api/v1/review/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
-      await env.DB.prepare("DELETE FROM reviews WHERE slug=?").bind(body.slug).run();
+      const { deleteReview } = await import("./database/reviews.js");
+      await deleteReview(env.DB, body.slug);
       return success();
     }
 
     if (path === "/api/v1/page/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
-      await env.DB.prepare("DELETE FROM pages WHERE slug=?").bind(body.slug).run();
+      const { deletePage } = await import("./database/pages.js");
+      await deletePage(env.DB, body.slug);
       return success();
     }
 

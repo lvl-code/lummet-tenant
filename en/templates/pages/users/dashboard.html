@@ -1,40 +1,31 @@
 <div class="admin-wrapper">
-  <aside class="admin-nav">
-    <h2>User Dashboard</h2>
-    <a href="/en/user/dashboard" class="active">Dashboard</a>
+  <nav class="admin-nav">
+    <a href="/en/user/dashboard" class="active">Overview</a>
     <a href="/en/user/submit-casino">Submit Casino</a>
     <a href="/en/user/inquiries">My Inquiries</a>
-    <a href="/en/user/notifications">Notifications</a>
     <a href="/en/user/profile">Profile</a>
-    <a href="/en/api/v1/auth/logout">Logout</a>
-  </aside>
-
-  <main class="admin-content">
-    <div class="admin-header">
-      <h1>Dashboard</h1>
-      <p>Welcome back.</p>
-    </div>
-
+    <a href="/en/user/notifications">Notifications</a>
+    <a href="/api/v1/auth/logout" class="admin-logout">Logout</a>
+  </nav>
+  <div class="admin-content">
+    <h1>Welcome, {{email}}</h1>
+    <p class="muted">Role: {{role}}</p>
     <div class="stats-grid">
-      <div class="admin-card">
-        <h3>Submitted Casinos</h3>
-        <h2>0</h2>
+      <div class="stat-card">
+        <div class="stat-icon">🎰</div>
+        <div class="stat-label">Browse Casinos</div>
+        <a href="/en/casino" class="btn btn--primary btn--sm">View All</a>
       </div>
-
-      <div class="admin-card">
-        <h3>Approved</h3>
-        <h2>0</h2>
+      <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-label">Read Reviews</div>
+        <a href="/en/review" class="btn btn--primary btn--sm">View All</a>
       </div>
-
-      <div class="admin-card">
-        <h3>Pending</h3>
-        <h2>0</h2>
-      </div>
-
-      <div class="admin-card">
-        <h3>Notifications</h3>
-        <h2>0</h2>
+      <div class="stat-card">
+        <div class="stat-icon">📰</div>
+        <div class="stat-label">Latest News</div>
+        <a href="/en/news" class="btn btn--primary btn--sm">View All</a>
       </div>
     </div>
-  </main>
+  </div>
 </div>

@@ -83,3 +83,21 @@ export async function createCategory(
   .run();
 
 }
+
+export async function updateCategory(db, slug, data) {
+  return db.prepare(`
+    UPDATE categories SET
+      name=?, description=?, seo_title=?, seo_description=?
+    WHERE slug=?
+  `)
+  .bind(data.name, data.description, data.seo_title, data.seo_description, slug)
+  .run();
+}
+
+export async function deleteCategory(db, slug) {
+  return db.prepare(`
+    DELETE FROM categories WHERE slug=?
+  `)
+  .bind(slug)
+  .run();
+}

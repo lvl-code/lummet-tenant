@@ -151,6 +151,24 @@ function initCasinoForm() {
   const form = document.getElementById("casinoForm");
   if (!form) return;
 
+    // Load countries for geo targeting
+  const countryBox = document.getElementById("countryCheckboxes");
+  if (countryBox && !countryBox.dataset.loaded) {
+    countryBox.dataset.loaded = "1";
+    try {
+      const res = await fetch("/api/v1/countries/list");
+      const data = await res.json();
+      const countries = data.countries || [];
+      countryBox.innerHTML = countries.map(c => `
+        <label style="display:block;padding:4px 0">
+          <input type="checkbox" value="${c.code}"> ${c.name} (${c.code})
+        </label>
+      `).join("");
+    } catch {
+      countryBox.innerHTML = '<p class="muted">Failed to load countries</p>';
+    }
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("casinoFormAlert");
@@ -188,6 +206,24 @@ function initCasinoForm() {
         alertEl.textContent = "Casino created successfully!";
         alertEl.style.display = "block";
         form.reset();
+                // Sync geo rules
+        const geoMode = formData.get("geo_mode") || "allow";
+        const selectedCountries = Array.from(
+          document.querySelectorAll("#countryCheckboxes input:checked")
+        ).map(c => c.value);
+        if (selectedCountries.length > 0) {
+          const rules = selectedCountries.map(code => ({
+            country_code: code,
+            status: geoMode === "allow" ? "allowed" : "blocked",
+            bonus_override: null
+          }));
+          await fetch("/api/v1/geo/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ casino_slug: payload.slug, rules })
+          });
+        }
+
         setTimeout(() => {
           window.location.href = "/en/dashboard/casinos";
         }, 1500);

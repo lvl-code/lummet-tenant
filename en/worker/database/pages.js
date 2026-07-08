@@ -60,3 +60,18 @@ export async function updatePage(
  )
  .run();
 }
+
+export async function deletePage(db, slug) {
+  return db.prepare(`
+    DELETE FROM pages WHERE slug=?
+  `)
+  .bind(slug)
+  .run();
+}
+
+export async function getAllPages(db) {
+  const result = await db.prepare(`
+    SELECT * FROM pages ORDER BY created_at DESC
+  `).all();
+  return result.results || [];
+}

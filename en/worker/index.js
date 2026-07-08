@@ -176,17 +176,18 @@ export default {
       case "userDashboard":
   return renderUserDashboard(request, env);
 
-case "userSubmitCasino":
-  return renderUserSubmitCasino(request, env);
+      case "userDashboard":
+        return renderUserDashboard(request, env);
+      case "userSubmitCasino":
+        return renderUserSubmitCasino(request, env);
+      case "userInquiries":
+        return renderUserInquiries(request, env);
+      case "userProfile":
+        return renderUserProfile(request, env);
+      case "userNotifications":
+        return renderUserNotifications(request, env);
 
-case "userInquiries":
-  return renderUserInquiries(request, env);
 
-case "userProfile":
-  return renderUserProfile(request, env);
-
-case "userNotifications":
-  return renderUserNotifications(request, env);
       case "api":
 
   const user =

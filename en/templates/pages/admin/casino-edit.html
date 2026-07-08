@@ -41,6 +41,22 @@
         <div class="form-group"><label>Sort Order</label><input type="number" name="sort_order" value="0"></div>
         <div class="form-group"><label>Status</label><select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
       </div>
+            <div class="form-group">
+        <label>Country Targeting Mode</label>
+        <select name="geo_mode" id="geoMode">
+          <option value="allow">Allow selected countries only</option>
+          <option value="block">Block selected countries</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Countries (check to select)</label>
+        <div style="margin-bottom:8px">
+          <button type="button" class="btn btn--ghost btn--sm" onclick="document.querySelectorAll('#countryCheckboxes input').forEach(c=>c.checked=true)">Select All</button>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="document.querySelectorAll('#countryCheckboxes input').forEach(c=>c.checked=false)">Clear All</button>
+        </div>
+        <div id="countryCheckboxes" style="max-height:200px;overflow-y:auto;border:1px solid var(--light-gray);border-radius:8px;padding:10px"></div>
+      </div>
+
       <div id="casinoEditAlert" class="alert" style="display:none"></div>
       <button type="submit" class="btn btn--primary btn--lg">Update Casino</button>
     </form>

@@ -1,36 +1,17 @@
 <div class="admin-wrapper">
-<aside class="admin-nav">
-<a href="/en/user/dashboard">Dashboard</a>
-<a href="/en/user/submit-casino">Submit Casino</a>
-<a href="/en/user/inquiries">My Inquiries</a>
-<a href="/en/user/notifications">Notifications</a>
-<a class="active" href="/en/user/profile">Profile</a>
-</aside>
-
-<main class="admin-content">
-
-<h1>Profile</h1>
-
-<form class="admin-form">
-
-<div class="form-group">
-<label>Full Name</label>
-<input type="text">
-</div>
-
-<div class="form-group">
-<label>Email</label>
-<input type="email">
-</div>
-
-<div class="form-group">
-<label>New Password</label>
-<input type="password">
-</div>
-
-<button class="btn btn--primary">Save Changes</button>
-
-</form>
-
-</main>
+  <nav class="admin-nav">
+    <a href="/en/user/dashboard">Overview</a>
+    <a href="/en/user/submit-casino">Submit Casino</a>
+    <a href="/en/user/inquiries">My Inquiries</a>
+    <a href="/en/user/profile" class="active">Profile</a>
+    <a href="/en/user/notifications">Notifications</a>
+    <a href="/api/v1/auth/logout" class="admin-logout">Logout</a>
+  </nav>
+  <div class="admin-content">
+    <h1>Profile</h1>
+    <div class="admin-section">
+      <p><strong>Email:</strong> {{email}}</p>
+      <p><strong>Role:</strong> {{role}}</p>
+    </div>
+  </div>
 </div>

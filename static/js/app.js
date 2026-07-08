@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavToggle();
   initSidebar();
   initHomeNews();
+  initHeaderAuth();
 });
 
 // ---- Mobile nav toggle ----
@@ -80,5 +81,22 @@ async function initHomeNews() {
       .join("");
   } catch {
     container.innerHTML = '<p class="muted">Failed to load news.</p>';
+  }
+}
+
+
+async function initHeaderAuth() {
+  try {
+    const res = await fetch("/api/v1/dashboard");
+    if (res.ok) {
+      const loginBtn = document.getElementById("headerLoginBtn");
+      const logoutBtn = document.getElementById("headerLogoutBtn");
+      const dashBtn = document.getElementById("headerDashboardBtn");
+      if (loginBtn) loginBtn.style.display = "none";
+      if (logoutBtn) logoutBtn.style.display = "";
+      if (dashBtn) dashBtn.style.display = "";
+    }
+  } catch {
+    // Not logged in — keep login button visible
   }
 }

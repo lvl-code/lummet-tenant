@@ -291,10 +291,21 @@ a:hover { text-decoration: underline; }
 
 
 
+.btn--secondary {
+  background: var(--dark-2);
+  color: var(--white);
+}
+.btn--secondary:hover {
+  background: var(--dark);
+  text-decoration: none;
+}
+
 .breadcrumb-current {
   color: var(--dark);
   font-weight: 600;
 }
+
+
 
 
 

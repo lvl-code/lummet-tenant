@@ -107,3 +107,11 @@ export async function getCasinoReviews(
 
   return result.results;
 }
+
+export async function deleteReview(db, slug) {
+  return db.prepare(`
+    DELETE FROM reviews WHERE slug=?
+  `)
+  .bind(slug)
+  .run();
+}

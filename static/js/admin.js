@@ -141,6 +141,7 @@ async function loadNewsTable() {
         <td>${new Date(n.created_at).toLocaleDateString()}</td>
         <td class="table-actions">
           <a href="/en/news/${n.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
+          <button class="btn btn--danger btn--sm" onclick="deleteNewsArticle('${n.slug}')">Delete</button>
         </td>
       </tr>
     `
@@ -627,6 +628,20 @@ async function deletePage(slug) {
     });
     const data = await res.json();
     if (data.success) loadPagesTable();
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+async function deleteNewsArticle(slug) {
+  if (!confirm(`Delete news article "${slug}"?`)) return;
+  try {
+    const res = await fetch("/en/api/v1/news/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    const data = await res.json();
+    if (data.success) loadNewsTable();
     else alert(data.error || "Delete failed");
   } catch { alert("Network error"); }
 }

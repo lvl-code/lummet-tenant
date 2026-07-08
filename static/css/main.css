@@ -290,6 +290,15 @@ a:hover { text-decoration: underline; }
 .page-content { background: var(--white); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); }
 
 
+
+.breadcrumb-current {
+  color: var(--dark);
+  font-weight: 600;
+}
+
+
+
+
 .site-header .btn--ghost {
   color: var(--white);
   border-color: rgba(255,255,255,.35);
@@ -311,6 +320,8 @@ a:hover { text-decoration: underline; }
   color: var(--dark);
   border-color: var(--white);
 }
+
+
 
 .main-nav {
   display: none;

@@ -363,47 +363,35 @@ a:hover { text-decoration: underline; }
 
 
 
-.mobile-panel summary {
-  cursor:pointer;
-  font-weight:700;
-  padding:15px;
-  background:var(--white);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  list-style:none;
-}
-
-.mobile-panel summary::-webkit-details-marker {
+.mobile-sidebar {
   display:none;
 }
 
-.mobile-panel summary:after {
-  content:"+";
-  float:right;
-  color:var(--primary);
+
+@media(max-width:768px){
+
+.desktop-sidebar {
+  display:none;
 }
 
-.mobile-panel[open] summary:after {
-  content:"−";
-}
-
-.mobile-panel .sidebar-block {
-  margin-top:10px;
-}
-
-
-@media(min-width:769px){
-
-.mobile-panel {
+.mobile-sidebar {
   display:block;
 }
 
-.mobile-panel summary {
-  display:none;
+.mobile-sidebar details {
+  background:white;
+  border-radius:12px;
+  margin-bottom:15px;
+  box-shadow:var(--shadow);
+  padding:15px;
+}
+
+.mobile-sidebar summary {
+  cursor:pointer;
+  font-weight:700;
 }
 
 }
-
 
 @media(max-width:768px){
 

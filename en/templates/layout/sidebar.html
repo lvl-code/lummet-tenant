@@ -1,19 +1,17 @@
 <aside class="sidebar">
 
-  <details class="mobile-panel" open>
-    <summary>🏆 Top Rated Casinos</summary>
+  <div class="desktop-sidebar">
+
     <div class="sidebar-block">
+      <h3>Top Rated</h3>
       <div id="sidebarTopCasinos" class="sidebar-casinos">
         <p class="muted">Loading...</p>
       </div>
     </div>
-  </details>
 
-
-  <details class="mobile-panel">
-    <summary>🌍 Browse by Country</summary>
     <div class="sidebar-block">
-      <div class="country-chips" id="sidebarCountries">
+      <h3>Browse by Country</h3>
+      <div class="country-chips">
         <a href="/en/country/RW" class="chip">Rwanda</a>
         <a href="/en/country/US" class="chip">United States</a>
         <a href="/en/country/CA" class="chip">Canada</a>
@@ -21,18 +19,45 @@
         <a href="/en/country/DE" class="chip">Germany</a>
       </div>
     </div>
-  </details>
 
-
-  <details class="mobile-panel">
-    <summary>📂 Categories</summary>
     <div class="sidebar-block">
-      <div class="category-list" id="sidebarCategories">
+      <h3>Categories</h3>
+      <div class="category-list">
         <a href="/en/category/crypto" class="chip">Crypto</a>
         <a href="/en/category/mobile" class="chip">Mobile</a>
         <a href="/en/category/live-dealer" class="chip">Live Dealer</a>
       </div>
     </div>
-  </details>
+
+  </div>
+
+
+  <div class="mobile-sidebar">
+
+    <details>
+      <summary>🏆 Top Rated Casinos</summary>
+      <div id="sidebarTopCasinosMobile"></div>
+    </details>
+
+    <details>
+      <summary>🌍 Browse by Country</summary>
+      <div class="country-chips">
+        <a href="/en/country/RW" class="chip">Rwanda</a>
+        <a href="/en/country/US" class="chip">United States</a>
+        <a href="/en/country/CA" class="chip">Canada</a>
+        <a href="/en/country/GB" class="chip">UK</a>
+      </div>
+    </details>
+
+    <details>
+      <summary>📂 Categories</summary>
+      <div class="category-list">
+        <a href="/en/category/crypto" class="chip">Crypto</a>
+        <a href="/en/category/mobile" class="chip">Mobile</a>
+        <a href="/en/category/live-dealer" class="chip">Live Dealer</a>
+      </div>
+    </details>
+
+  </div>
 
 </aside>

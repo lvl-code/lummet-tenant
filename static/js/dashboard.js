@@ -147,7 +147,7 @@ async function deleteCasino(slug) {
 }
 
 // ---- Casino create form ----
-function initCasinoForm() {
+async function initCasinoForm() {
   const form = document.getElementById("casinoForm");
   if (!form) return;
 

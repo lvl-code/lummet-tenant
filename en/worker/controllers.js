@@ -57,6 +57,41 @@ function buildBreadcrumbs(path, data = {}) {
 export async function renderHome(request, env) {
   const renderer = new Renderer(env);
   const casinoList = await casinos.getAllCasinos(env.DB);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
+  const homeSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": "https://level.casino",
+    "name": "Level Casino",
+    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Level Casino",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://level.casino/en/static/images/logo.png"
+      }
+    }
+  };
+
+  const html = await renderer.render("home.html", {
+    seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
+    seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
+    casino_cards: buildCasinoCards(sortedCasinos, geoData),
+    casino_count: casinoList.length
+  }, homeSchema, buildBreadcrumbs("home"));
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+
+export async function rendeHome(request, env) {
+  const renderer = new Renderer(env);
+  const casinoList = await casinos.getAllCasinos(env.DB);
 
   // Fix 29: WebSite & Organization Schema
   const homeSchema = {
@@ -251,8 +286,76 @@ function buidCasinoCards(casinoList) {
   `).join('');
 }
 
-
 export async function renderReview(request, env, slug) {
+  const review = await reviews.getReview(env.DB, slug);
+  if (!review) return render404(request, env);
+
+  const renderer = new Renderer(env);
+
+  let pros = [], cons = [];
+  try { pros = JSON.parse(review.pros || "[]"); } catch {}
+  try { cons = JSON.parse(review.cons || "[]"); } catch {}
+
+  const prosHtml = pros.length
+    ? `<ul>${pros.map(p => `<li>${p}</li>`).join("")}</ul>`
+    : "<p class='muted'>No pros listed.</p>";
+
+  const consHtml = cons.length
+    ? `<ul>${cons.map(c => `<li>${c}</li>`).join("")}</ul>`
+    : "<p class='muted'>No cons listed.</p>";
+
+  // Geo evaluation for the casino connected to this review
+  let geoCountry = "";
+  let geoStatus = "allowed";
+  let geoFlag = "";
+  if (review.casino_slug) {
+    const edgeGeo = {
+      country: request.cf?.country || "RW",
+      city: request.cf?.city || "Unknown"
+    };
+    const geoInfo = geoEngine.process(request, edgeGeo);
+    geoCountry = geoInfo.country;
+    geoFlag = countryToFlag(geoCountry);
+    const geoRule = await getGeoRule(env.DB, review.casino_slug, geoInfo.country);
+    geoStatus = geoRule ? geoRule.status : "allowed";
+  }
+
+  const reviewSchema = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "headline": review.title,
+    "reviewBody": review.content || "",
+    "reviewRating": {
+      "@type": "Rating",
+      "ratingValue": review.rating || "5",
+      "bestRating": 5
+    },
+    "itemReviewed": {
+      "@type": "GamesCasino",
+      "name": review.title.replace("Review", "").trim()
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Level Casino Editor"
+    }
+  };
+
+  const html = await renderer.render("review.html", {
+    ...review,
+    pros_html: prosHtml,
+    cons_html: consHtml,
+    casino_slug: review.casino_slug || "",
+    geo_country: geoCountry,
+    geo_status: geoStatus,
+    geo_flag: geoFlag
+  }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function rendeReview(request, env, slug) {
   const review = await reviews.getReview(env.DB, slug);
   if (!review) return render404(request, env);
 
@@ -545,7 +648,7 @@ export async function renderCountry(
       "country.html",
       {
         ...country,
-        casino_cards: buildCasinoCards(casinoList),
+        casino_cards: buildCasinoCards(casinoList, await prepareGeoData(env, request, casinoList)),
         seo_title:
           country.name +
           " Online Casinos",
@@ -569,7 +672,42 @@ export async function renderCountry(
 
 }
 
-export async function renderCategory(
+export async function renderCategory(request, env, slug) {
+  const category = await categories.getCategory(env.DB, slug);
+  if (!category) return render404(request, env);
+
+  const casinoList = await categories.getCategoryCasinos(env.DB, slug);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
+  const renderer = new Renderer(env);
+  const categorySchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `${category.name} Type Online Casinos`,
+    "itemListElement": sortedCasinos.map((c, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://level.casino/en/casino/${c.slug}`
+    }))
+  };
+
+  const html = await renderer.render("category.html", {
+    slug,
+    category: category.name,
+    description: category.description,
+    casino_cards: buildCasinoCards(sortedCasinos, geoData),
+    seo_title: category.seo_title || category.name + " Casinos",
+    seo_description: category.seo_description || "Top " + category.name + " casinos reviewed by Level Casino"
+  }, categorySchema, buildBreadcrumbs("category", { category: category.name }));
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+
+export async function rendeCategory(
   request,
   env,
   slug
@@ -772,6 +910,36 @@ export async function render404(request, env) {
 }
 
 export async function renderCasinoList(request, env) {
+  const renderer = new Renderer(env);
+  const casinoList = await casinos.getAllCasinos(env.DB);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Complete Directory of Online Casinos",
+    "itemListElement": sortedCasinos.map((c, idx) => ({
+      "@type": "ListItem",
+      "position": idx + 1,
+      "url": `https://level.casino/en/casino/${c.slug}`
+    }))
+  };
+
+  const html = await renderer.render("category.html", {
+    category: "All Casinos",
+    description: "Browse our complete directory of reviewed online casinos.",
+    casino_cards: buildCasinoCards(sortedCasinos, geoData),
+    seo_title: "All Online Casinos — Level Casino",
+    seo_description: "Complete directory of reviewed online casinos with bonuses and ratings."
+  }, listSchema, buildBreadcrumbs("casinoList"));
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function rendeCasinoList(request, env) {
   const renderer = new Renderer(env);
   const casinoList = await casinos.getAllCasinos(env.DB);
   const listSchema = {

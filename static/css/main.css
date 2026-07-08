@@ -365,3 +365,152 @@ a:hover { text-decoration: underline; }
 
 
 
+
+
+
+
+
+
+
+
+
+/* ===== PATCH: Logo fix — no crop, full visibility ===== */
+.casino-card__logo {
+  object-fit: contain !important;
+  object-position: center;
+  padding: 2px;
+}
+
+/* ===== PATCH: Geo availability badge ===== */
+.casino-card { position: relative; }
+.geo-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.geo-badge__flag {
+  font-size: 28px;
+  line-height: 1;
+}
+.geo-badge__icon {
+  position: absolute;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
+  line-height: 1;
+}
+.geo-badge--allowed .geo-badge__icon { color: #00b894; }
+.geo-badge--blocked .geo-badge__icon { color: #e74c3c; }
+
+/* ===== PATCH: Compliance section in card ===== */
+.casino-card__compliance {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--light-gray);
+  font-size: 12px;
+}
+.compliance-row { margin-bottom: 4px; }
+.compliance-label { color: var(--gray); font-weight: 600; }
+.compliance-value { color: var(--dark); }
+.compliance-link { color: var(--primary); font-size: 12px; }
+
+/* ===== PATCH: Footer sticky to bottom ===== */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.layout-wrapper {
+  flex: 1 0 auto;
+}
+.site-footer {
+  flex-shrink: 0;
+}
+
+/* ===== PATCH: Footer compliance section ===== */
+.footer-compliance {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 24px 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+.footer-compliance h4 {
+  color: var(--white);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.footer-compliance ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 10px 0;
+}
+.footer-compliance a {
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+}
+.footer-compliance a:hover { color: var(--white); }
+
+/* ===== PATCH: Mobile search toggle ===== */
+.mobile-search-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--white);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+}
+.mobile-search-container {
+  display: none;
+  padding: 10px 20px;
+  background: var(--dark);
+  position: relative;
+}
+.mobile-search-container.active {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mobile-search-container input {
+  flex: 1;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: var(--white);
+  font-size: 14px;
+}
+.mobile-search-container input::placeholder { color: rgba(255,255,255,0.5); }
+.mobile-search-close {
+  background: none;
+  border: none;
+  color: var(--white);
+  font-size: 28px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+/* ===== PATCH: Geo availability on review page ===== */
+.geo-availability {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+.geo-allowed { color: var(--success); }
+.geo-blocked { color: var(--danger); }
+.geo-restricted { color: var(--warning); }
+
+@media (max-width: 768px) {
+  .mobile-search-btn { display: block; }
+  .search-box { display: none !important; }
+}

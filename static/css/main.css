@@ -514,3 +514,46 @@ body {
   .mobile-search-btn { display: block; }
   .search-box { display: none !important; }
 }
+
+
+
+
+
+
+/* ===== PATCH: Footer sticky to bottom ===== */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.layout-wrapper {
+  flex: 1 0 auto;
+}
+.site-footer {
+  flex-shrink: 0;
+}
+
+/* ===== PATCH: Footer compliance section ===== */
+.footer-compliance {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 24px 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+.footer-compliance h4 {
+  color: var(--white);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.footer-compliance ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 10px 0;
+}
+.footer-compliance a {
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+}
+.footer-compliance a:hover { color: var(--white); }

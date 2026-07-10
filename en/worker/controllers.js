@@ -87,12 +87,12 @@ export async function renderHome(request, env) {
   });
 }
 
-
 export async function rendeHome(request, env) {
   const renderer = new Renderer(env);
   const casinoList = await casinos.getAllCasinos(env.DB);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
-  // Fix 29: WebSite & Organization Schema
   const homeSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -112,7 +112,7 @@ export async function rendeHome(request, env) {
   const html = await renderer.render("home.html", {
     seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
     seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
-    casino_cards: buildCasinoCards(casinoList),
+    casino_cards: buildCasinoCards(sortedCasinos, geoData),
     casino_count: casinoList.length
   }, homeSchema, buildBreadcrumbs("home"));
 
@@ -120,6 +120,7 @@ export async function rendeHome(request, env) {
     headers: { "Content-Type": "text/html" }
   });
 }
+
 
 
 export async function renderCasino(request, env, slug) {
@@ -263,11 +264,31 @@ function buildCasinoCards(casinoList, geoData = null) {
 }
 
 
-function buidCasinoCards(casinoList) {
-  return casinoList.map(casino => `
+function buidCasinoCards(casinoList, geoData = null) {
+  return casinoList.map(casino => {
+    const flag = geoData ? countryToFlag(geoData.country) : "";
+    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";
+    const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
+    const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
+
+    const geoBadge = geoData ? `
+      <div class="geo-badge ${geoClass}">
+        <span class="geo-badge__flag">${flag}</span>
+        <span class="geo-badge__icon">${geoIcon}</span>
+      </div>` : "";
+
+    const complianceHtml = `
+      <div class="casino-card__compliance">
+        ${casino.license ? `<div class="compliance-row"><span class="compliance-label">License:</span> <span class="compliance-value">${casino.license}</span></div>` : ""}
+        ${casino.owner ? `<div class="compliance-row"><span class="compliance-label">Operator:</span> <span class="compliance-value">${casino.owner}</span></div>` : ""}
+        ${casino.website_url ? `<div class="compliance-row"><span class="compliance-label">Terms:</span> <a href="${casino.website_url}" target="_blank" rel="noopener" class="compliance-link">View Terms</a></div>` : ""}
+      </div>`;
+
+    return `
     <div class="casino-card">
+      ${geoBadge}
       <div class="casino-card__header">
-        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo">
+        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">
@@ -276,14 +297,17 @@ function buidCasinoCards(casinoList) {
           <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
           <span class="bonus-value">${casino.bonus_value || ''}</span>
         </div>
+        ${complianceHtml}
       </div>
       <div class="casino-card__actions">
         <a href="/en/casino/${casino.slug}" class="btn btn--secondary">Review</a>
         <a href="/en/go/${casino.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
+
+
 
 export async function renderReview(request, env, slug) {
   const review = await reviews.getReview(env.DB, slug);
@@ -354,57 +378,6 @@ export async function renderReview(request, env, slug) {
   });
 }
 
-export async function rendeReview(request, env, slug) {
-  const review = await reviews.getReview(env.DB, slug);
-  if (!review) return render404(request, env);
-
-  const renderer = new Renderer(env);
-
-  // Parse pros/cons from JSON strings
-  let pros = [], cons = [];
-  try { pros = JSON.parse(review.pros || "[]"); } catch {}
-  try { cons = JSON.parse(review.cons || "[]"); } catch {}
-
-  const prosHtml = pros.length
-    ? `<ul>${pros.map(p => `<li>${p}</li>`).join("")}</ul>`
-    : "<p class='muted'>No pros listed.</p>";
-
-  const consHtml = cons.length
-    ? `<ul>${cons.map(c => `<li>${c}</li>`).join("")}</ul>`
-    : "<p class='muted'>No cons listed.</p>";
-
-  // Fix 29: Analysis Review Schema
-  const reviewSchema = {
-    "@context": "https://schema.org",
-    "@type": "Review",
-    "headline": review.title,
-    "reviewBody": review.content || "",
-    "reviewRating": {
-      "@type": "Rating",
-      "ratingValue": review.rating || "5",
-      "bestRating": 5
-    },
-    "itemReviewed": {
-      "@type": "GamesCasino",
-      "name": review.title.replace("Review", "").trim()
-    },
-    "author": {
-      "@type": "Person",
-      "name": "Level Casino Editor"
-    }
-  };
-
-  const html = await renderer.render("review.html", {
-    ...review,
-    pros_html: prosHtml,
-    cons_html: consHtml,
-    casino_slug: review.casino_slug || ""
-  }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));
-
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
 
 export async function renderNews(
   request,
@@ -609,8 +582,38 @@ headers:{
 
 }
 
+export async function renderCountry(request, env, slug) {
+  const code = slug.toUpperCase();
+  const country = await countries.getCountry(env.DB, code);
+  const countryData = country || {
+    code, name: code, seo_title: null, seo_description: null
+  };
+  const casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const renderer = new Renderer(env);
+  const countrySchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `Best Online Casinos in ${countryData.name}`,
+    "itemListElement": casinoList.map((c, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://level.casino/en/casino/${c.slug}`
+    }))
+  };
+  const html = await renderer.render("country.html", {
+    ...countryData,
+    casino_cards: buildCasinoCards(casinoList, geoData),
+    seo_title: countryData.seo_title || countryData.name + " Online Casinos",
+    seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
+  }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
 
-export async function renderCountry(
+
+export async function rendeCountry(
   request,
   env,
   slug
@@ -711,72 +714,6 @@ export async function renderCategory(request, env, slug) {
   });
 }
 
-
-export async function rendeCategory(
-  request,
-  env,
-  slug
-) {
-
-  const category =
-    await categories.getCategory(
-      env.DB,
-      slug
-    );
-
-  if (!category) {
-    return render404(request, env);
-  }
-
-  const casinoList =
-    await categories.getCategoryCasinos(
-      env.DB,
-      slug
-    );
-
-  const renderer =
-    new Renderer(env);
-  // Fix 29: ItemList Container Schema
-  const categorySchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": `${category.name} Type Online Casinos`,
-    "itemListElement": casinoList.map((c, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
-    }))
-  };
-
-  const html =
-    await renderer.render(
-      "category.html",
-      {
-        slug,
-        category: category.name,
-        description: category.description,
-        casino_cards: buildCasinoCards(casinoList),
-        seo_title:
-          category.seo_title ||
-          category.name + " Casinos",
-        seo_description:
-          category.seo_description ||
-          "Top " + category.name + " casinos reviewed by Level Casino"
-      },
-      categorySchema,
-      buildBreadcrumbs("category", { category: category.name})
-    );
-
-  return new Response(
-    html,
-    {
-      headers: {
-        "Content-Type": "text/html"
-      }
-    }
-  );
-
-}
 
 
 function parseContentJson(contentJson) {
@@ -944,14 +881,18 @@ export async function renderCasinoList(request, env) {
   });
 }
 
+
 export async function rendeCasinoList(request, env) {
   const renderer = new Renderer(env);
   const casinoList = await casinos.getAllCasinos(env.DB);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
   const listSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     "name": "Complete Directory of Online Casinos",
-    "itemListElement": casinoList.map((c, idx) => ({
+    "itemListElement": sortedCasinos.map((c, idx) => ({
       "@type": "ListItem",
       "position": idx + 1,
       "url": `https://level.casino/en/casino/${c.slug}`
@@ -961,7 +902,7 @@ export async function rendeCasinoList(request, env) {
   const html = await renderer.render("category.html", {
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
-    casino_cards: buildCasinoCards(casinoList),
+    casino_cards: buildCasinoCards(sortedCasinos, geoData),
     seo_title: "All Online Casinos — Level Casino",
     seo_description: "Complete directory of reviewed online casinos with bonuses and ratings."
   }, listSchema, buildBreadcrumbs("casinoList"));
@@ -970,6 +911,7 @@ export async function rendeCasinoList(request, env) {
     headers: { "Content-Type": "text/html" }
   });
 }
+
 
 export async function renderReviewList(request, env) {
   const renderer = new Renderer(env);

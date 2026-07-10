@@ -639,7 +639,7 @@ export async function renderCountry(
   const countrySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "name": "name": `Best Online Casinos in ${countryData.name}`,
+    "name": `Best Online Casinos in ${countryData.name}`,
     "itemListElement": casinoList.map((c, index) => ({
       "@type": "ListItem",
       "position": index + 1,

@@ -220,7 +220,7 @@ function sortCasinosByGeo(casinoList, geoData) {
   return [...allowed, ...blocked];
 }
 
-function buildCasinoCards(casinoList, geoData = null) {
+function buidCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";
@@ -264,7 +264,7 @@ function buildCasinoCards(casinoList, geoData = null) {
 }
 
 
-function buidCasinoCards(casinoList, geoData = null) {
+function buildCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";

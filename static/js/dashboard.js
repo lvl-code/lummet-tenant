@@ -221,36 +221,37 @@ async function initCasinoForm() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-     if (data.success) {
-  alertEl.className = "alert alert--success";
-  alertEl.textContent = "Casino created successfully!";
-  alertEl.style.display = "block";
 
-  // Capture geo data BEFORE form.reset() clears checkboxes
-  const geoMode = formData.get("geo_mode") || "allow";
-  const selectedCountries = Array.from(
-    document.querySelectorAll("#countryCheckboxes input:checked")
-  ).map(c => c.value);
+           if (data.success) {
+        alertEl.className = "alert alert--success";
+        alertEl.textContent = "Casino created successfully!";
+        alertEl.style.display = "block";
 
-  // Sync geo rules FIRST (before reset)
-  if (selectedCountries.length > 0) {
-    const rules = selectedCountries.map(code => ({
-      country_code: code,
-      status: geoMode === "allow" ? "allowed" : "blocked",
-      bonus_override: null
-    }));
-    await fetch("/en/api/v1/geo/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ casino_slug: payload.slug, rules })
-    });
-  }
+        // Capture geo data BEFORE form.reset()
+        const geoMode = formData.get("geo_mode") || "allow";
+        const selectedCountries = Array.from(
+          document.querySelectorAll("#countryCheckboxes input:checked")
+        ).map(c => c.value);
 
-  form.reset();  // NOW safe to reset
-  setTimeout(() => {
-    window.location.href = "/en/dashboard/casinos";
-  }, 1500);
-}       else {
+        // Sync geo rules FIRST
+        if (selectedCountries.length > 0) {
+          const rules = selectedCountries.map(code => ({
+            country_code: code,
+            status: geoMode === "allow" ? "allowed" : "blocked",
+            bonus_override: null
+          }));
+          await fetch("/en/api/v1/geo/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ casino_slug: payload.slug, rules })
+          });
+        }
+
+        form.reset();  // NOW safe to reset
+        setTimeout(() => {
+          window.location.href = "/en/dashboard/casinos";
+        }, 1500);
+      } else {
         alertEl.className = "alert alert--error";
         alertEl.textContent = data.error || "Failed to create casino";
         alertEl.style.display = "block";

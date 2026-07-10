@@ -126,25 +126,24 @@ function initCasinoEditSubmit() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.success) {
+            if (data.success) {
         if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = "Casino updated!"; alertEl.style.display = "block"; }
-                // Sync geo rules
+
+        // Sync geo rules — always run, even if empty (to allow clearing)
         const geoMode = formData.get("geo_mode") || "allow";
         const selectedCountries = Array.from(
           document.querySelectorAll("#countryCheckboxes input:checked")
         ).map(c => c.value);
-        if (selectedCountries.length > 0) {
-          const rules = selectedCountries.map(code => ({
-            country_code: code,
-            status: geoMode === "allow" ? "allowed" : "blocked",
-            bonus_override: null
-          }));
-          await fetch("/en/api/v1/geo/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ casino_slug: payload.slug, rules })
-          });
-        }
+        const rules = selectedCountries.map(code => ({
+          country_code: code,
+          status: geoMode === "allow" ? "allowed" : "blocked",
+          bonus_override: null
+        }));
+        await fetch("/en/api/v1/geo/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ casino_slug: payload.slug, rules })
+        });
 
         setTimeout(() => { window.location.href = "/en/dashboard/casinos"; }, 1500);
       } else {

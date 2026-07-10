@@ -209,3 +209,21 @@ export async function getCasinosByGeoRules(db, countryCode) {
     .all();
   return result.results;
 }
+
+
+export async function getCasinosByCountryAllowlist(db, countryCode) {
+  const result = await db
+    .prepare(`
+      SELECT c.* FROM casinos c
+      WHERE c.published = 1 AND c.status = 'published'
+      AND c.slug IN (
+        SELECT casino_slug FROM geo_rules
+        WHERE country_code = ? AND status = 'allowed'
+      )
+      ORDER BY c.featured DESC, c.sort_order ASC, c.rating DESC
+    `)
+    .bind(countryCode)
+    .all();
+  return result.results;
+}
+

@@ -631,7 +631,7 @@ export async function renderCountry(
     seo_description: null
   };
 
-  const casinoList = await casinos.getCasinosByGeoRules(env.DB, code);
+  const casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
 
   const renderer =
     new Renderer(env);

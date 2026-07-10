@@ -168,6 +168,24 @@ async function initCasinoForm() {
       countryBox.innerHTML = '<p class="muted">Failed to load countries</p>';
     }
   }
+    // Load categories for assignment
+  const categoryBox = document.getElementById("categoryCheckboxes");
+  if (categoryBox && !categoryBox.dataset.loaded) {
+    categoryBox.dataset.loaded = "1";
+    try {
+      const catRes = await fetch("/en/api/v1/categories/list");
+      const catData = await catRes.json();
+      const cats = catData.categories || [];
+      categoryBox.innerHTML = cats.map(c => `
+        <label style="display:block;padding:4px 0">
+          <input type="checkbox" value="${c.id}"> ${c.name} (${c.slug})
+        </label>
+      `).join("");
+    } catch {
+      categoryBox.innerHTML = '<p class="muted">Failed to load categories</p>';
+    }
+  }
+
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -191,6 +209,9 @@ async function initCasinoForm() {
       featured: parseInt(formData.get("featured")) || 0,
       sort_order: parseInt(formData.get("sort_order")) || 0,
       status: formData.get("status") || "draft",
+      category_ids: Array.from(
+        document.querySelectorAll("#categoryCheckboxes input:checked")
+      ).map(c => parseInt(c.value)),
     };
 
     try {

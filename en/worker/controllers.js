@@ -5,7 +5,6 @@ import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
 import * as countries from "./database/countries.js";
 import * as news from "./database/news.js";
-
 import { logClick }
 from "./database/clicks.js";
 import {
@@ -627,7 +626,8 @@ export async function renderCountry(
     return render404(request, env);
   }
 
-  const casinoList = await casinos.getCasinosByCountry(env.DB, slug.toUpperCase());
+  const casinoList = await casinos.getCasinosByGeoRules(env.DB, slug.toUpperCase());
+
 
   const renderer =
     new Renderer(env);

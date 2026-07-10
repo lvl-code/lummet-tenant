@@ -94,7 +94,17 @@
           </select>
         </div>
       </div>
-            <div class="form-group">
+      <div class="form-group">
+        <label>Categories (check to assign)</label>
+        <div style="margin-bottom:8px">
+          <button type="button" class="btn btn--ghost btn--sm" onclick="document.querySelectorAll('#categoryCheckboxes input').forEach(c=>c.checked=true)">Select All</button>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="document.querySelectorAll('#categoryCheckboxes input').forEach(c=>c.checked=false)">Clear All</button>
+        </div>
+        <div id="categoryCheckboxes" style="max-height:200px;overflow-y:auto;border:1px solid var(--light-gray);border-radius:8px;padding:10px"></div>
+      </div>
+
+
+      <div class="form-group">
         <label>Country Targeting Mode</label>
         <select name="geo_mode" id="geoMode">
           <option value="allow">Allow selected countries only</option>

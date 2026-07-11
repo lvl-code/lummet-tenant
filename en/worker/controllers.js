@@ -314,11 +314,11 @@ function buildCasinoCards(casinoList, geoData = null) {
     if (geoStatus === "allowed") {
       geoIcon = "✓";
       geoClass = "geo-badge--allowed";
-      geoLabel = "Allowed";
+      geoLabel = "Available";
     } else if (geoStatus === "blocked") {
       geoIcon = "✕";
       geoClass = "geo-badge--blocked";
-      geoLabel = "Blocked";
+      geoLabel = "Not Available";
     } else {
       geoIcon = "?";     // ← question mark for unknown
       geoClass = "geo-badge--unknown";
@@ -336,7 +336,7 @@ function buildCasinoCards(casinoList, geoData = null) {
      // </div>` : "";
     const geoStatusText = geoData ? `
   <div class="casino-card__geo-status geo-${geoStatus}">
-    ${flag} ${geoLabel} in ${geoData.country}
+    ${flag} ${geoLabel} for players from ${geoData.country}
   </div>` : "";
 
 // Then add ${geoStatusText} inside the card body, after the bonus div

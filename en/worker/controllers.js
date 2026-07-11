@@ -697,6 +697,46 @@ export async function renderCountry(request, env, slug) {
   const countryData = country || {
     code, name: code, seo_title: null, seo_description: null
   };
+  
+  // Get allowed casinos
+  let casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
+  
+  // Sort by rating descending (highest first)
+  casinoList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const renderer = new Renderer(env);
+  
+  const countrySchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `Best Online Casinos in ${countryData.name}`,
+    "itemListElement": casinoList.map((c, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://level.casino/en/casino/${c.slug}`
+    }))
+  };
+  
+  const html = await renderer.render("country.html", {
+    ...countryData,
+    casino_cards: buildCasinoCards(casinoList, geoData),
+    seo_title: countryData.seo_title || countryData.name + " Online Casinos",
+    seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
+  }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
+  
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+
+export async function rendeCountry(request, env, slug) {
+  const code = slug.toUpperCase();
+  const country = await countries.getCountry(env.DB, code);
+  const countryData = country || {
+    code, name: code, seo_title: null, seo_description: null
+  };
   const casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
   const geoData = await prepareGeoData(env, request, casinoList);
   const renderer = new Renderer(env);
@@ -721,73 +761,6 @@ export async function renderCountry(request, env, slug) {
   });
 }
 
-
-export async function rendeCountry(
-  request,
-  env,
-  slug
-){
-  
-  const code = slug.toUpperCase();
-  const country =
-    await countries.getCountry(
-      env.DB,
-      code
-    );
-
-  // Fallback: render page even if country not in DB
-  const countryData = country || {
-    code: code,
-    name: code,
-    seo_title: null,
-    seo_description: null
-  };
-
-  const casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
-
-  const renderer =
-    new Renderer(env);
-  // Fix 29: ItemList Container Schema
-  const countrySchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": `Best Online Casinos in ${countryData.name}`,
-    "itemListElement": casinoList.map((c, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
-    }))
-  };
-
-
-    const html =
-    await renderer.render(
-      "country.html",
-      {
-        ...countryData,
-        casino_cards: buildCasinoCards(casinoList, await prepareGeoData(env, request, casinoList)),
-        seo_title:
-          (countryData.seo_title) ||
-          (countryData.name + " Online Casinos"),
-        seo_description:
-          countryData.seo_description ||
-          ("Best online casinos available in " + countryData.name)
-      },
-      countrySchema,
-      buildBreadcrumbs("country", { name: countryData.name})
-    );
-
-  return new Response(
-    html,
-    {
-      headers:{
-        "Content-Type":
-          "text/html"
-      }
-    }
-  );
-
-}
 
 export async function renderCategory(request, env, slug) {
   const category = await categories.getCategory(env.DB, slug);

@@ -66,6 +66,15 @@ if(path === "/api/v1/auth/logout"){
     return json({ success: true, message: "Admin created. Remove this endpoint now." });
   }
 
+  // Add this BEFORE the auth check, around line 30-40
+if (path === "/api/v1/public/casinos/list") {
+  const casinos = await env.DB.prepare(`
+    SELECT slug, name, logo, rating FROM casinos
+    WHERE published = 1 AND status = 'published'
+    ORDER BY featured DESC, sort_order ASC, rating DESC
+  `).all();
+  return json({ casinos: casinos.results });
+}
 
 
   if (!user) {

@@ -27,7 +27,7 @@ async function initSidebar() {
   if (!container) return;
 
   try {
-    const res = await fetch("/en/api/v1/casinos/list");
+    const res = await fetch("/en/api/public/v1/casinos/list");
     const data = await res.json();
 
     if (!data.casinos || data.casinos.length === 0) {

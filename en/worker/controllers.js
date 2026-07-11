@@ -206,6 +206,63 @@ async function prepareGeoData(env, request, casinoList) {
   const slugs = casinoList.map(c => c.slug);
   if (slugs.length === 0) return { country: geoInfo.country, statuses: {} };
 
+  // Batch query: get ALL geo rules for ALL these casinos (any country)
+  const placeholders = slugs.map(() => '?').join(',');
+  const result = await env.DB.prepare(`
+    SELECT casino_slug, country_code, status FROM geo_rules
+    WHERE casino_slug IN (${placeholders})
+  `).bind(...slugs).all();
+
+  // Group rules by casino slug
+  const rulesByCasino = {};
+  for (const row of (result.results || [])) {
+    if (!rulesByCasino[row.casino_slug]) rulesByCasino[row.casino_slug] = [];
+    rulesByCasino[row.casino_slug].push(row);
+  }
+
+  const statuses = {};
+  for (const slug of slugs) {
+    const rules = rulesByCasino[slug] || [];
+    
+    if (rules.length === 0) {
+      // No rules at all → blocked everywhere
+      statuses[slug] = "blocked";
+    } else {
+      // Check if this specific country has a rule
+      const countryRule = rules.find(r => r.country_code === geoInfo.country);
+      if (countryRule) {
+        statuses[slug] = countryRule.status;
+      } else {
+        // No rule for this country — infer from other rules
+        const hasAllowed = rules.some(r => r.status === "allowed");
+        const hasBlocked = rules.some(r => r.status === "blocked");
+        
+        if (hasAllowed && !hasBlocked) {
+          // Only 'allowed' rules exist → this country is blocked (allowlist mode)
+          statuses[slug] = "blocked";
+        } else if (hasBlocked && !hasAllowed) {
+          // Only 'blocked' rules exist → this country is allowed (blocklist mode)
+          statuses[slug] = "allowed";
+        } else {
+          // Mixed or unclear → blocked by default
+          statuses[slug] = "blocked";
+        }
+      }
+    }
+  }
+  
+  return { country: geoInfo.country, statuses };
+}
+
+async function prepoGeoData(env, request, casinoList) {
+  const edgeGeo = {
+    country: request.cf?.country || "RW",
+    city: request.cf?.city || "Unknown"
+  };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+  const slugs = casinoList.map(c => c.slug);
+  if (slugs.length === 0) return { country: geoInfo.country, statuses: {} };
+
   // Single batch query instead of N individual queries
   const placeholders = slugs.map(() => '?').join(',');
   const result = await env.DB.prepare(`

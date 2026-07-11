@@ -203,6 +203,31 @@ async function prepareGeoData(env, request, casinoList) {
     city: request.cf?.city || "Unknown"
   };
   const geoInfo = geoEngine.process(request, edgeGeo);
+  const slugs = casinoList.map(c => c.slug);
+  if (slugs.length === 0) return { country: geoInfo.country, statuses: {} };
+
+  // Single batch query instead of N individual queries
+  const placeholders = slugs.map(() => '?').join(',');
+  const result = await env.DB.prepare(`
+    SELECT casino_slug, status FROM geo_rules
+    WHERE casino_slug IN (${placeholders}) AND country_code = ?
+  `).bind(...slugs, geoInfo.country).all();
+
+  const statuses = {};
+  for (const slug of slugs) statuses[slug] = "allowed";
+  for (const row of (result.results || [])) {
+    statuses[row.casino_slug] = row.status;
+  }
+  return { country: geoInfo.country, statuses };
+}
+
+
+async function prepaGeoData(env, request, casinoList) {
+  const edgeGeo = {
+    country: request.cf?.country || "RW",
+    city: request.cf?.city || "Unknown"
+  };
+  const geoInfo = geoEngine.process(request, edgeGeo);
   const statuses = {};
   for (const casino of casinoList) {
     const rule = await getGeoRule(env.DB, casino.slug, geoInfo.country);
@@ -220,7 +245,7 @@ function sortCasinosByGeo(casinoList, geoData) {
   return [...allowed, ...blocked];
 }
 
-function buidCasinoCards(casinoList, geoData = null) {
+function buildCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";
@@ -244,7 +269,7 @@ function buidCasinoCards(casinoList, geoData = null) {
     <div class="casino-card">
       ${geoBadge}
       <div class="casino-card__header">
-        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'">
+        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'" loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">
@@ -263,8 +288,7 @@ function buidCasinoCards(casinoList, geoData = null) {
   }).join('');
 }
 
-
-function buildCasinoCards(casinoList, geoData = null) {
+function buidCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";

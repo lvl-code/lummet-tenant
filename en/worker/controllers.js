@@ -214,7 +214,7 @@ async function prepareGeoData(env, request, casinoList) {
   `).bind(...slugs, geoInfo.country).all();
 
   const statuses = {};
-  for (const slug of slugs) statuses[slug] = "allowed";
+  for (const slug of slugs) statuses[slug] = "unknown";
   for (const row of (result.results || [])) {
     statuses[row.casino_slug] = row.status;
   }
@@ -248,15 +248,42 @@ function sortCasinosByGeo(casinoList, geoData) {
 function buildCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
-    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";
-    const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
-    const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
+    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+ //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
+ //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
+    // Different icons and colors for each status
+    let geoIcon, geoClass, geoLabel;
+    if (geoStatus === "allowed") {
+      geoIcon = "✓";
+      geoClass = "geo-badge--allowed";
+      geoLabel = "Allowed";
+    } else if (geoStatus === "blocked") {
+      geoIcon = "✕";
+      geoClass = "geo-badge--blocked";
+      geoLabel = "Blocked";
+    } else {
+      geoIcon = "?";     // ← question mark for unknown
+      geoClass = "geo-badge--unknown";
+      geoLabel = "Unknown";
+    }
     const geoBadge = geoData ? `
-      <div class="geo-badge ${geoClass}">
+      <div class="geo-badge ${geoClass}" title="${geoLabel} in ${geoData.country}">
         <span class="geo-badge__flag">${flag}</span>
         <span class="geo-badge__icon">${geoIcon}</span>
       </div>` : "";
+   // const geoBadge = geoData ? `
+     // <div class="geo-badge ${geoClass}">
+       // <span class="geo-badge__flag">${flag}</span>
+       // <span class="geo-badge__icon">${geoIcon}</span>
+     // </div>` : "";
+    const geoStatusText = geoData ? `
+  <div class="casino-card__geo-status geo-${geoStatus}">
+    ${flag} ${geoLabel} in ${geoData.country}
+  </div>` : "";
+
+// Then add ${geoStatusText} inside the card body, after the bonus div
+
 
     const complianceHtml = `
       <div class="casino-card__compliance">
@@ -278,6 +305,7 @@ function buildCasinoCards(casinoList, geoData = null) {
           <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
           <span class="bonus-value">${casino.bonus_value || ''}</span>
         </div>
+        ${geoStatusText}
         ${complianceHtml}
       </div>
       <div class="casino-card__actions">

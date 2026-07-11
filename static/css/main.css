@@ -557,3 +557,22 @@ body {
   font-size: 12px;
 }
 .footer-compliance a:hover { color: var(--white); }
+
+
+.geo-badge--unknown .geo-badge__icon {
+  color: #94a3b8; /* gray */
+  font-size: 16px;
+  font-weight: bold;
+}
+
+
+.casino-card__geo-status {
+  font-size: 11px;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.geo-allowed { color: #00b894; background: #e6fff5; }
+.geo-blocked { color: #e74c3c; background: #fee; }
+.geo-unknown { color: #64748b; background: #f1f5f9; }

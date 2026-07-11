@@ -46,6 +46,51 @@ if(path === "/api/v1/auth/logout"){
   return logout(request,env);
 }
 
+
+if (path === "/api/v1/geo/check") {  
+  const url = new URL(request.url);  
+  const slug = url.searchParams.get("slug");  
+  if (!slug) return failure("slug is required");  
+  
+  const country = request.cf?.country || "RW";  
+    
+  // Get ALL rules for this casino  
+  const allRules = await env.DB.prepare(`  
+    SELECT country_code, status FROM geo_rules  
+    WHERE casino_slug = ?  
+  `).bind(slug).all();  
+    
+  const rules = allRules.results || [];  
+    
+  // Check if this specific country has a rule  
+  const countryRule = rules.find(r => r.country_code === country);  
+    
+  let status;  
+  if (countryRule) {  
+    status = countryRule.status;  
+  } else if (rules.length === 0) {  
+    // No rules at all → blocked  
+    status = "blocked";  
+  } else {  
+    // No rule for this country — infer  
+    const hasAllowed = rules.some(r => r.status === "allowed");  
+    const hasBlocked = rules.some(r => r.status === "blocked");  
+      
+    if (hasAllowed && !hasBlocked) {  
+      status = "blocked"; // Allowlist mode → blocked  
+    } else if (hasBlocked && !hasAllowed) {  
+      status = "allowed"; // Blocklist mode → allowed  
+    } else {  
+      status = "blocked"; // Mixed → blocked  
+    }  
+  }  
+  
+  return json({  
+    status,  
+    country,  
+    bonusOverride: countryRule?.bonus_override || null  
+  });  
+}  
   // One-time admin bootstrap — DELETE after first use
   if (path === "/api/v1/setup/admin" && request.method === "POST") {
     const body = await request.json();
@@ -95,50 +140,6 @@ if (path === "/api/v1/dashboard") {
   return dashboardStatsAPI(request, env);
 }
 
-if (path === "/api/v1/geo/check") {
-  const url = new URL(request.url);
-  const slug = url.searchParams.get("slug");
-  if (!slug) return failure("slug is required");
-
-  const country = request.cf?.country || "RW";
-  
-  // Get ALL rules for this casino
-  const allRules = await env.DB.prepare(`
-    SELECT country_code, status FROM geo_rules
-    WHERE casino_slug = ?
-  `).bind(slug).all();
-  
-  const rules = allRules.results || [];
-  
-  // Check if this specific country has a rule
-  const countryRule = rules.find(r => r.country_code === country);
-  
-  let status;
-  if (countryRule) {
-    status = countryRule.status;
-  } else if (rules.length === 0) {
-    // No rules at all → blocked
-    status = "blocked";
-  } else {
-    // No rule for this country — infer
-    const hasAllowed = rules.some(r => r.status === "allowed");
-    const hasBlocked = rules.some(r => r.status === "blocked");
-    
-    if (hasAllowed && !hasBlocked) {
-      status = "blocked"; // Allowlist mode → blocked
-    } else if (hasBlocked && !hasAllowed) {
-      status = "allowed"; // Blocklist mode → allowed
-    } else {
-      status = "blocked"; // Mixed → blocked
-    }
-  }
-
-  return json({
-    status,
-    country,
-    bonusOverride: countryRule?.bonus_override || null
-  });
-}
 
 if (path === "/api/v1/old/geo/check") {
     const url = new URL(request.url);

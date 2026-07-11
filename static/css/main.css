@@ -218,7 +218,7 @@ a:hover { text-decoration: underline; }
   box-shadow: var(--shadow); margin-bottom: 30px; flex-wrap: wrap; gap: 20px;
 }
 .casino-hero__left { display: flex; align-items: center; gap: 16px; }
-.casino-hero__logo { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; }
+.casino-hero__logo { width: 80px; height: 80px; border-radius: 12px; object-fit: contain; }
 .casino-hero__right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 .bonus-box {
   background: var(--bg); border-radius: var(--radius); padding: 12px 20px;

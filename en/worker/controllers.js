@@ -691,7 +691,7 @@ headers:{
 
 }
 
-export async function renderCountry(request, env, slug) {
+export async function rendeCountry(request, env, slug) {
   const code = slug.toUpperCase();
   const country = await countries.getCountry(env.DB, code);
   const countryData = country || {
@@ -731,13 +731,16 @@ export async function renderCountry(request, env, slug) {
 }
 
 
-export async function rendeCountry(request, env, slug) {
+export async function renderCountry(request, env, slug) {
   const code = slug.toUpperCase();
   const country = await countries.getCountry(env.DB, code);
   const countryData = country || {
     code, name: code, seo_title: null, seo_description: null
   };
   const casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
+  // Sort by rating descending (highest first)
+  casinoList.sort((a, b) => (b.rating || 0) - (>
+
   const geoData = await prepareGeoData(env, request, casinoList);
   const renderer = new Renderer(env);
   const countrySchema = {

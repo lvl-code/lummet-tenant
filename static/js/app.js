@@ -27,7 +27,7 @@ async function initSidebar() {
   if (!container) return;
 
   try {
-    const res = await fetch("/en/api/public/v1/casinos/list");
+    const res = await fetch("/en/api/v1/public/casinos/list");
     const data = await res.json();
 
     if (!data.casinos || data.casinos.length === 0) {
@@ -133,7 +133,7 @@ function initMobileSearch() {
       if (query.length < 2) { results.classList.remove("active"); return; }
       debounceTimer = setTimeout(async () => {
         try {
-          const res = await fetch("/en/api/public/v1/casinos/list");
+          const res = await fetch("/en/api/v1/public/casinos/list");
           const data = await res.json();
           const matches = (data.casinos || []).filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
           if (matches.length === 0) {

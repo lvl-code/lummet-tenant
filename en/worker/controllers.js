@@ -346,14 +346,14 @@ function buildCasinoCards(casinoList, geoData = null) {
       <div class="casino-card__compliance">
         ${casino.license ? `<div class="compliance-row"><span class="compliance-label">License:</span> <span class="compliance-value">${casino.license}</span></div>` : ""}
         ${casino.owner ? `<div class="compliance-row"><span class="compliance-label">Operator:</span> <span class="compliance-value">${casino.owner}</span></div>` : ""}
-        ${casino.website_url ? `<div class="compliance-row"><span class="compliance-label">Terms:</span> <a href="${casino.website_url}" target="_blank" rel="noopener" class="compliance-link">View Terms</a></div>` : ""}
+        ${casino.website_url ? `<div class="compliance-row"><span class="compliance-label">18+ | PLAY RESPONSIBLY |</span> <a href="${casino.website_url}" target="_blank" rel="noopener" class="compliance-link">T&CS APPLY</a></div>` : ""}
       </div>`;
 
     return `
     <div class="casino-card">
       ${geoBadge}
       <div class="casino-card__header">
-        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'" loading="lazy">
+        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'" loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">

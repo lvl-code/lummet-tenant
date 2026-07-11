@@ -20,6 +20,11 @@
   .casino-hero { flex-direction: column; align-items: flex-start; }
   .casino-hero__right { align-items: flex-start; width: 100%; }
   .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  
+  .compliance-logos { gap: 12px; }
+  .compliance-logos img { height: 32px; }
+  .responsible-gambling-link { font-size: 12px; }
+
 }
 
 @media (max-width: 480px) {

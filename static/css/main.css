@@ -674,3 +674,37 @@ body {
 .trustpilot-review-btn svg {
   color: #00b67a;
 }
+
+
+/* ===== Page Content Styles ===== */
+.page-content h2 {
+  font-size: 22px;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  color: var(--dark);
+}
+.page-content h2:first-of-type {
+  margin-top: 0;
+}
+.page-content p {
+  margin-bottom: 14px;
+  line-height: 1.8;
+}
+.page-content ul {
+  margin: 12px 0 16px 20px;
+  list-style: disc;
+}
+.page-content ul li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+.page-content strong {
+  font-weight: 700;
+}
+.page-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.page-content a:hover {
+  color: var(--primary-dark);
+}

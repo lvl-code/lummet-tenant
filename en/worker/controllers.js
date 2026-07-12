@@ -401,7 +401,7 @@ function buildCasinoCards(casinoList, geoData = null) {
 function buildReviewCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
-    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "blocked") : "blocked";
+    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
  //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
  //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
@@ -415,6 +415,10 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
       geoIcon = "✕";
       geoClass = "geo-badge--blocked";
       geoLabel = "Not Available";
+    } else {
+      geoIcon = "?";     // ← question mark for unknown
+      geoClass = "geo-badge--unknown";
+      geoLabel = "Unknown";
     }
     const geoBadge = geoData ? `
       <div class="geo-badge ${geoClass}" title="${geoLabel} in ${countryFullName(geoData.country)}">

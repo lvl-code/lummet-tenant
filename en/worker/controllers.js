@@ -312,7 +312,7 @@ async function evaluateCasinoGeo(env, casinoSlug, countryCode) {
   const hasAllowed = rules.some(r => r.status === "allowed");
   const hasBlocked = rules.some(r => r.status === "blocked");
 
-  if (hasAllowed && !hasBlocked) return "blocked";   // allowlist mode
+  if (hasAllowed && !hasBlocked) return "not allowed";   // allowlist mode
   if (hasBlocked && !hasAllowed) return "allowed";    // blocklist mode
   return "blocked";                                    // mixed → safe default
 }

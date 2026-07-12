@@ -401,7 +401,7 @@ function buildCasinoCards(casinoList, geoData = null) {
 function buildReviewCasinoCards(casinoList, geoData = null) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
-    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "blocked") : "blocked";
  //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
  //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
@@ -415,10 +415,6 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
       geoIcon = "✕";
       geoClass = "geo-badge--blocked";
       geoLabel = "Not Available";
-    } else {
-      geoIcon = "?";     // ← question mark for unknown
-      geoClass = "geo-badge--unknown";
-      geoLabel = "Unknown";
     }
     const geoBadge = geoData ? `
       <div class="geo-badge ${geoClass}" title="${geoLabel} in ${countryFullName(geoData.country)}">
@@ -453,7 +449,7 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">
-        <h3>${casino.name}</h3>
+        <h3>${casino.name} Review</h3>
         <div class="casino-card__bonus">
           <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
           <span class="bonus-value">${casino.bonus_value || ''}</span>

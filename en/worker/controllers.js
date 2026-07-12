@@ -14,6 +14,34 @@ import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
 
 
+const COUNTRY_NAMES = {
+  RW:"Rwanda",US:"United States",CA:"Canada",GB:"United Kingdom",DE:"Germany",
+  FR:"France",IT:"Italy",ES:"Spain",NL:"Netherlands",AU:"Australia",
+  NZ:"New Zealand",JP:"Japan",CN:"China",IN:"India",BR:"Brazil",MX:"Mexico",
+  ZA:"South Africa",NG:"Nigeria",KE:"Kenya",EG:"Egypt",MA:"Morocco",
+  GH:"Ghana",TZ:"Tanzania",UG:"Uganda",SE:"Sweden",NO:"Norway",DK:"Denmark",
+  FI:"Finland",PL:"Poland",PT:"Portugal",GR:"Greece",TR:"Turkey",RU:"Russia",
+  UA:"Ukraine",RO:"Romania",CZ:"Czech Republic",HU:"Hungary,SK:"Slovakia",
+  BG:"Bulgaria",HR:"Croatia",RS:"Serbia",SI:"Slovenia",LT:"Lithuania",
+  LV:"Latvia",EE:"Estonia",IE:"Ireland",BE:"Belgium",LU:"Luxembourg",
+  AT:"Austria",CH:"Switzerland",IS:"Iceland",MT:"Malta",CY:"Cyprus",
+  AE:"United Arab Emirates",SA:"Saudi Arabia",QA:"Qatar",KW:"Kuwait",
+  BH:"Bahrain",OM:"Oman",JO:"Jordan",LB:"Lebanon",IL:"Israel",
+  PK:"Pakistan",BD:"Bangladesh",LK:"Sri Lanka",TH:"Thailand",VN:"Vietnam",
+  PH:"Philippines",ID:"Indonesia",MY:"Malaysia",SG:"Singapore",
+  KR:"South Korea",HK:"Hong Kong",TW:"Taiwan",AR:"Argentina",CL:"Chile",
+  CO:"Colombia",PE:"Peru",VE:"Venezuela",EC:"Ecuador",UY:"Uruguay",
+  PY:"Paraguay",BO:"Bolivia",DO:"Dominican Republic",CR:"Costa Rica",
+  PA:"Panama",GT:"Guatemala",HN:"Honduras",SV:"El Salvador",NI:"Nicaragua",
+  CU:"Cuba",JM:"Jamaica",TT:"Trinidad and Tobago",BS:"Bahamas",BB:"Barbados",
+};
+
+function countryFullName(code) {
+  return COUNTRY_NAMES[code] || code;
+}
+
+
+
 function buildBreadcrumbs(path, data = {}) {
   const crumbs = [{ label: "Home", url: "/en" }];
 
@@ -325,7 +353,7 @@ function buildCasinoCards(casinoList, geoData = null) {
       geoLabel = "Unknown";
     }
     const geoBadge = geoData ? `
-      <div class="geo-badge ${geoClass}" title="${geoLabel} in ${geoData.country}">
+      <div class="geo-badge ${geoClass}" title="${geoLabel} in ${countryFullName(geoData.country)}">
         <span class="geo-badge__flag">${flag}</span>
         <span class="geo-badge__icon">${geoIcon}</span>
       </div>` : "";
@@ -336,7 +364,7 @@ function buildCasinoCards(casinoList, geoData = null) {
      // </div>` : "";
     const geoStatusText = geoData ? `
   <div class="casino-card__geo-status geo-${geoStatus}">
-    ${flag} ${geoLabel} for players from ${geoData.country}
+    ${flag} ${geoLabel} for players from ${countryFullName(geoData.country)}
   </div>` : "";
 
 // Then add ${geoStatusText} inside the card body, after the bonus div

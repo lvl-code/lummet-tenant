@@ -87,6 +87,53 @@ export async function renderHome(request, env) {
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
+  // Split into available (shown by default) and others (hidden behind Load More)
+  const available = sortedCasinos.filter(c => 
+    geoData.statuses[c.slug] !== "blocked" && geoData.statuses[c.slug] !== "restricted"
+  );
+  const others = sortedCasinos.filter(c => 
+    geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
+  );
+
+  const homeSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": "https://level.casino",
+    "name": "Level Casino",
+    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Level Casino",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://level.casino/en/static/images/logo.png"
+      }
+    }
+  };
+
+  const html = await renderer.render("home.html", {
+    seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
+    seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
+    canonical: "https://level.casino/en",
+    casino_cards: buildCasinoCards(available, geoData),
+    casino_count: casinoList.length,
+    hidden_casino_cards: buildCasinoCards(others, geoData),
+    has_hidden: others.length > 0,
+    hidden_count: others.length
+  }, homeSchema, buildBreadcrumbs("home"));
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+
+export async function rendealHome(request, env) {
+  const renderer = new Renderer(env);
+  const casinoList = await casinos.getAllCasinos(env.DB);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
   const homeSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",

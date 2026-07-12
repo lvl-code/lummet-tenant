@@ -518,6 +518,23 @@ export async function renderReview(request, env, slug) {
 
   }
 
+  let casinoCardHtml = "";
+
+if (review.casino_slug) {
+  const casino = await casinos.getCasino(env.DB, review.casino_slug);
+
+  if (casino) {
+    casinoCardHtml = buildCasinoCards(
+      [casino],
+      {
+        country: geoCountry,
+        statuses: {
+          [casino.slug]: geoStatus
+        }
+      }
+    );
+  }
+}
   const reviewSchema = {
     "@context": "https://schema.org",
     "@type": "Review",
@@ -534,7 +551,7 @@ export async function renderReview(request, env, slug) {
     },
     "author": {
       "@type": "Person",
-      "name": "Level Casino Editor"
+      "name": "Elie"
     }
   };
 
@@ -543,6 +560,7 @@ export async function renderReview(request, env, slug) {
     canonical: `https://level.casino/en/review/${slug}`,
     pros_html: prosHtml,
     cons_html: consHtml,
+    casino_card_html: casinoCardHtml,
     casino_slug: review.casino_slug || "",
     geo_country: countryFullName(geoCountry),
     geo_status: geoStatus,

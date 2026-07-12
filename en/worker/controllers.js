@@ -565,6 +565,7 @@ export async function renderNews(
   const html =
     await renderer.render(
       "news.html",
+      { ...article, canonical: `https://level.casino/en/news/${slug}` },
       article,
       newsSchema,
       buildBreadcrumbs("news", { title: article.title })

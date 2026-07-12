@@ -21,7 +21,7 @@ const COUNTRY_NAMES = {
   ZA:"South Africa",NG:"Nigeria",KE:"Kenya",EG:"Egypt",MA:"Morocco",
   GH:"Ghana",TZ:"Tanzania",UG:"Uganda",SE:"Sweden",NO:"Norway",DK:"Denmark",
   FI:"Finland",PL:"Poland",PT:"Portugal",GR:"Greece",TR:"Turkey",RU:"Russia",
-  UA:"Ukraine",RO:"Romania",CZ:"Czech Republic",HU:"Hungary,SK:"Slovakia",
+  UA:"Ukraine",RO:"Romania",CZ:"Czech Republic",HU:"Hungary",SK:"Slovakia",
   BG:"Bulgaria",HR:"Croatia",RS:"Serbia",SI:"Slovenia",LT:"Lithuania",
   LV:"Latvia",EE:"Estonia",IE:"Ireland",BE:"Belgium",LU:"Luxembourg",
   AT:"Austria",CH:"Switzerland",IS:"Iceland",MT:"Malta",CY:"Cyprus",

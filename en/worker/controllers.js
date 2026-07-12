@@ -875,6 +875,7 @@ export async function renderDynamicPage(request, env, slug) {
 
   const html = await renderer.render("page.html", {
     ...page,
+    canonical: `https://level.casino/en/${slug}`,
     content_json: parseContentJson(page.content_json)
   }, pageSchema,buildBreadcrumbs("page", { title: page.title }));
 
@@ -919,7 +920,8 @@ export async function renderLogin(
         seo_title:
           "Login",
         seo_description:
-          "Level Casino Login"
+          "Level Casino Login",
+        canonical: "https://level.casino/en/login"
       }
     );
 
@@ -950,7 +952,8 @@ export async function renderRegister(
         seo_title:
           "Register",
         seo_description:
-          "Create Level Casino account"
+          "Create Level Casino account",
+        canonical: "https://level.casino/en/register"
       }
     );
 
@@ -1000,7 +1003,7 @@ export async function renderCasinoList(request, env) {
   };
 
   const html = await renderer.render("category.html", {
-    canonical: `https://level.casino/en/casino",
+    canonical: "https://level.casino/en/casino",
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1032,6 +1035,7 @@ export async function rendeCasinoList(request, env) {
   };
 
   const html = await renderer.render("category.html", {
+    canonical: "https://level.casino/en/casino",
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1076,7 +1080,7 @@ export async function renderReviewList(request, env) {
   };
 
   const html = await renderer.render("category.html", {
-    canonical: `https://level.casino/en/review",
+    canonical: "https://level.casino/en/review",
     category: "All Reviews",
     description: "Browse our complete collection of casino reviews.",
     casino_cards: reviewCards,
@@ -1113,6 +1117,7 @@ export async function renderNewsList(request, env) {
   };
 
   const html = await renderer.render("category.html", {
+    canonical: "https://level.casino/en/news",
     category: "Latest News",
     description: "Latest iGaming industry news and updates.",
     casino_cards: `<div class="news-grid">${newsCards}</div>`,
@@ -1134,6 +1139,7 @@ async function renderAdminPage(request, env, template, extraData = {}) {
 
   const renderer = new Renderer(env);
   const html = await renderer.render(template, {
+    canonical: "https://level.casino/en/news",
     seo_title: "Admin — Level Casino",
     seo_description: "Level Casino CMS Admin",
     ...extraData

@@ -296,6 +296,27 @@ async function prepareGeoData(env, request, casinoList) {
   return { country: geoInfo.country, statuses };
 }
 
+async function evaluateCasinoGeo(env, casinoSlug, countryCode) {
+  const result = await env.DB.prepare(`
+    SELECT country_code, status FROM geo_rules
+    WHERE casino_slug = ?
+  `).bind(casinoSlug).all();
+
+  const rules = result.results || [];
+
+  if (rules.length === 0) return "blocked";
+
+  const countryRule = rules.find(r => r.country_code === countryCode);
+  if (countryRule) return countryRule.status;
+
+  const hasAllowed = rules.some(r => r.status === "allowed");
+  const hasBlocked = rules.some(r => r.status === "blocked");
+
+  if (hasAllowed && !hasBlocked) return "blocked";   // allowlist mode
+  if (hasBlocked && !hasAllowed) return "allowed";    // blocklist mode
+  return "blocked";                                    // mixed → safe default
+}
+
 async function prepoGeoData(env, request, casinoList) {
   const edgeGeo = {
     country: request.cf?.country || "RW",
@@ -490,8 +511,11 @@ export async function renderReview(request, env, slug) {
     const geoInfo = geoEngine.process(request, edgeGeo);
     geoCountry = geoInfo.country;
     geoFlag = countryToFlag(geoCountry);
-    const geoRule = await getGeoRule(env.DB, review.casino_slug, geoInfo.country);
-    geoStatus = geoRule ? geoRule.status : "allowed";
+    //const geoRule = await getGeoRule(env.DB, review.casino_slug, geoInfo.country);
+    //geoStatus = geoRule ? geoRule.status : "allowed";
+    // With:
+    geoStatus = await evaluateCasinoGeo(env, review.casino_slug, geoInfo.country);
+
   }
 
   const reviewSchema = {

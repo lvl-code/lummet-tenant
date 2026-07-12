@@ -317,44 +317,6 @@ async function evaluateCasinoGeo(env, casinoSlug, countryCode) {
   return "blocked";                                    // mixed → safe default
 }
 
-async function prepoGeoData(env, request, casinoList) {
-  const edgeGeo = {
-    country: request.cf?.country || "RW",
-    city: request.cf?.city || "Unknown"
-  };
-  const geoInfo = geoEngine.process(request, edgeGeo);
-  const slugs = casinoList.map(c => c.slug);
-  if (slugs.length === 0) return { country: geoInfo.country, statuses: {} };
-
-  // Single batch query instead of N individual queries
-  const placeholders = slugs.map(() => '?').join(',');
-  const result = await env.DB.prepare(`
-    SELECT casino_slug, status FROM geo_rules
-    WHERE casino_slug IN (${placeholders}) AND country_code = ?
-  `).bind(...slugs, geoInfo.country).all();
-
-  const statuses = {};
-  for (const slug of slugs) statuses[slug] = "unknown";
-  for (const row of (result.results || [])) {
-    statuses[row.casino_slug] = row.status;
-  }
-  return { country: geoInfo.country, statuses };
-}
-
-
-async function prepaGeoData(env, request, casinoList) {
-  const edgeGeo = {
-    country: request.cf?.country || "RW",
-    city: request.cf?.city || "Unknown"
-  };
-  const geoInfo = geoEngine.process(request, edgeGeo);
-  const statuses = {};
-  for (const casino of casinoList) {
-    const rule = await getGeoRule(env.DB, casino.slug, geoInfo.country);
-    statuses[casino.slug] = rule ? rule.status : "allowed";
-  }
-  return { country: geoInfo.country, statuses };
-}
 
 function sortCasinosByGeo(casinoList, geoData) {
   if (!geoData) return casinoList;
@@ -426,49 +388,6 @@ function buildCasinoCards(casinoList, geoData = null) {
           <span class="bonus-value">${casino.bonus_value || ''}</span>
         </div>
         ${geoStatusText}
-        ${complianceHtml}
-      </div>
-      <div class="casino-card__actions">
-        <a href="/en/casino/${casino.slug}" class="btn btn--secondary">Review</a>
-        <a href="/en/go/${casino.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function buidCasinoCards(casinoList, geoData = null) {
-  return casinoList.map(casino => {
-    const flag = geoData ? countryToFlag(geoData.country) : "";
-    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "allowed") : "allowed";
-    const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
-    const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
-
-    const geoBadge = geoData ? `
-      <div class="geo-badge ${geoClass}">
-        <span class="geo-badge__flag">${flag}</span>
-        <span class="geo-badge__icon">${geoIcon}</span>
-      </div>` : "";
-
-    const complianceHtml = `
-      <div class="casino-card__compliance">
-        ${casino.license ? `<div class="compliance-row"><span class="compliance-label">License:</span> <span class="compliance-value">${casino.license}</span></div>` : ""}
-        ${casino.owner ? `<div class="compliance-row"><span class="compliance-label">Operator:</span> <span class="compliance-value">${casino.owner}</span></div>` : ""}
-        ${casino.website_url ? `<div class="compliance-row"><span class="compliance-label">Terms:</span> <a href="${casino.website_url}" target="_blank" rel="noopener" class="compliance-link">View Terms</a></div>` : ""}
-      </div>`;
-
-    return `
-    <div class="casino-card">
-      ${geoBadge}
-      <div class="casino-card__header">
-        <img src="${casino.logo || '/en/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'">
-        <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
-      </div>
-      <div class="casino-card__body">
-        <h3>${casino.name}</h3>
-        <div class="casino-card__bonus">
-          <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
-          <span class="bonus-value">${casino.bonus_value || ''}</span>
-        </div>
         ${complianceHtml}
       </div>
       <div class="casino-card__actions">

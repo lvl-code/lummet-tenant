@@ -57,18 +57,18 @@ async function loadGeoInfo() {
     if (data.status === "allowed") {
       card.innerHTML = `
         <h4>Your Region</h4>
-        <p class="geo-allowed">✓ Available in ${data.country}</p>
+        <p class="geo-allowed">✓ Available in ${data.countryName || data.country}</p>
         ${data.bonusOverride ? `<span class="bonus-override">${data.bonusOverride}</span>` : ""}
       `;
     } else if (data.status === "blocked") {
       card.innerHTML = `
         <h4>Your Region</h4>
-        <p class="geo-blocked">✕ Not available in ${data.country}</p>
+        <p class="geo-blocked">✕ Not available in ${data.countryName || data.country}</p>
       `;
     } else {
       card.innerHTML = `
         <h4>Your Region</h4>
-        <p class="geo-restricted">⚠ Restricted in ${data.country}</p>
+        <p class="geo-restricted">⚠ Restricted in ${data.countryName || data.country}</p>
       `;
     }
   } catch {

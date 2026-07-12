@@ -11,6 +11,10 @@
           <label>Password</label>
           <input type="password" name="password" required>
         </div>
+        <div class="form-group">
+          <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+          <input type="hidden" name="cf-turnstile-response" id="turnstileToken">
+        </div>
         <button type="submit" class="btn btn--primary btn--block">Login</button>
       </form>
       <p class="auth-footer">No account? <a href="/en/register">Register</a></p>
@@ -18,3 +22,4 @@
     </div>
   </div>
 </section>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

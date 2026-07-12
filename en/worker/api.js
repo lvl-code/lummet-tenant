@@ -111,6 +111,29 @@ if (path === "/api/v1/geo/check") {
     return json({ success: true, message: "Admin created. Remove this endpoint now." });
   }
 
+if (path === "/api/v1/public/reviews/list") {
+  const result = await env.DB.prepare(`
+    SELECT r.*, c.name as casino_name, c.logo as casino_logo
+    FROM reviews r
+    LEFT JOIN casinos c ON c.slug = r.casino_slug
+    WHERE r.published = 1
+    ORDER BY r.created_at DESC
+  `).all();
+  return json({ reviews: result.results });
+}
+
+if (path === "/api/v1/public/casino-reviews") {
+  const url = new URL(request.url);
+  const casinoSlug = url.searchParams.get("casino_slug");
+  if (!casinoSlug) return json({ reviews: [] });
+  const result = await env.DB.prepare(`
+    SELECT * FROM reviews
+    WHERE casino_slug = ? AND published = 1
+    ORDER BY created_at DESC
+  `).bind(casinoSlug).all();
+  return json({ reviews: result.results });
+}
+
   // Add this BEFORE the auth check, around line 30-40
 if (path === "/api/v1/public/casinos/list") {
   const casinos = await env.DB.prepare(`

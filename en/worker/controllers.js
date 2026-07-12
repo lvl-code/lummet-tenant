@@ -520,7 +520,7 @@ export async function renderReview(request, env, slug) {
     pros_html: prosHtml,
     cons_html: consHtml,
     casino_slug: review.casino_slug || "",
-    geo_country: geoCountry,
+    geo_country: countryFullName(geoCountry),
     geo_status: geoStatus,
     geo_flag: geoFlag
   }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));

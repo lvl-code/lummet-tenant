@@ -68,29 +68,28 @@ escapeHtml(str = "") {
 }
 
 buildSEO(data = {}) {
+  const title = data.seo_title || "Level Casino — Expert Casino Reviews";
+  const description = this.escapeHtml(data.seo_description || "");
+  const canonical = data.canonical || "";
+  const ogImage = data.og_image || "https://level.casino/static/images/logo.png";
 
   return `
-<title>${data.seo_title || ""}</title>
-
-<meta
-name="description"
-content="${this.escapeHtml(data.seo_description)}"
->
-<link
-rel="canonical"
-href="${data.canonical || ""}"
->
-<meta
-property="og:title"
-content="${data.seo_title || ""}"
->
-
-<meta
-property="og:description"
-content="${this.escapeHtml(data.seo_description)}"
->
+<title>${title}</title>
+<meta name="description" content="${description}">
+<link rel="canonical" href="${canonical}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${canonical}">
+<meta property="og:title" content="${this.escapeHtml(title)}">
+<meta property="og:description" content="${description}">
+<meta property="og:image" content="${ogImage}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="${canonical}">
+<meta name="twitter:title" content="${this.escapeHtml(title)}">
+<meta name="twitter:description" content="${description}">
+<meta name="twitter:image" content="${ogImage}">
 `;
 }
+
   // =====================================================
   // JSON-LD
   // =====================================================

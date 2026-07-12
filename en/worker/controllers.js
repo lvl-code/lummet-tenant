@@ -162,40 +162,6 @@ export async function rendealHome(request, env) {
   });
 }
 
-export async function rendeHome(request, env) {
-  const renderer = new Renderer(env);
-  const casinoList = await casinos.getAllCasinos(env.DB);
-  const geoData = await prepareGeoData(env, request, casinoList);
-  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
-
-  const homeSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "url": "https://level.casino",
-    "name": "Level Casino",
-    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
-    "publisher": {
-      "@type": "Organization",
-      "name": "Level Casino",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://level.casino/en/static/images/logo.png"
-      }
-    }
-  };
-
-  const html = await renderer.render("home.html", {
-    seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
-    seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
-    casino_cards: buildCasinoCards(sortedCasinos, geoData),
-    casino_count: casinoList.length
-  }, homeSchema, buildBreadcrumbs("home"));
-
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
-
 
 
 export async function renderCasino(request, env, slug) {
@@ -251,6 +217,7 @@ export async function renderCasino(request, env, slug) {
   
   const html = await renderer.render("casino.html", {
     ...casino,
+    canonical: `https://level.casino/en/casino/${slug}`,
     rating_display: ratingDisplay,
     features_html: featuresHtml,
     bonus_title: casino.bonus_title || "Welcome Bonus",
@@ -549,6 +516,7 @@ export async function renderReview(request, env, slug) {
 
   const html = await renderer.render("review.html", {
     ...review,
+    canonical: `https://level.casino/en/review/${slug}`,
     pros_html: prosHtml,
     cons_html: consHtml,
     casino_slug: review.casino_slug || "",
@@ -831,6 +799,7 @@ export async function renderCountry(request, env, slug) {
   };
   const html = await renderer.render("country.html", {
     ...countryData,
+    canonical: `https://level.casino/en/country/${code}`,
     casino_cards: buildCasinoCards(casinoList, geoData),
     seo_title: countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
@@ -863,6 +832,7 @@ export async function renderCategory(request, env, slug) {
 
   const html = await renderer.render("category.html", {
     slug,
+    canonical: `https://level.casino/en/category/${slug}`,
     category: category.name,
     description: category.description,
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1030,6 +1000,7 @@ export async function renderCasinoList(request, env) {
   };
 
   const html = await renderer.render("category.html", {
+    canonical: `https://level.casino/en/casino",
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1105,6 +1076,7 @@ export async function renderReviewList(request, env) {
   };
 
   const html = await renderer.render("category.html", {
+    canonical: `https://level.casino/en/review",
     category: "All Reviews",
     description: "Browse our complete collection of casino reviews.",
     casino_cards: reviewCards,

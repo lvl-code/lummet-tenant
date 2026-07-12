@@ -479,7 +479,75 @@ function buidCasinoCards(casinoList, geoData = null) {
   }).join('');
 }
 
+function buildReviewCasinoCards(casinoList, geoData = null) {
+  return casinoList.map(casino => {
+    const flag = geoData ? countryToFlag(geoData.country) : "";
+    const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+ //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
+ //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
+    // Different icons and colors for each status
+    let geoIcon, geoClass, geoLabel;
+    if (geoStatus === "allowed") {
+      geoIcon = "✓";
+      geoClass = "geo-badge--allowed";
+      geoLabel = "Available";
+    } else if (geoStatus === "blocked") {
+      geoIcon = "✕";
+      geoClass = "geo-badge--blocked";
+      geoLabel = "Not Available";
+    } else {
+      geoIcon = "?";     // ← question mark for unknown
+      geoClass = "geo-badge--unknown";
+      geoLabel = "Unknown";
+    }
+    const geoBadge = geoData ? `
+      <div class="geo-badge ${geoClass}" title="${geoLabel} in ${countryFullName(geoData.country)}">
+        <span class="geo-badge__flag">${flag}</span>
+        <span class="geo-badge__icon">${geoIcon}</span>
+      </div>` : "";
+   // const geoBadge = geoData ? `
+     // <div class="geo-badge ${geoClass}">
+       // <span class="geo-badge__flag">${flag}</span>
+       // <span class="geo-badge__icon">${geoIcon}</span>
+     // </div>` : "";
+    const geoStatusText = geoData ? `
+  <div class="casino-card__geo-status geo-${geoStatus}">
+    ${flag} ${geoLabel} for players from ${countryFullName(geoData.country)}
+  </div>` : "";
+
+// Then add ${geoStatusText} inside the card body, after the bonus div
+
+
+    const complianceHtml = `
+      <div class="casino-card__compliance">
+        ${casino.license ? `<div class="compliance-row"><span class="compliance-label">License:</span> <span class="compliance-value">${casino.license}</span></div>` : ""}
+        ${casino.owner ? `<div class="compliance-row"><span class="compliance-label">Operator:</span> <span class="compliance-value">${casino.owner}</span></div>` : ""}
+        ${casino.website_url ? `<div class="compliance-row"><span class="compliance-label">18+ | PLAY RESPONSIBLY |</span> <a href="${casino.website_url}" target="_blank" rel="noopener" class="compliance-link">T&CS APPLY</a></div>` : ""}
+      </div>`;
+
+    return `
+    <div class="casino-card">
+      ${geoBadge}
+      <div class="casino-card__header">
+        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'" loading="lazy">
+        <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
+      </div>
+      <div class="casino-card__body">
+        <h3>${casino.name}</h3>
+        <div class="casino-card__bonus">
+          <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
+          <span class="bonus-value">${casino.bonus_value || ''}</span>
+        </div>
+        ${geoStatusText}
+        ${complianceHtml}
+      </div>
+      <div class="casino-card__actions">
+        <a href="/en/go/${casino.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 export async function renderReview(request, env, slug) {
   const review = await reviews.getReview(env.DB, slug);
@@ -524,7 +592,7 @@ if (review.casino_slug) {
   const casino = await casinos.getCasino(env.DB, review.casino_slug);
 
   if (casino) {
-    casinoCardHtml = buildCasinoCards(
+    casinoCardHtml = buildReviewCasinoCards(
       [casino],
       {
         country: geoCountry,

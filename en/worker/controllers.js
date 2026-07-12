@@ -416,9 +416,9 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
       geoClass = "geo-badge--blocked";
       geoLabel = "Not Available";
     } else {
-      geoIcon = "?";     // ← question mark for unknown
+      geoIcon = "✕";     // ← question mark for unknown
       geoClass = "geo-badge--unknown";
-      geoLabel = "Unknown";
+      geoLabel = "not Available";
     }
     const geoBadge = geoData ? `
       <div class="geo-badge ${geoClass}" title="${geoLabel} in ${countryFullName(geoData.country)}">

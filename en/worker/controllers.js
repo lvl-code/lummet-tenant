@@ -746,7 +746,7 @@ export async function dashboardStatsAPI(request, env) {
     });
 }
 
-function robots() {
+export function robots() {
   return new Response(
     `User-agent: *
 Allow: /

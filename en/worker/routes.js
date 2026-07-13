@@ -13,6 +13,10 @@ export function getRoute(request) {
   if (path.length > 1 && path.endsWith("/")) {
     path = path.slice(0, -1);
   }
+  // Add right after: if (path.length > 1 && path.endsWith("/")) { path = path.slice(0, -1); }
+  if (path === "/" || path === "") {
+      return { type: "redirect", target: "/en" };
+  }
 
   // =====================================================
   // HOME
@@ -189,36 +193,33 @@ export function getRoute(request) {
     };
   }
 
-  // =====================================================
-  // SITEMAPS
-  // =====================================================
-
-  if (path === "/sitemap.xml") {
-    return {
-      type: "sitemap"
-    };
+  // Sitemap routes — accessible at both root and /en/
+  if (path === "/sitemap.xml" || path === "/en/sitemap.xml") {
+      return { type: "sitemap" };
   }
-
-  if (path === "/sitemap-casinos.xml") {
-    return {
-      type: "sitemap-casinos"
-    };
+  if (path === "/sitemap-index.xml" || path === "/en/sitemap-index.xml") {
+      return { type: "sitemap-index" };
   }
-
-  if (path === "/sitemap-reviews.xml") {
-    return {
-      type: "sitemap-reviews"
-    };
+  if (path === "/sitemap-casinos.xml" || path === "/en/sitemap-casinos.xml") {
+      return { type: "sitemap-casinos" };
   }
-
-  // =====================================================
-  // ROBOTS
-  // =====================================================
-
+  if (path === "/sitemap-reviews.xml" || path === "/en/sitemap-reviews.xml") {
+      return { type: "sitemap-reviews" };
+  }
+  if (path === "/sitemap-news.xml" || path === "/en/sitemap-news.xml") {
+      return { type: "sitemap-news" };
+  }
+  if (path === "/sitemap-categories.xml" || path === "/en/sitemap-categories.xml") {
+      return { type: "sitemap-categories" };
+  }
+  if (path === "/sitemap-countries.xml" || path === "/en/sitemap-countries.xml") {
+      return { type: "sitemap-countries" };
+  }
+  if (path === "/sitemap-pages.xml" || path === "/en/sitemap-pages.xml") {
+      return { type: "sitemap-pages" };
+  }
   if (path === "/robots.txt") {
-    return {
-      type: "robots"
-    };
+      return { type: "robots" };
   }
 
   // =====================================================

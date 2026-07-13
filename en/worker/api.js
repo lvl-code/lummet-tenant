@@ -145,6 +145,13 @@ if (path === "/api/v1/public/casinos/list") {
   `).all();
   return json({ casinos: casinos.results });
 }
+// List news
+if (path === "/api/v1/public/news/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM news WHERE published = 1 ORDE>
+  `).all();
+  return json({ news: result.results });
+}
 
 
   if (!user) {

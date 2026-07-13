@@ -60,7 +60,7 @@ async function initHomeNews() {
   if (!container) return;
 
   try {
-    const res = await fetch("/en/api/v1/news/list");
+    const res = await fetch("/en/api/v1/public/news/list");
     const data = await res.json();
 
     if (!data.news || data.news.length === 0) {

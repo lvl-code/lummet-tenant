@@ -1,4 +1,4 @@
-var sitemapEngine = {
+export const sitemapEngine = {
   BASE_URL: "https://level.casino",
 
   async generateIndex(db) {

@@ -746,22 +746,27 @@ export async function dashboardStatsAPI(request, env) {
     });
 }
 
-export function robots() {
-
+function robots() {
   return new Response(
-`User-agent: *
+    `User-agent: *
 Allow: /
 
-Sitemap:
-https://level.casino/sitemap.xml`,
-{
-headers:{
-"Content-Type":
-"text/plain"
+Sitemap: https://level.casino/en/sitemap-index.xml
+Sitemap: https://level.casino/en/sitemap.xml
+Sitemap: https://level.casino/en/sitemap-casinos.xml
+Sitemap: https://level.casino/en/sitemap-reviews.xml
+Sitemap: https://level.casino/en/sitemap-news.xml
+Sitemap: https://level.casino/en/sitemap-categories.xml
+Sitemap: https://level.casino/en/sitemap-countries.xml
+Sitemap: https://level.casino/en/sitemap-pages.xml`,
+    {
+      headers: {
+        "Content-Type": "text/plain"
+      }
+    }
+  );
 }
-});
 
-}
 
 export async function rendeCountry(request, env, slug) {
   const code = slug.toUpperCase();

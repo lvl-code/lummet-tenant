@@ -201,15 +201,28 @@ export default {
     user
   );
 
-      case "sitemap":
-        return sitemapEngine.generate(env.DB, "all");
-      case "sitemap-casinos":
-        return sitemapEngine.generate(env.DB, "casinos");
-      case "sitemap-reviews":
-        return sitemapEngine.generate(env.DB, "reviews");
-      case "robots":
-  return robots();
-      
+  // REPLACE WITH:
+  case "redirect":
+      return new Response(null, { status: 302, headers: { Location: route.target } });
+  case "sitemap":
+      return sitemapEngine.generate(env.DB, "all");
+  case "sitemap-index":
+      return sitemapEngine.generateIndex(env.DB);
+  case "sitemap-casinos":
+      return sitemapEngine.generate(env.DB, "casinos");
+  case "sitemap-reviews":
+      return sitemapEngine.generate(env.DB, "reviews");
+  case "sitemap-news":
+      return sitemapEngine.generate(env.DB, "news");
+  case "sitemap-categories":
+      return sitemapEngine.generate(env.DB, "categories");
+  case "sitemap-countries":
+      return sitemapEngine.generate(env.DB, "countries");
+  case "sitemap-pages":
+      return sitemapEngine.generate(env.DB, "pages");
+  case "robots":
+      return robots();
+
 
       case "page":
         return renderDynamicPage(

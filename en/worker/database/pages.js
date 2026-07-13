@@ -20,9 +20,10 @@ export async function createPage(db, page) {
         title,
         content_json,
         seo_title,
-        seo_description
+        seo_description,
+        published
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?,1)
     `)
     .bind(
       page.slug,

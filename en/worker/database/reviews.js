@@ -41,9 +41,10 @@ export async function createReview(db, review) {
         rating,
         seo_title,
         seo_description,
-        ai_generated
+        ai_generated,
+        published
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,1)
     `)
     .bind(
       review.casino_slug,

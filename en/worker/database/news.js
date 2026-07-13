@@ -43,10 +43,11 @@ export async function createNews(
       content,
       author,
       seo_title,
-      seo_description
+      seo_description,
+      published
     )
     VALUES(
-      ?,?,?,?,?,?
+      ?,?,?,?,?,?,1
     )
   `)
   .bind(

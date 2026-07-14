@@ -248,6 +248,35 @@ ORDER BY
   return json({ casinos: casinos.results });
 }
 
+if (path === "/api/v1/casino/get") {
+  const url = new URL(request.url);
+  const slug = url.searchParams.get("slug");
+
+  if (!slug) return failure("slug is required");
+
+  const casino = await env.DB.prepare(`
+    SELECT *
+    FROM casinos
+    WHERE slug = ?
+    LIMIT 1
+  `).bind(slug).first();
+
+  if (!casino) return failure("Casino not found",404);
+
+  const categoryRows = await env.DB.prepare(`
+    SELECT category_id
+    FROM casino_categories
+    WHERE casino_id = ?
+  `).bind(casino.id).all();
+
+  casino.category_ids = (categoryRows.results || []).map(r => r.category_id);
+
+  return json({
+    success: true,
+    casino
+  });
+}
+
 // ==================================
 // READ ENDPOINTS (add to api.js route handler)
 // ==================================

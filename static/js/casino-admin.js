@@ -105,6 +105,13 @@ async function initCasinoEditForm() {
             <input type="checkbox" value="${c.id}"> ${c.name} (${c.slug})
           </label>
         `).join("");
+        const selectedCategories = casino.category_ids || [];
+
+        categoryBox.querySelectorAll("input").forEach(cb => {
+        if (selectedCategories.includes(parseInt(cb.value))) {
+          cb.checked = true;
+        }
+      });
       } catch {
         categoryBox.innerHTML = '<p class="muted">Failed to load categories</p>';
       }

@@ -42,6 +42,24 @@ async function initCasinoEditForm() {
         input.value = casino[field];
       }
     }
+    
+    // Populate features
+const featuresInput = form.querySelector('[name="features"]');
+if (featuresInput) {
+  if (Array.isArray(casino.features)) {
+    featuresInput.value = casino.features.join(", ");
+  } else if (typeof casino.features === "string") {
+    try {
+      const parsed = JSON.parse(casino.features);
+      featuresInput.value = Array.isArray(parsed)
+        ? parsed.join(", ")
+        : casino.features;
+    } catch {
+      featuresInput.value = casino.features;
+    }
+  }
+}
+
         // Load countries for geo targeting
     const countryBox = document.getElementById("countryCheckboxes");
     if (countryBox && !countryBox.dataset.loaded) {

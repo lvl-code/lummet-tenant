@@ -1342,6 +1342,74 @@ export async function renderDashboardCountries(request, env) {
   return renderAdminPage(request, env, "admin/countries.html");
 }
 
-export async function renderDashboardCasinoEdit(request, env, slug) {
+export async function rendeDashboardCasinoEdit(request, env, slug) {
   return renderAdminPage(request, env, "admin/casino-edit.html", { slug });
+}
+
+async function renderDashboardCasinoEdit(request, env, slug) {
+  const user = await getCurrentUser(request, env);
+  if (!user || user.role !== "admin") {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  // Fetch the casino by slug (including unpublished/draft)
+  const casino = await env.DB.prepare(`
+    SELECT * FROM casinos WHERE slug = ? LIMIT 1
+  `).bind(slug).first();
+
+  if (!casino) {
+    return render404(request, env);
+  }
+
+  // Fetch existing geo rules for this casino
+  const geoRules = await getGeoRulesForCasino(env.DB, slug);
+
+  // Fetch existing category assignments
+  const categoryResult = await env.DB.prepare(`
+    SELECT cc.category_id FROM casino_categories cc
+    WHERE cc.casino_id = ?
+  `).bind(casino.id).all();
+  const categoryIds = (categoryResult.results || []).map(r => r.category_id);
+
+  // Parse features array
+  let features = [];
+  try {
+    features = JSON.parse(casino.features || "[]");
+  } catch {
+    features = [];
+  }
+
+  // Fetch all categories for the dropdown
+  const allCategories = await getAllCategories(env.DB);
+
+  const renderer = new Renderer(env);
+  const html = await renderer.render("admin/casino-edit.html", {
+    seo_title: "Edit Casino — Level Casino",
+    seo_description: "Level Casino CMS Admin",
+    slug: slug,
+    casino: JSON.stringify(casino),
+    casino_name: casino.name || "",
+    casino_logo: casino.logo || "",
+    casino_website_url: casino.website_url || "",
+    casino_affiliate_url: casino.affiliate_url || "",
+    casino_rating: casino.rating || 0,
+    casino_bonus_title: casino.bonus_title || "",
+    casino_bonus_value: casino.bonus_value || "",
+    casino_seo_title: casino.seo_title || "",
+    casino_seo_description: casino.seo_description || "",
+    casino_featured: casino.featured || 0,
+    casino_sort_order: casino.sort_order || 0,
+    casino_status: casino.status || "draft",
+    casino_license: casino.license || "",
+    casino_owner: casino.owner || "",
+    casino_features: JSON.stringify(features),
+    casino_logo_media_id: casino.logo_media_id || "",
+    casino_hero_image_media_id: casino.hero_image_media_id || "",
+    geo_rules: JSON.stringify(geoRules),
+    category_ids: JSON.stringify(categoryIds),
+    all_categories: JSON.stringify(allCategories),
+    casino_id: casino.id
+  });
+
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
 }

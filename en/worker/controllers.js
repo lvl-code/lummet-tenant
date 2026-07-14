@@ -1342,11 +1342,11 @@ export async function renderDashboardCountries(request, env) {
   return renderAdminPage(request, env, "admin/countries.html");
 }
 
-export async function rendeDashboardCasinoEdit(request, env, slug) {
+export async function renderDashboardCasinoEdit(request, env, slug) {
   return renderAdminPage(request, env, "admin/casino-edit.html", { slug });
 }
 
-export async function renderDashboardCasinoEdit(request, env, slug) {
+export async function rendeDashboardCasinoEdit(request, env, slug) {
   const user = await getCurrentUser(request, env);
   if (!user || user.role !== "admin") {
     return new Response("Forbidden", { status: 403 });

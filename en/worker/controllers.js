@@ -1346,7 +1346,7 @@ export async function rendeDashboardCasinoEdit(request, env, slug) {
   return renderAdminPage(request, env, "admin/casino-edit.html", { slug });
 }
 
-async function renderDashboardCasinoEdit(request, env, slug) {
+export async function renderDashboardCasinoEdit(request, env, slug) {
   const user = await getCurrentUser(request, env);
   if (!user || user.role !== "admin") {
     return new Response("Forbidden", { status: 403 });

@@ -3,6 +3,23 @@
     <header class="review-header">
       {{casino_card_html}}
       <h1>{{title}}</h1>
+      
+      <div class="review-meta">
+    <div class="review-author">
+        <strong>By {{author}}</strong>
+    </div>
+
+    <div class="review-author-title">
+        {{author_title}}
+    </div>
+
+    <div class="review-dates">
+        <span><strong>Reviewed:</strong> {{reviewed_at}}</span>
+        &nbsp;•&nbsp;
+        <span><strong>Updated:</strong> {{updated_at}}</span>
+    </div>
+</div>
+
       <div class="review-meta">
         <span class="rating-stars">{{rating}} / 5</span>
       </div>

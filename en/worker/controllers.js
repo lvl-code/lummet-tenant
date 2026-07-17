@@ -521,7 +521,26 @@ export async function renderReview(request, env, slug) {
   let pros = [], cons = [];
   try { pros = JSON.parse(review.pros || "[]"); } catch {}
   try { cons = JSON.parse(review.cons || "[]"); } catch {}
+  let faqHtml = "";
 
+try {
+  const faqs = JSON.parse(review.faq_json || "[]");
+
+  faqHtml = faqs.map(faq => `
+    <div class="faq-item">
+      <button class="faq-question">
+        ${faq.q}
+      </button>
+
+      <div class="faq-answer">
+        <p>${faq.a}</p>
+      </div>
+    </div>
+  `).join("");
+
+} catch {
+  faqHtml = "";
+}
   const prosHtml = pros.length
     ? `<ul>${pros.map(p => `<li>${p}</li>`).join("")}</ul>`
     : "<p class='muted'>No pros listed.</p>";
@@ -589,6 +608,7 @@ if (review.casino_slug) {
   const html = await renderer.render("review.html", {
     ...review,
     canonical: `https://level.casino/en/review/${slug}`,
+    faq_html: faqHtml,
     pros_html: prosHtml,
     cons_html: consHtml,
     casino_card_html: casinoCardHtml,

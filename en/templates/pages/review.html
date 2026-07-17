@@ -25,23 +25,28 @@
       </div>
     </header>
     <div class="review-body">
+      <nav id="review-toc" class="review-toc">
+        <h2>Contents</h2>
+        <ul id="review-toc-list"></ul>
+      </nav>
       <div class="review-content">
+  <h2 id="overview">Overview</h2>
   <p>{{overview}}</p>
 
-  <h2>Games</h2>
+  <h2 id="games">Games</h2>
   <p>{{games}}</p>
 
-  <h2>Bonuses</h2>
+  <h2 id="bonuses">Bonuses</h2>
   <p>{{bonuses}}</p>
 
-  <h2>Payment Methods</h2>
+  <h2 id="payments">Payment Methods</h2>
   <p>{{payments}}</p>
 
-  <h2>Licensing</h2>
+  <h2 id="licensing">Licensing</h2>
   <p>{{licenses}}</p>
 
   {{content}}
-  <h2>Verdict</h2>
+  <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
 </div>
 
@@ -63,4 +68,26 @@
       <a href="/en/go/{{casino_slug}}" class="btn btn--primary btn--lg" rel="nofollow sponsored">Visit Casino</a>
     </div>
   </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const toc = document.getElementById("review-toc-list");
+    const headings = document.querySelectorAll(".review-content h2");
+
+    headings.forEach((heading, index) => {
+        if (!heading.id) {
+            heading.id = "section-" + index;
+        }
+
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+
+        a.href = "#" + heading.id;
+        a.textContent = heading.textContent;
+
+        li.appendChild(a);
+        toc.appendChild(li);
+    });
+});
+</script>
 </article>

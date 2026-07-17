@@ -144,16 +144,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 <script>
-document.querySelectorAll(".faq-question").forEach(btn=>{
-
-btn.addEventListener("click",()=>{
-
-const item=btn.parentElement;
-
-item.classList.toggle("active");
-
-});
-
+document.querySelectorAll(".faq-question").forEach(btn => {
+    btn.addEventListener("click", () => {
+        btn.parentElement.classList.toggle("active");
+    });
 });
 </script>
+
 </article>

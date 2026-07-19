@@ -205,6 +205,13 @@ if (path === "/api/v1/public/casinos/geo") {
 
     return { ...casino, geo_status: geoStatus };
   });
+    // Geo-rank: available first (by rating desc), then unavailable (by rating desc)
+  geoCasinos.sort((a, b) => {
+    const aAvail = a.geo_status === "allowed" ? 1 : 0;
+    const bAvail = b.geo_status === "allowed" ? 1 : 0;
+    if (aAvail !== bAvail) return bAvail - aAvail;
+    return (b.rating || 0) - (a.rating || 0);
+  });
 
   return json({ casinos: geoCasinos, country });
 }
@@ -259,6 +266,13 @@ if (path === "/api/v1/public/reviews/geo") {
     }
 
     return { ...review, geo_status: geoStatus };
+  });
+    // Geo-rank: available first (by rating desc), then unavailable (by rating desc)
+  geoReviews.sort((a, b) => {
+    const aAvail = a.geo_status === "allowed" ? 1 : 0;
+    const bAvail = b.geo_status === "allowed" ? 1 : 0;
+    if (aAvail !== bAvail) return bAvail - aAvail;
+    return (b.rating || 0) - (a.rating || 0);
   });
 
   return json({ reviews: geoReviews, country });

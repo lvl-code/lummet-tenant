@@ -1197,6 +1197,14 @@ export async function renderReviewList(request, env) {
     }
   }
 
+    // Geo-rank: available first (by rating desc), then unavailable (by rating desc)
+  reviews.sort((a, b) => {
+    const aAvail = a.casino_slug && geoStatuses[a.casino_slug] === "allowed" ? 1 : 0;
+    const bAvail = b.casino_slug && geoStatuses[b.casino_slug] === "allowed" ? 1 : 0;
+    if (aAvail !== bAvail) return bAvail - aAvail;
+    return (b.rating || 0) - (a.rating || 0);
+  });
+
   const reviewCards = reviews.map(r => {
     const geoStatus = r.casino_slug ? (geoStatuses[r.casino_slug] || "blocked") : "unknown";
     const geoBadge = geoStatus === "allowed"

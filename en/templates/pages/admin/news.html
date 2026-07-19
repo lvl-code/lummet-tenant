@@ -23,6 +23,7 @@
 
     <h2 style="margin-top:30px">Add News Article</h2>
     <form id="newsForm" class="admin-form">
+      <input type="hidden" name="id" id="newsId" value="">
       <div class="form-row">
         <div class="form-group"><label>Slug *</label><input type="text" name="slug" required></div>
         <div class="form-group"><label>Author</label><input type="text" name="author" value="Admin"></div>
@@ -34,7 +35,10 @@
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
       <div id="newsFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Create Article</button>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="newsSubmitBtn">Create Article</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="newsCancelEdit" style="display:none" onclick="cancelNewsEdit()">Cancel Edit</button>
+      </div>
     </form>
   </div>
 </div>

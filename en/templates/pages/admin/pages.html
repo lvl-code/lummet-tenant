@@ -23,6 +23,7 @@
 
     <h2 style="margin-top:30px">Add Page</h2>
     <form id="pageForm" class="admin-form">
+      <input type="hidden" name="id" id="pageId" value="">
       <div class="form-row">
         <div class="form-group"><label>Slug *</label><input type="text" name="slug" required placeholder="about"></div>
         <div class="form-group"><label>Type *</label><input type="text" name="type" required value="page"></div>
@@ -37,7 +38,10 @@
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
       <div id="pageFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Create Page</button>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="pageSubmitBtn">Create Page</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="pageCancelEdit" style="display:none" onclick="cancelPageEdit()">Cancel Edit</button>
+      </div>
     </form>
   </div>
 </div>

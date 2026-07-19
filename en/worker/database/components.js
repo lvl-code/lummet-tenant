@@ -170,3 +170,17 @@ export async function bulkAssignComponent(db, data) {
 function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
+
+
+export async function updatePageComponentAssignment(db, id, data) {
+  return await db.prepare(`
+    UPDATE page_components SET
+      position = ?,
+      injection_point = ?
+    WHERE id = ?
+  `).bind(
+    data.position || 0,
+    data.injection_point || "content_bottom",
+    id
+  ).run();
+}

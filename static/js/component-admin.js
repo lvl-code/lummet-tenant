@@ -39,8 +39,10 @@ async function loadComponentsTable() {
         <td><span class="status-badge status-${c.status === 'active' ? 'published' : 'draft'}">${c.type}</span></td>
         <td><span class="status-badge status-${c.status === 'active' ? 'published' : 'draft'}">${c.status}</span></td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editComponent(${c.id})">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteComponent(${c.id})">Delete</button>
         </td>
+
       </tr>
     `).join("");
   } catch {
@@ -95,7 +97,10 @@ function initComponentForm() {
     if (alertEl) alertEl.style.display = "none";
 
     const formData = new FormData(form);
+    const isEdit = formData.get("id") ? true : false;
+    const endpoint = isEdit ? "/en/api/v1/component/update" : "/en/api/v1/component/create";
     const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : null,
       name: formData.get("name"),
       slug: formData.get("slug") || null,
       type: formData.get("type"),
@@ -106,20 +111,24 @@ function initComponentForm() {
     };
 
     try {
-      const res = await fetch("/en/api/v1/component/create", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const data = await res.json();
 
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
-          alertEl.textContent = "Component created!";
+          alertEl.textContent = isEdit ? "Component updated!" : "Component created!";
           alertEl.style.display = "block";
         }
         form.reset();
+        form.querySelector("[name='id']").value = "";
+        document.getElementById("componentSubmitBtn").textContent = "Create Component";
+        document.getElementById("componentCancelEdit").style.display = "none";
         loadComponentsTable();
         populateComponentDropdown();
       } else {
@@ -245,6 +254,7 @@ async function loadAssignments() {
         <td>${a.injection_point || 'content_bottom'}</td>
         <td>${a.enabled ? '<span class="status-badge status-published">Yes</span>' : '<span class="status-badge status-draft">No</span>'}</td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editAssignment(${a.id}, ${a.position}, '${a.injection_point || 'content_bottom'}')">Edit</button>
           <button class="btn btn--ghost btn--sm" onclick="toggleAssignment(${a.id}, ${a.enabled ? 0 : 1})">${a.enabled ? 'Disable' : 'Enable'}</button>
           <button class="btn btn--danger btn--sm" onclick="removeAssignment(${a.id})">Remove</button>
         </td>
@@ -371,3 +381,54 @@ async function deleteSeoMeta(pageType, pageSlug) {
     initSeoAdmin();
   } catch { alert("Network error"); }
 }
+
+
+// ── Component Edit ──
+
+async function editComponent(id) {
+  try {
+    const res = await fetch(`/en/api/v1/component/get?id=${id}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const c = data.component;
+    const form = document.getElementById("componentForm");
+    form.querySelector("[name='id']").value = c.id;
+    form.querySelector("[name='name']").value = c.name;
+    form.querySelector("[name='slug']").value = c.slug || "";
+    form.querySelector("[name='type']").value = c.type;
+    form.querySelector("[name='title']").value = c.title || "";
+    form.querySelector("[name='content']").value = c.content || "";
+    form.querySelector("[name='settings_json']").value = c.settings_json || "";
+    form.querySelector("[name='status']").value = c.status || "active";
+    document.getElementById("componentSubmitBtn").textContent = "Update Component";
+    document.getElementById("componentCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load component"); }
+}
+
+function cancelComponentEdit() {
+  const form = document.getElementById("componentForm");
+  form.reset();
+  form.querySelector("[name='id']").value = "";
+  document.getElementById("componentSubmitBtn").textContent = "Create Component";
+  document.getElementById("componentCancelEdit").style.display = "none";
+}
+
+
+// ── Assignment Edit ──
+
+async function editAssignment(id, currentPosition, currentInjection) {
+  const position = prompt("Enter new position (lower renders first):", currentPosition);
+  if (position === null) return;
+  const injection = prompt("Injection point (top, content_top, content_bottom, bottom, sidebar):", currentInjection || "content_bottom");
+  if (injection === null) return;
+  try {
+    await fetch("/en/api/v1/components/update-assignment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, position: parseInt(position) || 0, injection_point: injection })
+    });
+    loadAssignments();
+  } catch { alert("Network error"); }
+}
+

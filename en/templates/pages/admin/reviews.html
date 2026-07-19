@@ -29,6 +29,7 @@
 
     <h2 style="margin-top:30px">Add Review</h2>
     <form id="reviewForm" class="admin-form">
+      <input type="hidden" name="id" id="reviewId" value="">
       <div class="form-row">
         <div class="form-group"><label>Slug *</label><input type="text" name="slug" required></div>
         <div class="form-group"><label>Casino Slug *</label><input type="text" name="casino_slug" required></div>
@@ -48,7 +49,10 @@
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
       <div id="reviewFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Create Review</button>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="reviewSubmitBtn">Create Review</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="reviewCancelEdit" style="display:none" onclick="cancelReviewEdit()">Cancel Edit</button>
+      </div>
     </form>
   </div>
 </div>

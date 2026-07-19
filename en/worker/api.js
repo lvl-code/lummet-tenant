@@ -777,6 +777,14 @@ if (
       return success();
     }
 
+    if (path === "/api/v1/components/update-assignment" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await componentsDB.updatePageComponentAssignment(env.DB, body.id, body);
+      return success();
+    }
+
+
     // ==================================
     // REVIEW BLOCKS CRUD
     // ==================================

@@ -28,6 +28,7 @@
 
     <h2 style="margin-top:40px">Create Component</h2>
     <form id="componentForm" class="admin-form">
+      <input type="hidden" name="id" id="componentId" value="">
       <div class="form-row">
         <div class="form-group">
           <label>Name *</label>
@@ -79,7 +80,10 @@
       </div>
 
       <div id="componentFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Create Component</button>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="componentSubmitBtn">Create Component</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="componentCancelEdit" style="display:none" onclick="cancelComponentEdit()">Cancel Edit</button>
+      </div>
     </form>
 
     <!-- Assign component to page -->

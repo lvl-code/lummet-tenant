@@ -46,9 +46,11 @@ async function loadReviewsTable() {
         <td>${r.country_code || "Global"}</td>
         <td>★ ${r.rating || "N/A"}</td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editReview('${r.slug}')">Edit</button>
           <a href="/en/review/${r.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
           <button class="btn btn--danger btn--sm" onclick="deleteReview('${r.slug}')">Delete</button>
         </td>
+
       </tr>
     `
       )
@@ -68,6 +70,8 @@ function initReviewForm() {
     if (alertEl) alertEl.style.display = "none";
 
     const formData = new FormData(form);
+    const isEdit = formData.get("id") ? true : false;
+    const endpoint = isEdit ? "/en/api/v1/review/update" : "/en/api/v1/review/create";
     const payload = {
       slug: formData.get("slug"),
       casino_slug: formData.get("casino_slug"),
@@ -82,7 +86,7 @@ function initReviewForm() {
     };
 
     try {
-      const res = await fetch("/en/api/v1/review/create", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -92,10 +96,13 @@ function initReviewForm() {
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
-          alertEl.textContent = "Review created!";
+          alertEl.textContent = isEdit ? "Review updated!" : "Review created!";
           alertEl.style.display = "block";
         }
         form.reset();
+        form.querySelector("[name='id']").value = "";
+        document.getElementById("reviewSubmitBtn").textContent = "Create Review";
+        document.getElementById("reviewCancelEdit").style.display = "none";
         loadReviewsTable();
       } else {
         if (alertEl) {
@@ -140,9 +147,11 @@ async function loadNewsTable() {
         <td>${n.author || "Admin"}</td>
         <td>${new Date(n.created_at).toLocaleDateString()}</td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editNews('${n.slug}')">Edit</button>
           <a href="/en/news/${n.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
           <button class="btn btn--danger btn--sm" onclick="deleteNewsArticle('${n.slug}')">Delete</button>
         </td>
+
       </tr>
     `
       )
@@ -162,6 +171,8 @@ function initNewsForm() {
     if (alertEl) alertEl.style.display = "none";
 
     const formData = new FormData(form);
+    const isEdit = formData.get("id") ? true : false;
+    const endpoint = isEdit ? "/en/api/v1/news/update" : "/en/api/v1/news/create";
     const payload = {
       slug: formData.get("slug"),
       title: formData.get("title"),
@@ -172,20 +183,22 @@ function initNewsForm() {
     };
 
     try {
-      const res = await fetch("/en/api/v1/news/create", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
-          alertEl.textContent = "News article created!";
+          alertEl.textContent = isEdit ? "Article updated!" : "News article created!";
           alertEl.style.display = "block";
         }
         form.reset();
+        form.querySelector("[name='id']").value = "";
+        document.getElementById("newsSubmitBtn").textContent = "Create Article";
+        document.getElementById("newsCancelEdit").style.display = "none";
         loadNewsTable();
       } else {
         if (alertEl) {
@@ -230,9 +243,11 @@ async function loadPagesTable() {
         <td>${p.slug}</td>
         <td>${p.type}</td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editPage('${p.slug}')">Edit</button>
           <a href="/en/${p.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
           <button class="btn btn--danger btn--sm" onclick="deletePage('${p.slug}')">Delete</button>
         </td>
+
       </tr>
     `
       )
@@ -252,6 +267,8 @@ function initPageForm() {
     if (alertEl) alertEl.style.display = "none";
 
     const formData = new FormData(form);
+    const isEdit = formData.get("id") ? true : false;
+    const endpoint = isEdit ? "/en/api/v1/page/update" : "/en/api/v1/page/create";
     const payload = {
       slug: formData.get("slug"),
       type: formData.get("type") || "page",
@@ -272,20 +289,22 @@ function initPageForm() {
     }
 
     try {
-      const res = await fetch("/en/api/v1/page/create", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
-          alertEl.textContent = "Page created!";
+          alertEl.textContent = isEdit ? "Page updated!" : "Page created!";
           alertEl.style.display = "block";
         }
         form.reset();
+        form.querySelector("[name='id']").value = "";
+        document.getElementById("pageSubmitBtn").textContent = "Create Page";
+        document.getElementById("pageCancelEdit").style.display = "none";
         loadPagesTable();
       } else {
         if (alertEl) {
@@ -644,4 +663,107 @@ async function deleteNewsArticle(slug) {
     if (data.success) loadNewsTable();
     else alert(data.error || "Delete failed");
   } catch { alert("Network error"); }
+}
+
+
+// ── Review Edit ──
+
+async function editReview(slug) {
+  try {
+    const res = await fetch("/en/api/v1/reviews/list");
+    const data = await res.json();
+    const review = (data.reviews || []).find(r => r.slug === slug);
+    if (!review) return;
+    const form = document.getElementById("reviewForm");
+    form.querySelector("[name='id']").value = review.id;
+    form.querySelector("[name='slug']").value = review.slug;
+    form.querySelector("[name='casino_slug']").value = review.casino_slug || "";
+    form.querySelector("[name='country_code']").value = review.country_code || "";
+    form.querySelector("[name='rating']").value = review.rating || 0;
+    form.querySelector("[name='title']").value = review.title;
+    form.querySelector("[name='content']").value = review.content || "";
+    let pros = [];
+    try { pros = JSON.parse(review.pros || "[]"); } catch {}
+    form.querySelector("[name='pros']").value = pros.join("\n");
+    let cons = [];
+    try { cons = JSON.parse(review.cons || "[]"); } catch {}
+    form.querySelector("[name='cons']").value = cons.join("\n");
+    form.querySelector("[name='seo_title']").value = review.seo_title || "";
+    form.querySelector("[name='seo_description']").value = review.seo_description || "";
+    document.getElementById("reviewSubmitBtn").textContent = "Update Review";
+    document.getElementById("reviewCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load review"); }
+}
+
+function cancelReviewEdit() {
+  const form = document.getElementById("reviewForm");
+  form.reset();
+  form.querySelector("[name='id']").value = "";
+  document.getElementById("reviewSubmitBtn").textContent = "Create Review";
+  document.getElementById("reviewCancelEdit").style.display = "none";
+}
+
+
+// ── News Edit ──
+
+async function editNews(slug) {
+  try {
+    const res = await fetch("/en/api/v1/news/list");
+    const data = await res.json();
+    const article = (data.news || []).find(n => n.slug === slug);
+    if (!article) return;
+    const form = document.getElementById("newsForm");
+    form.querySelector("[name='id']").value = article.id;
+    form.querySelector("[name='slug']").value = article.slug;
+    form.querySelector("[name='author']").value = article.author || "Admin";
+    form.querySelector("[name='title']").value = article.title;
+    form.querySelector("[name='content']").value = article.content || "";
+    form.querySelector("[name='seo_title']").value = article.seo_title || "";
+    form.querySelector("[name='seo_description']").value = article.seo_description || "";
+    document.getElementById("newsSubmitBtn").textContent = "Update Article";
+    document.getElementById("newsCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load article"); }
+}
+
+function cancelNewsEdit() {
+  const form = document.getElementById("newsForm");
+  form.reset();
+  form.querySelector("[name='id']").value = "";
+  document.getElementById("newsSubmitBtn").textContent = "Create Article";
+  document.getElementById("newsCancelEdit").style.display = "none";
+}
+
+
+
+// ── Page Edit ──
+
+async function editPage(slug) {
+  try {
+    const res = await fetch("/en/api/v1/pages/list");
+    const data = await res.json();
+    const page = (data.pages || []).find(p => p.slug === slug);
+    if (!page) return;
+    const form = document.getElementById("pageForm");
+    form.querySelector("[name='id']").value = page.id;
+    form.querySelector("[name='slug']").value = page.slug;
+    form.querySelector("[name='type']").value = page.type || "page";
+    form.querySelector("[name='template']").value = page.template || "page";
+    form.querySelector("[name='title']").value = page.title;
+    form.querySelector("[name='content_json']").value = page.content_json || "";
+    form.querySelector("[name='seo_title']").value = page.seo_title || "";
+    form.querySelector("[name='seo_description']").value = page.seo_description || "";
+    document.getElementById("pageSubmitBtn").textContent = "Update Page";
+    document.getElementById("pageCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load page"); }
+}
+
+function cancelPageEdit() {
+  const form = document.getElementById("pageForm");
+  form.reset();
+  form.querySelector("[name='id']").value = "";
+  document.getElementById("pageSubmitBtn").textContent = "Create Page";
+  document.getElementById("pageCancelEdit").style.display = "none";
 }

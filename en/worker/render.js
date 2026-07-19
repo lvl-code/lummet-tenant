@@ -12,27 +12,35 @@ export class Renderer {
   // LOAD TEMPLATE FILE
   // =====================================================
   async loadTemplate(name) {
-  const file = await this.env.ASSETS.fetch(
-    new Request(`https://assets.local/templates/${name}`)
-  );
+    const file = await this.env.ASSETS.fetch(
+      new Request(`https://assets.local/templates/${name}`)
+    );
+    if (!file.ok) return null;
+    return await file.text();
+  }
 
-  return await file.text();
-} 
-  
   // =====================================================
   // REPLACE {{variables}}
   // =====================================================
-
   replaceVariables(template, data = {}) {
-
+    // Handle {{#if key}}...{{/if}} blocks
+    template = template.replace(
+      /\{\{#if\s+(.*?)\}\}([\s\S]*?)\{\{\/if\}\}/g,
+      (_, key, content) => {
+        key = key.trim();
+        const val = data[key];
+        if (val && val !== "" && val !== null && val !== undefined && val !== false) {
+          return content;
+        }
+        return "";
+      }
+    );
+    // Handle {{key}} variables
     return template.replace(
       /\{\{(.*?)\}\}/g,
       (_, key) => {
-
         key = key.trim();
-
         return data[key] ?? "";
-
       }
     );
   }
@@ -54,6 +62,40 @@ export class Renderer {
 
     return html;
   }
+  // =====================================================
+  // RENDER DYNAMIC COMPONENTS
+  // =====================================================
+  async renderComponents(pageType, pageSlug) {
+    const { renderPageComponents } = await import("./component-engine.js");
+    return await renderPageComponents(this, this.env.DB, pageType, pageSlug);
+  }
+
+  // =====================================================
+  // RENDER REVIEW BLOCKS
+  // =====================================================
+  async renderReviewBlocks(reviewSlug) {
+    const { renderReviewBlocks } = await import("./component-engine.js");
+    return await renderReviewBlocks(this, this.env.DB, reviewSlug);
+  }
+
+  // =====================================================
+  // LOAD SEO META (merge with existing data)
+  // =====================================================
+  async loadDynamicSeo(pageType, pageSlug) {
+    const { loadSeoMeta } = await import("./component-engine.js");
+    const seo = await loadSeoMeta(this.env.DB, pageType, pageSlug);
+    if (!seo) return {};
+    return {
+      seo_title: seo.title || "",
+      seo_description: seo.description || "",
+      canonical: seo.canonical || "",
+      og_image: seo.og_image || "",
+      seo_keywords: seo.keywords || "",
+      seo_schema: seo.schema_json || "",
+      seo_robots: seo.robots || "index, follow"
+    };
+  }
+
 
   // =====================================================
 // BUILD SEO

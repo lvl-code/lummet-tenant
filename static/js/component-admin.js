@@ -1,0 +1,363 @@
+// =====================================================
+// COMPONENT ENGINE ADMIN JS
+// Handles: components CRUD, page assignments, SEO meta
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadComponentsTable();
+  initComponentForm();
+  initAssignForm();
+  loadAssignments();
+  populateComponentDropdown();
+  initSeoAdmin();
+});
+
+// ── Components Table ──
+
+let currentFilter = "";
+
+async function loadComponentsTable() {
+  const tbody = document.getElementById("componentsTableBody");
+  if (!tbody) return;
+
+  try {
+    const url = currentFilter
+      ? `/en/api/v1/components/list?type=${currentFilter}`
+      : "/en/api/v1/components/list";
+    const res = await fetch(url);
+    const data = await res.json();
+    const components = data.components || [];
+
+    if (components.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No components yet.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = components.map(c => `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td><span class="status-badge status-${c.status === 'active' ? 'published' : 'draft'}">${c.type}</span></td>
+        <td><span class="status-badge status-${c.status === 'active' ? 'published' : 'draft'}">${c.status}</span></td>
+        <td class="table-actions">
+          <button class="btn btn--danger btn--sm" onclick="deleteComponent(${c.id})">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+function filterComponents(type) {
+  currentFilter = type;
+  loadComponentsTable();
+}
+
+async function deleteComponent(id) {
+  if (!confirm("Delete this component? This also removes all page assignments.")) return;
+  try {
+    await fetch("/en/api/v1/component/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id })
+    });
+    loadComponentsTable();
+    populateComponentDropdown();
+  } catch { alert("Network error"); }
+}
+
+// ── Component Form ──
+
+function initComponentForm() {
+  const form = document.getElementById("componentForm");
+  if (!form) return;
+
+  const typeSelect = document.getElementById("componentType");
+  const contentHint = document.getElementById("contentHint");
+
+  typeSelect.addEventListener("change", () => {
+    const hints = {
+      author: 'JSON: {"name":"...","title":"...","bio":"...","avatar":"https://..."}',
+      faq_group: 'JSON array: [{"q":"Question?","a":"Answer"}]',
+      text: "Raw text or HTML",
+      html: "Raw HTML",
+      cta: 'Text content. Settings: {"link":"https://...","button_text":"Click Here"}',
+      hero: 'Hero subtitle text. Settings: {"link":"...","button_text":"...","bg_image":"https://..."}',
+      casino_grid: 'Optional heading. Settings: {"limit":5}',
+      banner: 'Banner text. Settings: {"link":"...","button_text":"..."}',
+    };
+    contentHint.textContent = hints[typeSelect.value] || "";
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("componentFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+
+    const formData = new FormData(form);
+    const payload = {
+      name: formData.get("name"),
+      slug: formData.get("slug") || null,
+      type: formData.get("type"),
+      title: formData.get("title") || null,
+      content: formData.get("content") || null,
+      settings_json: formData.get("settings_json") || null,
+      status: formData.get("status") || "active",
+    };
+
+    try {
+      const res = await fetch("/en/api/v1/component/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (alertEl) {
+          alertEl.className = "alert alert--success";
+          alertEl.textContent = "Component created!";
+          alertEl.style.display = "block";
+        }
+        form.reset();
+        loadComponentsTable();
+        populateComponentDropdown();
+      } else {
+        if (alertEl) {
+          alertEl.className = "alert alert--error";
+          alertEl.textContent = data.error || "Failed";
+          alertEl.style.display = "block";
+        }
+      }
+    } catch {
+      if (alertEl) {
+        alertEl.className = "alert alert--error";
+        alertEl.textContent = "Network error";
+        alertEl.style.display = "block";
+      }
+    }
+  });
+}
+
+// ── Assign Form ──
+
+async function populateComponentDropdown() {
+  const select = document.getElementById("assignComponentSelect");
+  if (!select) return;
+
+  try {
+    const res = await fetch("/en/api/v1/components/list");
+    const data = await res.json();
+    const components = data.components || [];
+    select.innerHTML = '<option value="">Select component...</option>' +
+      components.map(c => `<option value="${c.id}">${c.name} (${c.type})</option>`).join("");
+  } catch {}
+}
+
+function initAssignForm() {
+  const form = document.getElementById("assignForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("assignFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+
+    const formData = new FormData(form);
+    const payload = {
+      component_id: parseInt(formData.get("component_id")),
+      page_type: formData.get("page_type"),
+      page_slug: formData.get("page_slug"),
+      position: parseInt(formData.get("position")) || 0,
+    };
+
+    try {
+      const res = await fetch("/en/api/v1/components/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (alertEl) {
+          alertEl.className = "alert alert--success";
+          alertEl.textContent = "Component assigned to page!";
+          alertEl.style.display = "block";
+        }
+        form.reset();
+        loadAssignments();
+      } else {
+        if (alertEl) {
+          alertEl.className = "alert alert--error";
+          alertEl.textContent = data.error || "Failed";
+          alertEl.style.display = "block";
+        }
+      }
+    } catch {
+      if (alertEl) {
+        alertEl.className = "alert alert--error";
+        alertEl.textContent = "Network error";
+        alertEl.style.display = "block";
+      }
+    }
+  });
+}
+
+// ── Assignments Table ──
+
+async function loadAssignments() {
+  const tbody = document.getElementById("assignmentsTableBody");
+  if (!tbody) return;
+
+  const pageType = document.getElementById("filterPageType")?.value || "";
+  const pageSlug = document.getElementById("filterPageSlug")?.value || "";
+
+  let url = "/en/api/v1/components/page?";
+  if (pageType) url += `page_type=${pageType}&`;
+  if (pageSlug) url += `page_slug=${pageSlug}&`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const assignments = data.assignments || [];
+
+    if (assignments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No assignments found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = assignments.map(a => `
+      <tr>
+        <td>${a.page_type} / ${a.page_slug}</td>
+        <td><strong>${a.name}</strong></td>
+        <td>${a.type}</td>
+        <td>${a.position}</td>
+        <td>${a.enabled ? '<span class="status-badge status-published">Yes</span>' : '<span class="status-badge status-draft">No</span>'}</td>
+        <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="toggleAssignment(${a.id}, ${a.enabled ? 0 : 1})">${a.enabled ? 'Disable' : 'Enable'}</button>
+          <button class="btn btn--danger btn--sm" onclick="removeAssignment(${a.id})">Remove</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function toggleAssignment(id, enabled) {
+  try {
+    await fetch("/en/api/v1/components/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, enabled: !!enabled })
+    });
+    loadAssignments();
+  } catch { alert("Network error"); }
+}
+
+async function removeAssignment(id) {
+  if (!confirm("Remove this component from this page?")) return;
+  try {
+    await fetch("/en/api/v1/components/unassign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id })
+    });
+    loadAssignments();
+  } catch { alert("Network error"); }
+}
+
+// ── SEO Meta Admin ──
+
+async function initSeoAdmin() {
+  const tableBody = document.getElementById("seoTableBody");
+  const form = document.getElementById("seoForm");
+
+  if (tableBody) {
+    try {
+      const res = await fetch("/en/api/v1/seo/list");
+      const data = await res.json();
+      const items = data.seo || [];
+      if (items.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="muted">No SEO meta yet.</td></tr>';
+      } else {
+        tableBody.innerHTML = items.map(s => `
+          <tr>
+            <td>${s.page_type}</td>
+            <td>${s.page_slug}</td>
+            <td>${(s.title || "").substring(0, 60)}</td>
+            <td>${s.robots || "index, follow"}</td>
+            <td class="table-actions">
+              <button class="btn btn--danger btn--sm" onclick="deleteSeoMeta('${s.page_type}','${s.page_slug}')">Delete</button>
+            </td>
+          </tr>
+        `).join("");
+      }
+    } catch {
+      tableBody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+    }
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertEl = document.getElementById("seoFormAlert");
+      if (alertEl) alertEl.style.display = "none";
+
+      const formData = new FormData(form);
+      const payload = {
+        page_type: formData.get("page_type"),
+        page_slug: formData.get("page_slug"),
+        title: formData.get("title") || null,
+        description: formData.get("description") || null,
+        keywords: formData.get("keywords") || null,
+        canonical: formData.get("canonical") || null,
+        og_image: formData.get("og_image") || null,
+        robots: formData.get("robots") || "index, follow",
+        schema_json: formData.get("schema_json") || null,
+      };
+      try {
+        const res = await fetch("/en/api/v1/seo/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (alertEl) {
+            alertEl.className = "alert alert--success";
+            alertEl.textContent = "SEO meta saved!";
+            alertEl.style.display = "block";
+          }
+          form.reset();
+          // Reload table
+          initSeoAdmin();
+        } else {
+          if (alertEl) {
+            alertEl.className = "alert alert--error";
+            alertEl.textContent = data.error || "Failed";
+            alertEl.style.display = "block";
+          }
+        }
+      } catch {
+        if (alertEl) {
+          alertEl.className = "alert alert--error";
+          alertEl.textContent = "Network error";
+          alertEl.style.display = "block";
+        }
+      }
+    });
+  }
+}
+async function deleteSeoMeta(pageType, pageSlug) {
+  if (!confirm(`Delete SEO meta for ${pageType}/${pageSlug}?`)) return;
+  try {
+    await fetch("/en/api/v1/seo/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ page_type: pageType, page_slug: pageSlug })
+    });
+    initSeoAdmin();
+  } catch { alert("Network error"); }
+}

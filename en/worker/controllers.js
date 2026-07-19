@@ -12,7 +12,8 @@ import {
 } from "./auth.js";
 import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
-
+import * as componentsDB from "./database/components.js";
+import * as seoMetaDB from "./database/seo_meta.js";
 
 const COUNTRY_NAMES = {
   // — Africa —
@@ -131,6 +132,59 @@ export async function renderHome(request, env) {
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
+  const available = sortedCasinos.filter(c =>
+    geoData.statuses[c.slug] !== "blocked" && geoData.statuses[c.slug] !== "restricted"
+  );
+  const others = sortedCasinos.filter(c =>
+    geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
+  );
+
+  // Load dynamic components assigned to homepage
+  const dynamicComponentsHtml = await renderer.renderComponents("homepage", "homepage");
+
+  // Load dynamic SEO meta
+  const dynamicSeo = await renderer.loadDynamicSeo("homepage", "homepage");
+
+  const homeSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": "https://level.casino",
+    "name": "Level Casino",
+    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Level Casino",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://level.casino/en/static/images/logo.png"
+      }
+    }
+  };
+
+  const html = await renderer.render("home.html", {
+    seo_title: dynamicSeo.seo_title || "Level Casino — Expert Casino Reviews & Bonuses",
+    seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
+    canonical: dynamicSeo.canonical || "https://level.casino/en",
+    og_image: dynamicSeo.og_image || "",
+    casino_cards: buildCasinoCards(available, geoData),
+    casino_count: casinoList.length,
+    hidden_casino_cards: buildCasinoCards(others, geoData),
+    has_hidden: others.length > 0,
+    hidden_count: others.length,
+    dynamic_components: dynamicComponentsHtml
+  }, homeSchema, buildBreadcrumbs("home"));
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" }
+  });
+}
+
+export async function renderHomebackupold(request, env) {
+  const renderer = new Renderer(env);
+  const casinoList = await casinos.getAllCasinos(env.DB);
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
   // Split into available (shown by default) and others (hidden behind Load More)
   const available = sortedCasinos.filter(c => 
     geoData.statuses[c.slug] !== "blocked" && geoData.statuses[c.slug] !== "restricted"
@@ -172,39 +226,6 @@ export async function renderHome(request, env) {
 }
 
 
-export async function rendealHome(request, env) {
-  const renderer = new Renderer(env);
-  const casinoList = await casinos.getAllCasinos(env.DB);
-  const geoData = await prepareGeoData(env, request, casinoList);
-  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
-
-  const homeSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "url": "https://level.casino",
-    "name": "Level Casino",
-    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
-    "publisher": {
-      "@type": "Organization",
-      "name": "Level Casino",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://level.casino/en/static/images/logo.png"
-      }
-    }
-  };
-
-  const html = await renderer.render("home.html", {
-    seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
-    seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
-    casino_cards: buildCasinoCards(sortedCasinos, geoData),
-    casino_count: casinoList.length
-  }, homeSchema, buildBreadcrumbs("home"));
-
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
 
 
 
@@ -258,10 +279,15 @@ export async function renderCasino(request, env, slug) {
       "name": "Level Casino Expert Team"
     }
    };
-  
+  const dynamicComponentsHtml = await renderer.renderComponents("casino", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
+
   const html = await renderer.render("casino.html", {
     ...casino,
-    canonical: `https://level.casino/en/casino/${slug}`,
+    dynamic_components: dynamicComponentsHtml,
+    seo_title: dynamicSeo.seo_title || casino.seo_title || casino.name,
+    seo_description: dynamicSeo.seo_description || casino.seo_description || "",
+    canonical: dynamicSeo.canonical || `https://level.casino/en/casino/${slug}`,
     rating_display: ratingDisplay,
     features_html: featuresHtml,
     bonus_title: casino.bonus_title || "Welcome Bonus",
@@ -585,6 +611,16 @@ if (review.casino_slug) {
     );
   }
 }
+
+  // Load dynamic components assigned to this review
+  const dynamicComponentsHtml = await renderer.renderComponents("review", slug);
+
+  // Load dynamic review blocks
+  const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
+
+  // Load dynamic SEO meta
+  const dynamicSeo = await renderer.loadDynamicSeo("review", slug);
+
   const reviewSchema = {
     "@context": "https://schema.org",
     "@type": "Review",
@@ -607,7 +643,11 @@ if (review.casino_slug) {
 
   const html = await renderer.render("review.html", {
     ...review,
-    canonical: `https://level.casino/en/review/${slug}`,
+    dynamic_components: dynamicComponentsHtml,
+    review_blocks_html: reviewBlocksHtml,
+    seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
+    seo_description: dynamicSeo.seo_description || review.seo_description || "",
+    canonical: dynamicSeo.canonical || `https://level.casino/en/review/${slug}`,
     faq_html: faqHtml,
     pros_html: prosHtml,
     cons_html: consHtml,
@@ -832,45 +872,6 @@ Sitemap: https://level.casino/en/sitemap-pages.xml`,
 }
 
 
-export async function rendeCountry(request, env, slug) {
-  const code = slug.toUpperCase();
-  const country = await countries.getCountry(env.DB, code);
-  const countryData = country || {
-    code, name: code, seo_title: null, seo_description: null
-  };
-  
-  // Get allowed casinos
-  let casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
-  
-  // Sort by rating descending (highest first)
-  casinoList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  
-  const geoData = await prepareGeoData(env, request, casinoList);
-  const renderer = new Renderer(env);
-  
-  const countrySchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": `Best Online Casinos in ${countryData.name}`,
-    "itemListElement": casinoList.map((c, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
-    }))
-  };
-  
-  const html = await renderer.render("country.html", {
-    ...countryData,
-    casino_cards: buildCasinoCards(casinoList, geoData),
-    seo_title: countryData.seo_title || countryData.name + " Online Casinos",
-    seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
-  }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
-  
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
-
 
 export async function renderCountry(request, env, slug) {
   const code = slug.toUpperCase();
@@ -895,9 +896,16 @@ export async function renderCountry(request, env, slug) {
       "url": `https://level.casino/en/casino/${c.slug}`
     }))
   };
+
+  const dynamicComponentsHtml = await renderer.renderComponents("country", code);
+  const dynamicSeo = await renderer.loadDynamicSeo("country", code);
+
   const html = await renderer.render("country.html", {
     ...countryData,
-    canonical: `https://level.casino/en/country/${code}`,
+    dynamic_components: dynamicComponentsHtml,
+    seo_title: dynamicSeo.seo_title || countryData.seo_title || countryData.name + " Online Casinos",
+    seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
+    canonical: dynamicSeo.canonical || `https://level.casino/en/country/${code}`,
     casino_cards: buildCasinoCards(casinoList, geoData),
     seo_title: countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
@@ -928,9 +936,15 @@ export async function renderCategory(request, env, slug) {
     }))
   };
 
+  const dynamicComponentsHtml = await renderer.renderComponents("category", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("category", slug);
+
   const html = await renderer.render("category.html", {
     slug,
-    canonical: `https://level.casino/en/category/${slug}`,
+    dynamic_components: dynamicComponentsHtml,
+    seo_title: dynamicSeo.seo_title || category.seo_title || category.name + " Casinos",
+    seo_description: dynamicSeo.seo_description || category.seo_description || "",
+    canonical: dynamicSeo.canonical || `https://level.casino/en/category/${slug}`,
     category: category.name,
     description: category.description,
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1364,4 +1378,13 @@ export async function renderDashboardCountries(request, env) {
 
 export async function renderDashboardCasinoEdit(request, env, slug) {
   return renderAdminPage(request, env, "admin/casino-edit.html", { slug });
+}
+
+
+export async function renderDashboardComponents(request, env) {
+  return renderAdminPage(request, env, "admin/components.html");
+}
+
+export async function renderDashboardSeo(request, env) {
+  return renderAdminPage(request, env, "admin/seo.html");
 }

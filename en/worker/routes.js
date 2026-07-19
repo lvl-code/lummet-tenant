@@ -158,7 +158,8 @@ export function getRoute(request) {
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };
 
-
+  if (path === "/en/dashboard/components") return { type: "dashboardComponents" };
+  if (path === "/en/dashboard/seo") return { type: "dashboardSeo" };
   // =====================================================
   // AUTH
   // =====================================================
@@ -182,6 +183,8 @@ export function getRoute(request) {
   if (path === "/en/user/inquiries") return { type: "userInquiries" };
   if (path === "/en/user/profile") return { type: "userProfile" };
   if (path === "/en/user/notifications") return { type: "userNotifications" };
+  
+
   // =====================================================
   // API
   // =====================================================

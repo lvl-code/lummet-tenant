@@ -19,7 +19,9 @@ import {
 from "./auth.js";
 import { dashboardStatsAPI } from "./controllers.js";
 import { aiEngine } from "./ai.js";
-
+import * as componentsDB from "./database/components.js";
+import * as reviewBlocksDB from "./database/review_blocks.js";
+import * as seoMetaDB from "./database/seo_meta.js";
 // =====================================================
 // MAIN API HANDLER
 // =====================================================
@@ -564,6 +566,162 @@ if (
       await deletePage(env.DB, body.slug);
       return success();
     }
+    // ==================================
+    // COMPONENTS CRUD
+    // ==================================
+
+    if (path === "/api/v1/components/list") {
+      const url = new URL(request.url);
+      const type = url.searchParams.get("type");
+      const result = await componentsDB.getAllComponents(env.DB, type);
+      return json({ components: result });
+    }
+
+    if (path === "/api/v1/component/get" && request.method === "GET") {
+      const url = new URL(request.url);
+      const id = parseInt(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const component = await componentsDB.getComponent(env.DB, id);
+      if (!component) return failure("Component not found", 404);
+      return json({ success: true, component });
+    }
+
+    if (path === "/api/v1/component/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["name", "type"]);
+      const id = await componentsDB.createComponent(env.DB, body);
+      return json({ success: true, id });
+    }
+
+    if (path === "/api/v1/component/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "name", "type"]);
+      await componentsDB.updateComponent(env.DB, body.id, body);
+      return success();
+    }
+
+    if (path === "/api/v1/component/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await componentsDB.deleteComponent(env.DB, body.id);
+      return success();
+    }
+
+    // ==================================
+    // PAGE-COMPONENT ASSIGNMENTS
+    // ==================================
+
+    if (path === "/api/v1/components/assign" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["page_type", "page_slug", "component_id"]);
+      await componentsDB.assignComponentToPage(env.DB, body);
+      return success();
+    }
+
+    if (path === "/api/v1/components/unassign" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await componentsDB.removePageComponent(env.DB, body.id);
+      return success();
+    }
+
+    if (path === "/api/v1/components/page" && request.method === "GET") {
+      const url = new URL(request.url);
+      const pageType = url.searchParams.get("page_type");
+      const pageSlug = url.searchParams.get("page_slug");
+      if (!pageType || !pageSlug) return failure("page_type and page_slug are required");
+      const assignments = await componentsDB.getAllPageAssignments(env.DB, pageType, pageSlug);
+      return json({ assignments });
+    }
+
+    if (path === "/api/v1/components/reorder" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["items"]);
+      for (const item of body.items) {
+        await componentsDB.updatePageComponentPosition(env.DB, item.id, item.position);
+      }
+      return success();
+    }
+
+    if (path === "/api/v1/components/toggle" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "enabled"]);
+      await componentsDB.togglePageComponent(env.DB, body.id, body.enabled);
+      return success();
+    }
+
+    // ==================================
+    // REVIEW BLOCKS CRUD
+    // ==================================
+
+    if (path === "/api/v1/review-blocks/list" && request.method === "GET") {
+      const url = new URL(request.url);
+      const reviewSlug = url.searchParams.get("review_slug");
+      if (!reviewSlug) return failure("review_slug is required");
+      const blocks = await reviewBlocksDB.getReviewBlocks(env.DB, reviewSlug);
+      return json({ blocks });
+    }
+
+    if (path === "/api/v1/review-blocks/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["review_slug", "title", "content"]);
+      const id = await reviewBlocksDB.createReviewBlock(env.DB, body);
+      return json({ success: true, id });
+    }
+
+    if (path === "/api/v1/review-blocks/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "title", "content"]);
+      await reviewBlocksDB.updateReviewBlock(env.DB, body.id, body);
+      return success();
+    }
+
+    if (path === "/api/v1/review-blocks/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await reviewBlocksDB.deleteReviewBlock(env.DB, body.id);
+      return success();
+    }
+
+    if (path === "/api/v1/review-blocks/sync" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["review_slug", "blocks"]);
+      await reviewBlocksDB.syncReviewBlocks(env.DB, body.review_slug, body.blocks);
+      return success();
+    }
+
+    // ==================================
+    // SEO META CRUD
+    // ==================================
+
+    if (path === "/api/v1/seo/list") {
+      const result = await seoMetaDB.getAllSeoMeta(env.DB);
+      return json({ seo: result });
+    }
+
+    if (path === "/api/v1/seo/get" && request.method === "GET") {
+      const url = new URL(request.url);
+      const pageType = url.searchParams.get("page_type");
+      const pageSlug = url.searchParams.get("page_slug");
+      if (!pageType || !pageSlug) return failure("page_type and page_slug are required");
+      const seo = await seoMetaDB.getSeoMeta(env.DB, pageType, pageSlug);
+      return json({ seo: seo || null });
+    }
+
+    if (path === "/api/v1/seo/save" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["page_type", "page_slug"]);
+      await seoMetaDB.upsertSeoMeta(env.DB, body);
+      return success();
+    }
+
+    if (path === "/api/v1/seo/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["page_type", "page_slug"]);
+      await seoMetaDB.deleteSeoMeta(env.DB, body.page_type, body.page_slug);
+      return success();
+    }
+
 
     return json({
       success: false,

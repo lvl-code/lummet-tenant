@@ -13,6 +13,8 @@ import {
   renderCasinoList,
   renderReviewList,
   renderNewsList,
+  renderDashboardComponents,
+  renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
   renderDashboardReviews,
@@ -173,6 +175,10 @@ export default {
         return renderDashboardCountries(request, env);
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);
+      case "dashboardComponents":
+        return renderDashboardComponents(request, env);
+      case "dashboardSeo":
+        return renderDashboardSeo(request, env);
 
       case "userDashboard":
         return renderUserDashboard(request, env);

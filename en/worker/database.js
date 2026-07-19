@@ -11,9 +11,12 @@ import * as categories from "./database/categories.js";
 import * as news from "./database/news.js";
 import * as stats from "./database/stats.js";
 import * as media from "./database/media.js";
-
+import * as components from "./database/components.js";
+import * as review_blocks from "./database/review_blocks.js";
+import * as seo_meta from "./database/seo_meta.js";
 export {
   casinos, reviews, pages, countries, users,
   geo, clicks, ai, settings, categories,
-  news, stats, media
+  news, stats, media,
+  components, review_blocks, seo_meta
 };

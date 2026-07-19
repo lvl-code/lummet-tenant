@@ -1165,24 +1165,65 @@ export async function renderReviewList(request, env) {
   const allComponents = await renderer.renderAllComponents("review_list", "review_list");
   const dynamicSeo = await renderer.loadDynamicSeo("review_list", "review_list");
 
-  const reviewCards = (reviewList.results || []).map(r => `
+  // Geo-aware filtering
+  const reviews = reviewList.results || [];
+  const casinoSlugs = [...new Set(reviews.filter(r => r.casino_slug).map(r => r.casino_slug))];
+
+  let geoStatuses = {};
+  if (casinoSlugs.length > 0) {
+    const placeholders = casinoSlugs.map(() => '?').join(',');
+    const rulesResult = await env.DB.prepare(`
+      SELECT casino_slug, country_code, status FROM geo_rules
+      WHERE casino_slug IN (${placeholders})
+    `).bind(...casinoSlugs).all();
+
+    const rulesByCasino = {};
+    for (const row of (rulesResult.results || [])) {
+      if (!rulesByCasino[row.casino_slug]) rulesByCasino[row.casino_slug] = [];
+      rulesByCasino[row.casino_slug].push(row);
+    }
+
+    const country = request.cf?.country || "RW";
+    for (const slug of casinoSlugs) {
+      const rules = rulesByCasino[slug] || [];
+      if (rules.length === 0) { geoStatuses[slug] = "blocked"; continue; }
+      const countryRule = rules.find(r => r.country_code === country);
+      if (countryRule) { geoStatuses[slug] = countryRule.status; continue; }
+      const hasAllowed = rules.some(r => r.status === "allowed");
+      const hasBlocked = rules.some(r => r.status === "blocked");
+      if (hasAllowed && !hasBlocked) geoStatuses[slug] = "blocked";
+      else if (hasBlocked && !hasAllowed) geoStatuses[slug] = "allowed";
+      else geoStatuses[slug] = "blocked";
+    }
+  }
+
+  const reviewCards = reviews.map(r => {
+    const geoStatus = r.casino_slug ? (geoStatuses[r.casino_slug] || "blocked") : "unknown";
+    const geoBadge = geoStatus === "allowed"
+      ? '<span class="status-badge status-published">✓ Available</span>'
+      : geoStatus === "blocked"
+        ? '<span class="status-badge status-draft">✕ Restricted</span>'
+        : '<span class="status-badge status-draft">Unknown</span>';
+
+    return `
     <div class="casino-card">
       <div class="casino-card__body">
         <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
         <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
         <p class="muted">${(r.content || "").substring(0, 120)}...</p>
+        ${r.casino_slug ? geoBadge : ""}
       </div>
       <div class="casino-card__actions">
         <a href="/en/review/${r.slug}" class="btn btn--primary">Read Review</a>
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 
   const listSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     "name": "All Casino Reviews",
-    "itemListElement": (reviewList.results || []).map((r, idx) => ({
+    "itemListElement": reviews.map((r, idx) => ({
       "@type": "ListItem", "position": idx + 1,
       "url": `https://level.casino/en/review/${r.slug}`
     }))

@@ -158,6 +158,113 @@ if (path === "/api/v1/public/news/list") {
   return json({ news: result.results });
 }
 
+if (path === "/api/v1/public/casinos/geo") {
+  const country = request.cf?.country || "RW";
+  const casinoList = await env.DB.prepare(`
+    SELECT slug, name, logo, rating, bonus_title, bonus_value, website_url
+    FROM casinos
+    WHERE published = 1 AND status = 'published'
+    ORDER BY featured DESC, sort_order ASC, rating DESC
+  `).all();
+
+  const casinos = casinoList.results || [];
+  if (casinos.length === 0) return json({ casinos: [] });
+
+  // Get all geo rules for these casinos
+  const slugs = casinos.map(c => c.slug);
+  const placeholders = slugs.map(() => '?').join(',');
+  const rulesResult = await env.DB.prepare(`
+    SELECT casino_slug, country_code, status FROM geo_rules
+    WHERE casino_slug IN (${placeholders})
+  `).bind(...slugs).all();
+
+  const rulesByCasino = {};
+  for (const row of (rulesResult.results || [])) {
+    if (!rulesByCasino[row.casino_slug]) rulesByCasino[row.casino_slug] = [];
+    rulesByCasino[row.casino_slug].push(row);
+  }
+
+  const geoCasinos = casinos.map(casino => {
+    const rules = rulesByCasino[casino.slug] || [];
+    let geoStatus = "blocked";
+
+    if (rules.length === 0) {
+      geoStatus = "blocked";
+    } else {
+      const countryRule = rules.find(r => r.country_code === country);
+      if (countryRule) {
+        geoStatus = countryRule.status;
+      } else {
+        const hasAllowed = rules.some(r => r.status === "allowed");
+        const hasBlocked = rules.some(r => r.status === "blocked");
+        if (hasAllowed && !hasBlocked) geoStatus = "blocked";
+        else if (hasBlocked && !hasAllowed) geoStatus = "allowed";
+        else geoStatus = "blocked";
+      }
+    }
+
+    return { ...casino, geo_status: geoStatus };
+  });
+
+  return json({ casinos: geoCasinos, country });
+}
+
+if (path === "/api/v1/public/reviews/geo") {
+  const country = request.cf?.country || "RW";
+  const result = await env.DB.prepare(`
+    SELECT r.*, c.name as casino_name, c.logo as casino_logo, c.slug as casino_slug
+    FROM reviews r
+    LEFT JOIN casinos c ON c.slug = r.casino_slug
+    WHERE r.published = 1
+    ORDER BY r.created_at DESC
+  `).all();
+
+  const reviews = result.results || [];
+  if (reviews.length === 0) return json({ reviews: [] });
+
+  // Get geo rules for all casinos referenced by reviews
+  const casinoSlugs = [...new Set(reviews.filter(r => r.casino_slug).map(r => r.casino_slug))];
+  if (casinoSlugs.length === 0) return json({ reviews, country });
+
+  const placeholders = casinoSlugs.map(() => '?').join(',');
+  const rulesResult = await env.DB.prepare(`
+    SELECT casino_slug, country_code, status FROM geo_rules
+    WHERE casino_slug IN (${placeholders})
+  `).bind(...casinoSlugs).all();
+
+  const rulesByCasino = {};
+  for (const row of (rulesResult.results || [])) {
+    if (!rulesByCasino[row.casino_slug]) rulesByCasino[row.casino_slug] = [];
+    rulesByCasino[row.casino_slug].push(row);
+  }
+
+  const geoReviews = reviews.map(review => {
+    if (!review.casino_slug) return { ...review, geo_status: "unknown" };
+    const rules = rulesByCasino[review.casino_slug] || [];
+    let geoStatus = "blocked";
+
+    if (rules.length === 0) {
+      geoStatus = "blocked";
+    } else {
+      const countryRule = rules.find(r => r.country_code === country);
+      if (countryRule) {
+        geoStatus = countryRule.status;
+      } else {
+        const hasAllowed = rules.some(r => r.status === "allowed");
+        const hasBlocked = rules.some(r => r.status === "blocked");
+        if (hasAllowed && !hasBlocked) geoStatus = "blocked";
+        else if (hasBlocked && !hasAllowed) geoStatus = "allowed";
+        else geoStatus = "blocked";
+      }
+    }
+
+    return { ...review, geo_status: geoStatus };
+  });
+
+  return json({ reviews: geoReviews, country });
+}
+
+
 
   if (!user) {
     return failure("Unauthorized", 401);

@@ -618,6 +618,12 @@ if (
       return success();
     }
 
+    if (path === "/api/v1/components/bulk-assign" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["page_type", "component_id"]);
+      await componentsDB.bulkAssignComponent(env.DB, body);
+      return success();
+    }
     if (path === "/api/v1/components/unassign" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["id"]);

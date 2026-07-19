@@ -139,10 +139,7 @@ export async function renderHome(request, env) {
     geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
   );
 
-  // Load dynamic components assigned to homepage
-  const dynamicComponentsHtml = await renderer.renderComponents("homepage", "homepage");
-
-  // Load dynamic SEO meta
+  const allComponents = await renderer.renderAllComponents("homepage", "homepage");
   const dynamicSeo = await renderer.loadDynamicSeo("homepage", "homepage");
 
   const homeSchema = {
@@ -171,7 +168,11 @@ export async function renderHome(request, env) {
     hidden_casino_cards: buildCasinoCards(others, geoData),
     has_hidden: others.length > 0,
     hidden_count: others.length,
-    dynamic_components: dynamicComponentsHtml
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar
   }, homeSchema, buildBreadcrumbs("home"));
 
   return new Response(html, {
@@ -279,12 +280,15 @@ export async function renderCasino(request, env, slug) {
       "name": "Level Casino Expert Team"
     }
    };
-  const dynamicComponentsHtml = await renderer.renderComponents("casino", slug);
-  const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
 
+  const allComponents = await renderer.renderAllComponents("casino", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
   const html = await renderer.render("casino.html", {
     ...casino,
-    dynamic_components: dynamicComponentsHtml,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
     seo_title: dynamicSeo.seo_title || casino.seo_title || casino.name,
     seo_description: dynamicSeo.seo_description || casino.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/casino/${slug}`,
@@ -612,13 +616,8 @@ if (review.casino_slug) {
   }
 }
 
-  // Load dynamic components assigned to this review
-  const dynamicComponentsHtml = await renderer.renderComponents("review", slug);
-
-  // Load dynamic review blocks
+  const allComponents = await renderer.renderAllComponents("review", slug);
   const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
-
-  // Load dynamic SEO meta
   const dynamicSeo = await renderer.loadDynamicSeo("review", slug);
 
   const reviewSchema = {
@@ -643,7 +642,10 @@ if (review.casino_slug) {
 
   const html = await renderer.render("review.html", {
     ...review,
-    dynamic_components: dynamicComponentsHtml,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
     review_blocks_html: reviewBlocksHtml,
     seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
     seo_description: dynamicSeo.seo_description || review.seo_description || "",
@@ -663,55 +665,36 @@ if (review.casino_slug) {
   });
 }
 
+export async function renderNews(request, env, slug) {
+  const article = await news.getNews(env.DB, slug);
+  if (!article) return render404(request, env);
 
-export async function renderNews(
-  request,
-  env,
-  slug
-){
+  const renderer = new Renderer(env);
+  const allComponents = await renderer.renderAllComponents("news", slug);
+  const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("news", slug);
 
-  const article =
-    await news.getNews(
-      env.DB,
-      slug
-    );
-
-  if (!article) {
-    return render404(request, env);
-  }
-
-  const renderer =
-    new Renderer(env);
-  // Fix 29: NewsArticle Schema
   const newsSchema = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     "headline": article.title,
     "datePublished": article.created_at,
     "description": article.content ? article.content.substring(0, 150) : "",
-    "author": {
-      "@type": "Person",
-      "name": "iGaming Analyst"
-    }
+    "author": { "@type": "Person", "name": article.author || "iGaming Analyst" }
   };
-  
-  const html =
-    await renderer.render(
-      "news.html",
-      { ...article, canonical: `https://level.casino/en/news/${slug}` },
-      newsSchema,
-      buildBreadcrumbs("news", { title: article.title })
-    );
 
-  return new Response(
-    html,
-    {
-      headers:{
-        "Content-Type":"text/html"
-      }
-    }
-  );
+  const html = await renderer.render("news.html", {
+    ...article,
+    canonical: dynamicSeo.canonical || `https://level.casino/en/news/${slug}`,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || article.title,
+    seo_description: dynamicSeo.seo_description || (article.content || "").substring(0, 155),
+  }, newsSchema, buildBreadcrumbs("news", { title: article.title }));
 
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
 
 async function hashIP(ip){
@@ -897,12 +880,15 @@ export async function renderCountry(request, env, slug) {
     }))
   };
 
-  const dynamicComponentsHtml = await renderer.renderComponents("country", code);
+  const allComponents = await renderer.renderAllComponents("country", code);
   const dynamicSeo = await renderer.loadDynamicSeo("country", code);
 
   const html = await renderer.render("country.html", {
     ...countryData,
-    dynamic_components: dynamicComponentsHtml,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
     seo_title: dynamicSeo.seo_title || countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/country/${code}`,
@@ -936,12 +922,15 @@ export async function renderCategory(request, env, slug) {
     }))
   };
 
-  const dynamicComponentsHtml = await renderer.renderComponents("category", slug);
+  const allComponents = await renderer.renderAllComponents("category", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("category", slug);
 
   const html = await renderer.render("category.html", {
     slug,
-    dynamic_components: dynamicComponentsHtml,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
     seo_title: dynamicSeo.seo_title || category.seo_title || category.name + " Casinos",
     seo_description: dynamicSeo.seo_description || category.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/category/${slug}`,
@@ -977,7 +966,9 @@ export async function renderDynamicPage(request, env, slug) {
   if (!page) return render404(request, env);
 
   const renderer = new Renderer(env);
-  // Fix 29: Generic WebPage Schema
+  const allComponents = await renderer.renderAllComponents("page", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("page", slug);
+
   const pageSchema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -987,13 +978,17 @@ export async function renderDynamicPage(request, env, slug) {
 
   const html = await renderer.render("page.html", {
     ...page,
-    canonical: `https://level.casino/en/${slug}`,
-    content_json: parseContentJson(page.content_json)
-  }, pageSchema,buildBreadcrumbs("page", { title: page.title }));
+    canonical: dynamicSeo.canonical || `https://level.casino/en/${slug}`,
+    content_json: parseContentJson(page.content_json),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || page.title,
+    seo_description: dynamicSeo.seo_description || page.seo_description || "",
+  }, pageSchema, buildBreadcrumbs("page", { title: page.title }));
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
 
 export async function renderAffiliate(request, env, slug) {
@@ -1102,32 +1097,34 @@ export async function renderCasinoList(request, env) {
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+  const allComponents = await renderer.renderAllComponents("casino_list", "casino_list");
+  const dynamicSeo = await renderer.loadDynamicSeo("casino_list", "casino_list");
 
   const listSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     "name": "Complete Directory of Online Casinos",
     "itemListElement": sortedCasinos.map((c, idx) => ({
-      "@type": "ListItem",
-      "position": idx + 1,
+      "@type": "ListItem", "position": idx + 1,
       "url": `https://level.casino/en/casino/${c.slug}`
     }))
   };
 
   const html = await renderer.render("category.html", {
-    canonical: "https://level.casino/en/casino",
+    canonical: dynamicSeo.canonical || "https://level.casino/en/casino",
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
-    seo_title: "All Online Casinos — Level Casino",
-    seo_description: "Complete directory of reviewed online casinos with bonuses and ratings."
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || "All Online Casinos — Level Casino",
+    seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings."
   }, listSchema, buildBreadcrumbs("casinoList"));
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
-
 
 export async function rendeCasinoList(request, env) {
   const renderer = new Renderer(env);
@@ -1160,12 +1157,13 @@ export async function rendeCasinoList(request, env) {
   });
 }
 
-
 export async function renderReviewList(request, env) {
   const renderer = new Renderer(env);
   const reviewList = await env.DB.prepare(
     "SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC"
   ).all();
+  const allComponents = await renderer.renderAllComponents("review_list", "review_list");
+  const dynamicSeo = await renderer.loadDynamicSeo("review_list", "review_list");
 
   const reviewCards = (reviewList.results || []).map(r => `
     <div class="casino-card">
@@ -1185,29 +1183,32 @@ export async function renderReviewList(request, env) {
     "@type": "ItemList",
     "name": "All Casino Reviews",
     "itemListElement": (reviewList.results || []).map((r, idx) => ({
-      "@type": "ListItem",
-      "position": idx + 1,
+      "@type": "ListItem", "position": idx + 1,
       "url": `https://level.casino/en/review/${r.slug}`
     }))
   };
 
   const html = await renderer.render("category.html", {
-    canonical: "https://level.casino/en/review",
+    canonical: dynamicSeo.canonical || "https://level.casino/en/review",
     category: "All Reviews",
     description: "Browse our complete collection of casino reviews.",
     casino_cards: reviewCards,
-    seo_title: "All Casino Reviews — Level Casino",
-    seo_description: "In-depth casino reviews with pros, cons, and ratings."
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || "All Casino Reviews — Level Casino",
+    seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
   }, listSchema, buildBreadcrumbs("reviewList"));
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
 
 export async function renderNewsList(request, env) {
   const renderer = new Renderer(env);
   const newsList = await news.getAllNews(env.DB);
+  const allComponents = await renderer.renderAllComponents("news_list", "news_list");
+  const dynamicSeo = await renderer.loadDynamicSeo("news_list", "news_list");
 
   const newsCards = newsList.map(n => `
     <a href="/en/news/${n.slug}" class="news-card">
@@ -1222,26 +1223,26 @@ export async function renderNewsList(request, env) {
     "@type": "ItemList",
     "name": "iGaming Industry News Feed",
     "itemListElement": newsList.map((n, idx) => ({
-      "@type": "ListItem",
-      "position": idx + 1,
+      "@type": "ListItem", "position": idx + 1,
       "url": `https://level.casino/en/news/${n.slug}`
     }))
   };
 
   const html = await renderer.render("category.html", {
-    canonical: "https://level.casino/en/news",
+    canonical: dynamicSeo.canonical || "https://level.casino/en/news",
     category: "Latest News",
     description: "Latest iGaming industry news and updates.",
     casino_cards: `<div class="news-grid">${newsCards}</div>`,
-    seo_title: "Casino News — Level Casino",
-    seo_description: "Latest iGaming and online casino industry news."
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || "Casino News — Level Casino",
+    seo_description: dynamicSeo.seo_description || "Latest iGaming and online casino industry news."
   }, listSchema, buildBreadcrumbs("newsList"));
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
-
 
 async function renderAdminPage(request, env, template, extraData = {}) {
   const user = await getCurrentUser(request, env);
@@ -1326,10 +1327,11 @@ export async function renderUserNotifications(request, env) {
 }
 
 
-
 export async function renderCategoryList(request, env) {
   const renderer = new Renderer(env);
   const cats = await categories.getAllCategories(env.DB);
+  const allComponents = await renderer.renderAllComponents("category_list", "category_list");
+  const dynamicSeo = await renderer.loadDynamicSeo("category_list", "category_list");
 
   const categoryCards = cats.map(c => `
     <div class="feature-card">
@@ -1342,8 +1344,12 @@ export async function renderCategoryList(request, env) {
     category: "All Categories",
     description: "Browse casinos by category.",
     casino_cards: `<div class="features-grid">${categoryCards}</div>`,
-    seo_title: "Casino Categories — Level Casino",
-    seo_description: "Browse online casinos by category."
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || "Casino Categories — Level Casino",
+    seo_description: dynamicSeo.seo_description || "Browse online casinos by category."
   }, {}, buildBreadcrumbs("categoryList"));
 
   return new Response(html, { headers: { "Content-Type": "text/html" } });
@@ -1352,6 +1358,8 @@ export async function renderCategoryList(request, env) {
 export async function renderCountryList(request, env) {
   const renderer = new Renderer(env);
   const countriesList = await countries.getAllCountries(env.DB);
+  const allComponents = await renderer.renderAllComponents("country_list", "country_list");
+  const dynamicSeo = await renderer.loadDynamicSeo("country_list", "country_list");
 
   const countryChips = countriesList.map(c => `
     <a href="/en/country/${c.code}" class="chip">${c.name}</a>
@@ -1361,8 +1369,12 @@ export async function renderCountryList(request, env) {
     category: "All Countries",
     description: "Browse online casinos available in your country.",
     casino_cards: `<div class="country-chips" style="justify-content:center;padding:20px">${countryChips}</div>`,
-    seo_title: "Online Casinos by Country — Level Casino",
-    seo_description: "Find online casinos available in your country."
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || "Online Casinos by Country — Level Casino",
+    seo_description: dynamicSeo.seo_description || "Find online casinos available in your country."
   }, {}, buildBreadcrumbs("countryList"));
 
   return new Response(html, { headers: { "Content-Type": "text/html" } });

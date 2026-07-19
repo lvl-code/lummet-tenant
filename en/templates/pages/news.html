@@ -1,5 +1,6 @@
 <article class="news-detail">
   <div class="container">
+    {{components_top}}
     <header class="news-header">
       <h1>{{title}}</h1>
       <div class="news-meta">
@@ -8,6 +9,9 @@
     </header>
     <div class="news-content">
       {{content}}
+      {{components_content_top}}
+      {{components_content_bottom}}
     </div>
+    {{components_bottom}}
   </div>
 </article>

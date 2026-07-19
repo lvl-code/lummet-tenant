@@ -1,5 +1,6 @@
 <article class="review-detail">
   <div class="container">
+    {{components_top}}
     <header class="review-header">
       {{casino_card_html}}
       <h1>{{title}}</h1>
@@ -92,8 +93,9 @@
   <p>{{licenses}}</p>
 
   {{content}}
+  {{components_content_top}}
   {{review_blocks_html}}
-  {{dynamic_components}}
+  {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
   <h2 id="faq">Frequently Asked Questions</h2>
@@ -122,6 +124,7 @@
       </div>
       <a href="/en/go/{{casino_slug}}" class="btn btn--primary btn--lg" rel="nofollow sponsored">Visit Casino</a>
     </div>
+    {{components_bottom}}
   </div>
 
 <script>

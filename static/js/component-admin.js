@@ -169,10 +169,19 @@ function initAssignForm() {
       page_type: formData.get("page_type"),
       page_slug: formData.get("page_slug"),
       position: parseInt(formData.get("position")) || 0,
+      injection_point: formData.get("injection_point") || "content_bottom"
     };
 
+    // Check if bulk assign is requested (slug is "*")
+    const isBulk = payload.page_slug === "*";
+    const endpoint = isBulk ? "/en/api/v1/components/bulk-assign" : "/en/api/v1/components/assign";
+
+    if (isBulk) {
+      payload.page_slugs = ["*"];
+    }
+
     try {
-      const res = await fetch("/en/api/v1/components/assign", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -182,7 +191,7 @@ function initAssignForm() {
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
-          alertEl.textContent = "Component assigned to page!";
+          alertEl.textContent = isBulk ? "Component assigned to ALL pages of this type!" : "Component assigned to page!";
           alertEl.style.display = "block";
         }
         form.reset();
@@ -223,7 +232,7 @@ async function loadAssignments() {
     const assignments = data.assignments || [];
 
     if (assignments.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="muted">No assignments found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="muted">No assignments found.</td></tr>';
       return;
     }
 
@@ -233,6 +242,7 @@ async function loadAssignments() {
         <td><strong>${a.name}</strong></td>
         <td>${a.type}</td>
         <td>${a.position}</td>
+        <td>${a.injection_point || 'content_bottom'}</td>
         <td>${a.enabled ? '<span class="status-badge status-published">Yes</span>' : '<span class="status-badge status-draft">No</span>'}</td>
         <td class="table-actions">
           <button class="btn btn--ghost btn--sm" onclick="toggleAssignment(${a.id}, ${a.enabled ? 0 : 1})">${a.enabled ? 'Disable' : 'Enable'}</button>
@@ -241,7 +251,7 @@ async function loadAssignments() {
       </tr>
     `).join("");
   } catch {
-    tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="muted">Failed to load.</td></tr>';
   }
 }
 

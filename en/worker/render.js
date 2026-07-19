@@ -62,25 +62,22 @@ export class Renderer {
 
     return html;
   }
-  // =====================================================
-  // RENDER DYNAMIC COMPONENTS
-  // =====================================================
-  async renderComponents(pageType, pageSlug) {
+
+  async renderComponents(pageType, pageSlug, injectionPoint = null) {
     const { renderPageComponents } = await import("./component-engine.js");
-    return await renderPageComponents(this, this.env.DB, pageType, pageSlug);
+    return await renderPageComponents(this, this.env.DB, pageType, pageSlug, injectionPoint);
   }
 
-  // =====================================================
-  // RENDER REVIEW BLOCKS
-  // =====================================================
+  async renderAllComponents(pageType, pageSlug) {
+    const { renderAllInjectionPoints } = await import("./component-engine.js");
+    return await renderAllInjectionPoints(this, this.env.DB, pageType, pageSlug);
+  }
+
   async renderReviewBlocks(reviewSlug) {
     const { renderReviewBlocks } = await import("./component-engine.js");
     return await renderReviewBlocks(this, this.env.DB, reviewSlug);
   }
 
-  // =====================================================
-  // LOAD SEO META (merge with existing data)
-  // =====================================================
   async loadDynamicSeo(pageType, pageSlug) {
     const { loadSeoMeta } = await import("./component-engine.js");
     const seo = await loadSeoMeta(this.env.DB, pageType, pageSlug);

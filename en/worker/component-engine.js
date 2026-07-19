@@ -11,8 +11,8 @@ import { getSeoMeta } from "./database/seo_meta.js";
  * Load all components assigned to a page, in position order.
  * Returns an array of parsed component objects ready for rendering.
  */
-export async function loadPageComponents(db, pageType, pageSlug) {
-  const rows = await getPageComponents(db, pageType, pageSlug);
+export async function loadPageComponents(db, pageType, pageSlug, injectionPoint = null) {
+  const rows = await getPageComponents(db, pageType, pageSlug, injectionPoint);
   const components = [];
 
   for (const row of rows) {
@@ -23,17 +23,16 @@ export async function loadPageComponents(db, pageType, pageSlug) {
       title: row.title || "",
       content: row.content || "",
       settings: {},
-      position: row.position
+      position: row.position,
+      injection_point: row.injection_point || "content_bottom"
     };
 
-    // Parse content based on type
     if (row.content) {
       if (row.type === "faq_group" || row.type === "casino_grid" || row.type === "comparison_table") {
         try { component.content = JSON.parse(row.content); } catch { component.content = []; }
       }
     }
 
-    // Parse settings
     if (row.settings_json) {
       try { component.settings = JSON.parse(row.settings_json); } catch { component.settings = {}; }
     }
@@ -43,6 +42,7 @@ export async function loadPageComponents(db, pageType, pageSlug) {
 
   return components;
 }
+
 
 /**
  * Render a single component into HTML using its template.
@@ -96,8 +96,9 @@ export async function renderComponent(renderer, component) {
 /**
  * Render all components for a page into a single HTML string.
  */
-export async function renderPageComponents(renderer, db, pageType, pageSlug) {
-  const components = await loadPageComponents(db, pageType, pageSlug);
+
+export async function renderPageComponents(renderer, db, pageType, pageSlug, injectionPoint = null) {
+  const components = await loadPageComponents(db, pageType, pageSlug, injectionPoint);
   const htmlParts = [];
 
   for (const component of components) {
@@ -108,6 +109,16 @@ export async function renderPageComponents(renderer, db, pageType, pageSlug) {
   return htmlParts.join("\n");
 }
 
+export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug) {
+  const points = ["top", "content_top", "content_bottom", "bottom", "sidebar"];
+  const result = {};
+
+  for (const point of points) {
+    result[point] = await renderPageComponents(renderer, db, pageType, pageSlug, point);
+  }
+
+  return result;
+}
 /**
  * Load review blocks for a review and render them.
  */

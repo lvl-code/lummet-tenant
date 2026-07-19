@@ -19,6 +19,7 @@
     </div>
 
     <div class="casino-body">
+      {{components_top}}
       <div class="casino-main">
         <div class="info-block">
           <h2>About {{name}}</h2>
@@ -38,7 +39,9 @@
             <p class="muted">Loading reviews...</p>
           </div>
         </div>
-        {{dynamic_components}}
+        {{components_content_top}}
+        {{components_content_bottom}}
+    
       </div>
 
       <div class="casino-aside">
@@ -55,6 +58,7 @@
           <p class="muted">Detecting...</p>
         </div>
       </div>
+    {{components_bottom}}
     </div>
   </div>
 </section>

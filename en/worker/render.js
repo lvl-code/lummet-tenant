@@ -169,6 +169,7 @@ ${JSON.stringify(schema)}
     }
 
     base = await this.injectComponents(base, breadcrumbHtml);
+    base = this.replaceVariables(base, data);  // ADD THIS LINE
     return base;
   } 
 

@@ -277,6 +277,19 @@ if (path === "/api/v1/public/reviews/geo") {
 
   return json({ reviews: geoReviews, country });
 }
+if (path === "/api/v1/public/categories/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM categories ORDER BY name
+  `).all();
+  return json({ categories: result.results || [] });
+}
+
+if (path === "/api/v1/public/countries/list") {
+  const result = await env.DB.prepare(`
+    SELECT * FROM countries ORDER BY name
+  `).all();
+  return json({ countries: result.results || [] });
+}
 
 
 

@@ -100,7 +100,7 @@ async function initSidebarCategories() {
   if (!container) return;
 
   try {
-    const res = await fetch("/en/api/v1/categories/list");
+    const res = await fetch("/en/api/v1/public/categories/list");
     const data = await res.json();
     const cats = data.categories || [];
 
@@ -141,7 +141,7 @@ async function initSidebarCountries() {
   if (!container) return;
 
   try {
-    const res = await fetch("/en/api/v1/countries/list");
+    const res = await fetch("/en/api/v1/public/countries/list");
     const data = await res.json();
     let countries = data.countries || [];
 

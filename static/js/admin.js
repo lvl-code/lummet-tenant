@@ -581,6 +581,7 @@ async function loadCountriesTable() {
           <button class="btn btn--ghost btn--sm" onclick="editCountry(${c.id})">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCountry('${c.code}')">Delete</button>
         </td>
+
       </tr>
     `).join("");
   } catch {

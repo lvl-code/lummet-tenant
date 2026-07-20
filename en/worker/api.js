@@ -646,7 +646,7 @@ if (
       return success();
     }
 
-    if (path === "/api/v1/country/update" &&  request.method === "POST") {
+    if (path === "/api/v1/country/update" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["code", "name"]);
       const { updateCountry } = await import("./database/countries.js");

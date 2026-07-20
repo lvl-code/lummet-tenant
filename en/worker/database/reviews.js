@@ -31,20 +31,10 @@ export async function createReview(db, review) {
   return await db
     .prepare(`
       INSERT INTO reviews (
-        casino_slug,
-        country_code,
-        slug,
-        title,
-        content,
-        pros,
-        cons,
-        rating,
-        seo_title,
-        seo_description,
-        ai_generated,
-        published
+        casino_slug, country_code, slug, title, content, pros, cons,
+        rating, seo_title, seo_description, ai_generated, author_id, published
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `)
     .bind(
       review.casino_slug,
@@ -57,26 +47,18 @@ export async function createReview(db, review) {
       review.rating,
       review.seo_title,
       review.seo_description,
-      review.ai_generated ? 1 : 0
+      review.ai_generated ? 1 : 0,
+      review.author_id || null
     )
     .run();
 }
 
-export async function updateReview(
-  db,
-  slug,
-  review
-) {
+export async function updateReview(db, slug, review) {
   return db.prepare(`
     UPDATE reviews
     SET
-      title=?,
-      content=?,
-      pros=?,
-      cons=?,
-      rating=?,
-      seo_title=?,
-      seo_description=?,
+      title=?, content=?, pros=?, cons=?, rating=?,
+      seo_title=?, seo_description=?, author_id=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE slug=?
   `)
@@ -88,10 +70,12 @@ export async function updateReview(
     review.rating,
     review.seo_title,
     review.seo_description,
+    review.author_id || null,
     slug
   )
   .run();
 }
+
 
 export async function getCasinoReviews(
   db,

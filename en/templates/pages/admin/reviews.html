@@ -8,6 +8,7 @@
     <a href="/en/dashboard/pages">Pages</a>
     <a href="/en/dashboard/categories">Categories</a>
     <a href="/en/dashboard/countries">Countries</a>
+    <a href="/en/dashboard/authors">Authors</a>
     <a href="/en/dashboard/components">Components</a>
     <a href="/en/dashboard/seo">SEO Meta</a>
     <a href="/en/dashboard/settings">Settings</a>
@@ -33,6 +34,12 @@
       <div class="form-row">
         <div class="form-group"><label>Slug *</label><input type="text" name="slug" required></div>
         <div class="form-group"><label>Casino Slug *</label><input type="text" name="casino_slug" required></div>
+        <div class="form-group">
+          <label>Author</label>
+          <select name="author_id" id="reviewAuthorSelect">
+            <option value="">No author assigned</option>
+          </select>
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Country Code</label><input type="text" name="country_code" placeholder="RW or leave blank"></div>

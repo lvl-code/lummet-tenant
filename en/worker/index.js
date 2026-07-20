@@ -3,6 +3,8 @@ from "./routes.js";
 
 import {
   renderHome,
+  renderAuthor,
+  renderDashboardAuthors,
   renderNews,
   renderCasino,
   renderReview,
@@ -173,6 +175,10 @@ export default {
         return renderDashboardCategories(request, env);
       case "dashboardCountries":
         return renderDashboardCountries(request, env);
+      case "author":
+        return renderAuthor(request, env, route.slug);
+      case "dashboardAuthors":
+        return renderDashboardAuthors(request, env);
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);
       case "dashboardComponents":

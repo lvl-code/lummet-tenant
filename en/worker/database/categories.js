@@ -94,10 +94,16 @@ export async function updateCategory(db, slug, data) {
   .run();
 }
 
+
 export async function deleteCategory(db, slug) {
   return db.prepare(`
     DELETE FROM categories WHERE slug=?
   `)
   .bind(slug)
   .run();
+}
+
+
+export async function getCategoryById(db, id) {
+  return await db.prepare(`SELECT * FROM categories WHERE id = ? LIMIT 1`).bind(id).first();
 }

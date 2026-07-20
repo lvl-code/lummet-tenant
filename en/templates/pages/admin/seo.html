@@ -9,6 +9,7 @@
     <a href="/en/dashboard/categories">Categories</a>
     <a href="/en/dashboard/countries">Countries</a>
     <a href="/en/dashboard/seo" class="active">SEO Meta</a>
+    <a href="/en/dashboard/authors">Authors</a>
     <a href="/en/dashboard/components">Components</a>
     <a href="/en/dashboard/settings">Settings</a>
     <a href="/en/dashboard/ai">AI Generator</a>
@@ -28,6 +29,7 @@
 
     <h2 style="margin-top:30px">Add / Edit SEO Meta</h2>
     <form id="seoForm" class="admin-form">
+      <input type="hidden" name="id" id="seoId" value="">
       <div class="form-row">
         <div class="form-group">
           <label>Page Type *</label>
@@ -84,7 +86,10 @@
         <textarea name="schema_json" style="min-height:120px;font-family:monospace;font-size:13px" placeholder='{"@context":"https://schema.org","@type":"..."}'></textarea>
       </div>
       <div id="seoFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Save SEO Meta</button>
+      <div style="display:flex;gap:12px">
+        <button type="submit" `class="btn btn--primary btn--lg" id="seoSubmitBtn">Save SEO Meta</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="seoCancelEdit" style="display:none" onclick="cancelSeoEdit()">Cancel Edit</button>
+      </div>
     </form>
   </div>
 </div>

@@ -109,6 +109,16 @@ export function getRoute(request) {
     };
   }
 
+    // =====================================================
+  // AUTHOR PROFILE
+  // /en/author/elie-bizimana
+  // =====================================================
+
+  const authorMatch = path.match(/^\/en\/author\/([^\/]+)$/);
+  if (authorMatch) {
+    return { type: "author", slug: authorMatch[1] };
+  }
+
   // =====================================================
   // AFFILIATE LANDING PAGE
   // /en/affiliate/become-affiliate
@@ -154,6 +164,7 @@ export function getRoute(request) {
   if (path === "/en/country") return { type: "countryList" };
   if (path === "/en/dashboard/categories") return { type: "dashboardCategories" };
   if (path === "/en/dashboard/countries") return { type: "dashboardCountries" };
+  if (path === "/en/dashboard/authors") return { type: "dashboardAuthors" };
 
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };

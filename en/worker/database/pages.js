@@ -14,16 +14,9 @@ export async function createPage(db, page) {
   return await db
     .prepare(`
       INSERT INTO pages (
-        slug,
-        type,
-        template,
-        title,
-        content_json,
-        seo_title,
-        seo_description,
-        published
+        slug, type, template, title, content_json, seo_title, seo_description, author_id, published
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?,1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
     `)
     .bind(
       page.slug,
@@ -32,35 +25,31 @@ export async function createPage(db, page) {
       page.title,
       JSON.stringify(page.content_json || {}),
       page.seo_title,
-      page.seo_description
+      page.seo_description,
+      page.author_id || null
     )
     .run();
 }
 
-export async function updatePage(
- db,
- slug,
- page
-) {
- return db.prepare(`
- UPDATE pages
- SET
- title=?,
- content_json=?,
- seo_title=?,
- seo_description=?,
- updated_at=CURRENT_TIMESTAMP
- WHERE slug=?
- `)
- .bind(
- page.title,
- JSON.stringify(page.content_json || {}),
- page.seo_title,
- page.seo_description,
- slug
- )
- .run();
+export async function updatePage(db, slug, page) {
+  return db.prepare(`
+    UPDATE pages
+    SET
+      title=?, content_json=?, seo_title=?, seo_description=?, author_id=?,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE slug=?
+  `)
+  .bind(
+    page.title,
+    JSON.stringify(page.content_json || {}),
+    page.seo_title,
+    page.seo_description,
+    page.author_id || null,
+    slug
+  )
+  .run();
 }
+
 
 export async function deletePage(db, slug) {
   return db.prepare(`

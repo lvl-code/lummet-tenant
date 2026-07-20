@@ -1,4 +1,5 @@
 import { Renderer } from "./render.js";
+import * as authors from "./database/authors.js";
 import * as categories from "./database/categories.js";
 import * as casinos from "./database/casinos.js";
 import * as reviews from "./database/reviews.js";
@@ -547,6 +548,10 @@ export async function renderReview(request, env, slug) {
   if (!review) return render404(request, env);
 
   const renderer = new Renderer(env);
+  let author = null;
+  if (review.author_id) {
+    author = await authors.getAuthorById(env.DB, review.author_id);
+  }
 
   let pros = [], cons = [];
   try { pros = JSON.parse(review.pros || "[]"); } catch {}
@@ -642,6 +647,12 @@ if (review.casino_slug) {
 
   const html = await renderer.render("review.html", {
     ...review,
+    author_name: author?.name || "",
+    author_bio: author?.bio || "",
+    author_avatar: author?.avatar_url || "",
+    author_role: author?.role || "",
+    author_slug: author?.slug || "",
+    author_social: author?.social_links || "",
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -670,6 +681,10 @@ export async function renderNews(request, env, slug) {
   if (!article) return render404(request, env);
 
   const renderer = new Renderer(env);
+  let author = null;
+  if (article.author_id) {
+    author = await authors.getAuthorById(env.DB, article.author_id);
+  }
   const allComponents = await renderer.renderAllComponents("news", slug);
   const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
   const dynamicSeo = await renderer.loadDynamicSeo("news", slug);
@@ -686,6 +701,10 @@ export async function renderNews(request, env, slug) {
   const html = await renderer.render("news.html", {
     ...article,
     canonical: dynamicSeo.canonical || `https://level.casino/en/news/${slug}`,
+    author_name: author?.name || article.author || "",
+    author_avatar: author?.avatar_url || "",
+    author_role: author?.role || "",
+    author_slug: author?.slug || "",
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -966,6 +985,10 @@ export async function renderDynamicPage(request, env, slug) {
   if (!page) return render404(request, env);
 
   const renderer = new Renderer(env);
+  let author = null;
+  if (page.author_id) {
+    author = await authors.getAuthorById(env.DB, page.author_id);
+  }
   const allComponents = await renderer.renderAllComponents("page", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("page", slug);
 
@@ -979,6 +1002,10 @@ export async function renderDynamicPage(request, env, slug) {
   const html = await renderer.render("page.html", {
     ...page,
     canonical: dynamicSeo.canonical || `https://level.casino/en/${slug}`,
+    author_name: author?.name || "",
+    author_avatar: author?.avatar_url || "",
+    author_role: author?.role || "",
+    author_slug: author?.slug || "",
     content_json: parseContentJson(page.content_json),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
@@ -1448,4 +1475,92 @@ export async function renderDashboardComponents(request, env) {
 
 export async function renderDashboardSeo(request, env) {
   return renderAdminPage(request, env, "admin/seo.html");
+}
+
+
+
+
+
+
+// ==================================
+// AUTHOR PROFILE PAGE
+// ==================================
+
+export async function renderAuthor(request, env, slug) {
+  const author = await authors.getAuthor(env.DB, slug);
+  if (!author) return render404(request, env);
+
+  const renderer = new Renderer(env);
+  const content = await authors.getAuthorContent(env.DB, author.id);
+  const stats = await authors.getAuthorStats(env.DB, author.id);
+  const allComponents = await renderer.renderAllComponents("author", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("author", slug);
+
+  // Build review cards
+  const reviewCards = content.reviews.map(r => `
+    <div class="casino-card">
+      <div class="casino-card__body">
+        <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
+        <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
+        <p class="muted">Updated: ${new Date(r.updated_at).toLocaleDateString()}</p>
+      </div>
+      <div class="casino-card__actions">
+        <a href="/en/review/${r.slug}" class="btn btn--primary">Read Review</a>
+      </div>
+    </div>
+  `).join("");
+
+  // Build news cards
+  const newsCards = content.news.map(n => `
+    <a href="/en/news/${n.slug}" class="news-card">
+      <h3>${n.title}</h3>
+      <p class="muted">${new Date(n.created_at).toLocaleDateString()}</p>
+    </a>
+  `).join("");
+
+  // Build page list
+  const pageList = content.pages.map(p => `
+    <li><a href="/en/${p.slug}">${p.title}</a> <span class="muted">— ${new Date(p.created_at).toLocaleDateString()}</span></li>
+  `).join("");
+
+  const authorSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": author.name,
+    "description": author.bio || "",
+    "image": author.avatar_url || "",
+    "jobTitle": author.role || "Editor"
+  };
+
+  const html = await renderer.render("author.html", {
+    ...author,
+    author_name: author.name,
+    author_bio: author.bio || "",
+    author_avatar: author.avatar_url || "/static/images/logo.png",
+    author_role: author.role || "Editor",
+    author_social: author.social_links || "",
+    review_cards: reviewCards,
+    news_cards: newsCards || '<p class="muted">No articles yet.</p>',
+    page_list: pageList || '<li class="muted">No pages yet.</li>',
+    review_count: stats.reviews,
+    news_count: stats.news,
+    page_count: stats.pages,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || author.name + " — Level Casino",
+    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at Level Casino.",
+    canonical: dynamicSeo.canonical || `https://level.casino/en/author/${slug}`
+  }, authorSchema, [{ label: "Home", url: "/en" }, { label: "Authors", url: null }, { label: author.name, url: null }]);
+
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
+}
+
+// ==================================
+// ADMIN: AUTHORS
+// ==================================
+
+export async function renderDashboardAuthors(request, env) {
+  return renderAdminPage(request, env, "admin/authors.html");
 }

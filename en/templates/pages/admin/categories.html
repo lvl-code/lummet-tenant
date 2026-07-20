@@ -8,6 +8,7 @@
     <a href="/en/dashboard/pages">Pages</a>
     <a href="/en/dashboard/categories">Categories</a>
     <a href="/en/dashboard/countries">Countries</a>
+    <a href="/en/dashboard/authors">Authors</a>
     <a href="/en/dashboard/components">Components</a>
     <a href="/en/dashboard/seo">SEO Meta</a>
     <a href="/en/dashboard/settings">Settings</a>
@@ -22,6 +23,7 @@
     </table>
     <h2 style="margin-top:30px">Add Category</h2>
     <form id="categoryForm" class="admin-form">
+      <input type="hidden" name="id" id="categoryId" value="">
       <div class="form-row">
         <div class="form-group"><label>Slug *</label><input type="text" name="slug" required placeholder="crypto"></div>
         <div class="form-group"><label>Name *</label><input type="text" name="name" required></div>
@@ -32,7 +34,10 @@
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
       <div id="categoryFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Create Category</button>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="categorySubmitBtn">Create Category</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="categoryCancelEdit" style="display:none" onclick="cancelCategoryEdit()">Cancel Edit</button>
+      </div>
     </form>
   </div>
 </div>

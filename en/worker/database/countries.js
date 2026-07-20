@@ -43,12 +43,10 @@ export async function updateCountry(db, code, data) {
       name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=?
     WHERE code=?
   `)
-  .bind(
-    data.name, data.currency, data.language, data.legal_status,
-    data.seo_title, data.seo_description, code.toUpperCase()
-  )
+  .bind(data.name, data.currency, data.language, data.legal_status, data.seo_title, data.seo_description, code.toUpperCase())
   .run();
 }
+
 
 export async function deleteCountry(db, code) {
   return db.prepare(`
@@ -56,4 +54,9 @@ export async function deleteCountry(db, code) {
   `)
   .bind(code.toUpperCase())
   .run();
+}
+
+
+export async function getCountryById(db, id) {
+  return await db.prepare(`SELECT * FROM countries WHERE id = ? LIMIT 1`).bind(id).first();
 }

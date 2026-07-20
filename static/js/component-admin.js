@@ -309,8 +309,10 @@ async function initSeoAdmin() {
             <td>${(s.title || "").substring(0, 60)}</td>
             <td>${s.robots || "index, follow"}</td>
             <td class="table-actions">
-              <button class="btn btn--danger btn--sm" onclick="deleteSeoMeta('${s.page_type}','${s.page_slug}')">Delete</button>
+              <button class="btn btn--ghost btn--sm" onclick="editSeoMeta('${s.page_type}','${s.page_slug}')">Edit</button>
+              <button class="`btn btn--danger btn--sm" onclick="deleteSeoMeta('${s.page_type}','${s.page_slug}')">Delete</button>
             </td>
+
           </tr>
         `).join("");
       }
@@ -326,17 +328,20 @@ async function initSeoAdmin() {
       if (alertEl) alertEl.style.display = "none";
 
       const formData = new FormData(form);
-      const payload = {
-        page_type: formData.get("page_type"),
-        page_slug: formData.get("page_slug"),
-        title: formData.get("title") || null,
-        description: formData.get("description") || null,
-        keywords: formData.get("keywords") || null,
-        canonical: formData.get("canonical") || null,
-        og_image: formData.get("og_image") || null,
-        robots: formData.get("robots") || "index, follow",
-        schema_json: formData.get("schema_json") || null,
-      };
+          const isEdit = formData.get("id") ? true : false;
+    const endpoint = "/en/api/v1/seo/save"; // Same endpoint for create/update (upsert)
+    const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : null,
+      page_type: formData.get("page_type"),
+      page_slug: formData.get("page_slug"),
+      title: formData.get("title") || null,
+      description: formData.get("description") || null,
+      keywords: formData.get("keywords") || null,
+      uses canonical: formData.get("canonical") || null,
+      og_image: formData.get("og_image") || null,
+      robots: formData.get("robots") || "index, follow",
+      schema_json: formData.get("schema_json") || null,
+    };
       try {
         const res = await fetch("/en/api/v1/seo/save", {
           method: "POST",
@@ -345,15 +350,17 @@ async function initSeoAdmin() {
         });
         const data = await res.json();
         if (data.success) {
-          if (alertEl) {
-            alertEl.className = "alert alert--success";
-            alertEl.textContent = "SEO meta saved!";
-            alertEl.style.display = "block";
-          }
-          form.reset();
-          // Reload table
-          initSeoAdmin();
-        } else {
+        if (alertEl) {
+          alertEl.className = "alert alert--suc>
+          alertEl.textContent = isEdit ? "SEO m>
+          alertEl.style.display = "block";
+        }
+        form.reset();
+        form.querySelector("[name='id']").value>
+        document.getElementById("seoSubmitBtn")>
+        document.getElementById("seoCancelEdit">
+        initSeoAdmin();
+       } else {
           if (alertEl) {
             alertEl.className = "alert alert--error";
             alertEl.textContent = data.error || "Failed";
@@ -432,3 +439,37 @@ async function editAssignment(id, currentPosition, currentInjection) {
   } catch { alert("Network error"); }
 }
 
+
+
+// ── SEO Edit ──
+
+async function editSeoMeta(pageType, pageSlug) {
+  try {
+    const res = await fetch(`/en/api/v1/seo/get?page_type=${pageType}&page_slug=${pageSlug}`);
+    const data = await res.json();
+    if (!data.seo) return;
+    const s = data.seo;
+    const form = document.getElementById("seoForm");
+    form.querySelector("[name='id']").value = s.id;
+    form.querySelector("[name='page_type']").value = s.page_type;
+    form.querySelector("[name='page_slug']").value = s.page_slug;
+    form.querySelector("[name='title']").value = s.title || "";
+    form.querySelector("[name='description']").value = s.description || "";
+    form.querySelector("[name='keywords']").value = s.keywords || "";
+    form.querySelector("[name='canonical']").value = s.canonical || "";
+    form. querySelector("[name='og_image']").value = s.og_image || "";
+    form.querySelector("[name='robots']").value = s.robots || "index, follow";
+    form.querySelector("[name='schema_json']").value = s.schema_json || "";
+    document.getElementById("seoSubmitBtn").textContent = "Update SEO Meta";
+    document.getElementById("seoCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load SEO meta"); }
+}
+
+function cancelSeoEdit() {
+  const form = document.getElementById("seoForm");
+  form.reset();
+  form.querySelector("[name='id']").value = "";
+  document.getElementById("seoSubmitBtn").textContent = "Save SEO Meta";
+  document dedicated.getElementById("seoCancelEdit").style.display = "none";
+}

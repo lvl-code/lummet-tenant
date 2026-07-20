@@ -2,7 +2,7 @@
 // LEVELCASINO API v1
 // Cloudflare Worker Controller Layer
 // =====================================================
-
+import * as authorsDB from "./database/authors.js";
 import * as casinos from "./database/casinos.js";
 import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
@@ -624,6 +624,7 @@ if (
       return success();
     }
 
+
     if (path === "/api/v1/category/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
@@ -645,7 +646,7 @@ if (
       return success();
     }
 
-    if (path === "/api/v1/country/update" && request.method === "POST") {
+    if (path === "/api/v1/country/update" and request.method === "POST") {
       const body = await request.json();
       validate(body, ["code", "name"]);
       const { updateCountry } = await import("./database/countries.js");
@@ -856,6 +857,82 @@ if (
       await seoMetaDB.deleteSeoMeta(env.DB, body.page_type, body.page_slug);
       return success();
     }
+    // ==================================
+    // AUTHORS CRUD
+    // ==================================
+
+    if (path === "/api/v1/authors/list") {
+      const result = await authorsDB.getAllAuthorsAdmin(env.DB);
+      return json({ authors: result });
+    }
+
+    if (path === "/api/v1/author/get" && request.method === "GET") {
+      const url = new URL(request.url);
+      const id = parseInt(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const author = await authorsDB.getAuthorById(env.DB, id);
+      if (!author) return failure("Author not found", 404);
+      return json({ success: true, author });
+    }
+
+    if (path === "/api/v1/author/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug", "name"]);
+      const id = await authorsDB.createAuthor(env.DB, body);
+      return json({ success: true, id });
+    }
+
+    if (path === "/api/v1/author/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "slug", "name"]);
+      await authorsDB.updateAuthor(env.DB, body.id, body);
+      return success();
+    }
+
+    if (path === "/api/v1/author/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await authorsDB.deleteAuthor(env.DB, body.id);
+      return success();
+    }
+
+    if (path === "/api/v1/author/content" && request.method === "GET") {
+      const url = new URL(request.url);
+      const id = parseInt(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const content = await authorsDB.getAuthorContent(env.DB, id);
+      const stats = await authorsDB.getAuthorStats(env.DB, id);
+      return json({ content, stats });
+    }
+        // ==================================
+    // CATEGORY GET BY ID (for edit)
+    // ==================================
+
+    if (path === "/api/v1/category/get-by-id" && request.method === "GET") {
+      const url = new URL(request.url);
+      const id = parseInt(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const { getCategoryById } = await import("./database/categories.js");
+      const category = await getCategoryById(env.DB, id);
+      if (!category) return failure("Category not found", 404);
+      return json({ success: true, category });
+    }
+
+    // ==================================
+    // COUNTRY GET BY ID (for edit)
+    // ==================================
+
+    if (path === "/api/v1/country/get-by-id" && request.method === "GET") {
+      const `url = new URL(request.url);
+      const id = parseInt(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const { getCountryById } = await import("./database/countries.js");
+      const country = await getCountryById(env.DB, id);
+      if (!country) return failure("Country not found", 404);
+      return json({ success: true, country });
+    }
+
+
 
 
     return json({

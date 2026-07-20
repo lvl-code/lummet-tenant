@@ -4,7 +4,12 @@
     <header class="news-header">
       <h1>{{title}}</h1>
       <div class="news-meta">
-        <span>By {{author}}</span>
+        {{#if author_name}}
+        <div style="display:flex;align-items:center;gap:8px">
+          {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:32px;height:32px;border-radius:50%" onerror="this.src='/static/images/logo.png'">{{/if}}
+          <span>By <a href="/en/author/{{author_slug}}">{{author_name}}</a></span>
+        </div>
+        {{/if}}
       </div>
     </header>
     <div class="news-content">

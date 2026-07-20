@@ -31,50 +31,31 @@ export async function getAllNews(
 
 }
 
-export async function createNews(
-  db,
-  data
-){
 
+export async function createNews(db, data) {
   return db.prepare(`
     INSERT INTO news(
-      slug,
-      title,
-      content,
-      author,
-      seo_title,
-      seo_description,
-      published
+      slug, title, content, author, author_id, seo_title, seo_description, published
     )
-    VALUES(
-      ?,?,?,?,?,?,1
-    )
+    VALUES(?,?,?,?,?,?,?,1)
   `)
   .bind(
     data.slug,
     data.title,
     data.content,
     data.author || "Admin",
+    data.author_id || null,
     data.seo_title,
     data.seo_description
   )
   .run();
-
 }
 
-export async function updateNews(
-  db,
-  slug,
-  data
-){
-
+export async function updateNews(db, slug, data) {
   return db.prepare(`
     UPDATE news
     SET
-      title=?,
-      content=?,
-      seo_title=?,
-      seo_description=?,
+      title=?, content=?, seo_title=?, seo_description=?, author_id=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE slug=?
   `)
@@ -83,11 +64,12 @@ export async function updateNews(
     data.content,
     data.seo_title,
     data.seo_description,
+    data.author_id || null,
     slug
   )
   .run();
-
 }
+
 
 export async function deleteNews(
   db,

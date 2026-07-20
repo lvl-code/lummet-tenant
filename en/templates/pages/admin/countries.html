@@ -8,6 +8,7 @@
     <a href="/en/dashboard/pages">Pages</a>
     <a href="/en/dashboard/categories">Categories</a>
     <a href="/en/dashboard/countries">Countries</a>
+    <a href="/en/dashboard/authors">Authors</a>
     <a href="/en/dashboard/components">Components</a>
     <a href="/en/dashboard/seo">SEO Meta</a>
     <a href="/en/dashboard/settings">Settings</a>
@@ -22,6 +23,7 @@
     </table>
     <h2 style="margin-top:30px">Add Country</h2>
     <form id="countryForm" class="admin-form">
+      <input type="hidden" name="id" id="countryId" value="">
       <div class="form-row">
         <div class="form-group"><label>Code *</label><input type="text" name="code" required placeholder="RW" maxlength="2"></div>
         <div class="form-group"><label>Name *</label><input type="text" name="name" required></div>
@@ -36,7 +38,10 @@
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
       <div id="countryFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Create Country</button>
+      <div style="display:flex;gap:12px"
+        <button type="submit" class="btn btn--primary btn--lg" id="countrySubmitBtn">Create Country</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="countryCancelEdit" style="display:none" onclick="cancelCountryEdit()">Cancel Edit</button>
+      </div>
     </form>
   </div>
 </div>

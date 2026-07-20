@@ -83,6 +83,7 @@ function initReviewForm() {
       rating: parseFloat(formData.get("rating")) || 0,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
     };
 
     try {
@@ -180,6 +181,7 @@ function initNewsForm() {
       author: formData.get("author") || "Admin",
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
     };
 
     try {
@@ -277,6 +279,7 @@ function initPageForm() {
       content_json: formData.get("content_json") || {},
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
     };
 
     // Try to parse content_json if it's a string
@@ -482,8 +485,10 @@ async function loadCategoriesTable() {
         <td>${c.slug}</td>
         <td>${c.description || ""}</td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editCategory(${c.id})">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCategory('${c.slug}')">Delete</button>
         </td>
+
       </tr>
     `).join("");
   } catch {
@@ -513,23 +518,34 @@ function initCategoryForm() {
     const alertEl = document.getElementById("categoryFormAlert");
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
+    const isEdit = formData.get("id") ? true : false;
+    const endpoint = isEdit ? "/en/api/v1/category/update" : "/en/api/v1/category/create";
     const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : null,
       slug: formData.get("slug"),
       name: formData.get("name"),
       description: formData.get("description") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
     };
+
     try {
-      const res = await fetch("/en/api/v1/category/create", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
-        if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = "Category created!"; alertEl.style.display = "block"; }
+        if (alertEl) {
+          alertEl.className = "alert alert--success";
+          and alertEl.textContent = isEdit ? "Category updated!" : "Category created!";
+          alertEl.style.display = "block";
+        }
         form.reset();
+        form.querySelector("[name='id']").value = "";
+        document.getElementById("categorySubmitBtn").textContent = "Create Category";
+        document.getElementById("categoryCancelEdit").style.display = "none";
         loadCategoriesTable();
       } else {
         if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
@@ -562,6 +578,7 @@ async function loadCountriesTable() {
         <td>${c.currency || "—"}</td>
         <td>${c.legal_status || "—"}</td>
         <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editCountry(${c.id})">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCountry('${c.code}')">Delete</button>
         </td>
       </tr>
@@ -593,25 +610,37 @@ function initCountryForm() {
     const alertEl = document.getElementById("countryFormAlert");
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
+    const isEdit = formData.get("id") ? true : false;
+    const endpoint = isEdit ? "/en/api/v1/country/update" : "/en/api/v1/country/create";
     const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : null,
       code: formData.get("code"),
       name: formData.get("name"),
       currency: formData.get("currency") || null,
       language: formData.get("language") || null,
-      legal_status: formData.get("legal_status") || null,
+      legal_status: formData.get("`legal_status") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
     };
+
     try {
-      const res = await fetch("/en/api/v1/country/create", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.success) {
-        if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = "Country created!"; alertEl.style.display = "block"; }
+      if (data existing.success) {
+        if (alertEl) {
+          alertEl.className = "alert alert--success";
+          alertEl.textContent = isEdit ? "Country updated!" : "Country created!";
+          alertEl.style.display = " profile";
+        }
         form.reset();
+        const idField = form.querySelector("[name='id']");
+        if (idField) idField.value = "";
+        document.getElementById("countrySubmitBtn").textContent = "Create Country";
+        document.getElementById("countryCancelEdit").style.display = "none";
         loadCountriesTable();
       } else {
         if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
@@ -690,6 +719,10 @@ async function editReview(slug) {
     form.querySelector("[name='cons']").value = cons.join("\n");
     form.querySelector("[name='seo_title']").value = review.seo_title || "";
     form.querySelector("[name='seo_description']").value = review.seo_description || "";
+        // Set author dropdown
+    const authorSelect = form.querySelector("[name='author_id']");
+    if (authorSelect) authorSelect.value = review.author_id || "";
+
     document.getElementById("reviewSubmitBtn").textContent = "Update Review";
     document.getElementById("reviewCancelEdit").style.display = "";
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
@@ -721,6 +754,10 @@ async function editNews(slug) {
     form.querySelector("[name='content']").value = article.content || "";
     form.querySelector("[name='seo_title']").value = article.seo_title || "";
     form.querySelector("[name='seo_description']").value = article.seo_description || "";
+        // Set author dropdown
+    const authorSelect = form.querySelector("[name='author_id']");
+    if (authorSelect) authorSelect.value = article.author_id || "";
+
     document.getElementById("newsSubmitBtn").textContent = "Update Article";
     document.getElementById("newsCancelEdit").style.display = "";
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
@@ -754,6 +791,10 @@ async function editPage(slug) {
     form.querySelector("[name='content_json']").value = page.content_json || "";
     form.querySelector("[name='seo_title']").value = page.seo_title || "";
     form.querySelector("[name='seo_description']").value = page.seo_description || "";
+        // Set author dropdown
+    const authorSelect = form.querySelector("[name='author_id']");
+    if (authorSelect) authorSelect.value = page.author_id || "";
+
     document.getElementById("pageSubmitBtn").textContent = "Update Page";
     document.getElementById("pageCancelEdit").style.display = "";
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
@@ -766,4 +807,67 @@ function cancelPageEdit() {
   form.querySelector("[name='id']").value = "";
   document.getElementById("pageSubmitBtn").textContent = "Create Page";
   document.getElementById("pageCancelEdit").style.display = "none";
+}
+
+
+// ── Category Edit ──
+
+async function editCategory(id) {
+  try {
+    const res = await fetch(`/en/api/v1/category/get-by-id?id=${id}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const c = data.category;
+    const form = document.getElementById("categoryForm");
+    form.querySelector("[name='id']").value = c.id;
+    form.querySelector("[name='slug']").value = c.slug;
+    form.querySelector("[name='name']").value = c.name;
+    form.querySelector("[name='description']").value = c.description || "";
+    form.querySelector("[name='seo_title']").value = c.seo_title || "";
+    form.querySelector("[name='seo_description']").value = c.seo_description || "";
+    document.getElementById("categorySubmitBtn").textContent = "Update Category";
+    document.getElementById("categoryCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load category"); }
+}
+
+function cancelCategoryEdit() {
+  const form = document.getElementById("categoryForm");
+  form.reset();
+  form.querySelector("[name='id']").value = "";
+  document.getElementById("categorySubmitBtn").textContent = "Create Category";
+  document.getElementById("categoryCMSEdit").style.display = "none";
+}
+
+// ── Country Edit ──
+
+async function editCountry(id) {
+  try {
+    const res = await `fetch(`/en/api/v1/country/get-by-id?id=${id}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const c = data.country;
+    const form = document.getElementById("countryForm");
+    const idField = form.querySelector("[name='id']");
+    if (idField) idField.value = c.id;
+    form.querySelector("[name='code']").value = c.code;
+    form.querySelector("[name='name']").value = c.name;
+    form.querySelector("[name='currency']").value = c.currency || "";
+    form.querySelector("[name='language']").value = c.language || "";
+    form.querySelector("[name='legal_status']").value = c.legal_status || "";
+    form.querySelector("[name='seo_title']").value = c.seo_title || "";
+    form.querySelector("[name='seo_description']").value = c.seo_description || "";
+    document.getElementById("countrySubmitBtn").textContent = "Update Country";
+    document.getElementById("countryCancelEdit").style.display = "";
+    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+  } catch { alert("Failed to load country"); }
+}
+
+function cancelCountryEdit() {
+  const form = document.getElementById("countryForm");
+  form.reset();
+  const idField = form.querySelector("[name='id']");
+  if (idField) idField.value = "";
+  document.getElementById("countrySubmitBtn").textContent = "Countries";
+  document.getElementById("countryCancelEdit").style.display = "none";
 }

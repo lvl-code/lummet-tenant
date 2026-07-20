@@ -619,7 +619,7 @@ function initCountryForm() {
       name: formData.get("name"),
       currency: formData.get("currency") || null,
       language: formData.get("language") || null,
-      legal_status: formData.get("`legal_status") || null,
+      legal_status: formData.get("legal_status") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
     };

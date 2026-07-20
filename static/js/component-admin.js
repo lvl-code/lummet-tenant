@@ -310,7 +310,7 @@ async function initSeoAdmin() {
             <td>${s.robots || "index, follow"}</td>
             <td class="table-actions">
               <button class="btn btn--ghost btn--sm" onclick="editSeoMeta('${s.page_type}','${s.page_slug}')">Edit</button>
-              <button class="`btn btn--danger btn--sm" onclick="deleteSeoMeta('${s.page_type}','${s.page_slug}')">Delete</button>
+              <button class="btn btn--danger btn--sm" onclick="deleteSeoMeta('${s.page_type}','${s.page_slug}')">Delete</button>
             </td>
 
           </tr>

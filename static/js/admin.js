@@ -578,7 +578,7 @@ async function loadCountriesTable() {
         <td>${c.currency || "—"}</td>
         <td>${c.legal_status || "—"}</td>
         <td class="table-actions">
-          <button class="btn btn--ghost btn--sm" onclick="editCountry(${c.id})">Edit</button>
+          <button class="btn btn--ghost btn--sm" onclick="editCountry('${c.code}')">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCountry('${c.code}')">Delete</button>
         </td>
 
@@ -611,10 +611,10 @@ function initCountryForm() {
     const alertEl = document.getElementById("countryFormAlert");
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
-    const isEdit = formData.get("id") ? true : false;
+
+    const isEdit = form.dataset.editMode === "true";
     const endpoint = isEdit ? "/en/api/v1/country/update" : "/en/api/v1/country/create";
     const payload = {
-      id: formData.get("id") ? parseInt(formData.get("id")) : null,
       code: formData.get("code"),
       name: formData.get("name"),
       currency: formData.get("currency") || null,
@@ -631,6 +631,7 @@ function initCountryForm() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
@@ -638,8 +639,8 @@ function initCountryForm() {
           alertEl.style.display = "block";
         }
         form.reset();
-        const idField = form.querySelector("[name='id']");
-        if (idField) idField.value = "";
+        form.querySelector("[name='code']").readOnly = false;
+        delete form.dataset.editMode;
         document.getElementById("countrySubmitBtn").textContent = "Create Country";
         document.getElementById("countryCancelEdit").style.display = "none";
         loadCountriesTable();
@@ -841,17 +842,15 @@ function cancelCategoryEdit() {
 }
 
 // ── Country Edit ──
-
-async function editCountry(id) {
+async function editCountry(code) {
   try {
-    const res = await fetch(`/en/api/v1/country/get-by-id?id=${id}`);
+    const res = await fetch(`/en/api/v1/country/get-by-code?code=${code}`);
     const data = await res.json();
     if (!data.success) return;
     const c = data.country;
     const form = document.getElementById("countryForm");
-    const idField = form.querySelector("[name='id']");
-    if (idField) idField.value = c.id;
     form.querySelector("[name='code']").value = c.code;
+    form.querySelector("[name='code']").readOnly = true; // Prevent changing primary key
     form.querySelector("[name='name']").value = c.name;
     form.querySelector("[name='currency']").value = c.currency || "";
     form.querySelector("[name='language']").value = c.language || "";
@@ -860,15 +859,15 @@ async function editCountry(id) {
     form.querySelector("[name='seo_description']").value = c.seo_description || "";
     document.getElementById("countrySubmitBtn").textContent = "Update Country";
     document.getElementById("countryCancelEdit").style.display = "";
+    form.dataset.editMode = "true";
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
   } catch { alert("Failed to load country"); }
 }
-
 function cancelCountryEdit() {
   const form = document.getElementById("countryForm");
   form.reset();
-  const idField = form.querySelector("[name='id']");
-  if (idField) idField.value = "";
+  form.querySelector("[name='code']").readOnly = false;
+  delete form.dataset.editMode;
   document.getElementById("countrySubmitBtn").textContent = "Create Country";
   document.getElementById("countryCancelEdit").style.display = "none";
 }

@@ -932,6 +932,15 @@ if (
       return json({ success: true, country });
     }
 
+    if (path === "/api/v1/country/get-by-code" && request.method === "GET") {
+      const url = new URL(request.url);
+      const code = url.searchParams.get("code");
+      if (!code) return failure("code is required");
+      const { getCountry } = await import("./database/countries.js");
+      const country = await getCountry(env.DB, code.toUpperCase());
+      if (!country) return failure("Country not found", 404);
+      return json({ success: true, country });
+    }
 
 
 

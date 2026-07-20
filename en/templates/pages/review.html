@@ -15,20 +15,13 @@
       {{/if}}
       
       <div class="review-meta">
-    <div class="review-author">
-        <strong>By {{author}}</strong>
-    </div>
 
-    <div class="review-author-title">
-        <strong> {{author_title}}</strong>
-    </div>
-
-    <div class="review-dates">
-        <span><strong>Reviewed:</strong> {{reviewed_at}}</span>
-        &nbsp;•&nbsp;
-        <span><strong>Updated:</strong> {{updated_at}}</span>
-    </div>
-</div>
+        <div class="review-dates">
+            <span><strong>Reviewed:</strong> {{reviewed_at}}</span>
+            &nbsp;•&nbsp;
+            <span><strong>Updated:</strong> {{updated_at}}</span>
+        </div>
+      </div>
 
       <div class="review-meta">
         <span class="rating-stars">{{rating}} / 5</span>
@@ -100,20 +93,13 @@
 
   <h2 id="licensing">Licensing</h2>
   <p>{{licenses}}</p>
-
-  {{content}}
   {{components_content_top}}
+  {{content}}
   {{review_blocks_html}}
   {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
   <h2 id="faq">Frequently Asked Questions</h2>
-
-  <div class="faq-accordion">
-
-      {{faq_html}}
-
-  </div>
 </div>
 
       <div class="review-pros-cons">

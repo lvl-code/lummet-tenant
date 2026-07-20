@@ -5,6 +5,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   initNavToggle();
   initSidebar();
+  initSidebarNews();
+  initSidebarCategories();
+  initSidebarCountries();
   initHomeNews();
   initHeaderAuth();
   initMobileSearch();
@@ -21,13 +24,13 @@ function initNavToggle() {
   });
 }
 
-// ---- Sidebar: load top casinos ----
+// ---- Sidebar: load top casinos (geo-aware) ----
 async function initSidebar() {
   const container = document.getElementById("sidebarTopCasinos");
   if (!container) return;
 
   try {
-    const res = await fetch("/en/api/v1/public/casinos/list");
+    const res = await fetch("/en/api/v1/public/casinos/geo");
     const data = await res.json();
 
     if (!data.casinos || data.casinos.length === 0) {
@@ -35,20 +38,146 @@ async function initSidebar() {
       return;
     }
 
+    // Sort: available first, then by rating
+    data.casinos.sort((a, b) => {
+      const aAvail = a.geo_status === "allowed" ? 1 : 0;
+      const bAvail = b.geo_status === "allowed" ? 1 : 0;
+      if (aAvail !== bAvail) return bAvail - aAvail;
+      return (b.rating || 0) - (a.rating || 0);
+    });
+
     const top5 = data.casinos.slice(0, 5);
-    container.innerHTML = top5
-      .map(
-        (c) => `
+    const countryCode = data.country || "RW";
+    const flag = countryCode.replace(/./g, ch => String.fromCodePoint(127397 + ch.charCodeAt()));
+
+    container.innerHTML = top5.map(c => {
+      const geoIcon = c.geo_status === "allowed" ? "✓" : "✕";
+      const geoClass = c.geo_status === "allowed" ? "geo-allowed" : "geo-blocked";
+      return `
       <a href="/en/casino/${c.slug}" class="sidebar-casino">
         <img src="${c.logo || "/en/static/images/logo.png"}" alt="${c.name}" onerror="this.src='/en/static/images/logo.png'">
         <div>
           <strong>${c.name}</strong>
-          <span class="rating">★ ${c.rating || "N/A"}</span>
+          <span class="rating">★ ${c.rating || "N/A"} <span class="${geoClass}" style="font-size:10px;margin-left:4px">${flag} ${geoIcon}</span></span>
         </div>
+      </a>`;
+    }).join("");
+  } catch {
+    container.innerHTML = '<p class="muted">Failed to load.</p>';
+  }
+}
+
+// ---- Sidebar: load latest news ----
+async function initSidebarNews() {
+  const container = document.getElementById("sidebarNews");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/en/api/v1/public/news/list");
+    const data = await res.json();
+
+    if (!data.news || data.news.length === 0) {
+      container.innerHTML = '<p class="muted">No news yet.</p>';
+      return;
+    }
+
+    const top3 = data.news.slice(0, 3);
+    container.innerHTML = top3.map(n => `
+      <a href="/en/news/${n.slug}" class="sidebar-news-item">
+        <strong>${n.title}</strong>
+        <span class="news-date">${new Date(n.created_at).toLocaleDateString()}</span>
       </a>
-    `
-      )
-      .join("");
+    `).join("");
+  } catch {
+    container.innerHTML = '<p class="muted">Failed to load news.</p>';
+  }
+}
+
+// ---- Sidebar: load categories ----
+async function initSidebarCategories() {
+  const container = document.getElementById("sidebarCategories");
+  const moreBtn = document.getElementById("sidebarCategoriesMore");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/en/api/v1/categories/list");
+    const data = await res.json();
+    const cats = data.categories || [];
+
+    if (cats.length === 0) {
+      container.innerHTML = '<p class="muted">No categories yet.</p>';
+      return;
+    }
+
+    const renderCats = (list) => list.map(c => `<a href="/en/category/${c.slug}" class="chip">${c.name}</a>`).join("");
+    
+    // Show first 5
+    container.innerHTML = renderCats(cats.slice(0, 5));
+
+    if (cats.length > 5) {
+      moreBtn.style.display = "block";
+      let expanded = false;
+      moreBtn.addEventListener("click", () => {
+        if (expanded) {
+          container.innerHTML = renderCats(cats.slice(0, 5));
+          moreBtn.textContent = "Load More";
+          expanded = false;
+        } else {
+          container.innerHTML = renderCats(cats);
+          moreBtn.textContent = "Show Less";
+          expanded = true;
+        }
+      });
+    }
+  } catch {
+    container.innerHTML = '<p class="muted">Failed to load.</p>';
+  }
+}
+
+// ---- Sidebar: load countries with search ----
+async function initSidebarCountries() {
+  const container = document.getElementById("sidebarCountries");
+  const searchInput = document.getElementById("sidebarCountrySearch");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/en/api/v1/countries/list");
+    const data = await res.json();
+    let countries = data.countries || [];
+
+    // If no countries in DB, fallback to hardcoded top 5
+    if (countries.length === 0) {
+      countries = [
+        { code: "GB", name: "United Kingdom" },
+        { code: "DE", name: "Germany" },
+        { code: "SG", name: "Singapore" },
+        { code: "US", name: "United States" },
+        { code: "CA", name: "Canada" }
+      ];
+    }
+
+    const renderCountries = (list) => {
+      if (list.length === 0) return '<p class="muted">No countries found.</p>';
+      return list.map(c => `<a href="/en/country/${c.code}" class="chip">${c.name}</a>`).join("");
+    };
+
+    // Show top 5 initially
+    let displayCountries = countries.slice(0, 5);
+    container.innerHTML = renderCountries(displayCountries);
+
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        const query = e.target.value.toLowerCase();
+        if (query.length === 0) {
+          container.innerHTML = renderCountries(countries.slice(0, 5));
+        } else {
+          const filtered = countries.filter(c => 
+            c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+          );
+          container.innerHTML = renderCountries(filtered.slice(0, 20)); // Limit search results
+        }
+      });
+    }
   } catch {
     container.innerHTML = '<p class="muted">Failed to load.</p>';
   }

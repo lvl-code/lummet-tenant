@@ -290,6 +290,7 @@ export async function renderCasino(request, env, slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || casino.seo_title || casino.name,
     seo_description: dynamicSeo.seo_description || casino.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/casino/${slug}`,
@@ -657,6 +658,7 @@ if (review.casino_slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     review_blocks_html: reviewBlocksHtml,
     seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
     seo_description: dynamicSeo.seo_description || review.seo_description || "",
@@ -709,6 +711,7 @@ export async function renderNews(request, env, slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || article.title,
     seo_description: dynamicSeo.seo_description || (article.content || "").substring(0, 155),
   }, newsSchema, buildBreadcrumbs("news", { title: article.title }));
@@ -908,6 +911,7 @@ export async function renderCountry(request, env, slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/country/${code}`,
@@ -950,6 +954,7 @@ export async function renderCategory(request, env, slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || category.seo_title || category.name + " Casinos",
     seo_description: dynamicSeo.seo_description || category.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/category/${slug}`,
@@ -1011,6 +1016,7 @@ export async function renderDynamicPage(request, env, slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || page.title,
     seo_description: dynamicSeo.seo_description || page.seo_description || "",
   }, pageSchema, buildBreadcrumbs("page", { title: page.title }));
@@ -1146,6 +1152,7 @@ export async function renderCasinoList(request, env) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || "All Online Casinos — Level Casino",
     seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings."
   }, listSchema, buildBreadcrumbs("casinoList"));
@@ -1153,36 +1160,6 @@ export async function renderCasinoList(request, env) {
   return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
 
-export async function rendeCasinoList(request, env) {
-  const renderer = new Renderer(env);
-  const casinoList = await casinos.getAllCasinos(env.DB);
-  const geoData = await prepareGeoData(env, request, casinoList);
-  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
-
-  const listSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "Complete Directory of Online Casinos",
-    "itemListElement": sortedCasinos.map((c, idx) => ({
-      "@type": "ListItem",
-      "position": idx + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
-    }))
-  };
-
-  const html = await renderer.render("category.html", {
-    canonical: "https://level.casino/en/casino",
-    category: "All Casinos",
-    description: "Browse our complete directory of reviewed online casinos.",
-    casino_cards: buildCasinoCards(sortedCasinos, geoData),
-    seo_title: "All Online Casinos — Level Casino",
-    seo_description: "Complete directory of reviewed online casinos with bonuses and ratings."
-  }, listSchema, buildBreadcrumbs("casinoList"));
-
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
 
 export async function renderReviewList(request, env) {
   const renderer = new Renderer(env);
@@ -1273,6 +1250,7 @@ export async function renderReviewList(request, env) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || "All Casino Reviews — Level Casino",
     seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
   }, listSchema, buildBreadcrumbs("reviewList"));
@@ -1313,6 +1291,7 @@ export async function renderNewsList(request, env) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || "Casino News — Level Casino",
     seo_description: dynamicSeo.seo_description || "Latest iGaming and online casino industry news."
   }, listSchema, buildBreadcrumbs("newsList"));
@@ -1424,6 +1403,7 @@ export async function renderCategoryList(request, env) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || "Casino Categories — Level Casino",
     seo_description: dynamicSeo.seo_description || "Browse online casinos by category."
   }, {}, buildBreadcrumbs("categoryList"));
@@ -1449,6 +1429,7 @@ export async function renderCountryList(request, env) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || "Online Casinos by Country — Level Casino",
     seo_description: dynamicSeo.seo_description || "Find online casinos available in your country."
   }, {}, buildBreadcrumbs("countryList"));
@@ -1549,6 +1530,7 @@ export async function renderAuthor(request, env, slug) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || author.name + " — Level Casino",
     seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at Level Casino.",
     canonical: dynamicSeo.canonical || `https://level.casino/en/author/${slug}`

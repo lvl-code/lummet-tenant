@@ -923,7 +923,7 @@ if (
     // ==================================
 
     if (path === "/api/v1/country/get-by-id" && request.method === "GET") {
-      const `url = new URL(request.url);
+      const url = new URL(request.url);
       const id = parseInt(url.searchParams.get("id"));
       if (!id) return failure("id is required");
       const { getCountryById } = await import("./database/countries.js");

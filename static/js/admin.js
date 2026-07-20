@@ -539,7 +539,7 @@ function initCategoryForm() {
       if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
-          and alertEl.textContent = isEdit ? "Category updated!" : "Category created!";
+          alertEl.textContent = isEdit ? "Category updated!" : "Category created!";
           alertEl.style.display = "block";
         }
         form.reset();
@@ -630,11 +630,11 @@ function initCountryForm() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data existing.success) {
+      if (data.success) {
         if (alertEl) {
           alertEl.className = "alert alert--success";
           alertEl.textContent = isEdit ? "Country updated!" : "Country created!";
-          alertEl.style.display = " profile";
+          alertEl.style.display = "block";
         }
         form.reset();
         const idField = form.querySelector("[name='id']");
@@ -836,14 +836,14 @@ function cancelCategoryEdit() {
   form.reset();
   form.querySelector("[name='id']").value = "";
   document.getElementById("categorySubmitBtn").textContent = "Create Category";
-  document.getElementById("categoryCMSEdit").style.display = "none";
+  document.getElementById("categoryCancelEdit").style.display = "none";
 }
 
 // ── Country Edit ──
 
 async function editCountry(id) {
   try {
-    const res = await `fetch(`/en/api/v1/country/get-by-id?id=${id}`);
+    const res = await fetch(`/en/api/v1/country/get-by-id?id=${id}`);
     const data = await res.json();
     if (!data.success) return;
     const c = data.country;
@@ -868,6 +868,6 @@ function cancelCountryEdit() {
   form.reset();
   const idField = form.querySelector("[name='id']");
   if (idField) idField.value = "";
-  document.getElementById("countrySubmitBtn").textContent = "Countries";
+  document.getElementById("countrySubmitBtn").textContent = "Create Country";
   document.getElementById("countryCancelEdit").style.display = "none";
 }

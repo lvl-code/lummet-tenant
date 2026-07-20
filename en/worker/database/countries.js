@@ -36,7 +36,6 @@ export async function createCountry(db, data) {
   )
   .run();
 }
-
 export async function updateCountry(db, code, data) {
   return db.prepare(`
     UPDATE countries SET
@@ -46,6 +45,7 @@ export async function updateCountry(db, code, data) {
   .bind(data.name, data.currency, data.language, data.legal_status, data.seo_title, data.seo_description, code.toUpperCase())
   .run();
 }
+
 
 
 export async function deleteCountry(db, code) {

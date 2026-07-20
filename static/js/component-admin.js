@@ -329,7 +329,7 @@ async function initSeoAdmin() {
 
       const formData = new FormData(form);
           const isEdit = formData.get("id") ? true : false;
-    const endpoint = "/en/api/v1/seo/save"; // Same endpoint for create/update (upsert)
+    const endpoint = "/en/api/v1/seo/save";
     const payload = {
       id: formData.get("id") ? parseInt(formData.get("id")) : null,
       page_type: formData.get("page_type"),
@@ -337,11 +337,12 @@ async function initSeoAdmin() {
       title: formData.get("title") || null,
       description: formData.get("description") || null,
       keywords: formData.get("keywords") || null,
-      uses canonical: formData.get("canonical") || null,
+      canonical: formData.get("canonical") || null,
       og_image: formData.get("og_image") || null,
       robots: formData.get("robots") || "index, follow",
       schema_json: formData.get("schema_json") || null,
     };
+
       try {
         const res = await fetch("/en/api/v1/seo/save", {
           method: "POST",
@@ -351,16 +352,16 @@ async function initSeoAdmin() {
         const data = await res.json();
         if (data.success) {
         if (alertEl) {
-          alertEl.className = "alert alert--suc>
-          alertEl.textContent = isEdit ? "SEO m>
+          alertEl.className = "alert alert--success";
+          alertEl.textContent = isEdit ? "SEO meta updated!" : "SEO meta saved!";
           alertEl.style.display = "block";
         }
         form.reset();
-        form.querySelector("[name='id']").value>
-        document.getElementById("seoSubmitBtn")>
-        document.getElementById("seoCancelEdit">
+        form.querySelector("[name='id']").value = "";
+        document.getElementById("seoSubmitBtn").textContent = "Save SEO Meta";
+        document.getElementById("seoCancelEdit").style.display = "none";
         initSeoAdmin();
-       } else {
+      }   else {
           if (alertEl) {
             alertEl.className = "alert alert--error";
             alertEl.textContent = data.error || "Failed";
@@ -439,8 +440,6 @@ async function editAssignment(id, currentPosition, currentInjection) {
   } catch { alert("Network error"); }
 }
 
-
-
 // ── SEO Edit ──
 
 async function editSeoMeta(pageType, pageSlug) {
@@ -457,7 +456,7 @@ async function editSeoMeta(pageType, pageSlug) {
     form.querySelector("[name='description']").value = s.description || "";
     form.querySelector("[name='keywords']").value = s.keywords || "";
     form.querySelector("[name='canonical']").value = s.canonical || "";
-    form. querySelector("[name='og_image']").value = s.og_image || "";
+    form.querySelector("[name='og_image']").value = s.og_image || "";
     form.querySelector("[name='robots']").value = s.robots || "index, follow";
     form.querySelector("[name='schema_json']").value = s.schema_json || "";
     document.getElementById("seoSubmitBtn").textContent = "Update SEO Meta";
@@ -471,5 +470,5 @@ function cancelSeoEdit() {
   form.reset();
   form.querySelector("[name='id']").value = "";
   document.getElementById("seoSubmitBtn").textContent = "Save SEO Meta";
-  document dedicated.getElementById("seoCancelEdit").style.display = "none";
+  document.getElementById("seoCancelEdit").style.display = "none";
 }

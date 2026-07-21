@@ -166,6 +166,9 @@ export function getRoute(request) {
   if (path === "/en/dashboard/countries") return { type: "dashboardCountries" };
   if (path === "/en/dashboard/authors") return { type: "dashboardAuthors" };
   if (path === "/en/dashboard/media") return { type: "dashboardMedia" };
+  if (path === "/en/dashboard/nav") return { type: "dashboardNav" };
+  if (path === "/en/dashboard/permissions") return { type: "dashboardPermissions" };
+
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };
 

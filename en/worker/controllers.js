@@ -15,7 +15,7 @@ import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
-
+import * as nav from "./database/nav.js";
 function cacheHeaders() {
   return {
     "Content-Type": "text/html",
@@ -1557,4 +1557,8 @@ export async function renderDashboardAuthors(request, env) {
 
 export async function renderDashboardMedia(request, env) {
   return renderAdminPage(request, env, "admin/media.html");
+}
+
+export async function renderDashboardNav(request, env) {
+  return renderAdminPage(request, env, "admin/nav.html");
 }

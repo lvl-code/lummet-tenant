@@ -92,7 +92,36 @@ export class Renderer {
       seo_robots: seo.robots || "index, follow"
     };
   }
+  async loadNavData() {
+    const { getNavItems } = await import("./database/nav.js");
+    const headerNav = await getNavItems(this.env.DB, "header");
+    const footerCasinos = await getNavItems(this.env.DB, "footer_casinos");
+    const footerCompany = await getNavItems(this.env.DB, "footer_company");
+    const footerSupport = await getNavItems(this.env.DB, "footer_support");
+    const footerLegal = await getNavItems(this.env.DB, "footer_legal");
 
+    return {
+      header_nav: this.buildHeaderNav(headerNav),
+      footer_casinos: this.buildFooterLinks(footerCasinos),
+      footer_company: this.buildFooterLinks(footerCompany),
+      footer_support: this.buildFooterLinks(footerSupport),
+      footer_legal: this.buildFooterLinks(footerLegal)
+    };
+  }
+
+  buildHeaderNav(items) {
+    return items.map(item => {
+      const external = item.is_external ? ' target="_blank" rel="noopener"' : "";
+      return `<a href="${item.url}"${external}>${item.label}</a>`;
+    }).join("\n");
+  }
+
+  buildFooterLinks(items) {
+    return items.map(item => {
+      const external = item.is_external ? ' target="_blank" rel="noopener noreferrer nofollow"' : "";
+      return `<li><a href="${item.url}"${external}>${item.label}</a></li>`;
+    }).join("\n");
+  }
 
   // =====================================================
 // BUILD SEO
@@ -167,9 +196,13 @@ ${JSON.stringify(schema)}
       );
       breadcrumbHtml = `<nav class="breadcrumbs" id="breadcrumbs">${parts.join(" / ")}</nav>`;
     }
-
     base = await this.injectComponents(base, breadcrumbHtml);
-    base = this.replaceVariables(base, data);  // ADD THIS LINE
+
+    // Load dynamic navigation data
+    const navData = await this.loadNavData();
+    base = this.replaceVariables(base, navData);
+
+    base = this.replaceVariables(base, data);
     return base;
   } 
 

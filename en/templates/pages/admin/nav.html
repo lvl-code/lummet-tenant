@@ -1,0 +1,105 @@
+<div class="admin-wrapper">
+  <nav class="admin-nav">
+    <a href="/en/dashboard">Overview</a>
+    <a href="/en/dashboard/casinos">Casinos</a>
+    <a href="/en/dashboard/casino/create">Add Casino</a>
+    <a href="/en/dashboard/reviews">Reviews</a>
+    <a href="/en/dashboard/news">News</a>
+    <a href="/en/dashboard/pages">Pages</a>
+    <a href="/en/dashboard/categories">Categories</a>
+    <a href="/en/dashboard/countries">Countries</a>
+    <a href="/en/dashboard/authors">Authors</a>
+    <a href="/en/dashboard/media">Media</a>
+    <a href="/en/dashboard/components">Components</a>
+    <a href="/en/dashboard/seo">SEO Meta</a>
+    <a href="/en/dashboard/nav" class="active">Navigation</a>
+    <a href="/en/dashboard/permissions">Permissions</a>
+    <a href="/en/dashboard/settings">Settings</a>
+    <a href="/en/dashboard/ai">AI Generator</a>
+    <a href="/en/api/v1/auth/logout" class="admin-logout">Logout</a>
+  </nav>
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Navigation Manager</h1>
+    </div>
+
+    <div class="form-row" style="margin-bottom:20px">
+      <div class="form-group">
+        <label>Filter by Location</label>
+        <select id="navLocationFilter" onchange="loadNavTable()">
+          <option value="">All locations</option>
+          <option value="header">Header</option>
+          <option value="footer_casinos">Footer — Casinos</option>
+          <option value="footer_company">Footer — Company</option>
+          <option value="footer_support">Footer — Support</option>
+          <option value="footer_legal">Footer — Legal</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Label</th><th>URL</th><th>Location</th><th>Position</th><th>External</th><th>Enabled</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="navTableBody">
+        <tr><td colspan="7" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">Add / Edit Nav Item</h2>
+    <form id="navForm" class="admin-form">
+      <input type="hidden" name="id" id="navId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Label *</label>
+          <input type="text" name="label" required placeholder="Home">
+        </div>
+        <div class="form-group">
+          <label>URL *</label>
+          <input type="text" name="url" required placeholder="/en or https://...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Location *</label>
+          <select name="location" required>
+            <option value="header">Header</option>
+            <option value="footer_casinos">Footer — Casinos</option>
+            <option value="footer_company">Footer — Company</option>
+            <option value="footer_support">Footer — Support</option>
+            <option value="footer_legal">Footer — Legal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Position (lower = first)</label>
+          <input type="number" name="position" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>External Link?</label>
+          <select name="is_external">
+            <option value="0">No (internal)</option>
+            <option value="1">Yes (opens new tab)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Enabled</label>
+          <select name="enabled">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Icon (optional, text or emoji)</label>
+        <input type="text" name="icon" placeholder="🎰">
+      </div>
+      <div id="navFormAlert" class="alert" style="display:none"></div>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="navSubmitBtn">Add Nav Item</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="navCancelEdit" style="display:none" onclick="cancelNavEdit()">Cancel Edit</button>
+      </div>
+    </form>
+  </div>
+</div>

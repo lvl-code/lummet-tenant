@@ -17,6 +17,7 @@ import {
   renderNewsList,
   renderDashboardComponents,
   renderDashboardMedia,
+  renderDashboardNav,
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
@@ -182,6 +183,8 @@ export default {
         return renderDashboardAuthors(request, env);
       case "dashboardMedia":
         return renderDashboardMedia(request, env);
+      case "dashboardNav":
+        return renderDashboardNav(request, env);
 
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);

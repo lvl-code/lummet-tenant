@@ -13,14 +13,7 @@
       <span>Level<span class="logo-accent">Casino</span></span>
     </a>
     <nav class="main-nav" id="mainNav">
-      <a href="/en">Home</a>
-      <a href="/en/casino">Casinos</a>
-      <a href="/en/review">Reviews</a>
-      <a href="/en/news">News</a>
-      <a href="/en/category/crypto">Crypto</a>
-      <a href="/en/category">Categories</a>
-      <a href="/en/country">Countries</a>
-      <a href="/en/dashboard" id="navDashboard">Dash</a>
+      {{header_nav}}
     </nav>
     <div class="header-actions">
       <div class="search-box">
@@ -28,20 +21,15 @@
         <div id="searchResults" class="search-results"></div>
       </div>
       <button class="mobile-search-btn" id="mobileSearchBtn" aria-label="Search">&#128269;</button>
-
       <a href="/en/login" class="btn btn--ghost" id="headerLoginBtn">Login</a>
       <a href="/en/api/v1/auth/logout" class="btn btn--ghost" id="headerLogoutBtn" style="display:none">out</a>
       <a href="/en/dashboard" class="btn btn--ghost" id="headerDashboardBtn" style="display:none">Dash</a>
       <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
     </div>
   </div>
-
-  </div>
   <div class="mobile-search-container" id="mobileSearchContainer">
     <input type="text" id="mobileSearchInput" placeholder="Search casinos..." autocomplete="off">
     <button class="mobile-search-close" id="mobileSearchClose" aria-label="Close search">&times;</button>
     <div id="mobileSearchResults" class="search-results" style="position:absolute;top:100%;left:0;right:0;"></div>
   </div>
-</header>
-
 </header>

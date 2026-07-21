@@ -23,6 +23,8 @@ import * as componentsDB from "./database/components.js";
 import * as reviewBlocksDB from "./database/review_blocks.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as mediaDB from "./database/media_library.js";
+import * as navDB from "./database/nav.js";
+
 
 // =====================================================
 // MAIN API HANDLER
@@ -995,7 +997,39 @@ if (
       const result = await mediaDB.getMediaFolders(env.DB);
       return json({ folders: result });
     }
+    // ==================================
+    // NAVIGATION CRUD
+    // ==================================
 
+    if (path === "/api/v1/nav/list") {
+      const url = new URL(request.url);
+      const location = url.searchParams.get("location");
+      const result = location
+        ? await navDB.getNavItems(env.DB, location)
+        : await navDB.getAllNavItems(env.DB);
+      return json({ nav: result });
+    }
+
+    if (path === "/api/v1/nav/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["label", "url", "location"]);
+      const id = await navDB.createNavItem(env.DB, body);
+      return json({ success: true, id });
+    }
+
+    if (path === "/api/v1/nav/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "label", "url", "location"]);
+      await navDB.updateNavItem(env.DB, body.id, body);
+      return success();
+    }
+
+    if (path === "/api/v1/nav/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await navDB.deleteNavItem(env.DB, body.id);
+      return success();
+    }
 
 
     return json({

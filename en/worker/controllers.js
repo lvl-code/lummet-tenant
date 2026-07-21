@@ -1553,3 +1553,8 @@ export async function renderAuthor(request, env, slug) {
 export async function renderDashboardAuthors(request, env) {
   return renderAdminPage(request, env, "admin/authors.html");
 }
+
+
+export async function renderDashboardMedia(request, env) {
+  return renderAdminPage(request, env, "admin/media.html");
+}

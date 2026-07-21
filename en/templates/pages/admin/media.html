@@ -1,0 +1,83 @@
+<div class="admin-wrapper">
+  <nav class="admin-nav">
+    <a href="/en/dashboard">Overview</a>
+    <a href="/en/dashboard/casinos">Casinos</a>
+    <a href="/en/dashboard/casino/create">Add Casino</a>
+    <a href="/en/dashboard/reviews">Reviews</a>
+    <a href="/en/dashboard/news">News</a>
+    <a href="/en/dashboard/pages">Pages</a>
+    <a href="/en/dashboard/categories">Categories</a>
+    <a href="/en/dashboard/countries">Countries</a>
+    <a href="/en/dashboard/authors">Authors</a>
+    <a href="/en/dashboard/media" class="active">Media</a>
+    <a href="/en/dashboard/components">Components</a>
+    <a href="/en/dashboard/seo">SEO Meta</a>
+    <a href="/en/dashboard/nav">Navigation</a>
+    <a href="/en/dashboard/permissions">Permissions</a>
+    <a href="/en/dashboard/settings">Settings</a>
+    <a href="/en/dashboard/ai">AI Generator</a>
+    <a href="/en/api/v1/auth/logout" class="admin-logout">Logout</a>
+  </nav>
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Media Library</h1>
+      <button class="btn btn--primary" onclick="document.getElementById('mediaUploadArea').style.display='block'">+ Add Image</button>
+    </div>
+
+    <div id="mediaUploadArea" style="display:none;background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:24px">
+      <h3>Add Image by URL</h3>
+      <p class="muted" style="margin-bottom:16px">Paste an image URL (e.g., from your R2 bucket, Cloudflare Images, or external CDN). The image will be stored in your media library for reuse.</p>
+      <form id="mediaForm" class="admin-form" style="max-width:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Image URL *</label>
+            <input type="text" name="url" required placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>Filename *</label>
+            <input type="text" name="filename" required placeholder="logo.png">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Thumbnail URL</label>
+            <input type="text" name="thumbnail_url" placeholder="https://... (optional, for small previews)">
+          </div>
+          <div class="form-group">
+            <label>Folder</label>
+            <input type="text" name="folder" value="general" placeholder="logos, banners, etc.">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Alt Text</label>
+          <input type="text" name="alt_text" placeholder="Description for accessibility & SEO">
+        </div>
+        <div id="mediaFormAlert" class="alert" style="display:none"></div>
+        <button type="submit" class="btn btn--primary btn--lg">Add to Library</button>
+      </form>
+    </div>
+
+    <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn--ghost btn--sm" onclick="filterMedia('')">All</button>
+      <button class="btn btn--ghost btn--sm" onclick="filterMedia('logos')">Logos</button>
+      <button class="btn btn--ghost btn--sm" onclick="filterMedia('banners')">Banners</button>
+      <button class="btn btn--ghost btn--sm" onclick="filterMedia('general')">General</button>
+    </div>
+
+    <div id="mediaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px">
+      <p class="muted">Loading...</p>
+    </div>
+  </div>
+</div>
+
+<div id="mediaPickerModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--white);border-radius:var(--radius);padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3>Select Image</h3>
+      <button class="btn btn--ghost btn--sm" onclick="document.getElementById('mediaPickerModal').style.display='none'">Close</button>
+    </div>
+    <div id="mediaPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
+      <p class="muted">Loading...</p>
+    </div>
+  </div>
+</div>

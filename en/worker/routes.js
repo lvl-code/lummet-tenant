@@ -165,12 +165,14 @@ export function getRoute(request) {
   if (path === "/en/dashboard/categories") return { type: "dashboardCategories" };
   if (path === "/en/dashboard/countries") return { type: "dashboardCountries" };
   if (path === "/en/dashboard/authors") return { type: "dashboardAuthors" };
-
+  if (path === "/en/dashboard/media") return { type: "dashboardMedia" };
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };
 
   if (path === "/en/dashboard/components") return { type: "dashboardComponents" };
   if (path === "/en/dashboard/seo") return { type: "dashboardSeo" };
+
+
   // =====================================================
   // AUTH
   // =====================================================

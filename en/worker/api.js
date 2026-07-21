@@ -22,6 +22,8 @@ import { aiEngine } from "./ai.js";
 import * as componentsDB from "./database/components.js";
 import * as reviewBlocksDB from "./database/review_blocks.js";
 import * as seoMetaDB from "./database/seo_meta.js";
+import * as mediaDB from "./database/media_library.js";
+
 // =====================================================
 // MAIN API HANDLER
 // =====================================================
@@ -953,6 +955,45 @@ if (
       const country = await getCountry(env.DB, code.toUpperCase());
       if (!country) return failure("Country not found", 404);
       return json({ success: true, country });
+    }
+    // ==================================
+    // MEDIA LIBRARY CRUD
+    // ==================================
+
+    if (path === "/api/v1/media/list") {
+      const url = new URL(request.url);
+      const folder = url.searchParams.get("folder");
+      const result = await mediaDB.getAllMedia(env.DB, folder);
+      return json({ media: result });
+    }
+
+    if (path === "/api/v1/media/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["filename", "url"]);
+      const id = await mediaDB.createMedia(env.DB, {
+        ...body,
+        uploaded_by: user?.id || null
+      });
+      return json({ success: true, id });
+    }
+
+    if (path === "/api/v1/media/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await mediaDB.updateMedia(env.DB, body.id, body);
+      return success();
+    }
+
+    if (path === "/api/v1/media/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await mediaDB.deleteMedia(env.DB, body.id);
+      return success();
+    }
+
+    if (path === "/api/v1/media/folders") {
+      const result = await mediaDB.getMediaFolders(env.DB);
+      return json({ folders: result });
     }
 
 

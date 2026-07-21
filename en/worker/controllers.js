@@ -16,6 +16,13 @@ import { geoEngine } from "./geo.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 
+function cacheHeaders() {
+  return {
+    "Content-Type": "text/html",
+    "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300"
+  };
+}
+
 const COUNTRY_NAMES = {
   // — Africa —
   DZ:"Algeria", AO:"Angola", BJ:"Benin", BW:"Botswana", BF:"Burkina Faso",
@@ -177,7 +184,7 @@ export async function renderHome(request, env) {
   }, homeSchema, buildBreadcrumbs("home"));
 
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: cacheHeaders()
   });
 }
 
@@ -306,7 +313,7 @@ export async function renderCasino(request, env, slug) {
   }, casinoSchema, buildBreadcrumbs("casino", { name: casino.name }));
 
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: cacheHeaders()
   });
 }
 
@@ -674,7 +681,7 @@ if (review.casino_slug) {
   }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));
 
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: cacheHeaders()
   });
 }
 
@@ -716,7 +723,7 @@ export async function renderNews(request, env, slug) {
     seo_description: dynamicSeo.seo_description || (article.content || "").substring(0, 155),
   }, newsSchema, buildBreadcrumbs("news", { title: article.title }));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 async function hashIP(ip){
@@ -920,7 +927,7 @@ export async function renderCountry(request, env, slug) {
     seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
   }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: cacheHeaders()
   });
 }
 
@@ -966,7 +973,7 @@ export async function renderCategory(request, env, slug) {
   }, categorySchema, buildBreadcrumbs("category", { category: category.name }));
 
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: cacheHeaders()
   });
 }
 
@@ -1021,7 +1028,7 @@ export async function renderDynamicPage(request, env, slug) {
     seo_description: dynamicSeo.seo_description || page.seo_description || "",
   }, pageSchema, buildBreadcrumbs("page", { title: page.title }));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 export async function renderAffiliate(request, env, slug) {
@@ -1041,7 +1048,7 @@ export async function renderAffiliate(request, env, slug) {
   }, pageSchema, buildBreadcrumbs("affiliate", { title: page.title }));
 
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: cacheHeaders()
   });
 }
 
@@ -1157,7 +1164,7 @@ export async function renderCasinoList(request, env) {
     seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings."
   }, listSchema, buildBreadcrumbs("casinoList"));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 
@@ -1255,7 +1262,7 @@ export async function renderReviewList(request, env) {
     seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
   }, listSchema, buildBreadcrumbs("reviewList"));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 export async function renderNewsList(request, env) {
@@ -1296,7 +1303,7 @@ export async function renderNewsList(request, env) {
     seo_description: dynamicSeo.seo_description || "Latest iGaming and online casino industry news."
   }, listSchema, buildBreadcrumbs("newsList"));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 async function renderAdminPage(request, env, template, extraData = {}) {
@@ -1408,7 +1415,7 @@ export async function renderCategoryList(request, env) {
     seo_description: dynamicSeo.seo_description || "Browse online casinos by category."
   }, {}, buildBreadcrumbs("categoryList"));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 export async function renderCountryList(request, env) {
@@ -1434,7 +1441,7 @@ export async function renderCountryList(request, env) {
     seo_description: dynamicSeo.seo_description || "Find online casinos available in your country."
   }, {}, buildBreadcrumbs("countryList"));
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 export async function renderDashboardCategories(request, env) {
@@ -1536,7 +1543,7 @@ export async function renderAuthor(request, env, slug) {
     canonical: dynamicSeo.canonical || `https://level.casino/en/author/${slug}`
   }, authorSchema, [{ label: "Home", url: "/en" }, { label: "Authors", url: null }, { label: author.name, url: null }]);
 
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: cacheHeaders() });
 }
 
 // ==================================

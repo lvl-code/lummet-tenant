@@ -108,8 +108,58 @@ export async function renderPageComponents(renderer, db, pageType, pageSlug, inj
 
   return htmlParts.join("\n");
 }
-
 export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug) {
+  // Single query for all injection points
+  const result = await db.prepare(`
+    SELECT pc.*, c.name, c.slug, c.type, c.title, c.content, c.settings_json, c.status
+    FROM page_components pc
+    JOIN components c ON c.id = pc.component_id
+    WHERE pc.page_type = ? AND pc.enabled = 1
+    AND (pc.page_slug = ? OR pc.page_slug = '*')
+    ORDER BY pc.injection_point, pc.position ASC
+  `).bind(pageType, pageSlug).all();
+
+  const grouped = { top: [], content_top: [], content_bottom: [], bottom: [], sidebar: [] };
+  for (const row of result.results || []) {
+    const point = row.injection_point || "content_bottom";
+    if (grouped[point]) grouped[point].push(row);
+  }
+
+  const rendered = {};
+  for (const point of Object.keys(grouped)) {
+    const htmlParts = [];
+    for (const row of grouped[point]) {
+      const component = {
+        id: row.id,
+        type: row.type,
+        name: row.name,
+        title: row.title || "",
+        content: row.content || "",
+        settings: {},
+        position: row.position,
+        injection_point: point
+      };
+
+      if (row.content) {
+        if (row.type === "faq_group" || row.type === "casino_grid" || row.type === "comparison_table") {
+          try { component.content = JSON.parse(row.content); } catch { component.content = []; }
+        }
+      }
+      if (row.settings_json) {
+        try { component.settings = JSON.parse(row.settings_json); } catch { component.settings = {}; }
+      }
+
+      const html = await renderComponent(renderer, component);
+      htmlParts.push(html);
+    }
+    rendered[point] = htmlParts.join("\n");
+  }
+
+  return rendered;
+}
+
+
+export async function renderAllInjectionPointsbackup(renderer, db, pageType, pageSlug) {
   const points = ["top", "content_top", "content_bottom", "bottom", "sidebar"];
   const result = {};
 

@@ -272,7 +272,7 @@ export async function renderCasino(request, env, slug) {
     "@context": "https://schema.org",
     "@type": "Review",
     "itemReviewed": {
-      "@type": "GamesCasino",
+      "@type": "Casino",
       "name": casino.name,
       "image": casino.logo || "https://level.casino/en/static/images/logo.png",
       "url": casino.website_url || ""
@@ -644,7 +644,7 @@ if (review.casino_slug) {
       "bestRating": 5
     },
     "itemReviewed": {
-      "@type": "GamesCasino",
+      "@type": "Casino",
       "name": review.title.replace("Review", "").trim()
     },
     "author": {

@@ -25,6 +25,7 @@ import * as seoMetaDB from "./database/seo_meta.js";
 import * as mediaDB from "./database/media_library.js";
 import * as navDB from "./database/nav.js";
 import * as permDB from "./database/permissions.js";
+import * as userDash from "./database/user_dashboard.js";
 
 // =====================================================
 // MAIN API HANDLER
@@ -1114,7 +1115,138 @@ if (
         );
       }
       return success();
-    } 
+    }
+    // ==================================
+    // USER DASHBOARD — BOOKMARKS
+    // ==================================
+
+    if (path === "/api/v1/user/bookmarks" && request.method === "GET") {
+      const bookmarks = await userDash.getBookmarks(env.DB, user.user_id);
+      return json({ bookmarks });
+    }
+
+    if (path === "/api/v1/user/bookmark/add" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["casino_slug"]);
+      await userDash.addBookmark(env.DB, user.user_id, body.casino_slug);
+      return success();
+    }
+
+    if (path === "/api/v1/user/bookmark/remove" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["casino_slug"]);
+      await userDash.removeBookmark(env.DB, user.user_id, body.casino_slug);
+      return success();
+    }
+
+    // ==================================
+    // USER DASHBOARD — INQUIRIES
+    // ==================================
+
+    if (path === "/api/v1/user/inquiries" && request.method === "GET") {
+      const inquiries = await userDash.getInquiries(env.DB, user.user_id);
+      return json({ inquiries });
+    }
+
+    if (path === "/api/v1/user/inquiry/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["subject", "message"]);
+      const id = await userDash.createInquiry(env.DB, user.user_id, body.subject, body.message);
+      return json({ success: true, id });
+    }
+
+    // ==================================
+    // USER DASHBOARD — NOTIFICATIONS
+    // ==================================
+
+    if (path === "/api/v1/user/notifications" && request.method === "GET") {
+      const notifications = await userDash.getNotifications(env.DB, user.user_id);
+      return json({ notifications });
+    }
+
+    if (path === "/api/v1/user/notification/read" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await userDash.markNotificationRead(env.DB, body.id);
+      return success();
+    }
+
+    if (path === "/api/v1/user/notifications/read-all" && request.method === "POST") {
+      await userDash.markAllNotificationsRead(env.DB, user.user_id);
+      return success();
+    }
+
+    // ==================================
+    // USER DASHBOARD — CASINO SUBMISSIONS
+    // ==================================
+
+    if (path === "/api/v1/user/submissions" && request.method === "GET") {
+      const submissions = await userDash.getSubmissions(env.DB, user.user_id);
+      return json({ submissions });
+    }
+
+    if (path === "/api/v1/user/submit-casino" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["name", "website_url"]);
+      const id = await userDash.createSubmission(env.DB, user.user_id, body);
+      return json({ success: true, id });
+    }
+
+    // ==================================
+    // USER DASHBOARD — PROFILE
+    // ==================================
+
+    if (path === "/api/v1/user/profile" && request.method === "GET") {
+      return json({
+        user: {
+          id: user.user_id,
+          email: user.email,
+          role: user.role
+        }
+      });
+    }
+
+    if (path === "/api/v1/user/profile/update" && request.method === "POST") {
+      const body = await request.json();
+      await userDash.updateUserProfile(env.DB, user.user_id, body);
+      return success();
+    }
+
+    // ==================================
+    // ADMIN — INQUIRIES & SUBMISSIONS
+    // ==================================
+
+    if (path === "/api/v1/admin/inquiries" && request.method === "GET") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const inquiries = await userDash.getAllInquiries(env.DB);
+      return json({ inquiries });
+    }
+
+    if (path === "/api/v1/admin/inquiry/reply" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const body = await request.json();
+      validate(body, ["id", "reply"]);
+      await userDash.replyToInquiry(env.DB, body.id, body.reply);
+      // Notify user
+      const { createNotification } = await import("./database/user_dashboard.js");
+      await createNotification(env.DB, body.user_id, "Inquiry Answered", `Your inquiry has been answered: ${body.reply.substring(0, 100)}`, "/en/user/inquiries");
+      return success();
+    }
+
+    if (path === "/api/v1/admin/submissions" && request.method === "GET") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const submissions = await userDash.getAllSubmissions(env.DB);
+      return json({ submissions });
+    }
+
+    if (path === "/api/v1/admin/submission/update" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const body = await request.json();
+      validate(body, ["id", "status"]);
+      await userDash.updateSubmissionStatus(env.DB, body.id, body.status, body.admin_notes || null);
+      return success();
+    }
+ 
 
     return json({
       success: false,

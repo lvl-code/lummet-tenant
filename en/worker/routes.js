@@ -199,7 +199,8 @@ export function getRoute(request) {
   if (path === "/en/user/inquiries") return { type: "userInquiries" };
   if (path === "/en/user/profile") return { type: "userProfile" };
   if (path === "/en/user/notifications") return { type: "userNotifications" };
-  
+  if (path === "/en/user/bookmarks") return { type: "userBookmarks" };
+ 
 
   // =====================================================
   // API

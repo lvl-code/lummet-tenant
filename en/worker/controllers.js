@@ -1566,3 +1566,7 @@ export async function renderDashboardNav(request, env) {
 export async function renderDashboardPermissions(request, env) {
   return renderAdminPage(request, env, "admin/permissions.html");
 }
+
+export async function renderUserBookmarks(request, env) {
+  return renderUserPage(request, env, "users/bookmarks.html");
+}

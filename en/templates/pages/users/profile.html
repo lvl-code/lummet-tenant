@@ -1,6 +1,7 @@
 <div class="admin-wrapper">
   <nav class="admin-nav">
     <a href="/en/user/dashboard">Overview</a>
+    <a href="/en/user/bookmarks">My Bookmarks</a>
     <a href="/en/user/submit-casino">Submit Casino</a>
     <a href="/en/user/inquiries">My Inquiries</a>
     <a href="/en/user/profile" class="active">Profile</a>
@@ -9,9 +10,17 @@
   </nav>
   <div class="admin-content">
     <h1>Profile</h1>
-    <div class="admin-section">
-      <p><strong>Email:</strong> {{email}}</p>
-      <p><strong>Role:</strong> {{role}}</p>
-    </div>
+    <form id="profileForm" class="admin-form" style="max-width:500px">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" value="{{email}}" required>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <input type="text" value="{{role}}" disabled style="opacity:0.6">
+      </div>
+      <div id="profileFormAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Update Profile</button>
+    </form>
   </div>
 </div>

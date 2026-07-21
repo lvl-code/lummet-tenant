@@ -39,6 +39,7 @@ import {
   renderUserInquiries,
   renderUserProfile,
   renderUserNotifications,
+  renderUserBookmarks,
   renderDynamicPage,
   handleAffiliateRedirect,
   renderLogin,
@@ -206,6 +207,8 @@ export default {
         return renderUserProfile(request, env);
       case "userNotifications":
         return renderUserNotifications(request, env);
+      case "userBookmarks":
+        return renderUserBookmarks(request, env);
 
 
       case "api":

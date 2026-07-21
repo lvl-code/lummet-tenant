@@ -1,6 +1,7 @@
 <div class="admin-wrapper">
   <nav class="admin-nav">
     <a href="/en/user/dashboard">Overview</a>
+    <a href="/en/user/bookmarks">My Bookmarks</a>
     <a href="/en/user/submit-casino" class="active">Submit Casino</a>
     <a href="/en/user/inquiries">My Inquiries</a>
     <a href="/en/user/profile">Profile</a>
@@ -8,15 +9,37 @@
     <a href="/en/api/v1/auth/logout" class="admin-logout">Logout</a>
   </nav>
   <div class="admin-content">
-    <h1>Submit a Casino</h1>
-    <form id="userCasinoForm" class="admin-form">
-      <div class="form-group"><label>Casino Name *</label><input type="text" name="name" required></div>
-      <div class="form-group"><label>Website URL *</label><input type="text" name="website_url" required></div>
-      <div class="form-group"><label>Affiliate URL</label><input type="text" name="affiliate_url"></div>
-      <div class="form-group"><label>Bonus Info</label><input type="text" name="bonus_value"></div>
-      <div class="form-group"><label>Notes</label><textarea name="notes" placeholder="Tell us about this casino..."></textarea></div>
+    <h1>Submit a Casino for Review</h1>
+    <p class="muted" style="margin-bottom:24px">Suggest a casino to be added to Level Casino. Our team will review your submission.</p>
+
+    <form id="userCasinoForm" class="admin-form" style="max-width:600px">
+      <div class="form-group">
+        <label>Casino Name *</label>
+        <input type="text" name="name" required placeholder="e.g. BC.Game">
+      </div>
+      <div class="form-group">
+        <label>Website URL *</label>
+        <input type="url" name="website_url" required placeholder="https://">
+      </div>
+      <div class="form-group">
+        <label>Affiliate URL (optional)</label>
+        <input type="url" name="affiliate_url" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Bonus Info (optional)</label>
+        <input type="text" name="bonus_value" placeholder="100% up to $500">
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea name="notes" style="min-height:100px" placeholder="Tell us about this casino... why should we add it?"></textarea>
+      </div>
       <div id="userCasinoAlert" class="alert" style="display:none"></div>
       <button type="submit" class="btn btn--primary btn--lg">Submit for Review</button>
     </form>
+
+    <h2 style="margin-top:40px">My Submissions</h2>
+    <div id="userSubmissionsList">
+      <p class="muted">Loading...</p>
+    </div>
   </div>
 </div>

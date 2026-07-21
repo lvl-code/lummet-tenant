@@ -1,6 +1,7 @@
 <div class="admin-wrapper">
   <nav class="admin-nav">
     <a href="/en/user/dashboard">Overview</a>
+    <a href="/en/user/bookmarks">My Bookmarks</a>
     <a href="/en/user/submit-casino">Submit Casino</a>
     <a href="/en/user/inquiries" class="active">My Inquiries</a>
     <a href="/en/user/profile">Profile</a>
@@ -9,6 +10,24 @@
   </nav>
   <div class="admin-content">
     <h1>My Inquiries</h1>
-    <p class="muted">You have no inquiries yet.</p>
+
+    <h2 style="margin-top:24px">Send a New Inquiry</h2>
+    <form id="inquiryForm" class="admin-form" style="max-width:600px">
+      <div class="form-group">
+        <label>Subject *</label>
+        <input type="text" name="subject" required placeholder="Question about a casino">
+      </div>
+      <div class="form-group">
+        <label>Message *</label>
+        <textarea name="message" required style="min-height:120px" placeholder="Your question or concern..."></textarea>
+      </div>
+      <div id="inquiryFormAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Send Inquiry</button>
+    </form>
+
+    <h2 style="margin-top:40px">My Inquiries</h2>
+    <div id="inquiriesList" style="margin-top:16px">
+      <p class="muted">Loading...</p>
+    </div>
   </div>
 </div>

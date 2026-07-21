@@ -178,20 +178,23 @@ export async function loadReviewBlocks(db, reviewSlug) {
 
 export async function renderReviewBlocks(renderer, db, reviewSlug) {
   const blocks = await loadReviewBlocks(db, reviewSlug);
-  const htmlParts = [];
+  if (blocks.length === 0) return "";
 
-  for (const block of blocks) {
+  const template = await renderer.loadTemplate("components/review-block.html");
+  if (!template) return "";
+
+  const htmlParts = blocks.map(block => {
     const data = {
       block_id: `block-${block.id}`,
       block_title: block.title,
       block_content: block.content
     };
-    const html = await renderer.loadTemplate("components/review-block.html");
-    htmlParts.push(renderer.replaceVariables(html, data));
-  }
+    return renderer.replaceVariables(template, data);
+  });
 
   return htmlParts.join("\n");
 }
+
 
 /**
  * Load SEO meta for a page. Falls back to null if not found.

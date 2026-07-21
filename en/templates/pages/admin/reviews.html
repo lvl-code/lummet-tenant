@@ -61,5 +61,49 @@
         <button type="button" class="btn btn--ghost btn--lg" id="reviewCancelEdit" style="display:none" onclick="cancelReviewEdit()">Cancel Edit</button>
       </div>
     </form>
+    <h2 style="margin-top:40px">Review Blocks</h2>
+    <p class="muted" style="margin-bottom:16px">Add structured content sections to any review (e.g. "Game Selection", "Payment Options", "VIP Program"). Blocks appear in position order.</p>
+
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Select Review</label>
+      <select id="reviewBlockReviewSelect" onchange="loadReviewBlocksForReview()">
+        <option value="">Choose a review...</option>
+      </select>
+    </div>
+
+    <div id="reviewBlocksContainer" style="display:none">
+      <table class="admin-table" style="margin-bottom:20px">
+        <thead>
+          <tr><th>Position</th><th>Title</th><th>Content (preview)</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="reviewBlocksTableBody">
+          <tr><td colspan="4" class="muted">No blocks yet.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-bottom:16px">Add / Edit Block</h3>
+      <form id="reviewBlockForm" class="admin-form">
+        <input type="hidden" name="id" id="reviewBlockId" value="">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" required placeholder="Game Selection">
+          </div>
+          <div class="form-group">
+            <label>Position (lower = higher)</label>
+            <input type="number" name="position" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Content *</label>
+          <textarea name="content" required style="min-height:200px" placeholder="Full HTML or text content for this block..."></textarea>
+        </div>
+        <div id="reviewBlockFormAlert" class="alert" style="display:none"></div>
+        <div style="display:flex;gap:12px">
+          <button type="submit" class="btn btn--primary btn--lg" id="reviewBlockSubmitBtn">Add Block</button>
+          <button type="button" class="btn btn--ghost btn--lg" id="reviewBlockCancelEdit" style="display:none" onclick="cancelReviewBlockEdit()">Cancel Edit</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

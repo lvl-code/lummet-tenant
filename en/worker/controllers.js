@@ -1562,3 +1562,7 @@ export async function renderDashboardMedia(request, env) {
 export async function renderDashboardNav(request, env) {
   return renderAdminPage(request, env, "admin/nav.html");
 }
+
+export async function renderDashboardPermissions(request, env) {
+  return renderAdminPage(request, env, "admin/permissions.html");
+}

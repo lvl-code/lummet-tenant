@@ -24,7 +24,7 @@ import * as reviewBlocksDB from "./database/review_blocks.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as mediaDB from "./database/media_library.js";
 import * as navDB from "./database/nav.js";
-
+import * as permDB from "./database/permissions.js";
 
 // =====================================================
 // MAIN API HANDLER
@@ -300,17 +300,66 @@ if (path === "/api/v1/public/countries/list") {
   if (!user) {
     return failure("Unauthorized", 401);
   }
-  const writeMethods = ["POST","PUT","DELETE"];
 
-if(
-  writeMethods.includes(request.method) &&
-  user.role !== "admin"
-){
-  return json({
-    success:false,
-    error:"Forbidden"
-  },403);
-}
+// Load permissions for user
+  const userPermissions = await permDB.getPermissionsForUser(env.DB, user);
+  const writeMethods = ["POST", "PUT", "DELETE"];
+
+  if (writeMethods.includes(request.method)) {
+    // Determine resource from path
+    const resourceMap = {
+      "/api/v1/casino": "casinos",
+      "/api/v1/casinos": "casinos",
+      "/api/v1/review": "reviews",
+      "/api/v1/reviews": "reviews",
+      "/api/v1/news": "news",
+      "/api/v1/page": "pages",
+      "/api/v1/pages": "pages",
+      "/api/v1/category": "categories",
+      "/api/v1/categories": "categories",
+      "/api/v1/country": "countries",
+      "/api/v1/countries": "countries",
+      "/api/v1/author": "authors",
+      "/api/v1/authors": "authors",
+      "/api/v1/component": "components",
+      "/api/v1/components": "components",
+      "/api/v1/seo": "seo",
+      "/api/v1/settings": "settings",
+      "/api/v1/geo": "casinos",
+      "/api/v1/media": "media",
+      "/api/v1/nav": "nav",
+    };
+
+    let resource = null;
+    let action = "create";
+    if (request.method === "DELETE") action = "delete";
+    else if (request.method === "PUT") action = "update";
+
+    for (const [prefix, res] of Object.entries(resourceMap)) {
+      if (path.startsWith(prefix)) {
+        resource = res;
+        break;
+      }
+    }
+
+    // For GET requests to write endpoints that use POST (like create/update)
+    if (path.endsWith("/create") || path.endsWith("/save") || path.endsWith("/sync") || path.endsWith("/assign") || path.endsWith("/toggle") || path.endsWith("/reorder") || path.endsWith("/unassign") || path.endsWith("/bulk-assign") || path.endsWith("/update-assignment")) {
+      action = "create";
+    } else if (path.endsWith("/update")) {
+      action = "update";
+    } else if (path.endsWith("/delete")) {
+      action = "delete";
+    }
+
+    if (resource && !permDB.checkPermission(userPermissions, resource, action)) {
+      return json({
+        success: false,
+        error: `Forbidden: ${user.role} role cannot ${action} ${resource}`
+      }, 403);
+    }
+  }
+
+
 if (path === "/api/v1/dashboard") {
   return dashboardStatsAPI(request, env);
 }
@@ -1030,7 +1079,42 @@ if (
       await navDB.deleteNavItem(env.DB, body.id);
       return success();
     }
+    // ==================================
+    // PERMISSIONS MANAGEMENT
+    // ==================================
 
+    if (path === "/api/v1/permissions/list") {
+      const matrix = await permDB.getPermissionMatrix(env.DB);
+      return json({ permissions: matrix });
+    }
+
+    if (path === "/api/v1/permissions/save" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["role", "resource", "action", "allowed"]);
+      await permDB.setPermission(
+        env.DB,
+        body.role,
+        body.resource,
+        body.action,
+        body.allowed
+      );
+      return success();
+    }
+
+    if (path === "/api/v1/permissions/bulk-save" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["role", "permissions"]);
+      for (const perm of body.permissions) {
+        await permDB.setPermission(
+          env.DB,
+          body.role,
+          perm.resource,
+          perm.action,
+          perm.allowed
+        );
+      }
+      return success();
+    } 
 
     return json({
       success: false,

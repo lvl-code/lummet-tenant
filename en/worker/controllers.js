@@ -810,9 +810,9 @@ export async function renderDashboardPage(request, env) {
     const renderer = new Renderer(env, request);
 
     const template =
-        user.role === "admin"
-            ? "admin/dashboard.html"
-            : "users/dashboard.html";
+    (user.role === "admin" || user.role === "editor")
+        ? "admin/dashboard.html"
+        : "users/dashboard.html";
 
     const html = await renderer.render(template, {
         seo_title: "Dashboard",
@@ -1308,7 +1308,9 @@ export async function renderNewsList(request, env) {
 
 async function renderAdminPage(request, env, template, extraData = {}) {
   const user = await getCurrentUser(request, env);
-  if (!user || user.role !== "admin") {
+  const allowedRoles = ["admin", "editor"];
+
+  if (!user || !allowedRoles.includes(user.role)) {
     return new Response("Forbidden", { status: 403 });
   }
 

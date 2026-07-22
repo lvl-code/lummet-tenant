@@ -168,6 +168,10 @@ export function getRoute(request) {
   if (path === "/en/dashboard/media") return { type: "dashboardMedia" };
   if (path === "/en/dashboard/nav") return { type: "dashboardNav" };
   if (path === "/en/dashboard/permissions") return { type: "dashboardPermissions" };
+  if (path === "/en/dashboard/users") return { type: "dashboardUsers" };
+  if (path === "/en/dashboard/inquiries") return { type: "dashboardInquiries" };
+  if (path === "/en/dashboard/submissions") return { type: "dashboardSubmissions" };
+  if (path === "/en/dashboard/notifications") return { type: "dashboardNotifications" };
 
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };

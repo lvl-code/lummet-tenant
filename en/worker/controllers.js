@@ -1570,3 +1570,20 @@ export async function renderDashboardPermissions(request, env) {
 export async function renderUserBookmarks(request, env) {
   return renderUserPage(request, env, "users/bookmarks.html");
 }
+
+
+export async function renderDashboardUsers(request, env) {
+  return renderAdminPage(request, env, "admin/users.html");
+}
+
+export async function renderDashboardInquiries(request, env) {
+  return renderAdminPage(request, env, "admin/inquiries.html");
+}
+
+export async function renderDashboardSubmissions(request, env) {
+  return renderAdminPage(request, env, "admin/submissions.html");
+}
+
+export async function renderDashboardNotifications(request, env) {
+  return renderAdminPage(request, env, "admin/notifications.html");
+}

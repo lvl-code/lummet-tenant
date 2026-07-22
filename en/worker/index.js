@@ -19,6 +19,10 @@ import {
   renderDashboardMedia,
   renderDashboardNav,
   renderDashboardPermissions,
+  renderDashboardUsers,
+  renderDashboardInquiries,
+  renderDashboardSubmissions,
+  renderDashboardNotifications,
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
@@ -189,6 +193,14 @@ export default {
         return renderDashboardNav(request, env);
       case "dashboardPermissions":
         return renderDashboardPermissions(request, env);
+      case "dashboardUsers":
+        return renderDashboardUsers(request, env);
+      case "dashboardInquiries":
+        return renderDashboardInquiries(request, env);
+      case "dashboardSubmissions":
+        return renderDashboardSubmissions(request, env);
+      case "dashboardNotifications":
+        return renderDashboardNotifications(request, env);
 
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);

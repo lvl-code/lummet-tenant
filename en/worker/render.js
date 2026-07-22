@@ -122,6 +122,27 @@ export class Renderer {
       return `<li><a href="${item.url}"${external}>${item.label}</a></li>`;
     }).join("\n");
   }
+  async loadActiveBanners(country) {
+    const { getActiveBanners } = await import("./database/banners.js");
+    const banners = await getActiveBanners(this.env.DB, country);
+
+    if (banners.length === 0) return "";
+
+    return banners.map(banner => {
+      const dismissible = banner.dismissible ? `<button class="banner-dismiss" onclick="this.parentElement.style.display='none';document.cookie='banner_${banner.id}=dismissed;max-age=86400;path=/'">&times;</button>` : "";
+      const button = banner.button_text && banner.link ? `<a href="${banner.link}" class="banner-btn" style="background:${banner.text_color};color:${banner.bg_color}">${banner.button_text}</a>` : "";
+      return `
+        <div class="site-banner banner-${banner.position}" data-id="${banner.id}" style="background:${banner.bg_color};color:${banner.text_color}">
+          <div class="container banner-inner">
+            ${banner.title ? `<strong>${banner.title}</strong>` : ""}
+            ${banner.content ? `<span>${banner.content}</span>` : ""}
+            ${button}
+          </div>
+          ${dismissible}
+        </div>`;
+    }).join("");
+  }
+
 
   // =====================================================
 // BUILD SEO
@@ -201,8 +222,13 @@ ${JSON.stringify(schema)}
     // Load dynamic navigation data
     const navData = await this.loadNavData();
     base = this.replaceVariables(base, navData);
+        // Load and inject active banners
+    const country = data._geo_country || "RW";
+    const bannersHtml = await this.loadActiveBanners(country);
+    base = base.replace("{{BANNERS}}", bannersHtml);
 
     base = this.replaceVariables(base, data);
+
     return base;
   } 
 

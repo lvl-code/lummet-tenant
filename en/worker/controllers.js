@@ -1587,3 +1587,7 @@ export async function renderDashboardSubmissions(request, env) {
 export async function renderDashboardNotifications(request, env) {
   return renderAdminPage(request, env, "admin/notifications.html");
 }
+
+export async function renderDashboardBanners(request, env) {
+  return renderAdminPage(request, env, "admin/banners.html");
+}

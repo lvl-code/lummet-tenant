@@ -1065,3 +1065,45 @@ display:block;
 .sidebar-search input:focus { outline: none; border-color: var(--primary); }
 
 .btn--block { width: 100%; }
+
+
+
+
+
+/* ===== Banners ===== */
+.site-banner {
+  padding: 12px 0;
+  text-align: center;
+  font-size: 14px;
+  position: relative;
+  z-index: 99;
+}
+.site-banner strong { margin-right: 8px; }
+.site-banner .banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.site-banner .banner-btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+}
+.banner-dismiss {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 24px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.banner-dismiss:hover { opacity: 1; }
+

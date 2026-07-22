@@ -23,6 +23,7 @@ import {
   renderDashboardInquiries,
   renderDashboardSubmissions,
   renderDashboardNotifications,
+  renderDashboardBanners,
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
@@ -201,6 +202,8 @@ export default {
         return renderDashboardSubmissions(request, env);
       case "dashboardNotifications":
         return renderDashboardNotifications(request, env);
+      case "dashboardBanners":
+        return renderDashboardBanners(request, env);
 
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);

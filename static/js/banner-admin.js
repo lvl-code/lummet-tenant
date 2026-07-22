@@ -54,8 +54,12 @@ function initBannerForm() {
       position: formData.get("position"),
       dismissible: formData.get("dismissible") === "1",
       geo_countries: formData.get("geo_countries") || null,
-      start_date: formData.get("start_date") ? new Date(formData.get("start_date")).toISOString() : null,
-      end_date: formData.get("end_date") ? new Date(formData.get("end_date")).toISOString() : null,
+      start_date: formData.get("start_date")
+        ? formData.get("start_date").replace('T', ' ').substring(0, 19)
+        : null,
+      end_date: formData.get("end_date")
+        ? formData.get("end_date").replace('T', ' ').substring(0, 19)
+        : null,
       enabled: formData.get("enabled") === "1",
     };
 

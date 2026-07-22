@@ -2,8 +2,8 @@ export async function getActiveBanners(db, country) {
   const result = await db.prepare(`
     SELECT * FROM banners
     WHERE enabled = 1
-    AND (start_date IS NULL OR start_date <= CURRENT_TIMESTAMP)
-    AND (end_date IS NULL OR end_date >= CURRENT_TIMESTAMP)
+    AND (start_date IS NULL OR datetime(start_date) <= datetime('now'))
+    AND (end_date IS NULL OR datetime(end_date) >= datetime('now'))
     AND (geo_countries IS NULL OR geo_countries = '' OR geo_countries LIKE ?)
     ORDER BY position ASC
   `).bind(`%${country}%`).all();

@@ -219,17 +219,26 @@ ${JSON.stringify(schema)}
     }
     base = await this.injectComponents(base, breadcrumbHtml);
 
-    // Load dynamic navigation data
+        // Load dynamic navigation data
     const navData = await this.loadNavData();
     base = this.replaceVariables(base, navData);
-        // Load and inject active banners
-    const country = data._geo_country || "RW";
-    const bannersHtml = await this.loadActiveBanners(country);
-    base = base.replace("{{BANNERS}}", bannersHtml);
+
+    // Load and inject active banners — wrapped in try-catch so banner
+    // failures never break page rendering
+    try {
+      const country = data._geo_country || "RW";
+      const bannersHtml = await this.loadActiveBanners(country);
+      base = base.replace("{{BANNERS}}", bannersHtml);
+    } catch (e) {
+      console.error("Banner loading failed:", e.message);
+      base = base.replace("{{BANNERS}}", "");
+    }
 
     base = this.replaceVariables(base, data);
 
     return base;
+
+
   } 
 
 }

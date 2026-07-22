@@ -135,7 +135,7 @@ function buildBreadcrumbs(path, data = {}) {
 }
 
 export async function renderHome(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
@@ -189,7 +189,7 @@ export async function renderHome(request, env) {
 }
 
 export async function renderHomebackupold(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
@@ -242,7 +242,7 @@ export async function renderCasino(request, env, slug) {
   const casino = await casinos.getCasino(env.DB, slug);
   if (!casino) return render404(request, env);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
 
   // Parse features from JSON string
   let features = [];
@@ -555,7 +555,7 @@ export async function renderReview(request, env, slug) {
   const review = await reviews.getReview(env.DB, slug);
   if (!review) return render404(request, env);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   let author = null;
   if (review.author_id) {
     author = await authors.getAuthorById(env.DB, review.author_id);
@@ -689,7 +689,7 @@ export async function renderNews(request, env, slug) {
   const article = await news.getNews(env.DB, slug);
   if (!article) return render404(request, env);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   let author = null;
   if (article.author_id) {
     author = await authors.getAuthorById(env.DB, article.author_id);
@@ -807,7 +807,7 @@ export async function renderDashboardPage(request, env) {
         });
     }
 
-    const renderer = new Renderer(env);
+    const renderer = new Renderer(env, request);
 
     const template =
         user.role === "admin"
@@ -897,7 +897,7 @@ export async function renderCountry(request, env, slug) {
   casinoList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   
   const geoData = await prepareGeoData(env, request, casinoList);
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const countrySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -940,7 +940,7 @@ export async function renderCategory(request, env, slug) {
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const categorySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -996,7 +996,7 @@ export async function renderDynamicPage(request, env, slug) {
   const page = await pages.getPage(env.DB, slug);
   if (!page) return render404(request, env);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   let author = null;
   if (page.author_id) {
     author = await authors.getAuthorById(env.DB, page.author_id);
@@ -1035,7 +1035,7 @@ export async function renderAffiliate(request, env, slug) {
   const page = await pages.getPage(env.DB, slug);
   if (!page) return render404(request, env);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const pageSchema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -1058,7 +1058,7 @@ export async function renderLogin(
 ){
 
   const renderer =
-    new Renderer(env);
+    new Renderer(env, request);
 
   const html =
     await renderer.render(
@@ -1090,7 +1090,7 @@ export async function renderRegister(
 ){
 
   const renderer =
-    new Renderer(env);
+    new Renderer(env, request);
 
   const html =
     await renderer.render(
@@ -1117,7 +1117,7 @@ export async function renderRegister(
 }
 
 export async function render404(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
 
   const html = await renderer.render("404.html", {
     seo_title: "404 - Page Not Found",
@@ -1133,7 +1133,7 @@ export async function render404(request, env) {
 }
 
 export async function renderCasinoList(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
@@ -1169,7 +1169,7 @@ export async function renderCasinoList(request, env) {
 
 
 export async function renderReviewList(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const reviewList = await env.DB.prepare(
     "SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC"
   ).all();
@@ -1266,7 +1266,7 @@ export async function renderReviewList(request, env) {
 }
 
 export async function renderNewsList(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const newsList = await news.getAllNews(env.DB);
   const allComponents = await renderer.renderAllComponents("news_list", "news_list");
   const dynamicSeo = await renderer.loadDynamicSeo("news_list", "news_list");
@@ -1312,7 +1312,7 @@ async function renderAdminPage(request, env, template, extraData = {}) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const html = await renderer.render(template, {
     canonical: "https://level.casino/en/news",
     seo_title: "Admin — Level Casino",
@@ -1359,7 +1359,7 @@ async function renderUserPage(request, env, template) {
     });
   }
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const html = await renderer.render(template, {
     seo_title: "Level Casino — Dashboard",
     seo_description: "Manage your account",
@@ -1390,7 +1390,7 @@ export async function renderUserNotifications(request, env) {
 
 
 export async function renderCategoryList(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const cats = await categories.getAllCategories(env.DB);
   const allComponents = await renderer.renderAllComponents("category_list", "category_list");
   const dynamicSeo = await renderer.loadDynamicSeo("category_list", "category_list");
@@ -1419,7 +1419,7 @@ export async function renderCategoryList(request, env) {
 }
 
 export async function renderCountryList(request, env) {
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const countriesList = await countries.getAllCountries(env.DB);
   const allComponents = await renderer.renderAllComponents("country_list", "country_list");
   const dynamicSeo = await renderer.loadDynamicSeo("country_list", "country_list");
@@ -1478,7 +1478,7 @@ export async function renderAuthor(request, env, slug) {
   const author = await authors.getAuthor(env.DB, slug);
   if (!author) return render404(request, env);
 
-  const renderer = new Renderer(env);
+  const renderer = new Renderer(env, request);
   const content = await authors.getAuthorContent(env.DB, author.id);
   const stats = await authors.getAuthorStats(env.DB, author.id);
   const allComponents = await renderer.renderAllComponents("author", slug);

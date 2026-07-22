@@ -4,8 +4,9 @@
 
 export class Renderer {
 
-  constructor(env) {
+  constructor(env, request = null) {
     this.env = env;
+    this.country = request?.cf?.country || "RW";
   }
 
   // =====================================================
@@ -245,7 +246,7 @@ ${JSON.stringify(schema)}
 
     // Load and inject active banners
     try {
-      const country = data._geo_country || "RW";
+      const country = data._geo_country || this.country || "RW";
       const allBanners = await this.loadActiveBanners(country);
       const topBanners = allBanners.filter(b => b.position === "top");
       const bottomBanners = allBanners.filter(b => b.position === "bottom");
@@ -292,7 +293,7 @@ ${JSON.stringify(schema)}
     // Load and inject active banners — wrapped in try-catch so banner
     // failures never break page rendering
     try {
-      const country = data._geo_country || "RW";
+      const country = data._geo_country || this.country || "RW";
       const bannersHtml = await this.loadActiveBanners(country);
       base = base.replace("{{BANNERS}}", bannersHtml);
     } catch (e) {

@@ -125,6 +125,25 @@ export class Renderer {
   async loadActiveBanners(country) {
     const { getActiveBanners } = await import("./database/banners.js");
     const banners = await getActiveBanners(this.env.DB, country);
+    if (banners.length === 0) return [];
+    return banners.map(banner => {
+      const dismissible = banner.dismissible ? `<button class="banner-dismiss" onclick="this.parentElement.style.display='none';document.cookie='banner_${banner.id}=dismissed;max-age=86400;path=/'">&times;</button>` : "";
+      const button = banner.button_text && banner.link ? `<a href="${banner.link}" class="banner-btn" style="background:${banner.text_color};color:${banner.bg_color}">${banner.button_text}</a>` : "";
+      const html = `
+        <div class="site-banner banner-${banner.position}" data-id="${banner.id}" style="background:${banner.bg_color};color:${banner.text_color}">
+          <div class="container banner-inner">
+            ${banner.title ? `<strong>${banner.title}</strong>` : ""}
+            ${banner.content ? `<span>${banner.content}</span>` : ""}
+            ${button}
+          </div>
+          ${dismissible}
+        </div>`;
+      return { position: banner.position, html };
+    });
+  }
+  async loadActiveBannersbackup(country) {
+    const { getActiveBanners } = await import("./database/banners.js");
+    const banners = await getActiveBanners(this.env.DB, country);
 
     if (banners.length === 0) return "";
 
@@ -195,8 +214,55 @@ ${JSON.stringify(schema)}
   // =====================================================
   // FULL PAGE RENDER
   // =====================================================
-
   async render(pageTemplate, data = {}, schema = {}, breadcrumbs = null) {
+    let page = await this.loadTemplate(`pages/${pageTemplate}`);
+    page = this.replaceVariables(page, data);
+
+    let base = await this.loadTemplate("layout/base.html");
+    const seo = this.buildSEO(data);
+    const jsonld = this.buildSchema(schema);
+
+    base = base.replace("{{SEO}}", seo);
+    base = base.replace("{{SCHEMA}}", jsonld);
+    base = base.replace("{{CONTENT}}", page);
+
+    let breadcrumbHtml = null;
+    if (breadcrumbs && breadcrumbs.length > 0) {
+      const parts = breadcrumbs.map(c =>
+        c.url
+          ? `<a href="${c.url}">${c.label}</a>`
+          : `<span class="breadcrumb-current">${c.label}</span>`
+      );
+      breadcrumbHtml = `<nav class="breadcrumbs" id="breadcrumbs">${parts.join(" / ")}</nav>`;
+    }
+    base = await this.injectComponents(base, breadcrumbHtml);
+
+    // Load dynamic navigation data
+    const navData = await this.loadNavData();
+    
+    // Merge nav data with component data — components_sidebar etc.
+    const allData = { ...navData, ...data };
+
+    // Load and inject active banners
+    try {
+      const country = data._geo_country || "RW";
+      const allBanners = await this.loadActiveBanners(country);
+      const topBanners = allBanners.filter(b => b.position === "top");
+      const bottomBanners = allBanners.filter(b => b.position === "bottom");
+      base = base.replace("{{BANNERS_TOP}}", topBanners.map(b => b.html).join(""));
+      base = base.replace("{{BANNERS_BOTTOM}}", bottomBanners.map(b => b.html).join(""));
+    } catch (e) {
+      console.error("Banner loading failed:", e.message);
+      base = base.replace("{{BANNERS_TOP}}", "");
+      base = base.replace("{{BANNERS_BOTTOM}}", "");
+    }
+
+    // NOW do the final variable replacement with merged data
+    base = this.replaceVariables(base, allData);
+
+    return base;
+  }
+  async renderbackup(pageTemplate, data = {}, schema = {}, breadcrumbs = null) {
     let page = await this.loadTemplate(`pages/${pageTemplate}`);
     page = this.replaceVariables(page, data);
 

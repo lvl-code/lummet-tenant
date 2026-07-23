@@ -1107,3 +1107,62 @@ display:block;
 }
 .banner-dismiss:hover { opacity: 1; }
 
+
+
+
+
+
+
+
+/* ===== FIX: Horizontal overflow prevention (Issues #2, #11) ===== */
+html {
+  overflow-x: hidden;
+}
+
+/* Grid children must allow shrinking below content size */
+.main-content,
+.casino-body > *,
+.casino-main,
+.casino-aside {
+  min-width: 0;
+}
+
+/* Scrollable containers for wide content (tables, structured data) */
+.casino-main,
+.info-block,
+.info-card {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tables scroll within their container, never stretch the page */
+.casino-main table,
+.info-block table,
+.review-content table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Text/features wrap downward, never stretch sideways */
+.casino-description,
+.info-card dd,
+.info-card a,
+.features-list,
+.review-content p {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* ===== FIX: Auth pages — full width, no sidebar (Issue #8) ===== */
+.layout-wrapper:has(.auth-page) {
+  grid-template-columns: 1fr;
+}
+.layout-wrapper:has(.auth-page) .sidebar {
+  display: none;
+}
+.auth-page .container {
+  display: flex;
+  justify-content: center;
+}

@@ -219,7 +219,7 @@ async function initHomeNews() {
 
 async function initHeaderAuth() {
   try {
-    const res = await fetch("/en/api/v1/dashboard");
+    const res = await fetch("/en/api/v1/user/profile");
     if (res.ok) {
       const loginBtn = document.getElementById("headerLoginBtn");
       const logoutBtn = document.getElementById("headerLogoutBtn");

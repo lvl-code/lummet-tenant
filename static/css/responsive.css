@@ -746,35 +746,3 @@
 
 
 
-
-
-
-
-
-
-
-
-
-/* =====================================================
-   1. GLOBAL MOBILE HORIZONTAL OVERFLOW FIX
-   Prevent pages stretching sideways
-   ===================================================== */
-
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-img,
-video,
-iframe,
-table,
-pre,
-code {
-  max-width: 100%;
-}

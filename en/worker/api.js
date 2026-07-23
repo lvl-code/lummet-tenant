@@ -503,13 +503,6 @@ if (path === "/api/v1/categories/list") {
   return json({ categories: result.results });
 }
 
-// List media
-if (path === "/api/v1/media/list") {
-  const result = await env.DB.prepare(`
-    SELECT * FROM media ORDER BY created_at DESC
-  `).all();
-  return json({ media: result.results });
-}
 
 // Get settings
 if (path === "/api/v1/settings/get") {
@@ -1214,40 +1207,6 @@ if (
       return success();
     }
 
-    // ==================================
-    // ADMIN — INQUIRIES & SUBMISSIONS
-    // ==================================
-
-    if (path === "/api/v1/admin/inquiries" && request.method === "GET") {
-      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
-      const inquiries = await userDash.getAllInquiries(env.DB);
-      return json({ inquiries });
-    }
-
-    if (path === "/api/v1/admin/inquiry/reply" && request.method === "POST") {
-      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
-      const body = await request.json();
-      validate(body, ["id", "reply"]);
-      await userDash.replyToInquiry(env.DB, body.id, body.reply);
-      // Notify user
-      const { createNotification } = await import("./database/user_dashboard.js");
-      await createNotification(env.DB, body.user_id, "Inquiry Answered", `Your inquiry has been answered: ${body.reply.substring(0, 100)}`, "/en/user/inquiries");
-      return success();
-    }
-
-    if (path === "/api/v1/admin/submissions" && request.method === "GET") {
-      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
-      const submissions = await userDash.getAllSubmissions(env.DB);
-      return json({ submissions });
-    }
-
-    if (path === "/api/v1/admin/submission/update" && request.method === "POST") {
-      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
-      const body = await request.json();
-      validate(body, ["id", "status"]);
-      await userDash.updateSubmissionStatus(env.DB, body.id, body.status, body.admin_notes || null);
-      return success();
-    }
     // ==================================
     // ADMIN — USER MANAGEMENT
     // ==================================

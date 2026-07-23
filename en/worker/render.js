@@ -93,22 +93,38 @@ export class Renderer {
       seo_robots: seo.robots || "index, follow"
     };
   }
+  
   async loadNavData() {
     const { getNavItems } = await import("./database/nav.js");
-    const headerNav = await getNavItems(this.env.DB, "header");
-    const footerCasinos = await getNavItems(this.env.DB, "footer_casinos");
-    const footerCompany = await getNavItems(this.env.DB, "footer_company");
-    const footerSupport = await getNavItems(this.env.DB, "footer_support");
-    const footerLegal = await getNavItems(this.env.DB, "footer_legal");
+    const { getCached, setCached, CACHE_KEYS } = await import("./cache.js");
+
+    const locations = ["header", "footer_casinos", "footer_company", "footer_support", "footer_legal"];
+    const results = await Promise.all(
+      locations.map(async (loc) => {
+        const cacheKey = CACHE_KEYS.NAV(loc);
+        let items = await getCached(this.env, cacheKey);
+        if (!items) {
+          items = await getNavItems(this.env.DB, loc);
+          await setCached(this.env, cacheKey, items, 600);
+        }
+        return { loc, items };
+      })
+    );
+
+    const navData = {};
+    for (const { loc, items } of results) {
+      navData[loc] = items;
+    }
 
     return {
-      header_nav: this.buildHeaderNav(headerNav),
-      footer_casinos: this.buildFooterLinks(footerCasinos),
-      footer_company: this.buildFooterLinks(footerCompany),
-      footer_support: this.buildFooterLinks(footerSupport),
-      footer_legal: this.buildFooterLinks(footerLegal)
+      header_nav: this.buildHeaderNav(navData.header),
+      footer_casinos: this.buildFooterLinks(navData.footer_casinos),
+      footer_company: this.buildFooterLinks(navData.footer_company),
+      footer_support: this.buildFooterLinks(navData.footer_support),
+      footer_legal: this.buildFooterLinks(navData.footer_legal)
     };
   }
+
 
   buildHeaderNav(items) {
     return items.map(item => {

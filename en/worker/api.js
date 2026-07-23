@@ -28,6 +28,7 @@ import * as permDB from "./database/permissions.js";
 import * as userDash from "./database/user_dashboard.js";
 import * as adminTools from "./database/admin_tools.js";
 import * as bannerDB from "./database/banners.js";
+import { getCached, setCached, CACHE_KEYS, invalidateCasinos, invalidateNews, invalidateCountries, invalidateCategories, invalidateNav } from "./cache.js";
 
 // =====================================================
 // MAIN API HANDLER
@@ -145,53 +146,71 @@ if (path === "/api/v1/public/casino-reviews") {
   return json({ reviews: result.results });
 }
 
-  // Add this BEFORE the auth check, around line 30-40
 if (path === "/api/v1/public/casinos/list") {
-  const casinos = await env.DB.prepare(`
-    SELECT slug, name, logo, rating FROM casinos
-    WHERE published = 1 AND status = 'published'
-    ORDER BY featured DESC, sort_order ASC, rating DESC
-  `).all();
-  return json({ casinos: casinos.results });
+  let casinos = await getCached(env, CACHE_KEYS.PUBLIC_CASINOS);
+  if (!casinos) {
+    const result = await env.DB.prepare(`
+      SELECT slug, name, logo, rating FROM casinos
+      WHERE published = 1 AND status = 'published'
+      ORDER BY featured DESC, sort_order ASC, rating DESC
+    `).all();
+    casinos = result.results || [];
+    await setCached(env, CACHE_KEYS.PUBLIC_CASINOS, casinos);
+  }
+  return json({ casinos });
 }
-if (path === "/api/v1/public/news/list") {
-  const result = await env.DB.prepare(`
-    SELECT *
-    FROM news
-    WHERE published = 1
-    ORDER BY created_at DESC
-  `).all();
 
-  return json({ news: result.results });
+if (path === "/api/v1/public/news/list") {
+  let news = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
+  if (!news) {
+    const result = await env.DB.prepare(`
+      SELECT * FROM news
+      WHERE published = 1
+      ORDER BY created_at DESC
+    `).all();
+    news = result.results || [];
+    await setCached(env, CACHE_KEYS.PUBLIC_NEWS, news);
+  }
+  return json({ news });
 }
 
 if (path === "/api/v1/public/casinos/geo") {
   const country = request.cf?.country || "RW";
-  const casinoList = await env.DB.prepare(`
-    SELECT slug, name, logo, rating, bonus_title, bonus_value, website_url
-    FROM casinos
-    WHERE published = 1 AND status = 'published'
-    ORDER BY featured DESC, sort_order ASC, rating DESC
-  `).all();
 
-  const casinos = casinoList.results || [];
-  if (casinos.length === 0) return json({ casinos: [] });
+  // Try cached casinos + geo rules
+  let casinoList = await getCached(env, CACHE_KEYS.PUBLIC_CASINOS);
+  let allRules = await getCached(env, CACHE_KEYS.PUBLIC_GEO_RULES);
 
-  // Get all geo rules for these casinos
-  const slugs = casinos.map(c => c.slug);
-  const placeholders = slugs.map(() => '?').join(',');
-  const rulesResult = await env.DB.prepare(`
-    SELECT casino_slug, country_code, status FROM geo_rules
-    WHERE casino_slug IN (${placeholders})
-  `).bind(...slugs).all();
+  if (!casinoList) {
+    const result = await env.DB.prepare(`
+      SELECT slug, name, logo, rating, bonus_title, bonus_value, website_url
+      FROM casinos
+      WHERE published = 1 AND status = 'published'
+      ORDER BY featured DESC, sort_order ASC, rating DESC
+    `).all();
+    casinoList = result.results || [];
+    await setCached(env, CACHE_KEYS.PUBLIC_CASINOS, casinoList);
+  }
 
+  if (!allRules) {
+    const rulesResult = await env.DB.prepare(`
+      SELECT casino_slug, country_code, status FROM geo_rules
+    `).all();
+    allRules = rulesResult.results || [];
+    await setCached(env, CACHE_KEYS.PUBLIC_GEO_RULES, allRules);
+  }
+
+  if (casinoList.length === 0) return json({ casinos: [], country });
+
+  // Group rules by casino slug
   const rulesByCasino = {};
-  for (const row of (rulesResult.results || [])) {
+  for (const row of allRules) {
     if (!rulesByCasino[row.casino_slug]) rulesByCasino[row.casino_slug] = [];
     rulesByCasino[row.casino_slug].push(row);
   }
 
-  const geoCasinos = casinos.map(casino => {
+  // Compute geo status per casino
+  const geoCasinos = casinoList.map(casino => {
     const rules = rulesByCasino[casino.slug] || [];
     let geoStatus = "blocked";
 
@@ -212,7 +231,8 @@ if (path === "/api/v1/public/casinos/geo") {
 
     return { ...casino, geo_status: geoStatus };
   });
-    // Geo-rank: available first (by rating desc), then unavailable (by rating desc)
+
+  // Sort: available first (by rating desc), then unavailable (by rating desc)
   geoCasinos.sort((a, b) => {
     const aAvail = a.geo_status === "allowed" ? 1 : 0;
     const bAvail = b.geo_status === "allowed" ? 1 : 0;
@@ -222,6 +242,8 @@ if (path === "/api/v1/public/casinos/geo") {
 
   return json({ casinos: geoCasinos, country });
 }
+
+
 
 if (path === "/api/v1/public/reviews/geo") {
   const country = request.cf?.country || "RW";
@@ -284,19 +306,31 @@ if (path === "/api/v1/public/reviews/geo") {
 
   return json({ reviews: geoReviews, country });
 }
+
 if (path === "/api/v1/public/categories/list") {
-  const result = await env.DB.prepare(`
-    SELECT * FROM categories ORDER BY name
-  `).all();
-  return json({ categories: result.results || [] });
+  let categories = await getCached(env, CACHE_KEYS.PUBLIC_CATEGORIES);
+  if (!categories) {
+    const result = await env.DB.prepare(`
+      SELECT * FROM categories ORDER BY name
+    `).all();
+    categories = result.results || [];
+    await setCached(env, CACHE_KEYS.PUBLIC_CATEGORIES, categories, 600);
+  }
+  return json({ categories });
 }
 
 if (path === "/api/v1/public/countries/list") {
-  const result = await env.DB.prepare(`
-    SELECT * FROM countries ORDER BY name
-  `).all();
-  return json({ countries: result.results || [] });
+  let countries = await getCached(env, CACHE_KEYS.PUBLIC_COUNTRIES);
+  if (!countries) {
+    const result = await env.DB.prepare(`
+      SELECT * FROM countries ORDER BY name
+    `).all();
+    countries = result.results || [];
+    await setCached(env, CACHE_KEYS.PUBLIC_COUNTRIES, countries, 600);
+  }
+  return json({ countries });
 }
+
 
 
 
@@ -615,13 +649,16 @@ if (
     // ==================================
     // GEO RULES
     // ==================================
-
     if (
       path === "/api/v1/geo/save" &&
       request.method === "POST"
     ) {
-      return saveGeoRule(request, env);
+      const result = await saveGeoRule(request, env);
+      await invalidateCasinos(env);
+      return result;
     }
+
+
         // ==================================
     // GEO RULES — BULK SYNC + LISTING
     // ==================================
@@ -631,8 +668,10 @@ if (
       validate(body, ["casino_slug", "rules"]);
       const { setCasinoGeoRules } = await import("./database/geo.js");
       await setCasinoGeoRules(env.DB, body.casino_slug, body.rules);
+      await invalidateCasinos(env);
       return success();
     }
+
 
     if (path === "/api/v1/geo/list" && request.method === "GET") {
       const url = new URL(request.url);
@@ -670,11 +709,11 @@ if (
     // ==================================
     // CATEGORIES CRUD
     // ==================================
-
     if (path === "/api/v1/category/create" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug", "name"]);
       await categories.createCategory(env.DB, body);
+      await invalidateCategories(env);
       return success();
     }
 
@@ -683,15 +722,15 @@ if (
       validate(body, ["slug", "name"]);
       const { updateCategory } = await import("./database/categories.js");
       await updateCategory(env.DB, body.slug, body);
+      await invalidateCategories(env);
       return success();
     }
-
-
     if (path === "/api/v1/category/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
       const { deleteCategory } = await import("./database/categories.js");
       await deleteCategory(env.DB, body.slug);
+      await invalidateCategories(env);
       return success();
     }
 
@@ -705,6 +744,7 @@ if (
       validate(body, ["code", "name"]);
       const { createCountry } = await import("./database/countries.js");
       await createCountry(env.DB, body);
+      await invalidateCountries(env);
       return success();
     }
 
@@ -713,6 +753,7 @@ if (
       validate(body, ["code", "name"]);
       const { updateCountry } = await import("./database/countries.js");
       await updateCountry(env.DB, body.code, body);
+      await invalidateCountries(env);
       return success();
     }
 
@@ -721,6 +762,7 @@ if (
       validate(body, ["code"]);
       const { deleteCountry } = await import("./database/countries.js");
       await deleteCountry(env.DB, body.code);
+      await invalidateCountries(env);
       return success();
     }
 
@@ -1059,6 +1101,7 @@ if (
       const body = await request.json();
       validate(body, ["label", "url", "location"]);
       const id = await navDB.createNavItem(env.DB, body);
+      await invalidateNav(env);
       return json({ success: true, id });
     }
 
@@ -1066,6 +1109,7 @@ if (
       const body = await request.json();
       validate(body, ["id", "label", "url", "location"]);
       await navDB.updateNavItem(env.DB, body.id, body);
+      await invalidateNav(env);
       return success();
     }
 
@@ -1073,8 +1117,10 @@ if (
       const body = await request.json();
       validate(body, ["id"]);
       await navDB.deleteNavItem(env.DB, body.id);
+      await invalidateNav(env);
       return success();
     }
+
     // ==================================
     // PERMISSIONS MANAGEMENT
     // ==================================
@@ -1460,6 +1506,7 @@ async function createCasino(request, env) {
       body.category_ids
     );
   }
+  await invalidateCasinos(env);
   return success();
 }
 
@@ -1491,6 +1538,7 @@ async function updateCasino(request, env) {
       body.category_ids
     );
   }
+  await invalidateCasinos(env);
   return success();
 }
 
@@ -1502,6 +1550,7 @@ async function deleteCasino(request, env) {
     body.slug
   );
 
+  await invalidateCasinos(env);
   return success();
 }
 
@@ -1641,9 +1690,8 @@ async function createNews(request, env) {
     "title",
     "content"
   ]);
-
   await news.createNews(env.DB, body);
-
+  await invalidateNews(env);
   return success();
 }
 
@@ -1655,13 +1703,13 @@ async function updateNews(request, env) {
     "title",
     "content"
   ]);
-
   await news.updateNews(
     env.DB,
     body.slug,
     body
   );
 
+  await invalidateNews(env);
   return success();
 }
 
@@ -1669,12 +1717,12 @@ async function deleteNews(request, env) {
   const body = await request.json();
 
   validate(body, ["slug"]);
-
   await news.deleteNews(
     env.DB,
     body.slug
   );
 
+  await invalidateNews(env);
   return success();
 }
 

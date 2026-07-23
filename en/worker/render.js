@@ -217,7 +217,13 @@ ${JSON.stringify(schema)}
   // =====================================================
   async render(pageTemplate, data = {}, schema = {}, breadcrumbs = null) {
     let page = await this.loadTemplate(`pages/${pageTemplate}`);
-    page = this.replaceVariables(page, data);
+
+    // Load dynamic navigation data first
+    const navData = await this.loadNavData();
+
+    const allData = { ...navData, ...data };
+
+    page = this.replaceVariables(page, allData);
 
     let base = await this.loadTemplate("layout/base.html");
     const seo = this.buildSEO(data);
@@ -237,12 +243,6 @@ ${JSON.stringify(schema)}
       breadcrumbHtml = `<nav class="breadcrumbs" id="breadcrumbs">${parts.join(" / ")}</nav>`;
     }
     base = await this.injectComponents(base, breadcrumbHtml);
-
-    // Load dynamic navigation data
-    const navData = await this.loadNavData();
-    
-    // Merge nav data with component data — components_sidebar etc.
-    const allData = { ...navData, ...data };
 
     // Load and inject active banners
     try {

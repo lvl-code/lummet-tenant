@@ -306,7 +306,6 @@ export async function renderCasino(request, env, slug) {
     bonus_title: casino.bonus_title || "Welcome Bonus",
     bonus_value: casino.bonus_value || "",
     website_url: casino.website_url || "",
-    seo_description: casino.seo_description || casino.name + " casino review.",
     status: casino.status || "published",
     geo: geoInfo,
     geoRule: geoRule || { status: "allowed", bonus_override: null }

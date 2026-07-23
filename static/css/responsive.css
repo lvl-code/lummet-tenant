@@ -778,3 +778,91 @@ pre,
 code {
   max-width: 100%;
 }
+
+
+
+
+/* =====================================================
+   FIX CASINO DETAIL PAGE MOBILE LAYOUT
+   ===================================================== */
+
+@media (max-width: 768px) {
+
+  /* Prevent any container from exceeding screen width */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .layout-wrapper,
+  .main-content,
+  .casino-page,
+  .casino-body,
+  .casino-main,
+  .casino-aside,
+  .casino-hero,
+  .info-block,
+  .review-content,
+  .review-summary,
+  .review-summary-table,
+  .features-grid {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Casino hero should stack vertically */
+  .casino-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Features become responsive instead of stretching */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  /* Long words/URLs wrap instead of forcing horizontal scroll */
+  h1,
+  h2,
+  h3,
+  p,
+  td,
+  th,
+  li,
+  a,
+  span {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Images never overflow */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Tables become scrollable instead of expanding the page */
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Code blocks */
+  pre,
+  code {
+    overflow-x: auto;
+  }
+}

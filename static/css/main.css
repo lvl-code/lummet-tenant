@@ -1166,3 +1166,39 @@ html {
   display: flex;
   justify-content: center;
 }
+
+
+/* ===== TURNSTILE + AUTH CARD: PREVENT HORIZONTAL PUSH ===== */
+.cf-turnstile {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.cf-turnstile iframe {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.auth-page .container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}

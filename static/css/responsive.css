@@ -641,8 +641,8 @@
 /* ---- Mobile Features Grid ---- */
 @media (max-width: 768px) {
   .features-grid {
-    display: none;
-    overflow-x: hidden;
+    display: flex;
+    overflow-x: auto;
     scroll-snap-type: x mandatory;
     gap: 14px;
     padding-bottom: 16px;
@@ -738,26 +738,3 @@
 }
 
 
-
-
-
-
-
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-img,
-video,
-iframe,
-table,
-pre,
-code {
-  max-width: 100%;
-}

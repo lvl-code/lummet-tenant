@@ -20,7 +20,13 @@
   "ai": {
     "binding": "AI"
   },
-
+  
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "0557421566ac40a999c365bb6936a53f"
+    }
+  ],
   "triggers": {
     "crons": [
       "0 */6 * * *"

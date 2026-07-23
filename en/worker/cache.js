@@ -59,7 +59,8 @@ export const CACHE_KEYS = {
   NAV: (location) => `nav:${location}`,
 
   // All nav locations for bulk invalidation
-  NAV_ALL_LOCATIONS: ["nav:header", "nav:footer_casinos", "nav:footer_company", "nav:footer_support", "nav:footer_legal"],
+  NAV_ALL_LOCATIONS: ["nav:header", "nav:footer_casinos", "nav:footer_company", "nav:footer_support", "nav:footer_legal", "nav:mobile"],
+ // NAV_ALL_LOCATIONS: ["nav:header", "nav:footer_casinos", "nav:footer_company", "nav:footer_support", "nav:footer_legal"],
 };
 
 // =====================================================

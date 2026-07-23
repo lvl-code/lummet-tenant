@@ -61,4 +61,16 @@
     {{components_bottom}}
     </div>
   </div>
+    <!-- Sticky mobile CTA -->
+  <div class="mobile-sticky-cta" id="mobileStickyCta">
+    <div class="mobile-cta-info">
+      <img src="{{logo}}" alt="{{name}}" class="mobile-cta-logo" onerror="this.src='/static/images/logo.png'">
+      <div>
+        <strong>{{name}}</strong>
+        <span>{{bonus_title}} {{bonus_value}}</span>
+      </div>
+    </div>
+    <a href="/en/go/{{slug}}" class="btn btn--primary mobile-cta-btn" rel="nofollow sponsored">Visit</a>
+  </div>
+
 </section>

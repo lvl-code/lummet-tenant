@@ -93,12 +93,12 @@ export class Renderer {
       seo_robots: seo.robots || "index, follow"
     };
   }
-  
+
   async loadNavData() {
     const { getNavItems } = await import("./database/nav.js");
     const { getCached, setCached, CACHE_KEYS } = await import("./cache.js");
 
-    const locations = ["header", "footer_casinos", "footer_company", "footer_support", "footer_legal"];
+    const locations = ["header", "footer_casinos", "footer_company", "footer_support", "footer_legal", "mobile"];
     const results = await Promise.all(
       locations.map(async (loc) => {
         const cacheKey = CACHE_KEYS.NAV(loc);
@@ -116,15 +116,31 @@ export class Renderer {
       navData[loc] = items;
     }
 
+    // Mobile nav: use dedicated "mobile" location, fall back to first 5 header items
+    const mobileItems = (navData.mobile && navData.mobile.length > 0)
+      ? navData.mobile
+      : (navData.header || []).slice(0, 5);
+
     return {
       header_nav: this.buildHeaderNav(navData.header),
       footer_casinos: this.buildFooterLinks(navData.footer_casinos),
       footer_company: this.buildFooterLinks(navData.footer_company),
       footer_support: this.buildFooterLinks(navData.footer_support),
-      footer_legal: this.buildFooterLinks(navData.footer_legal)
+      footer_legal: this.buildFooterLinks(navData.footer_legal),
+      mobile_nav: this.buildMobileNav(mobileItems)
     };
   }
 
+  buildMobileNav(items) {
+    return items.map(item => {
+      const icon = item.icon || "";
+      const external = item.is_external ? ' target="_blank" rel="noopener"' : "";
+      return `<a href="${item.url}"${external} class="mobile-nav-item" data-href="${item.url}">
+        <span class="mobile-nav-icon">${icon}</span>
+        <span class="mobile-nav-label">${item.label}</span>
+      </a>`;
+    }).join("\n");
+  }
 
   buildHeaderNav(items) {
     return items.map(item => {

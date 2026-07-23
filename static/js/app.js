@@ -1,7 +1,6 @@
 // =====================================================
 // LEVELCASINO FRONTEND APP
 // =====================================================
-
 document.addEventListener("DOMContentLoaded", () => {
   initNavToggle();
   initSidebar();
@@ -11,7 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initHomeNews();
   initHeaderAuth();
   initMobileSearch();
+  initMobileNav();
+  initScrollToTop();
 });
+
 
 // ---- Mobile nav toggle ----
 function initNavToggle() {
@@ -284,4 +286,57 @@ function initMobileSearch() {
       }
     });
   }
+}
+
+// ---- Mobile bottom nav active state ----
+function initMobileNav() {
+  const nav = document.getElementById("mobileBottomNav");
+  if (!nav) return;
+
+  const currentPath = window.location.pathname;
+  const items = nav.querySelectorAll(".mobile-nav-item");
+
+  let bestMatch = null;
+  let bestMatchLen = 0;
+
+  items.forEach(item => {
+    const href = item.getAttribute("data-href") || item.getAttribute("href");
+    if (!href) return;
+
+    // Exact match or prefix match (longest prefix wins)
+    if (href === currentPath) {
+      bestMatch = item;
+      bestMatchLen = href.length;
+    } else if (currentPath.startsWith(href + "/") && href.length > bestMatchLen) {
+      bestMatch = item;
+      bestMatchLen = href.length;
+    }
+  });
+
+  if (bestMatch) bestMatch.classList.add("active");
+}
+
+// ---- Scroll to top button ----
+function initScrollToTop() {
+  const btn = document.getElementById("scrollToTop");
+  if (!btn) return;
+
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        if (window.scrollY > 400) {
+          btn.classList.add("visible");
+        } else {
+          btn.classList.remove("visible");
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  btn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 }

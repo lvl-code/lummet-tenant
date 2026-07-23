@@ -150,5 +150,14 @@ document.querySelectorAll(".faq-question").forEach(btn => {
     });
 });
 </script>
+  <!-- Sticky mobile CTA -->
+  {{#if casino_slug}}
+  <div class="mobile-sticky-cta" id="mobileStickyCta">
+    <div class="mobile-cta-info">
+      <span class="mobile-cta-title">{{title}}</span>
+    </div>
+    <a href="/en/go/{{casino_slug}}" class="btn btn--primary mobile-cta-btn" rel="nofollow sponsored">Visit Casino</a>
+  </div>
+  {{/if}}
 
 </article>

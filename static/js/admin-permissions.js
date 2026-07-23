@@ -1,5 +1,19 @@
 document.addEventListener("DOMContentLoaded", async () => {
   try {
+    // Set active nav link based on current URL
+    const currentPath = window.location.pathname;
+    document.querySelectorAll(".admin-nav a").forEach(link => {
+      const href = link.getAttribute("href");
+      if (href === currentPath) {
+        link.classList.add("active");
+      }
+      // Also highlight "Casinos" when on casino edit/create
+      if (href === "/en/dashboard/casinos" && currentPath.match(/^\/en\/dashboard\/casino\/edit\//)) {
+        link.classList.add("active");
+      }
+    });
+
+
     const profile = await fetch("/en/api/v1/user/profile");
     if (!profile.ok) return;
     const data = await profile.json();

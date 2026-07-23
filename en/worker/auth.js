@@ -431,7 +431,7 @@ export async function register(request, env) {
   const passwordHash = await hashPassword(password);
   await env.DB.prepare(`
     INSERT INTO users(email, password_hash, role)
-    VALUES (?, ?, 'editor')
+    VALUES (?, ?, 'viewer')
   `).bind(email, passwordHash).run();
 
   return json({ success: true });

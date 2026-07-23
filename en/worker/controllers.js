@@ -951,8 +951,6 @@ export async function renderCountry(request, env, slug) {
     seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
     canonical: dynamicSeo.canonical || `https://level.casino/en/country/${code}`,
     casino_cards: buildCasinoCards(casinoList, geoData),
-    seo_title: countryData.seo_title || countryData.name + " Online Casinos",
-    seo_description: countryData.seo_description || "Best online casinos available in " + countryData.name
   }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
   return new Response(html, {
     headers: cacheHeaders()
@@ -996,8 +994,6 @@ export async function renderCategory(request, env, slug) {
     category: category.name,
     description: category.description,
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
-    seo_title: category.seo_title || category.name + " Casinos",
-    seo_description: category.seo_description || "Top " + category.name + " casinos reviewed by Level Casino"
   }, categorySchema, buildBreadcrumbs("category", { category: category.name }));
 
   return new Response(html, {
@@ -1345,9 +1341,7 @@ async function renderAdminPage(request, env, template, extraData = {}) {
   const renderer = new Renderer(env, request);
   // Load shared admin navigation
   const adminNav = await renderer.loadTemplate("layout/admin-nav.html");
-  console.log("ADMIN NAV TEST:", adminNav ? adminNav.substring(0,100) : "NULL");
   const html = await renderer.render(template, {
-      canonical: "https://level.casino/en/news",
       seo_title: "Admin — Level Casino",
       seo_description: "Level Casino CMS Admin",
 

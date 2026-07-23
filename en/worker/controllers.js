@@ -1315,11 +1315,19 @@ async function renderAdminPage(request, env, template, extraData = {}) {
   }
 
   const renderer = new Renderer(env, request);
+  // Load shared admin navigation
+  const adminNav = await renderer.loadTemplate("layout/admin-nav.html");
+
   const html = await renderer.render(template, {
-    canonical: "https://level.casino/en/news",
-    seo_title: "Admin — Level Casino",
-    seo_description: "Level Casino CMS Admin",
-    ...extraData
+      canonical: "https://level.casino/en/news",
+      seo_title: "Admin — Level Casino",
+      seo_description: "Level Casino CMS Admin",
+
+      email: user.email,
+      role: user.role,
+      admin_nav: adminNav,
+
+      ...extraData
   });
 
   return new Response(html, {

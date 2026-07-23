@@ -1317,7 +1317,7 @@ async function renderAdminPage(request, env, template, extraData = {}) {
   const renderer = new Renderer(env, request);
   // Load shared admin navigation
   const adminNav = await renderer.loadTemplate("layout/admin-nav.html");
-
+  console.log("ADMIN NAV TEST:", adminNav ? adminNav.substring(0,100) : "NULL");
   const html = await renderer.render(template, {
       canonical: "https://level.casino/en/news",
       seo_title: "Admin — Level Casino",

@@ -150,10 +150,6 @@
   }
 
   /* Hide bottom nav on admin/dashboard pages */
-  .admin-wrapper ~ .mobile-bottom-nav,
-  body:has(.admin-wrapper) .mobile-bottom-nav {
-    display: none;
-  }
 }
 
 /* ---- Swipeable Casino Cards ---- */
@@ -645,8 +641,8 @@
 /* ---- Mobile Features Grid ---- */
 @media (max-width: 768px) {
   .features-grid {
-    display: flex;
-    overflow-x: auto;
+    display: none;
+    overflow-x: hiden;
     scroll-snap-type: x mandatory;
     gap: 14px;
     padding-bottom: 16px;

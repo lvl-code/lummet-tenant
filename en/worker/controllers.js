@@ -793,8 +793,36 @@ await logClick(
   );
 }
 
-
 export async function renderDashboardPage(request, env) {
+    const user = await getCurrentUser(request, env);
+    if (!user) {
+        return new Response(null, {
+            status: 302,
+            headers: { Location: "/en/login" }
+        });
+    }
+
+    // Admins and editors get the shared admin nav via renderAdminPage
+    if (user.role === "admin" || user.role === "editor") {
+        return renderAdminPage(request, env, "admin/dashboard.html");
+    }
+
+    // Viewers get the user dashboard (no admin nav)
+    const renderer = new Renderer(env, request);
+    const html = await renderer.render("users/dashboard.html", {
+        seo_title: "Dashboard",
+        seo_description: "Level Casino Dashboard",
+        email: user.email,
+        role: user.role
+    });
+
+    return new Response(html, {
+        headers: { "Content-Type": "text/html" }
+    });
+}
+
+
+export async function renderDashboardPagebackup(request, env) {
 
     const user = await getCurrentUser(request, env);
 

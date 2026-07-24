@@ -155,8 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <script>
 document.addEventListener("click", function(e) {
-    if (e.target.classList.contains("faq-question")) {
-        e.target.parentElement.classList.toggle("active");
+    const button = e.target.closest(".faq-question");
+
+    if (button) {
+        button.parentElement.classList.toggle("active");
     }
 });
 </script>

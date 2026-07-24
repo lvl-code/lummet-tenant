@@ -131,17 +131,31 @@ a:hover { text-decoration: underline; }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
+.casino-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
 /* Casino Card */
-.casino-card {
+/*.casino-card {
   background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
   overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
-}
+}*/
 .casino-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 .casino-card__header { display: flex; align-items: center; gap: 12px; padding: 16px; }
 .casino-card__logo { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
 .casino-card__rating { color: var(--warning); font-size: 14px; }
-.casino-card__body { padding: 0 16px 16px; }
+/*.casino-card__body { padding: 0 16px 16px; }*/
+.casino-card__body {
+  padding: 0 16px 16px;
+  flex: 1;
+}
 .casino-card__body h3 { font-size: 18px; margin-bottom: 8px; }
 .casino-card__bonus {
   background: var(--bg); border-radius: 8px; padding: 10px 12px;
@@ -149,7 +163,13 @@ a:hover { text-decoration: underline; }
 }
 .bonus-title { font-size: 12px; color: var(--gray); text-transform: uppercase; }
 .bonus-value { font-size: 16px; font-weight: 700; color: var(--primary); }
-.casino-card__actions { display: flex; gap: 8px; padding: 0 16px 16px; }
+/*.casino-card__actions { display: flex; gap: 8px; padding: 0 16px 16px; }*/
+.casino-card__actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+  margin-top: auto;
+}
 .casino-card__actions .btn { flex: 1; }
 
 /* Features Grid */

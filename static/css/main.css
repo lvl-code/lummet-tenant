@@ -132,9 +132,9 @@ a:hover { text-decoration: underline; }
   gap: 20px;
   align-items: stretch;
 }
-.casino-card {
+/*.casino-card {
   min-height: 400;
-}
+}*/
 /* Casino Grid */
 /*.casino-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -162,8 +162,8 @@ a:hover { text-decoration: underline; }
 .casino-card__rating { color: var(--warning); font-size: 14px; }
 /*.casino-card__body { padding: 0 16px 16px; }*/
 .casino-card__body {
-  padding: 0 16px 16px;
-  flex-grow: 1;
+  padding: 0 16px 12px;
+  flex-grow:0 1 auto;
 }
 .casino-card__body h3 { font-size: 18px; margin-bottom: 8px; }
 .casino-card__bonus {

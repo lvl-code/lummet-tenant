@@ -1173,7 +1173,7 @@ html {
   width: 100%;
   display: flex;
   justify-content: center;
-  transform: translateX(-8px);
+  transform: translateX(-6px);
 }
 
 .auth-page {

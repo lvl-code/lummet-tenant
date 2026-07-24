@@ -131,7 +131,6 @@ a:hover { text-decoration: underline; }
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
   align-items: stretch;
-  grid-auto-rows: 1fr;
 }
 /*.casino-card {
   min-height: 300;

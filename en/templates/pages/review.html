@@ -99,7 +99,6 @@
   {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
-  <h2 id="faq">Frequently Asked Questions</h2>
 </div>
 
       <div class="review-pros-cons">
@@ -143,12 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 </script>
-<script>
-document.querySelectorAll(".faq-question").forEach(btn => {
-    btn.addEventListener("click", () => {
-        btn.parentElement.classList.toggle("active");
-    });
-});
 </script>
   <!-- Sticky mobile CTA -->
   {{#if casino_slug}}

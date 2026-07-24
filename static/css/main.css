@@ -6,7 +6,7 @@
   --gray: #64748b;
   --light-gray: #e2e8f0;
   --bg: #f8fafc;
-  --white: #ffffff;
+  --white: #fff;
   --success: #00b894;
   --danger: #e74c3c;
   --warning: #fdcb6e;
@@ -253,9 +253,9 @@ a:hover { text-decoration: underline; }
 .pros-cons-block h3 { margin-bottom: 12px; }
 .pros-cons-block ul { list-style: none; }
 .pros-cons-block li { padding: 6px 0; font-size: 14px; }
-.pros-cons-block li:before { margin-right: 8px; }
-.pros li:before { content: "\2713"; color: var(--success); }
-.cons li:before { content: "\2717"; color: var(--danger); }
+.pros-cons-block li::before { margin-right: 8px; }
+.pros li::before { content: "\2713"; color: var(--success); }
+.cons li::before { content: "\2717"; color: var(--danger); }
 .review-cta { text-align: center; margin: 40px 0; }
 
 /* News Detail */

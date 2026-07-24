@@ -47,7 +47,7 @@
 @media (max-width: 768px) {
   html {
     scroll-behavior: smooth;
-    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -103,7 +103,7 @@
     align-items: center;
     background: rgba(26, 26, 46, 0.95);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     padding: 6px 0;
     padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
     z-index: 999;

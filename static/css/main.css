@@ -134,7 +134,7 @@ a:hover { text-decoration: underline; }
   grid-auto-rows: 1fr;
 }
 .casino-card {
-  min-height: 420px;
+  min-height: 300;
 }
 /* Casino Grid */
 /*.casino-grid {

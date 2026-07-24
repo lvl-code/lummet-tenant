@@ -1166,16 +1166,13 @@ html {
   justify-content: center;
 }
 
-/* ===== TURNSTILE + AUTH CARD ===== */
+
+
 .cf-turnstile {
   width: 100%;
   max-width: 100%;
   display: flex;
   justify-content: center;
-}
-
-.cf-turnstile iframe {
-  max-width: 100%;
 }
 
 .auth-page {
@@ -1192,6 +1189,6 @@ html {
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 100%;
   box-sizing: border-box;
 }

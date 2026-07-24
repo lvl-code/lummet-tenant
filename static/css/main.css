@@ -126,11 +126,18 @@ a:hover { text-decoration: underline; }
 .section-header h2 { font-size: 28px; }
 .link { font-size: 14px; font-weight: 600; }
 
-/* Casino Grid */
 .casino-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+/* Casino Grid */
+/*.casino-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-}
+}*/
 .casino-card {
   background: var(--white);
   border-radius: var(--radius);

@@ -738,3 +738,21 @@
 }
 
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img,
+video,
+iframe,
+table,
+pre,
+code {
+  max-width: 100%;
+}

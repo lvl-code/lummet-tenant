@@ -1169,6 +1169,12 @@ html {
 
 
 
+.cf-turnstile {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  transform: translateX(-8px);
+}
 
 .auth-page {
   display: flex;

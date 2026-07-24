@@ -152,13 +152,17 @@ document.addEventListener("DOMContentLoaded", () => {
     <a href="/en/go/{{casino_slug}}" class="btn btn--primary mobile-cta-btn" rel="nofollow sponsored">Visit Casino</a>
   </div>
   {{/if}}
-
+<script>
+document.querySelectorAll(".faq-question").forEach(btn => {
+    btn.addEventListener("click", () => {
+        btn.parentElement.classList.toggle("active");
+    });
+});
+</script>
 <script>
 document.addEventListener("click", function(e) {
-    const button = e.target.closest(".faq-question");
-
-    if (button) {
-        button.parentElement.classList.toggle("active");
+    if (e.target.classList.contains("faq-question")) {
+        e.target.parentElement.classList.toggle("active");
     }
 });
 </script>

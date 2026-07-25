@@ -1,12 +1,110 @@
-<section class="section">
-  <div class="container">
-    <h1>HTML Sitemap</h1>
+<main class="sitemap-page">
 
-    <p>
-      Browse every major section of Level.casino.
-    </p>
-
-    {{{sitemap_content}}}
-
-  </div>
+<section class="sitemap-hero">
+    <div class="container">
+        <h1>Level.casino Sitemap</h1>
+        <p>
+            Explore casino reviews, rankings, guides, news and useful resources from Level.casino.
+        </p>
+    </div>
 </section>
+
+
+<section class="container sitemap-grid">
+
+
+<div class="sitemap-card">
+    <div class="sitemap-icon">🎰</div>
+    <h2>Casino Reviews</h2>
+    <p>Explore our online casino database and operator profiles.</p>
+    <ul id="casinos"></ul>
+</div>
+
+
+<div class="sitemap-card">
+    <div class="sitemap-icon">⭐</div>
+    <h2>Expert Reviews</h2>
+    <p>Detailed casino reviews, bonuses, games and payment guides.</p>
+    <ul id="reviews"></ul>
+</div>
+
+
+<div class="sitemap-card">
+    <div class="sitemap-icon">📰</div>
+    <h2>Casino News</h2>
+    <p>Latest iGaming updates, trends and industry insights.</p>
+    <ul id="news"></ul>
+</div>
+
+
+<div class="sitemap-card">
+    <div class="sitemap-icon">📚</div>
+    <h2>Useful Pages</h2>
+    <p>Learn more about Level.casino and our policies.</p>
+    <ul id="pages"></ul>
+</div>
+
+
+</section>
+
+</main>
+
+
+<script>
+async function loadSitemap(){
+
+const sections=[
+["casinos","/en/sitemap-casinos.xml"],
+["reviews","/en/sitemap-reviews.xml"],
+["news","/en/sitemap-news.xml"],
+["pages","/en/sitemap-pages.xml"]
+];
+
+
+for(const [id,url] of sections){
+
+try {
+
+const res=await fetch(url);
+const xml=await res.text();
+
+const doc=new DOMParser()
+.parseFromString(xml,"application/xml");
+
+
+const urls=[...doc.querySelectorAll("loc")];
+
+
+document.getElementById(id).innerHTML =
+urls.map(u=>{
+
+let path=u.textContent
+.replace("https://level.casino","")
+.replace("/en/","")
+.replaceAll("-"," ");
+
+
+return `
+<li>
+<a href="${u.textContent}">
+${path}
+</a>
+</li>
+`;
+
+}).join("");
+
+
+}catch(e){
+
+console.error("Sitemap loading failed",id,e);
+
+}
+
+}
+
+}
+
+loadSitemap();
+
+</script>

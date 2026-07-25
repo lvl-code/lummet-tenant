@@ -1626,75 +1626,19 @@ export async function renderDashboardBanners(request, env) {
   return renderAdminPage(request, env, "admin/banners.html");
 }
 
+
+
 export async function renderSitemapPage(request, env) {
-  return new Response(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>HTML Sitemap - Level.casino</title>
-<meta name="description" content="Browse all Level.casino pages, casino reviews, news and categories.">
-<link rel="stylesheet" href="/static/css/main.css">
-</head>
+  const renderer = new Renderer(env, request);
 
-<body>
+  const html = await renderer.render("pages/sitemap.html", {
+    title: "Level.casino Sitemap",
+    description: "Explore casino reviews, rankings, guides and industry news."
+  });
 
-<main class="container">
-<h1>Level.casino Sitemap</h1>
-
-<p>Explore our casino reviews, rankings, guides and industry news.</p>
-
-<h2>Casino Reviews</h2>
-<ul id="casinos"></ul>
-
-<h2>Reviews</h2>
-<ul id="reviews"></ul>
-
-<h2>News</h2>
-<ul id="news"></ul>
-
-<h2>Pages</h2>
-<ul id="pages"></ul>
-
-</main>
-
-<script>
-async function loadSitemap() {
-
-const sections = [
- ["casinos","/en/sitemap-casinos.xml"],
- ["reviews","/en/sitemap-reviews.xml"],
- ["news","/en/sitemap-news.xml"],
- ["pages","/en/sitemap-pages.xml"]
-];
-
-for(const [id,url] of sections){
-
- const res = await fetch(url);
- const xml = await res.text();
-
- const parser = new DOMParser();
- const doc = parser.parseFromString(xml,"application/xml");
-
- const urls=[...doc.querySelectorAll("loc")];
- document.getElementById(id).innerHTML =
- urls.map(u =>
- '<li><a href="' + u.textContent + '">' +
- u.textContent.replace("https://level.casino","") +
- '</a></li>'
- ).join("");
-}
-
-}
-
-loadSitemap();
-</script>
-
-</body>
-</html>
-`,{
-headers:{
-"Content-Type":"text/html;charset=utf-8"
-}
-});
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html;charset=utf-8"
+    }
+  });
 }

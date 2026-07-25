@@ -1629,16 +1629,31 @@ export async function renderDashboardBanners(request, env) {
 
 
 export async function renderSitemapPage(request, env) {
+
   const renderer = new Renderer(env, request);
 
-  const html = await renderer.render("pages/sitemap.html", {
-    title: "Level.casino Sitemap",
-    description: "Explore casino reviews, rankings, guides and industry news."
-  });
+  const sitemapSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Level.casino Sitemap",
+    "description": "Explore casino reviews, rankings, guides and industry news."
+  };
+
+  const html = await renderer.render(
+    "sitemap.html",
+    {
+      seo_title: "Level.casino Sitemap",
+      seo_description: "Explore casino reviews, rankings, guides and industry news.",
+      title: "Level.casino Sitemap"
+    },
+    sitemapSchema,
+    buildBreadcrumbs("page", {
+      title: "Sitemap"
+    })
+  );
 
   return new Response(html, {
-    headers: {
-      "Content-Type": "text/html;charset=utf-8"
-    }
+    headers: cacheHeaders()
   });
+
 }

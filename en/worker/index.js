@@ -50,7 +50,7 @@ import {
   renderLogin,
   renderRegister,
   robots,
-  render404
+  render404,
   renderSitemapPage
 }
 from "./controllers.js";

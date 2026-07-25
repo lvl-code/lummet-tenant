@@ -222,6 +222,9 @@ export function getRoute(request) {
   if (path === "/sitemap.xml" || path === "/en/sitemap.xml") {
       return { type: "sitemap" };
   }
+  if (path === "/en/sitemap" || path === "/sitemap") {
+      return { type: "sitemap-page" };
+  }
   if (path === "/sitemap-index.xml" || path === "/en/sitemap-index.xml") {
       return { type: "sitemap-index" };
   }

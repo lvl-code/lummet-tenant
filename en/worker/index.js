@@ -51,6 +51,7 @@ import {
   renderRegister,
   robots,
   render404
+  renderSitemapPage
 }
 from "./controllers.js";
 
@@ -246,6 +247,8 @@ export default {
         return new Response(null, { status: 302, headers: { Location: route.target } });
       case "sitemap":
         return sitemapEngine.generate(env.DB, "all");
+      case "sitemap-page":
+        return renderSitemapPage(request, env);
       case "sitemap-index":
         return sitemapEngine.generateIndex(env.DB);
       case "sitemap-casinos":
@@ -262,7 +265,7 @@ export default {
         return sitemapEngine.generate(env.DB, "pages");
       case "robots":
         return robots();
-
+      
 
       case "page":
         return renderDynamicPage(

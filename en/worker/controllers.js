@@ -1677,14 +1677,12 @@ for(const [id,url] of sections){
  const doc = parser.parseFromString(xml,"application/xml");
 
  const urls=[...doc.querySelectorAll("loc")];
-
  document.getElementById(id).innerHTML =
  urls.map(u =>
- `<li><a href="${u.textContent}">
- ${u.textContent.replace("https://level.casino","")}
- </a></li>`
+ '<li><a href="' + u.textContent + '">' +
+ u.textContent.replace("https://level.casino","") +
+ '</a></li>'
  ).join("");
-
 }
 
 }

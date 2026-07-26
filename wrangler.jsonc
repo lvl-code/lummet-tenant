@@ -27,6 +27,13 @@
       "id": "0557421566ac40a999c365bb6936a53f"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "level-casino-media"
+    }
+  ],
+
   "triggers": {
     "crons": [
       "0 */6 * * *"

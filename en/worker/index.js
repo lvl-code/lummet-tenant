@@ -1,6 +1,6 @@
 import { getRoute }
 from "./routes.js";
-
+import oldpermredirect from "./oldpermredirect.js";
 import {
   renderHome,
   renderAuthor,
@@ -74,6 +74,12 @@ export default {
 
   async fetch(request, env, ctx) {
 
+    // ===== OLD WEBSITE PERMANENT REDIRECTS =====
+    const redirectResponse = await oldpermredirect.fetch(request);
+
+    if (redirectResponse) {
+      return redirectResponse;
+    }
     const url = new URL(request.url);
 
     // Serve static assets

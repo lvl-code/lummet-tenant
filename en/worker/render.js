@@ -25,6 +25,10 @@ export class Renderer {
   // =====================================================
   replaceVariables(template, data = {}) {
     // Handle {{#if key}}...{{/if}} blocks
+    if (!template || typeof template !== "string") {
+    console.error("Template missing:", template);
+    return "";
+  }
     template = template.replace(
       /\{\{#if\s+(.*?)\}\}([\s\S]*?)\{\{\/if\}\}/g,
       (_, key, content) => {

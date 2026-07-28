@@ -1,6 +1,33 @@
 // =====================================================
 // LEVELCASINO TEMPLATE ENGINE
 // =====================================================
+import { sanitizeHtml } from './sanitize.js';
+
+// ── Content fields that contain user-authored HTML ──
+// These fields are sanitized via sanitizeHtml() before
+// being inserted into templates. Add new content field
+// names here when new content types are introduced.
+const CONTENT_FIELDS = new Set([
+  'content',
+  'overview',
+  'games',
+  'bonuses',
+  'payments',
+  'licenses',
+  'verdict',
+  'pros',
+  'cons',
+  'faq_html',
+  'bio',
+  'text',
+  'html',
+  'excerpt',
+  'description',
+  'caption',
+]);
+
+
+
 
 export class Renderer {
 
@@ -41,13 +68,31 @@ export class Renderer {
       }
     );
     // Handle {{key}} variables
+   // return template.replace(
+  //    /\{\{(.*?)\}\}/g,
+  //    (_, key) => {
+    //    key = key.trim();
+      //  return data[key] ?? "";
+      //}
+   // );
     return template.replace(
-      /\{\{(.*?)\}\}/g,
-      (_, key) => {
-        key = key.trim();
-        return data[key] ?? "";
-      }
-    );
+  /\{\{(.*?)\}\}/g,
+  (_, key) => {
+    key = key.trim();
+
+    let value = data[key] ?? "";
+
+    if (
+      typeof value === "string" &&
+      CONTENT_FIELDS.has(key)
+    ) {
+      value = sanitizeHtml(value);
+    }
+
+    return value;
+  }
+);
+
   }
 
   // =====================================================

@@ -206,11 +206,20 @@ export function getRoute(request) {
   if (path === "/en/user/notifications") return { type: "userNotifications" };
   if (path === "/en/user/bookmarks") return { type: "userBookmarks" };
  
+  // =====================================================
+// MEDIA FILES
+// =====================================================
+
+  if (path.startsWith("/media/") && request.method === "GET") {
+    return {
+      type: "media",
+      key: path.substring(1)
+    };
+  }
 
   // =====================================================
-  // API
+  // API 
   // =====================================================
-
   if (path.startsWith("/api/") || path.startsWith("/en/api/")) {
     return {
       type: "api",

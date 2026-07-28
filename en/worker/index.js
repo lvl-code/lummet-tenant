@@ -1,6 +1,7 @@
 import { getRoute }
 from "./routes.js";
 import oldpermredirect from "./oldpermredirect.js";
+import { serveMedia } from './media-upload.js';
 import {
   renderHome,
   renderAuthor,
@@ -232,7 +233,8 @@ export default {
       case "userBookmarks":
         return renderUserBookmarks(request, env);
 
-
+      case "media":
+        return serveMedia(request, env, route.key);
       case "api":
 
   const user =

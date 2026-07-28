@@ -166,6 +166,8 @@ export async function renderHome(request, env) {
     }
   };
 
+      // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render("home.html", {
     seo_title: dynamicSeo.seo_title || "Level Casino — Expert Casino Reviews & Bonuses",
     seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
@@ -291,6 +293,7 @@ export async function renderCasino(request, env, slug) {
 
   const allComponents = await renderer.renderAllComponents("casino", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("casino.html", {
     ...casino,
     components_top: allComponents.top,
@@ -654,7 +657,7 @@ if (review.casino_slug) {
       "name": "Elie"
     }
   };
-
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("review.html", {
     ...review,
     author_name: author?.name || "",
@@ -708,7 +711,7 @@ export async function renderNews(request, env, slug) {
     "description": article.content ? article.content.substring(0, 150) : "",
     "author": { "@type": "Person", "name": article.author || "iGaming Analyst" }
   };
-
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("news.html", {
     ...article,
     canonical: dynamicSeo.canonical || `https://level.casino/en/news/${slug}`,
@@ -811,6 +814,9 @@ export async function renderDashboardPage(request, env) {
 
     // Viewers get the user dashboard (no admin nav)
     const renderer = new Renderer(env, request);
+        // Add CSRF token for admin pages — used by rich-editor.js and media-library.js
+    data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
+
     const html = await renderer.render("users/dashboard.html", {
         seo_title: "Dashboard",
         seo_description: "Level Casino Dashboard",
@@ -941,7 +947,7 @@ export async function renderCountry(request, env, slug) {
 
   const allComponents = await renderer.renderAllComponents("country", code);
   const dynamicSeo = await renderer.loadDynamicSeo("country", code);
-
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("country.html", {
     ...countryData,
     components_top: allComponents.top,
@@ -982,7 +988,7 @@ export async function renderCategory(request, env, slug) {
 
   const allComponents = await renderer.renderAllComponents("category", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("category", slug);
-
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("category.html", {
     slug,
     components_top: allComponents.top,
@@ -1036,7 +1042,7 @@ export async function renderDynamicPage(request, env, slug) {
     "name": page.title,
     "description": page.seo_description || ""
   };
-
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("page.html", {
     ...page,
     canonical: dynamicSeo.canonical || `https://level.casino/en/${slug}`,
@@ -1067,7 +1073,7 @@ export async function renderAffiliate(request, env, slug) {
     "@type": "WebPage",
     "name": page.title
   };
-
+  data.csrf_token = data.session ? (data.session.csrfToken || '') : '';
   const html = await renderer.render("affiliate.html", {
     ...page,
     content_json: parseContentJson(page.content_json)
@@ -1175,7 +1181,8 @@ export async function renderCasinoList(request, env) {
       "url": `https://level.casino/en/casino/${c.slug}`
     }))
   };
-
+    // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render("category.html", {
     canonical: dynamicSeo.canonical || "https://level.casino/en/casino",
     category: "All Casinos",
@@ -1273,7 +1280,8 @@ export async function renderReviewList(request, env) {
       "url": `https://level.casino/en/review/${r.slug}`
     }))
   };
-
+      // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render("category.html", {
     canonical: dynamicSeo.canonical || "https://level.casino/en/review",
     category: "All Reviews",
@@ -1314,7 +1322,8 @@ export async function renderNewsList(request, env) {
       "url": `https://level.casino/en/news/${n.slug}`
     }))
   };
-
+      // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render("category.html", {
     canonical: dynamicSeo.canonical || "https://level.casino/en/news",
     category: "Latest News",
@@ -1435,7 +1444,8 @@ export async function renderCategoryList(request, env) {
       <p>${c.description || ""}</p>
     </div>
   `).join("");
-
+      // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render("category.html", {
     category: "All Categories",
     description: "Browse casinos by category.",
@@ -1461,7 +1471,8 @@ export async function renderCountryList(request, env) {
   const countryChips = countriesList.map(c => `
     <a href="/en/country/${c.code}" class="chip">${c.name}</a>
   `).join("");
-
+    // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render("category.html", {
     category: "All Countries",
     description: "Browse online casinos available in your country.",
@@ -1638,7 +1649,8 @@ export async function renderSitemapPage(request, env) {
     "name": "Level.casino Sitemap",
     "description": "Explore casino reviews, rankings, guides and industry news."
   };
-
+      // Public pages don't need a CSRF token, but set it to empty for the meta tag
+  if (!data.csrf_token) data.csrf_token = '';
   const html = await renderer.render(
     "sitemap.html",
     {

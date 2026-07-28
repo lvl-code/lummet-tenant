@@ -164,6 +164,8 @@ export async function verifyPassword(password, storedHash) {
  * Generate random session token
  */
 export function generateSessionToken() {
+        // Generate a CSRF token for this session
+    const csrfToken = generateCsrfToken();
 
     return crypto.randomUUID();
 }

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{csrf_token}}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   {{SEO}}
   {{SCHEMA}}
@@ -41,6 +42,18 @@
   <script defer src="/static/js/admin-tools.js"></script>
   <script defer src="/static/js/banner-admin.js"></script>
   <script defer src="/static/js/admin-permissions.js"></script>
+          <script src="/static/js/media-library.js"></script>
+        <script src="/static/js/media-picker.js"></script>
+        <script>
+            // Initialize the media library when the page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                if (window.MediaLibrary) {
+                    MediaLibrary.init('#media-library-container');
+                }
+            });
+        </script>
+  <script src="/static/js/rich-editor.js" defer></script>
+
   <nav id="mobileBottomNav" class="mobile-bottom-nav">
     {{mobile_nav}}
   </nav>

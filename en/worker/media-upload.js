@@ -472,7 +472,7 @@ export async function handleDelete(request, env, user, mediaId) {
  * @param {string} r2Key - The R2 object key (media/{folder}/{file}).
  * @returns {Response} The file response with appropriate headers.
  */
-async function serveMedia(request, env, r2Key) {
+export async function serveMedia(request, env, r2Key) {
     try {
         if (!env.MEDIA_BUCKET) {
             return new Response('Media storage not configured', { status: 503 });

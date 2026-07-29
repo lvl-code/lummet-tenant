@@ -24,10 +24,10 @@
     'use strict';
 
     var API = {
-        upload:     '/api/v1/media/upload',
-        browse:     '/api/v1/media/browse',
-        search:     '/api/v1/media/search',
-        foldersTree:'/api/v1/media/folders/tree',
+        upload:     '/en/api/v1/media/upload',
+        browse:     '/en/api/v1/media/browse',
+        search:     '/en/api/v1/media/search',
+        foldersTree:'/en/api/v1/media/folders/tree',
     };
 
     var ITEMS_PER_PAGE = 24;

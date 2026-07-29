@@ -31,17 +31,17 @@
     // ── Configuration ────────────────────────────────────
 
     var API = {
-        upload:    '/api/v1/media/upload',
-        delete:    '/api/v1/media/r2/delete',
-        browse:    '/api/v1/media/browse',
-        search:    '/api/v1/media/search',
-        get:       '/api/v1/media/get',
-        metaUpdate:'/api/v1/media/meta/update',
-        foldersTree:'/api/v1/media/folders/tree',
-        folderCreate:'/api/v1/media/folder/create',
-        folderUpdate:'/api/v1/media/folder/update',
-        folderDelete:'/api/v1/media/folder/delete',
-        folderCount:'/api/v1/media/folder/count',
+        upload:    '/en/api/v1/media/upload',
+        delete:    '/en/api/v1/media/r2/delete',
+        browse:    '/en/api/v1/media/browse',
+        search:    '/en/api/v1/media/search',
+        get:       '/en/api/v1/media/get',
+        metaUpdate:'/en/api/v1/media/meta/update',
+        foldersTree:'/en/api/v1/media/folders/tree',
+        folderCreate:'/en/api/v1/media/folder/create',
+        folderUpdate:'/en/api/v1/media/folder/update',
+        folderDelete:'/en/api/v1/media/folder/delete',
+        folderCount:'/en/api/v1/media/folder/count',
     };
 
     var ITEMS_PER_PAGE = 24;

@@ -41,9 +41,9 @@
     var TINYMCE_CDN_URL = 'https://cdn.jsdelivr.net/npm/tinymce@7.4.0/tinymce.min.js';
 
     // API endpoints (match Phase 3 routes)
-    var API_UPLOAD = '/api/v1/media/upload';
-    var API_MEDIA_LIST = '/api/v1/media/list';
-    var API_MEDIA_SEARCH = '/api/v1/media/search';
+    var API_UPLOAD = '/en/api/v1/media/upload';
+    var API_MEDIA_LIST = '/en/api/v1/media/list';
+    var API_MEDIA_SEARCH = '/en/api/v1/media/search';
 
     // Maximum file size for image uploads (10 MB — matches server config)
     var MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -867,9 +867,9 @@
     async function searchInternalLinks(query) {
         var results = [];
         var endpoints = [
-            { url: '/api/v1/public/news/list?q=' + encodeURIComponent(query), type: 'news' },
-            { url: '/api/v1/public/casinos/list?q=' + encodeURIComponent(query), type: 'casino' },
-            { url: '/api/v1/public/pages/list?q=' + encodeURIComponent(query), type: 'page' }
+            { url: '/en/api/v1/public/news/list?q=' + encodeURIComponent(query), type: 'news' },
+            { url: '/en/api/v1/public/casinos/list?q=' + encodeURIComponent(query), type: 'casino' },
+            { url: '/en/api/v1/public/pages/list?q=' + encodeURIComponent(query), type: 'page' }
         ];
 
         var promises = endpoints.map(function (ep) {

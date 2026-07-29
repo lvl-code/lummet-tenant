@@ -2,56 +2,38 @@
 // media-picker.js — Modal Media Picker for TinyMCE
 // =====================================================
 //
-// Provides a modal media picker that integrates with the
-// TinyMCE rich editor (Phase 4). The picker lets editors:
-//   1. Browse and search existing media from the library
-//   2. Upload new media directly from the picker
-//   3. Select a media item to insert into the editor
-//
-// Exposes:
-//   window.MediaPicker.openImagePicker(callback, folder)
-//   window.MediaPicker.openVideoPicker(callback, folder)
-//   window.MediaPicker.close()
+// Exposes window.MediaPicker with two methods:
+//   MediaPicker.openImagePicker(callback, folder)
+//   MediaPicker.openVideoPicker(callback, folder)
 //
 // The callback receives a media object:
-//   { id, url, thumbnail_url, alt_text, caption, type,
-//     mime_type, size, width, height, folder, filename }
+//   { id, url, thumbnail_url, alt_text, type, ... }
+//
+// Used by rich-editor.js (Phase 4) for TinyMCE image
+// and video insertion dialogs.
+//
+// Corrected API routes (Phase 3):
+//   POST /api/v1/media/upload          — upload
+//   GET  /api/v1/media/browse          — list
+//   GET  /api/v1/media/search          — search
+//   GET  /api/v1/media/folders/tree    — folders
 //
 // =====================================================
 
 (function () {
     'use strict';
 
-    // ── Configuration ────────────────────────────────────
-
-    var API_BASE = '/api/v1/media';
-    var PICKER_PAGE_SIZE = 24;
-    var ACCEPTED_IMAGE = 'image/jpeg,image/png,image/webp,image/gif,image/svg+xml';
-    var ACCEPTED_VIDEO = 'video/mp4,video/webm,video/ogg';
-
-    // ── State ───────────────────────────────────────────
-
-    var pickerState = {
-        modal: null,
-        callback: null,
-        mediaType: 'image',     // 'image' or 'video'
-        folder: 'general',
-        items: [],
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        searchQuery: '',
-        loading: false,
-        activeTab: 'library',   // 'library' or 'upload'
+    var API = {
+        upload:     '/api/v1/media/upload',
+        browse:     '/api/v1/media/browse',
+        search:     '/api/v1/media/search',
+        foldersTree:'/api/v1/media/folders/tree',
     };
 
-    // ── Utility functions ───────────────────────────────
+    var ITEMS_PER_PAGE = 24;
 
-    /**
-     * Escapes HTML special characters.
-     * @param {string} str - The string to escape.
-     * @returns {string} The escaped string.
-     */
+    // ── Utility ─────────────────────────────────────────
+
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -62,24 +44,6 @@
             .replace(/'/g, '&#039;');
     }
 
-    /**
-     * Formats file size.
-     * @param {number} bytes - File size in bytes.
-     * @returns {string} Formatted size.
-     */
-    function formatFileSize(bytes) {
-        if (!bytes || bytes === 0) return '0 B';
-        var units = ['B', 'KB', 'MB', 'GB'];
-        var i = Math.floor(Math.log(bytes) / Math.log(1024));
-        if (i >= units.length) i = units.length - 1;
-        return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
-    }
-
-    /**
-     * Shows a toast notification.
-     * @param {string} message - The message.
-     * @param {string} type - 'success', 'error', or 'info'.
-     */
     function showToast(message, type) {
         if (typeof window.showNotification === 'function') {
             window.showNotification(message, type);
@@ -89,473 +53,341 @@
         el.textContent = message;
         el.className = 'ml-toast ml-toast-' + (type || 'info');
         document.body.appendChild(el);
-        setTimeout(function () { el.classList.add('ml-toast-show'); }, 10);
+        requestAnimationFrame(function () { el.classList.add('ml-toast-show'); });
         setTimeout(function () {
             el.classList.remove('ml-toast-show');
             setTimeout(function () { el.remove(); }, 300);
         }, 3000);
     }
 
-    /**
-     * Gets the CSRF token.
-     * @returns {string} The token.
-     */
-    function getCsrfToken() {
-        var meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute('content') : '';
+    function apiGet(url) {
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); });
     }
 
-    /**
-     * Gets image dimensions from a File.
-     * @param {File} file - The image file.
-     * @returns {Promise<{width: number, height: number}|null>}
-     */
-    function getImageDimensions(file) {
-        return new Promise(function (resolve) {
-            if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
-                resolve(null);
-                return;
-            }
-            var url = URL.createObjectURL(file);
-            var img = new Image();
-            img.onload = function () {
-                resolve({ width: img.naturalWidth, height: img.naturalHeight });
-                URL.revokeObjectURL(url);
-            };
-            img.onerror = function () {
-                resolve(null);
-                URL.revokeObjectURL(url);
-            };
-            img.src = url;
-        });
+    function apiPost(url, body, isJson) {
+        var opts = { method: 'POST', credentials: 'same-origin' };
+        if (isJson) {
+            opts.headers = { 'Content-Type': 'application/json' };
+            opts.body = JSON.stringify(body);
+        } else {
+            opts.body = body;
+        }
+        return fetch(url, opts).then(function (r) { return r.json(); });
     }
 
-    /**
-     * Debounces a function.
-     * @param {Function} fn - The function.
-     * @param {number} delay - The delay in ms.
-     * @returns {Function} The debounced function.
-     */
-    function debounce(fn, delay) {
-        var timer = null;
-        return function () {
-            var ctx = this, args = arguments;
-            clearTimeout(timer);
-            timer = setTimeout(function () { fn.apply(ctx, args); }, delay);
-        };
-    }
+    // ── Picker state ────────────────────────────────────
 
-    // ── API calls ────────────────────────────────────────
+    var pickerState = {
+        overlay: null,
+        callback: null,
+        mediaType: 'image',
+        folder: null,
+        items: [],
+        folders: [],
+        searchQuery: '',
+        currentPage: 1,
+        totalItems: 0,
+        totalPages: 1,
+        loading: false,
+    };
 
-    /**
-     * Fetches media items for the picker.
-     * @returns {Promise<void>}
-     */
-    async function fetchPickerMedia() {
-        if (pickerState.loading) return;
+    // ── Load media for picker ────────────────────────────
+
+    function loadPickerMedia() {
         pickerState.loading = true;
-        renderPickerBody();
+        renderPickerGrid();
 
-        try {
-            var params = new URLSearchParams();
-            params.set('type', pickerState.mediaType);
-            params.set('limit', PICKER_PAGE_SIZE.toString());
-            params.set('offset', ((pickerState.currentPage - 1) * PICKER_PAGE_SIZE).toString());
-            params.set('sort', 'created_at');
-            params.set('order', 'DESC');
+        var params = new URLSearchParams();
+        params.set('limit', String(ITEMS_PER_PAGE));
+        params.set('offset', String((pickerState.currentPage - 1) * ITEMS_PER_PAGE));
+        params.set('type', pickerState.mediaType);
 
-            var url;
-            if (pickerState.searchQuery.trim()) {
-                params.set('q', pickerState.searchQuery.trim());
-                url = API_BASE + '/search?' + params.toString();
-            } else {
-                url = API_BASE + '/list?' + params.toString();
-            }
+        if (pickerState.folder) {
+            params.set('folder', pickerState.folder);
+        }
 
-            var response = await fetch(url, { credentials: 'same-origin' });
-            var data = await response.json();
+        var url;
+        if (pickerState.searchQuery) {
+            params.set('q', pickerState.searchQuery);
+            url = API.search + '?' + params.toString();
+        } else {
+            url = API.browse + '?' + params.toString();
+        }
 
+        apiGet(url).then(function (data) {
+            pickerState.loading = false;
             if (data.success) {
                 pickerState.items = data.items || data.results || [];
                 pickerState.totalItems = data.total || pickerState.items.length;
-                pickerState.totalPages = Math.max(1, Math.ceil(pickerState.totalItems / PICKER_PAGE_SIZE));
+                pickerState.totalPages = Math.ceil(pickerState.totalItems / ITEMS_PER_PAGE) || 1;
             } else {
                 pickerState.items = [];
                 pickerState.totalItems = 0;
                 pickerState.totalPages = 1;
             }
-        } catch (error) {
-            pickerState.items = [];
-            showToast('Failed to load media: ' + error.message, 'error');
-        } finally {
+            renderPickerGrid();
+            renderPickerPagination();
+        }).catch(function () {
             pickerState.loading = false;
-            renderPickerBody();
-        }
+            pickerState.items = [];
+            renderPickerGrid();
+        });
     }
 
-    /**
-     * Uploads a file from within the picker.
-     * @param {File} file - The file to upload.
-     * @returns {Promise<Object|null>} The uploaded media object or null.
-     */
-    async function uploadFromPicker(file) {
-        try {
-            var formData = new FormData();
-            formData.append('file', file);
-            formData.append('folder', pickerState.folder || 'general');
+    // ── Load folders for picker ─────────────────────────
 
-            if (file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
-                var dims = await getImageDimensions(file);
-                if (dims) {
-                    formData.append('width', dims.width);
-                    formData.append('height', dims.height);
-                }
-            }
-
-            var response = await fetch(API_BASE + '/upload', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'X-CSRF-Token': getCsrfToken() },
-                body: formData
-            });
-
-            var data = await response.json();
+    function loadPickerFolders() {
+        return apiGet(API.foldersTree).then(function (data) {
             if (data.success) {
-                showToast('File uploaded successfully', 'success');
-                return data.media;
-            } else {
-                showToast('Upload failed: ' + (data.error || 'Unknown error'), 'error');
-                return null;
+                pickerState.folders = data.folders || [];
             }
-        } catch (error) {
-            showToast('Upload failed: ' + error.message, 'error');
-            return null;
+        }).catch(function () {
+            pickerState.folders = [];
+        });
+    }
+
+    // ── Render picker ────────────────────────────────────
+
+    function renderPicker() {
+        var overlay = pickerState.overlay;
+        var title = pickerState.mediaType === 'image' ? 'Select Image' : 'Select Video';
+
+        var folderOptions = '<option value="">All folders</option>';
+        for (var i = 0; i < pickerState.folders.length; i++) {
+            var f = pickerState.folders[i];
+            folderOptions += '<option value="' + escapeHtml(f.slug) + '"' + (pickerState.folder === f.slug ? ' selected' : '') + '>' + escapeHtml(f.name) + '</option>';
         }
-    }
 
-    // ── Rendering ───────────────────────────────────────
+        overlay.innerHTML =
+            '<div class="ml-modal mp-modal">' +
+                '<div class="ml-modal-header">' +
+                    '<h3>' + title + '</h3>' +
+                    '<button class="ml-modal-close">&times;</button>' +
+                '</div>' +
+                '<div class="mp-toolbar">' +
+                    '<input type="text" class="mp-search" placeholder="Search..." value="' + escapeHtml(pickerState.searchQuery) + '">' +
+                    '<select class="mp-folder-select">' + folderOptions + '</select>' +
+                '</div>' +
+                '<div class="mp-upload-area">' +
+                    '<label class="mp-upload-label">' +
+                        '<input type="file" class="mp-upload-input" accept="' + (pickerState.mediaType === 'image' ? 'image/*' : 'video/*') + '">' +
+                        '<span class="mp-upload-btn">+ Upload New</span>' +
+                    '</label>' +
+                '</div>' +
+                '<div class="mp-grid" id="mp-grid"></div>' +
+                '<div class="mp-pagination" id="mp-pagination"></div>' +
+            '</div>';
 
-    /**
-     * Opens the media picker modal.
-     * @param {Function} callback - Called with the selected media object.
-     * @param {string} folder - The default folder slug.
-     * @param {string} mediaType - 'image' or 'video'.
-     */
-    function openPicker(callback, folder, mediaType) {
-        pickerState.callback = callback;
-        pickerState.folder = folder || 'general';
-        pickerState.mediaType = mediaType || 'image';
-        pickerState.currentPage = 1;
-        pickerState.searchQuery = '';
-        pickerState.activeTab = 'library';
-        pickerState.items = [];
+        // Attach listeners
+        var searchInput = overlay.querySelector('.mp-search');
+        searchInput.addEventListener('input', debounce(function () {
+            pickerState.searchQuery = this.value;
+            pickerState.currentPage = 1;
+            loadPickerMedia();
+        }, 400));
 
-        // Remove any existing picker modal
-        close();
-
-        // Create modal
-        var modal = document.createElement('div');
-        modal.className = 'ml-modal-overlay ml-picker-overlay';
-        modal.innerHTML = `
-            <div class="ml-modal ml-picker-modal">
-                <div class="ml-modal-header">
-                    <h3>${mediaType === 'video' ? 'Select Video' : 'Select Image'}</h3>
-                    <button class="ml-btn ml-btn-icon ml-modal-close" title="Close">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                </div>
-                <div class="ml-picker-tabs">
-                    <button class="ml-tab ${pickerState.activeTab === 'library' ? 'active' : ''}" data-tab="library">Media Library</button>
-                    <button class="ml-tab ${pickerState.activeTab === 'upload' ? 'active' : ''}" data-tab="upload">Upload New</button>
-                </div>
-                <div class="ml-modal-body" id="ml-picker-body"></div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        pickerState.modal = modal;
-
-        // Close handlers
-        modal.querySelectorAll('.ml-modal-close').forEach(function (btn) {
-            btn.addEventListener('click', close);
-        });
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) close();
+        var folderSelect = overlay.querySelector('.mp-folder-select');
+        folderSelect.addEventListener('change', function () {
+            pickerState.folder = this.value || null;
+            pickerState.currentPage = 1;
+            loadPickerMedia();
         });
 
-        // Tab switching
-        modal.querySelectorAll('.ml-tab').forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                pickerState.activeTab = tab.getAttribute('data-tab');
-                modal.querySelectorAll('.ml-tab').forEach(function (t) { t.classList.remove('active'); });
-                tab.classList.add('active');
-                renderPickerBody();
-            });
+        var uploadInput = overlay.querySelector('.mp-upload-input');
+        uploadInput.addEventListener('change', function () {
+            if (this.files && this.files.length > 0) {
+                handlePickerUpload(this.files[0]);
+                this.value = '';
+            }
         });
 
-        // Load media
-        fetchPickerMedia();
+        overlay.querySelector('.ml-modal-close').addEventListener('click', closePicker);
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closePicker();
+        });
     }
 
-    /**
-     * Renders the picker body based on active tab.
-     */
-    function renderPickerBody() {
-        var body = pickerState.modal.querySelector('#ml-picker-body');
-        if (!body) return;
-
-        if (pickerState.activeTab === 'library') {
-            body.innerHTML = renderLibraryTab();
-            attachLibraryTabListeners(body);
-        } else {
-            body.innerHTML = renderUploadTab();
-            attachUploadTabListeners(body);
-        }
-    }
-
-    /**
-     * Renders the library tab content.
-     * @returns {string} HTML string.
-     */
-    function renderLibraryTab() {
-        var searchHtml = `
-            <div class="ml-picker-search">
-                <input type="text" id="ml-picker-search-input" placeholder="Search media..." value="${escapeHtml(pickerState.searchQuery)}" />
-            </div>
-        `;
+    function renderPickerGrid() {
+        var grid = document.getElementById('mp-grid');
+        if (!grid) return;
 
         if (pickerState.loading) {
-            return searchHtml + `
-                <div class="ml-loading">
-                    <div class="ml-spinner"></div>
-                    <p>Loading media...</p>
-                </div>
-            `;
+            grid.innerHTML = '<div class="mp-loading"><div class="ml-loading-spinner"></div><p>Loading...</p></div>';
+            return;
         }
 
         if (pickerState.items.length === 0) {
-            return searchHtml + `
-                <div class="ml-empty">
-                    <p>No media found</p>
-                    <p class="ml-empty-hint">Try uploading a new file</p>
-                </div>
-            `;
+            grid.innerHTML = '<div class="mp-empty"><p>No ' + pickerState.mediaType + 's found. Upload one to get started.</p></div>';
+            return;
         }
 
-        var gridHtml = '<div class="ml-picker-grid">';
+        var html = '';
         for (var i = 0; i < pickerState.items.length; i++) {
-            gridHtml += renderPickerCard(pickerState.items[i]);
-        }
-        gridHtml += '</div>';
+            var item = pickerState.items[i];
+            var thumb = item.thumbnail_url || item.url || '';
+            var name = item.filename || item.original_filename || 'unnamed';
 
-        // Pagination
-        var paginationHtml = '';
-        if (pickerState.totalPages > 1) {
-            paginationHtml = '<div class="ml-picker-pagination">';
-            if (pickerState.currentPage > 1) {
-                paginationHtml += '<button class="ml-btn ml-btn-page" data-page="' + (pickerState.currentPage - 1) + '">Previous</button>';
-            }
-            paginationHtml += '<span class="ml-page-info">Page ' + pickerState.currentPage + ' of ' + pickerState.totalPages + '</span>';
-            if (pickerState.currentPage < pickerState.totalPages) {
-                paginationHtml += '<button class="ml-btn ml-btn-page" data-page="' + (pickerState.currentPage + 1) + '">Next</button>';
-            }
-            paginationHtml += '</div>';
-        }
+            html +=
+                '<div class="mp-card" data-media-id="' + item.id + '">' +
+                    '<div class="mp-card-thumb">';
 
-        return searchHtml + gridHtml + paginationHtml;
-    }
-
-    /**
-     * Renders a media card for the picker.
-     * @param {Object} item - The media item.
-     * @returns {string} HTML string.
-     */
-    function renderPickerCard(item) {
-        var thumb = '';
-        if (item.type === 'image' && (item.thumbnail_url || item.url)) {
-            thumb = '<img src="' + escapeHtml(item.thumbnail_url || item.url) + '" alt="' + escapeHtml(item.alt_text || item.filename) + '" loading="lazy" />';
-        } else if (item.type === 'video' && item.poster_url) {
-            thumb = '<img src="' + escapeHtml(item.poster_url) + '" alt="' + escapeHtml(item.filename) + '" loading="lazy" />';
-        } else {
-            thumb = '<div class="ml-thumb-placeholder-small">' + escapeHtml(item.type || 'file') + '</div>';
-        }
-
-        return `
-            <div class="ml-picker-card" data-media-id="${item.id}">
-                <div class="ml-picker-card-thumb">${thumb}</div>
-                <p class="ml-picker-card-name" title="${escapeHtml(item.original_filename || item.filename)}">${escapeHtml(item.original_filename || item.filename)}</p>
-                <p class="ml-picker-card-meta">${escapeHtml(formatFileSize(item.size))}</p>
-            </div>
-        `;
-    }
-
-    /**
-     * Renders the upload tab content.
-     * @returns {string} HTML string.
-     */
-    function renderUploadTab() {
-        var accept = pickerState.mediaType === 'video' ? ACCEPTED_VIDEO : ACCEPTED_IMAGE;
-        var label = pickerState.mediaType === 'video' ? 'video' : 'image';
-
-        return `
-            <div class="ml-picker-upload">
-                <div class="ml-dropzone" id="ml-picker-dropzone">
-                    <div class="ml-dropzone-inner">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        <p class="ml-dropzone-text">Drag and drop a ${label} here, or click to browse</p>
-                        <p class="ml-dropzone-hint">Max ${pickerState.mediaType === 'video' ? '100MB' : '10MB'}</p>
-                    </div>
-                    <input type="file" id="ml-picker-file-input" accept="${accept}" style="display:none" />
-                </div>
-                <div id="ml-picker-upload-progress"></div>
-            </div>
-        `;
-    }
-
-    // ── Event listeners ─────────────────────────────────
-
-    /**
-     * Attaches event listeners for the library tab.
-     * @param {HTMLElement} body - The modal body element.
-     */
-    function attachLibraryTabListeners(body) {
-        // Search
-        var searchInput = body.querySelector('#ml-picker-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', debounce(function () {
-                pickerState.searchQuery = searchInput.value;
-                pickerState.currentPage = 1;
-                fetchPickerMedia();
-            }, 300));
-        }
-
-        // Card selection
-        body.querySelectorAll('.ml-picker-card').forEach(function (card) {
-            card.addEventListener('click', function () {
-                var mediaId = parseInt(card.getAttribute('data-media-id'), 10);
-                var item = pickerState.items.find(function (m) { return m.id === mediaId; });
-                if (item && pickerState.callback) {
-                    pickerState.callback(item);
+            if (pickerState.mediaType === 'image' && thumb) {
+                html += '<img src="' + escapeHtml(thumb) + '" alt="' + escapeHtml(item.alt_text || '') + '" loading="lazy" />';
+            } else if (pickerState.mediaType === 'video') {
+                if (item.poster_url) {
+                    html += '<img src="' + escapeHtml(item.poster_url) + '" alt="' + escapeHtml(item.alt_text || '') + '" loading="lazy" />';
+                    html += '<div class="mp-video-badge">VIDEO</div>';
+                } else {
+                    html += '<div class="mp-card-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>';
                 }
-                close();
+            } else {
+                html += '<div class="mp-card-thumb-placeholder"></div>';
+            }
+
+            html +=
+                    '</div>' +
+                    '<p class="mp-card-name" title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</p>' +
+                '</div>';
+        }
+
+        grid.innerHTML = html;
+
+        // Attach click listeners
+        var cards = grid.querySelectorAll('.mp-card');
+        for (var c = 0; c < cards.length; c++) {
+            cards[c].addEventListener('click', function () {
+                var mediaId = parseInt(this.getAttribute('data-media-id'), 10);
+                selectMedia(mediaId);
             });
-        });
+        }
+    }
 
-        // Pagination
-        body.querySelectorAll('.ml-btn-page').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var page = parseInt(btn.getAttribute('data-page'), 10);
-                if (page >= 1 && page <= pickerState.totalPages) {
-                    pickerState.currentPage = page;
-                    fetchPickerMedia();
-                }
+    function renderPickerPagination() {
+        var pagination = document.getElementById('mp-pagination');
+        if (!pagination) return;
+
+        if (pickerState.totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        var html = '';
+        if (pickerState.currentPage > 1) {
+            html += '<button class="ml-btn ml-btn-small mp-page" data-page="' + (pickerState.currentPage - 1) + '">&laquo;</button>';
+        }
+        html += '<span>Page ' + pickerState.currentPage + ' of ' + pickerState.totalPages + '</span>';
+        if (pickerState.currentPage < pickerState.totalPages) {
+            html += '<button class="ml-btn ml-btn-small mp-page" data-page="' + (pickerState.currentPage + 1) + '">&raquo;</button>';
+        }
+
+        pagination.innerHTML = html;
+
+        var btns = pagination.querySelectorAll('.mp-page');
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener('click', function () {
+                pickerState.currentPage = parseInt(this.getAttribute('data-page'), 10);
+                loadPickerMedia();
             });
+        }
+    }
+
+    // ── Select media ────────────────────────────────────
+
+    function selectMedia(mediaId) {
+        var item = null;
+        for (var i = 0; i < pickerState.items.length; i++) {
+            if (pickerState.items[i].id === mediaId) {
+                item = pickerState.items[i];
+                break;
+            }
+        }
+
+        if (!item) return;
+
+        if (pickerState.callback) {
+            pickerState.callback(item);
+        }
+        closePicker();
+    }
+
+    // ── Upload from picker ──────────────────────────────
+
+    function handlePickerUpload(file) {
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', pickerState.folder || 'general');
+        formData.append('alt_text', file.name.replace(/\.[^/.]+$/, ''));
+
+        showToast('Uploading...', 'info');
+
+        apiPost(API.upload, formData).then(function (data) {
+            if (data.success) {
+                showToast('Upload complete', 'success');
+                loadPickerMedia();
+            } else {
+                showToast(data.error || 'Upload failed', 'error');
+            }
+        }).catch(function () {
+            showToast('Upload failed', 'error');
         });
     }
 
-    /**
-     * Attaches event listeners for the upload tab.
-     * @param {HTMLElement} body - The modal body element.
-     */
-    function attachUploadTabListeners(body) {
-        var dropzone = body.querySelector('#ml-picker-dropzone');
-        var fileInput = body.querySelector('#ml-picker-file-input');
+    // ── Open / close ────────────────────────────────────
 
-        if (!dropzone || !fileInput) return;
+    function openPicker(mediaType, callback, folder) {
+        pickerState.mediaType = mediaType;
+        pickerState.callback = callback;
+        pickerState.folder = folder || null;
+        pickerState.searchQuery = '';
+        pickerState.currentPage = 1;
 
-        // Click to browse
-        dropzone.addEventListener('click', function () {
-            fileInput.click();
+        var overlay = document.createElement('div');
+        overlay.className = 'ml-modal-overlay';
+        document.body.appendChild(overlay);
+        pickerState.overlay = overlay;
+
+        requestAnimationFrame(function () {
+            overlay.classList.add('ml-modal-show');
         });
 
-        // File input change
-        fileInput.addEventListener('change', async function () {
-            if (fileInput.files.length > 0) {
-                var progress = body.querySelector('#ml-picker-upload-progress');
-                if (progress) {
-                    progress.innerHTML = '<div class="ml-loading"><div class="ml-spinner"></div><p>Uploading...</p></div>';
-                }
-                var media = await uploadFromPicker(fileInput.files[0]);
-                if (media && pickerState.callback) {
-                    pickerState.callback(media);
-                    close();
-                } else if (media) {
-                    // No callback — switch to library tab to show the new upload
-                    pickerState.activeTab = 'library';
-                    fetchPickerMedia();
-                } else if (progress) {
-                    progress.innerHTML = '';
-                }
-            }
-        });
-
-        // Drag and drop
-        dropzone.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            dropzone.classList.add('ml-dropzone-active');
-        });
-        dropzone.addEventListener('dragleave', function () {
-            dropzone.classList.remove('ml-dropzone-active');
-        });
-        dropzone.addEventListener('drop', async function (e) {
-            e.preventDefault();
-            dropzone.classList.remove('ml-dropzone-active');
-            if (e.dataTransfer.files.length > 0) {
-                var progress = body.querySelector('#ml-picker-upload-progress');
-                if (progress) {
-                    progress.innerHTML = '<div class="ml-loading"><div class="ml-spinner"></div><p>Uploading...</p></div>';
-                }
-                var media = await uploadFromPicker(e.dataTransfer.files[0]);
-                if (media && pickerState.callback) {
-                    pickerState.callback(media);
-                    close();
-                } else if (media) {
-                    pickerState.activeTab = 'library';
-                    fetchPickerMedia();
-                } else if (progress) {
-                    progress.innerHTML = '';
-                }
-            }
+        renderPicker();
+        loadPickerFolders().then(function () {
+            renderPicker();
+            loadPickerMedia();
         });
     }
 
-    // ── Close ───────────────────────────────────────────
-
-    /**
-     * Closes the picker modal.
-     */
-    function close() {
-        if (pickerState.modal) {
-            pickerState.modal.remove();
-            pickerState.modal = null;
+    function closePicker() {
+        if (pickerState.overlay) {
+            pickerState.overlay.classList.remove('ml-modal-show');
+            var overlay = pickerState.overlay;
+            setTimeout(function () { overlay.remove(); }, 300);
+            pickerState.overlay = null;
         }
         pickerState.callback = null;
     }
 
-    // ── Public API ──────────────────────────────────────
+    // ── Debounce ────────────────────────────────────────
+
+    function debounce(fn, wait) {
+        var timer;
+        return function () {
+            var ctx = this, args = arguments;
+            clearTimeout(timer);
+            timer = setTimeout(function () { fn.apply(ctx, args); }, wait || 300);
+        };
+    }
+
+    // ── Public API ───────────────────────────────────────
 
     window.MediaPicker = {
-        /**
-         * Opens the image picker modal.
-         * @param {Function} callback - Called with the selected media object.
-         * @param {string} folder - The default folder slug.
-         */
         openImagePicker: function (callback, folder) {
-            openPicker(callback, folder, 'image');
+            openPicker('image', callback, folder);
         },
-
-        /**
-         * Opens the video picker modal.
-         * @param {Function} callback - Called with the selected media object.
-         * @param {string} folder - The default folder slug.
-         */
         openVideoPicker: function (callback, folder) {
-            openPicker(callback, folder, 'video');
+            openPicker('video', callback, folder);
         },
-
-        /**
-         * Closes the picker modal.
-         */
-        close: close,
     };
 
 })();

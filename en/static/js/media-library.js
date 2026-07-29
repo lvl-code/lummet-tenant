@@ -5,21 +5,18 @@
 // Renders a complete media management interface inside
 // a container element on the admin Media page.
 //
-// Features:
-//   - Drag & drop upload to R2
-//   - Click to upload (file input)
-//   - Folder sidebar (create, rename, delete, navigate)
-//   - Media grid with thumbnails and type icons
-//   - Search by filename / alt text
-//   - Filter by type (all, images, videos, documents)
-//   - Sort by date, name, or size
-//   - Pagination
-//   - Copy URL to clipboard
-//   - Delete (with confirmation)
-//   - Rename / edit metadata (alt text, caption)
-//   - Replace file (upload new, keep metadata)
-//   - Responsive grid
-//   - Dark mode compatible
+// Corrected API routes (Phase 3):
+//   POST /api/v1/media/upload          — upload file
+//   POST /api/v1/media/r2/delete       — delete file {id}
+//   GET  /api/v1/media/browse          — paginated list
+//   GET  /api/v1/media/search          — search ?q=
+//   GET  /api/v1/media/get?id=         — single item
+//   POST /api/v1/media/meta/update     — update {id,...}
+//   GET  /api/v1/media/folders/tree    — folder tree
+//   POST /api/v1/media/folder/create  — create folder
+//   POST /api/v1/media/folder/update  — rename folder
+//   POST /api/v1/media/folder/delete  — delete folder
+//   GET  /api/v1/media/folder/count?id= — count in folder
 //
 // Usage:
 //   <div id="media-library-container"></div>
@@ -33,7 +30,20 @@
 
     // ── Configuration ────────────────────────────────────
 
-    var API_BASE = '/api/v1/media';
+    var API = {
+        upload:    '/api/v1/media/upload',
+        delete:    '/api/v1/media/r2/delete',
+        browse:    '/api/v1/media/browse',
+        search:    '/api/v1/media/search',
+        get:       '/api/v1/media/get',
+        metaUpdate:'/api/v1/media/meta/update',
+        foldersTree:'/api/v1/media/folders/tree',
+        folderCreate:'/api/v1/media/folder/create',
+        folderUpdate:'/api/v1/media/folder/update',
+        folderDelete:'/api/v1/media/folder/delete',
+        folderCount:'/api/v1/media/folder/count',
+    };
+
     var ITEMS_PER_PAGE = 24;
     var ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif,image/svg+xml,video/mp4,video/webm,video/ogg,application/pdf,text/plain';
 
@@ -41,28 +51,22 @@
 
     var state = {
         container: null,
-        currentFolder: null,       // folder slug or null for "all"
-        folders: [],               // folder tree from API
-        mediaItems: [],            // current page of media items
-        totalItems: 0,             // total count for pagination
+        currentFolder: null,
+        folders: [],
+        mediaItems: [],
+        totalItems: 0,
         currentPage: 1,
         totalPages: 1,
         searchQuery: '',
-        typeFilter: 'all',        // all, image, video, document
+        typeFilter: 'all',
         sortBy: 'created_at',
         sortOrder: 'DESC',
         loading: false,
-        selectedItems: new Set(),  // for bulk operations
-        viewMode: 'grid',         // grid or list
+        selectedItems: new Set(),
     };
 
     // ── Utility functions ───────────────────────────────
 
-    /**
-     * Escapes HTML special characters in a string.
-     * @param {string} str - The string to escape.
-     * @returns {string} The escaped string.
-     */
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -73,11 +77,6 @@
             .replace(/'/g, '&#039;');
     }
 
-    /**
-     * Formats a file size in bytes to a human-readable string.
-     * @param {number} bytes - The file size in bytes.
-     * @returns {string} Formatted size (e.g., "1.5 MB").
-     */
     function formatFileSize(bytes) {
         if (!bytes || bytes === 0) return '0 B';
         var units = ['B', 'KB', 'MB', 'GB'];
@@ -86,24 +85,14 @@
         return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
     }
 
-    /**
-     * Formats an ISO date string to a localized date.
-     * @param {string} isoDate - The ISO date string.
-     * @returns {string} Formatted date (e.g., "Jan 5, 2026").
-     */
     function formatDate(isoDate) {
         if (!isoDate) return '';
         var d = new Date(isoDate);
         if (isNaN(d.getTime())) return isoDate;
-        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
     }
 
-    /**
-     * Shows a toast notification.
-     * @param {string} message - The message.
-     * @param {string} type - 'success', 'error', or 'info'.
-     */
     function showToast(message, type) {
         if (typeof window.showNotification === 'function') {
             window.showNotification(message, type);
@@ -113,28 +102,18 @@
         el.textContent = message;
         el.className = 'ml-toast ml-toast-' + (type || 'info');
         document.body.appendChild(el);
-        setTimeout(function () {
-            el.classList.add('ml-toast-show');
-        }, 10);
+        requestAnimationFrame(function () { el.classList.add('ml-toast-show'); });
         setTimeout(function () {
             el.classList.remove('ml-toast-show');
             setTimeout(function () { el.remove(); }, 300);
         }, 3000);
     }
 
-    /**
-     * Gets the CSRF token from a meta tag.
-     * @returns {string} The token or empty string.
-     */
     function getCsrfToken() {
         var meta = document.querySelector('meta[name="csrf-token"]');
         return meta ? meta.getAttribute('content') : '';
     }
 
-    /**
-     * Detects dark mode.
-     * @returns {boolean} True if dark mode is active.
-     */
     function isDarkMode() {
         var body = document.body;
         var html = document.documentElement;
@@ -144,12 +123,6 @@
         return false;
     }
 
-    /**
-     * Gets the appropriate icon SVG for a media type.
-     * @param {string} type - The media type (image, video, document).
-     * @param {string} mimeType - The MIME type.
-     * @returns {string} SVG HTML string.
-     */
     function getTypeIcon(type, mimeType) {
         if (type === 'image') {
             return '<svg class="ml-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
@@ -157,1071 +130,876 @@
         if (type === 'video') {
             return '<svg class="ml-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
         }
-        if (type === 'document' || (mimeType && mimeType.includes('pdf'))) {
-            return '<svg class="ml-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
-        }
-        return '<svg class="ml-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>';
+        return '<svg class="ml-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
     }
 
-    /**
-     * Debounces a function call.
-     * @param {Function} fn - The function to debounce.
-     * @param {number} delay - The delay in milliseconds.
-     * @returns {Function} The debounced function.
-     */
-    function debounce(fn, delay) {
-        var timer = null;
+    function debounce(fn, wait) {
+        var timer;
         return function () {
-            var ctx = this;
-            var args = arguments;
+            var ctx = this, args = arguments;
             clearTimeout(timer);
-            timer = setTimeout(function () {
-                fn.apply(ctx, args);
-            }, delay);
+            timer = setTimeout(function () { fn.apply(ctx, args); }, wait || 300);
         };
     }
 
-    // ── API calls ────────────────────────────────────────
+    // ── API helpers ──────────────────────────────────────
 
-    /**
-     * Fetches media items from the API with current state filters.
-     * @returns {Promise<void>}
-     */
-    async function fetchMedia() {
-        if (state.loading) return;
-        state.loading = true;
-        renderLoading();
+    function apiGet(url) {
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); });
+    }
 
-        try {
-            var params = new URLSearchParams();
-            params.set('limit', ITEMS_PER_PAGE.toString());
-            params.set('offset', ((state.currentPage - 1) * ITEMS_PER_PAGE).toString());
-            params.set('sort', state.sortBy);
-            params.set('order', state.sortOrder);
+    function apiPost(url, body, isJson) {
+        var opts = {
+            method: 'POST',
+            credentials: 'same-origin',
+        };
+        if (isJson) {
+            opts.headers = { 'Content-Type': 'application/json' };
+            opts.body = JSON.stringify(body);
+        } else {
+            opts.body = body; // FormData
+        }
+        return fetch(url, opts).then(function (r) { return r.json(); });
+    }
 
-            if (state.typeFilter !== 'all') {
-                params.set('type', state.typeFilter);
-            }
-            if (state.currentFolder) {
-                params.set('folder', state.currentFolder);
-            }
+    // ── Load folders ────────────────────────────────────
 
-            var url = API_BASE + '/list?' + params.toString();
-
-            var response = await fetch(url, { credentials: 'same-origin' });
-            var data = await response.json();
-
+    function loadFolders() {
+        return apiGet(API.foldersTree).then(function (data) {
             if (data.success) {
-                state.mediaItems = data.items || [];
-                state.totalItems = data.total || 0;
-                state.totalPages = Math.max(1, Math.ceil(state.totalItems / ITEMS_PER_PAGE));
-                if (state.currentPage > state.totalPages) {
-                    state.currentPage = state.totalPages;
-                }
+                state.folders = data.folders || [];
+            }
+        }).catch(function () {
+            state.folders = [];
+        });
+    }
+
+    // ── Load media ──────────────────────────────────────
+
+    function loadMedia() {
+        state.loading = true;
+        renderGrid();
+
+        var params = new URLSearchParams();
+        params.set('limit', String(ITEMS_PER_PAGE));
+        params.set('offset', String((state.currentPage - 1) * ITEMS_PER_PAGE));
+        params.set('sort', state.sortBy);
+        params.set('order', state.sortOrder);
+
+        if (state.typeFilter !== 'all') {
+            params.set('type', state.typeFilter);
+        }
+        if (state.currentFolder) {
+            params.set('folder', state.currentFolder);
+        }
+
+        var url;
+        if (state.searchQuery) {
+            params.set('q', state.searchQuery);
+            url = API.search + '?' + params.toString();
+        } else {
+            url = API.browse + '?' + params.toString();
+        }
+
+        return apiGet(url).then(function (data) {
+            state.loading = false;
+            if (data.success) {
+                state.mediaItems = data.items || data.results || [];
+                state.totalItems = data.total || state.mediaItems.length;
+                state.totalPages = Math.ceil(state.totalItems / ITEMS_PER_PAGE) || 1;
             } else {
                 state.mediaItems = [];
                 state.totalItems = 0;
                 state.totalPages = 1;
-                showToast('Failed to load media: ' + (data.error || 'Unknown error'), 'error');
+                showToast(data.error || 'Failed to load media', 'error');
             }
-        } catch (error) {
-            state.mediaItems = [];
-            showToast('Failed to load media: ' + error.message, 'error');
-        } finally {
+            renderGrid();
+            renderPagination();
+        }).catch(function (err) {
             state.loading = false;
-            render();
-        }
+            state.mediaItems = [];
+            renderGrid();
+            showToast('Network error loading media', 'error');
+        });
     }
 
-    /**
-     * Fetches the folder tree from the API.
-     * @returns {Promise<void>}
-     */
-    async function fetchFolders() {
-        try {
-            var response = await fetch(API_BASE + '/folders', { credentials: 'same-origin' });
-            var data = await response.json();
-            if (data.success) {
-                state.folders = data.folders || [];
-            }
-        } catch (error) {
-            console.error('Failed to load folders:', error);
-        }
-    }
+    // ── Upload ──────────────────────────────────────────
 
-    /**
-     * Uploads files to R2 via the API.
-     * @param {FileList|File[]} files - The files to upload.
-     * @param {string} folder - The folder slug.
-     * @returns {Promise<void>}
-     */
-    async function uploadFiles(files, folder) {
-        var fileArr = Array.from(files);
-        var successCount = 0;
-        var errorCount = 0;
+    function handleUploadFiles(files, folderSlug) {
+        if (!files || files.length === 0) return;
 
-        for (var i = 0; i < fileArr.length; i++) {
-            var file = fileArr[i];
-            try {
+        var folder = folderSlug || state.currentFolder || 'general';
+        var uploaded = 0;
+        var failed = 0;
+        var total = files.length;
+
+        for (var i = 0; i < files.length; i++) {
+            (function (file) {
                 var formData = new FormData();
                 formData.append('file', file);
-                formData.append('folder', folder || state.currentFolder || 'general');
+                formData.append('folder', folder);
 
-                // Get image dimensions
-                if (file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
-                    var dims = await getImageDimensions(file);
-                    if (dims) {
-                        formData.append('width', dims.width);
-                        formData.append('height', dims.height);
+                apiPost(API.upload, formData).then(function (data) {
+                    if (data.success) {
+                        uploaded++;
+                        showToast('Uploaded: ' + (data.media && data.media.filename || 'file'), 'success');
+                    } else {
+                        failed++;
+                        showToast(data.error || 'Upload failed', 'error');
                     }
-                }
-
-                var response = await fetch(API_BASE + '/upload', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'X-CSRF-Token': getCsrfToken() },
-                    body: formData
+                    if (uploaded + failed === total) {
+                        if (failed > 0) {
+                            showToast(uploaded + ' uploaded, ' + failed + ' failed', 'info');
+                        }
+                        loadMedia();
+                    }
+                }).catch(function () {
+                    failed++;
+                    showToast('Upload failed: ' + file.name, 'error');
+                    if (uploaded + failed === total) {
+                        loadMedia();
+                    }
                 });
-
-                var data = await response.json();
-                if (data.success) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                    showToast('Upload failed: ' + (data.error || 'Unknown error'), 'error');
-                }
-            } catch (error) {
-                errorCount++;
-                showToast('Upload failed: ' + file.name + ': ' + error.message, 'error');
-            }
+            })(files[i]);
         }
 
-        if (successCount > 0) {
-            showToast(successCount + ' file(s) uploaded successfully', 'success');
-            await fetchMedia();
-        }
-        if (errorCount > 0 && successCount === 0) {
-            showToast('All uploads failed', 'error');
-        }
+        showToast('Uploading ' + total + ' file(s)...', 'info');
     }
 
-    /**
-     * Gets image dimensions from a File object.
-     * @param {File} file - The image file.
-     * @returns {Promise<{width: number, height: number}|null>}
-     */
-    function getImageDimensions(file) {
-        return new Promise(function (resolve) {
-            var url = URL.createObjectURL(file);
-            var img = new Image();
-            img.onload = function () {
-                resolve({ width: img.naturalWidth, height: img.naturalHeight });
-                URL.revokeObjectURL(url);
-            };
-            img.onerror = function () {
-                resolve(null);
-                URL.revokeObjectURL(url);
-            };
-            img.src = url;
-        });
-    }
+    // ── Delete ──────────────────────────────────────────
 
-    /**
-     * Deletes a media item.
-     * @param {number} id - The media item ID.
-     * @returns {Promise<void>}
-     */
-    async function deleteMediaItem(id) {
-        try {
-            var response = await fetch(API_BASE + '/delete/' + id, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-                headers: { 'X-CSRF-Token': getCsrfToken() }
-            });
-            var data = await response.json();
+    function handleDeleteMedia(mediaId, filename) {
+        if (!confirm('Delete "' + (filename || 'this file') + '"? This cannot be undone.')) return;
+
+        apiPost(API.delete, { id: mediaId }, true).then(function (data) {
             if (data.success) {
                 showToast('Media deleted', 'success');
-                await fetchMedia();
+                loadMedia();
             } else {
-                showToast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
+                showToast(data.error || 'Delete failed', 'error');
             }
-        } catch (error) {
-            showToast('Delete failed: ' + error.message, 'error');
-        }
+        }).catch(function () {
+            showToast('Network error during delete', 'error');
+        });
     }
 
-    /**
-     * Updates media metadata.
-     * @param {number} id - The media item ID.
-     * @param {Object} data - The fields to update.
-     * @returns {Promise<boolean>} True if successful.
-     */
-    async function updateMediaItem(id, data) {
-        try {
-            var response = await fetch(API_BASE + '/update/' + id, {
-                method: 'PUT',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfToken()
-                },
-                body: JSON.stringify(data)
-            });
-            var result = await response.json();
-            if (result.success) {
-                showToast('Media updated', 'success');
-                return true;
+    // ── Update metadata ─────────────────────────────────
+
+    function handleUpdateMetadata(mediaId, updates) {
+        updates.id = mediaId;
+        return apiPost(API.metaUpdate, updates, true).then(function (data) {
+            if (data.success) {
+                showToast('Metadata updated', 'success');
             } else {
-                showToast('Update failed: ' + (result.error || 'Unknown error'), 'error');
-                return false;
+                showToast(data.error || 'Update failed', 'error');
             }
-        } catch (error) {
-            showToast('Update failed: ' + error.message, 'error');
-            return false;
-        }
+            return data;
+        }).catch(function () {
+            showToast('Network error during update', 'error');
+        });
     }
 
-    /**
-     * Creates a new folder.
-     * @param {string} name - The folder name.
-     * @param {number|null} parentId - Parent folder ID.
-     * @returns {Promise<boolean>} True if successful.
-     */
-    async function createFolder(name, parentId) {
-        var slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        if (!slug) {
-            showToast('Invalid folder name', 'error');
-            return false;
-        }
-        try {
-            var response = await fetch(API_BASE + '/folders', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfToken()
-                },
-                body: JSON.stringify({ name: name, slug: slug, parent_id: parentId || null })
-            });
-            var data = await response.json();
+    // ── Folder CRUD ─────────────────────────────────────
+
+    function handleCreateFolder(name, slug, parentId) {
+        return apiPost(API.folderCreate, {
+            name: name,
+            slug: slug,
+            parent_id: parentId || null,
+        }, true).then(function (data) {
             if (data.success) {
                 showToast('Folder created', 'success');
-                await fetchFolders();
-                return true;
+                loadFolders().then(renderFolderSidebar);
             } else {
-                showToast('Create folder failed: ' + (data.error || 'Unknown error'), 'error');
-                return false;
+                showToast(data.error || 'Failed to create folder', 'error');
             }
-        } catch (error) {
-            showToast('Create folder failed: ' + error.message, 'error');
-            return false;
-        }
+            return data;
+        });
     }
 
-    /**
-     * Renames a folder.
-     * @param {number} id - The folder ID.
-     * @param {string} name - The new name.
-     * @returns {Promise<boolean>} True if successful.
-     */
-    async function renameFolder(id, name) {
-        var slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        try {
-            var response = await fetch(API_BASE + '/folders/' + id, {
-                method: 'PUT',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfToken()
-                },
-                body: JSON.stringify({ name: name, slug: slug })
-            });
-            var data = await response.json();
+    function handleRenameFolder(folderId, name, slug) {
+        return apiPost(API.folderUpdate, {
+            id: folderId,
+            name: name,
+            slug: slug,
+        }, true).then(function (data) {
             if (data.success) {
                 showToast('Folder renamed', 'success');
-                await fetchFolders();
-                return true;
+                loadFolders().then(renderFolderSidebar);
             } else {
-                showToast('Rename failed: ' + (data.error || 'Unknown error'), 'error');
-                return false;
+                showToast(data.error || 'Failed to rename folder', 'error');
             }
-        } catch (error) {
-            showToast('Rename failed: ' + error.message, 'error');
-            return false;
-        }
+            return data;
+        });
     }
 
-    /**
-     * Deletes a folder.
-     * @param {number} id - The folder ID.
-     * @returns {Promise<boolean>} True if successful.
-     */
-    async function deleteFolder(id) {
-        try {
-            var response = await fetch(API_BASE + '/folders/' + id, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-                headers: { 'X-CSRF-Token': getCsrfToken() }
-            });
-            var data = await response.json();
+    function handleDeleteFolder(folderId) {
+        if (!confirm('Delete this folder? Media items inside will remain but lose their folder assignment.')) return;
+
+        apiPost(API.folderDelete, { id: folderId }, true).then(function (data) {
             if (data.success) {
                 showToast('Folder deleted', 'success');
-                await fetchFolders();
-                return true;
-            } else {
-                showToast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
-                return false;
-            }
-        } catch (error) {
-            showToast('Delete failed: ' + error.message, 'error');
-            return false;
-        }
-    }
-
-    // ── Rendering ───────────────────────────────────────
-
-    /**
-     * Renders the full media library UI.
-     */
-    function render() {
-        if (!state.container) return;
-        var html = `
-            <div class="ml-wrapper ${isDarkMode() ? 'ml-dark' : ''}">
-                ${renderSidebar()}
-                <div class="ml-main">
-                    ${renderToolbar()}
-                    ${renderDropzone()}
-                    ${renderGrid()}
-                    ${renderPagination()}
-                </div>
-            </div>
-        `;
-        state.container.innerHTML = html;
-        attachEventListeners();
-    }
-
-    /**
-     * Renders a loading state.
-     */
-    function renderLoading() {
-        if (!state.container) return;
-        var html = `
-            <div class="ml-wrapper ${isDarkMode() ? 'ml-dark' : ''}">
-                ${renderSidebar()}
-                <div class="ml-main">
-                    ${renderToolbar()}
-                    <div class="ml-loading">
-                        <div class="ml-spinner"></div>
-                        <p>Loading media...</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        state.container.innerHTML = html;
-        attachEventListeners();
-    }
-
-    /**
-     * Renders the folder sidebar.
-     * @returns {string} HTML string.
-     */
-    function renderSidebar() {
-        var folderHtml = renderFolderTree(state.folders, 0);
-        return `
-            <aside class="ml-sidebar">
-                <div class="ml-sidebar-header">
-                    <h3 class="ml-sidebar-title">Folders</h3>
-                    <button class="ml-btn ml-btn-icon ml-btn-small" id="ml-new-folder" title="New folder">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    </button>
-                </div>
-                <ul class="ml-folder-list">
-                    <li class="ml-folder-item ${state.currentFolder === null ? 'active' : ''}" data-folder="">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                        <span>All Media</span>
-                        <span class="ml-folder-count">${state.totalItems}</span>
-                    </li>
-                    ${folderHtml}
-                </ul>
-            </aside>
-        `;
-    }
-
-    /**
-     * Recursively renders the folder tree.
-     * @param {Array} folders - The folder tree.
-     * @param {number} depth - The nesting depth.
-     * @returns {string} HTML string.
-     */
-    function renderFolderTree(folders, depth) {
-        var html = '';
-        for (var i = 0; i < folders.length; i++) {
-            var f = folders[i];
-            var isActive = state.currentFolder === f.slug;
-            var padding = 12 + depth * 16;
-            html += `
-                <li class="ml-folder-item ${isActive ? 'active' : ''}" data-folder="${escapeHtml(f.slug)}" data-folder-id="${f.id}" style="padding-left:${padding}px">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    <span class="ml-folder-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
-                    <div class="ml-folder-actions">
-                        <button class="ml-btn ml-btn-icon ml-btn-tiny ml-folder-rename" data-folder-id="${f.id}" title="Rename">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button class="ml-btn ml-btn-icon ml-btn-tiny ml-folder-delete" data-folder-id="${f.id}" title="Delete">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-                </li>
-            `;
-            if (f.children && f.children.length > 0) {
-                html += renderFolderTree(f.children, depth + 1);
-            }
-        }
-        return html;
-    }
-
-    /**
-     * Renders the toolbar (search, filter, sort, view toggle).
-     * @returns {string} HTML string.
-     */
-    function renderToolbar() {
-        var folderName = state.currentFolder
-            ? getFolderName(state.currentFolder)
-            : 'All Media';
-
-        return `
-            <div class="ml-toolbar">
-                <div class="ml-toolbar-left">
-                    <h2 class="ml-page-title">${escapeHtml(folderName)}</h2>
-                </div>
-                <div class="ml-toolbar-right">
-                    <div class="ml-search-box">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" id="ml-search" placeholder="Search media..." value="${escapeHtml(state.searchQuery)}" />
-                    </div>
-                    <select id="ml-type-filter" class="ml-select">
-                        <option value="all" ${state.typeFilter === 'all' ? 'selected' : ''}>All Types</option>
-                        <option value="image" ${state.typeFilter === 'image' ? 'selected' : ''}>Images</option>
-                        <option value="video" ${state.typeFilter === 'video' ? 'selected' : ''}>Videos</option>
-                        <option value="document" ${state.typeFilter === 'document' ? 'selected' : ''}>Documents</option>
-                    </select>
-                    <select id="ml-sort" class="ml-select">
-                        <option value="created_at-DESC" ${state.sortBy === 'created_at' && state.sortOrder === 'DESC' ? 'selected' : ''}>Newest First</option>
-                        <option value="created_at-ASC" ${state.sortBy === 'created_at' && state.sortOrder === 'ASC' ? 'selected' : ''}>Oldest First</option>
-                        <option value="filename-ASC" ${state.sortBy === 'filename' && state.sortOrder === 'ASC' ? 'selected' : ''}>Name A-Z</option>
-                        <option value="filename-DESC" ${state.sortBy === 'filename' && state.sortOrder === 'DESC' ? 'selected' : ''}>Name Z-A</option>
-                        <option value="size-DESC" ${state.sortBy === 'size' && state.sortOrder === 'DESC' ? 'selected' : ''}>Largest First</option>
-                        <option value="size-ASC" ${state.sortBy === 'size' && state.sortOrder === 'ASC' ? 'selected' : ''}>Smallest First</option>
-                    </select>
-                    <button class="ml-btn ml-btn-primary" id="ml-upload-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Upload
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Renders the drag-and-drop upload zone.
-     * @returns {string} HTML string.
-     */
-    function renderDropzone() {
-        return `
-            <div class="ml-dropzone" id="ml-dropzone">
-                <div class="ml-dropzone-inner">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <p class="ml-dropzone-text">Drag and drop files here, or click to browse</p>
-                    <p class="ml-dropzone-hint">JPEG, PNG, WebP, SVG, GIF, MP4, WebM, PDF — Max 10MB (images), 100MB (videos)</p>
-                </div>
-                <input type="file" id="ml-file-input" multiple accept="${ACCEPTED_TYPES}" style="display:none" />
-            </div>
-        `;
-    }
-
-    /**
-     * Renders the media grid.
-     * @returns {string} HTML string.
-     */
-    function renderGrid() {
-        if (state.mediaItems.length === 0) {
-            return `
-                <div class="ml-empty">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                    <p>No media found</p>
-                    <p class="ml-empty-hint">Upload files to get started</p>
-                </div>
-            `;
-        }
-
-        var items = state.mediaItems;
-        var html = '<div class="ml-grid">';
-
-        for (var i = 0; i < items.length; i++) {
-            html += renderMediaCard(items[i]);
-        }
-
-        html += '</div>';
-        return html;
-    }
-
-    /**
-     * Renders a single media card.
-     * @param {Object} item - The media item.
-     * @returns {string} HTML string.
-     */
-    function renderMediaCard(item) {
-        var thumb = '';
-        if (item.type === 'image' && item.thumbnail_url) {
-            thumb = '<img src="' + escapeHtml(item.thumbnail_url) + '" alt="' + escapeHtml(item.alt_text || item.filename) + '" loading="lazy" />';
-        } else if (item.type === 'image' && item.url) {
-            thumb = '<img src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.alt_text || item.filename) + '" loading="lazy" />';
-        } else if (item.type === 'video' && item.poster_url) {
-            thumb = '<img src="' + escapeHtml(item.poster_url) + '" alt="' + escapeHtml(item.filename) + '" loading="lazy" />';
-            thumb += '<div class="ml-play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
-        } else {
-            thumb = '<div class="ml-thumb-placeholder">' + getTypeIcon(item.type, item.mime_type) + '</div>';
-            if (item.type === 'video') {
-                thumb += '<div class="ml-play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
-            }
-        }
-
-        return `
-            <div class="ml-card" data-media-id="${item.id}">
-                <div class="ml-card-thumb">
-                    ${thumb}
-                    <div class="ml-card-overlay">
-                        <button class="ml-btn ml-btn-icon ml-btn-overlay ml-card-copy" data-url="${escapeHtml(item.url)}" title="Copy URL">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        </button>
-                        <button class="ml-btn ml-btn-icon ml-btn-overlay ml-card-edit" data-media-id="${item.id}" title="Edit details">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button class="ml-btn ml-btn-icon ml-btn-overlay ml-card-delete" data-media-id="${item.id}" title="Delete">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="ml-card-info">
-                    <p class="ml-card-name" title="${escapeHtml(item.original_filename || item.filename)}">${escapeHtml(item.original_filename || item.filename)}</p>
-                    <p class="ml-card-meta">${escapeHtml(formatFileSize(item.size))} · ${escapeHtml(formatDate(item.created_at))}</p>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Renders the pagination controls.
-     * @returns {string} HTML string.
-     */
-    function renderPagination() {
-        if (state.totalPages <= 1) return '';
-
-        var currentPage = state.currentPage;
-        var totalPages = state.totalPages;
-        var html = '<div class="ml-pagination">';
-
-        // Previous button
-        html += `<button class="ml-btn ml-btn-page ${currentPage === 1 ? 'disabled' : ''}" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
-
-        // Page numbers (show up to 7 pages with ellipsis)
-        var startPage = Math.max(1, currentPage - 3);
-        var endPage = Math.min(totalPages, currentPage + 3);
-
-        if (startPage > 1) {
-            html += `<button class="ml-btn ml-btn-page" data-page="1">1</button>`;
-            if (startPage > 2) {
-                html += '<span class="ml-pagination-ellipsis">...</span>';
-            }
-        }
-
-        for (var p = startPage; p <= endPage; p++) {
-            html += `<button class="ml-btn ml-btn-page ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
-        }
-
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                html += '<span class="ml-pagination-ellipsis">...</span>';
-            }
-            html += `<button class="ml-btn ml-btn-page" data-page="${totalPages}">${totalPages}</button>`;
-        }
-
-        // Next button
-        html += `<button class="ml-btn ml-btn-page ${currentPage === totalPages ? 'disabled' : ''}" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
-
-        html += '</div>';
-        return html;
-    }
-
-    /**
-     * Gets a folder's display name from its slug.
-     * @param {string} slug - The folder slug.
-     * @returns {string} The folder name.
-     */
-    function getFolderName(slug) {
-        function findInTree(folders) {
-            for (var i = 0; i < folders.length; i++) {
-                if (folders[i].slug === slug) return folders[i].name;
-                if (folders[i].children) {
-                    var found = findInTree(folders[i].children);
-                    if (found) return found;
+                if (state.currentFolder) {
+                    state.currentFolder = null;
                 }
+                loadFolders().then(function () {
+                    renderFolderSidebar();
+                    loadMedia();
+                });
+            } else {
+                showToast(data.error || 'Failed to delete folder', 'error');
             }
-            return null;
-        }
-        return findInTree(state.folders) || slug;
+        });
     }
 
-    // ── Edit modal ──────────────────────────────────────
+    // ── Rendering: Main layout ──────────────────────────
 
-    /**
-     * Opens the edit modal for a media item.
-     * @param {number} mediaId - The media item ID.
-     */
-    function openEditModal(mediaId) {
-        var item = state.mediaItems.find(function (m) { return m.id === mediaId; });
-        if (!item) return;
+    function renderMainLayout() {
+        var c = state.container;
+        c.innerHTML = '';
 
-        var modal = document.createElement('div');
-        modal.className = 'ml-modal-overlay';
-        modal.innerHTML = `
-            <div class="ml-modal">
-                <div class="ml-modal-header">
-                    <h3>Edit Media Details</h3>
-                    <button class="ml-btn ml-btn-icon ml-modal-close" title="Close">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                </div>
-                <div class="ml-modal-body">
-                    <div class="ml-modal-preview">
-                        ${item.type === 'image'
-                            ? '<img src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.alt_text || '') + '" style="max-width:100%;max-height:300px;border-radius:8px;" />'
-                            : '<div class="ml-thumb-placeholder" style="height:200px;">' + getTypeIcon(item.type, item.mime_type) + '</div>'
-                        }
-                    </div>
-                    <div class="ml-modal-form">
-                        <div class="ml-form-group">
-                            <label>Filename</label>
-                            <input type="text" id="ml-edit-filename" value="${escapeHtml(item.original_filename || item.filename)}" readonly />
-                        </div>
-                        <div class="ml-form-group">
-                            <label>Alt Text</label>
-                            <input type="text" id="ml-edit-alt" value="${escapeHtml(item.alt_text || '')}" placeholder="Describe the image for accessibility" />
-                        </div>
-                        <div class="ml-form-group">
-                            <label>Caption</label>
-                            <input type="text" id="ml-edit-caption" value="${escapeHtml(item.caption || '')}" placeholder="Caption displayed below the image" />
-                        </div>
-                        <div class="ml-form-group">
-                            <label>Folder</label>
-                            <select id="ml-edit-folder">
-                                ${renderFolderOptions(state.folders, item.folder)}
-                            </select>
-                        </div>
-                        <div class="ml-form-group">
-                            <label>URL</label>
-                            <div class="ml-url-row">
-                                <input type="text" id="ml-edit-url" value="${escapeHtml(item.url)}" readonly />
-                                <button class="ml-btn ml-btn-secondary" id="ml-copy-url-btn">Copy</button>
-                            </div>
-                        </div>
-                        <div class="ml-form-group ml-form-row">
-                            <div>
-                                <label>Type</label>
-                                <input type="text" value="${escapeHtml(item.type || 'image')}" readonly />
-                            </div>
-                            <div>
-                                <label>Size</label>
-                                <input type="text" value="${escapeHtml(formatFileSize(item.size))}" readonly />
-                            </div>
-                            <div>
-                                <label>Dimensions</label>
-                                <input type="text" value="${item.width && item.height ? item.width + ' × ' + item.height : 'N/A'}" readonly />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="ml-modal-footer">
-                    <button class="ml-btn ml-btn-danger" id="ml-edit-delete">Delete</button>
-                    <div class="ml-modal-footer-right">
-                        <button class="ml-btn ml-btn-secondary ml-modal-close">Cancel</button>
-                        <button class="ml-btn ml-btn-primary" id="ml-edit-save">Save Changes</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+        // Toolbar
+        var toolbar = document.createElement('div');
+        toolbar.className = 'ml-toolbar';
+        toolbar.innerHTML =
+            '<div class="ml-toolbar-left">' +
+                '<input type="text" class="ml-search-input" placeholder="Search media..." value="' + escapeHtml(state.searchQuery) + '">' +
+                '<select class="ml-type-filter">' +
+                    '<option value="all"' + (state.typeFilter === 'all' ? ' selected' : '') + '>All types</option>' +
+                    '<option value="image"' + (state.typeFilter === 'image' ? ' selected' : '') + '>Images</option>' +
+                    '<option value="video"' + (state.typeFilter === 'video' ? ' selected' : '') + '>Videos</option>' +
+                    '<option value="document"' + (state.typeFilter === 'document' ? ' selected' : '') + '>Documents</option>' +
+                '</select>' +
+                '<select class="ml-sort-select">' +
+                    '<option value="created_at:DESC"' + (state.sortBy === 'created_at' && state.sortOrder === 'DESC' ? ' selected' : '') + '>Newest first</option>' +
+                    '<option value="created_at:ASC"' + (state.sortBy === 'created_at' && state.sortOrder === 'ASC' ? ' selected' : '') + '>Oldest first</option>' +
+                    '<option value="filename:ASC"' + (state.sortBy === 'filename' && state.sortOrder === 'ASC' ? ' selected' : '') + '>Name A-Z</option>' +
+                    '<option value="filename:DESC"' + (state.sortBy === 'filename' && state.sortOrder === 'DESC' ? ' selected' : '') + '>Name Z-A</option>' +
+                    '<option value="size:DESC"' + (state.sortBy === 'size' && state.sortOrder === 'DESC' ? ' selected' : '') + '>Largest first</option>' +
+                    '<option value="size:ASC"' + (state.sortBy === 'size' && state.sortOrder === 'ASC' ? ' selected' : '') + '>Smallest first</option>' +
+                '</select>' +
+            '</div>' +
+            '<div class="ml-toolbar-right">' +
+                '<button class="ml-btn ml-btn-primary ml-upload-btn">Upload</button>' +
+                '<button class="ml-btn ml-btn-secondary ml-new-folder-btn">New Folder</button>' +
+            '</div>';
 
-        // Close handlers
-        modal.querySelectorAll('.ml-modal-close').forEach(function (btn) {
-            btn.addEventListener('click', function () { modal.remove(); });
-        });
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) modal.remove();
-        });
+        c.appendChild(toolbar);
 
-        // Copy URL
-        var copyBtn = modal.querySelector('#ml-copy-url-btn');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', function () {
-                var urlInput = modal.querySelector('#ml-edit-url');
-                urlInput.select();
-                document.execCommand('copy');
+        // Body: sidebar + grid
+        var body = document.createElement('div');
+        body.className = 'ml-body';
+
+        var sidebar = document.createElement('div');
+        sidebar.className = 'ml-sidebar';
+        sidebar.id = 'ml-sidebar';
+
+        var gridWrapper = document.createElement('div');
+        gridWrapper.className = 'ml-grid-wrapper';
+
+        var dropzone = document.createElement('div');
+        dropzone.className = 'ml-dropzone';
+        dropzone.id = 'ml-dropzone';
+        dropzone.innerHTML =
+            '<div class="ml-dropzone-inner">' +
+                '<svg class="ml-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+                '<p>Drag &amp; drop files here, or click "Upload"</p>' +
+                '<p class="ml-dropzone-hint">JPEG, PNG, WEBP, SVG, GIF, MP4, WebM, PDF — max 10MB (images) / 100MB (videos)</p>' +
+            '</div>';
+
+        var grid = document.createElement('div');
+        grid.className = 'ml-grid';
+        grid.id = 'ml-grid';
+
+        var pagination = document.createElement('div');
+        pagination.className = 'ml-pagination';
+        pagination.id = 'ml-pagination';
+
+        gridWrapper.appendChild(dropzone);
+        gridWrapper.appendChild(grid);
+        gridWrapper.appendChild(pagination);
+
+        body.appendChild(sidebar);
+        body.appendChild(gridWrapper);
+
+        c.appendChild(body);
+
+        // Hidden file input for upload
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        fileInput.accept = ACCEPTED_TYPES;
+        fileInput.style.display = 'none';
+        fileInput.id = 'ml-file-input';
+        c.appendChild(fileInput);
+
+        // Attach event listeners
+        attachEventListeners();
+    }
+
+    // ── Rendering: Folder sidebar ───────────────────────
+
+    function renderFolderSidebar() {
+        var sidebar = document.getElementById('ml-sidebar');
+        if (!sidebar) return;
+
+        var html =
+            '<div class="ml-sidebar-header">' +
+                '<h3>Folders</h3>' +
+            '</div>' +
+            '<div class="ml-folder-list">' +
+                '<div class="ml-folder-item' + (!state.currentFolder ? ' ml-folder-active' : '') + '" data-folder="">' +
+                    '<svg class="ml-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' +
+                    '<span>All Media</span>' +
+                '</div>';
+
+        for (var i = 0; i < state.folders.length; i++) {
+            var f = state.folders[i];
+            var isActive = state.currentFolder === f.slug;
+            html +=
+                '<div class="ml-folder-item' + (isActive ? ' ml-folder-active' : '') + '" data-folder="' + escapeHtml(f.slug) + '" data-folder-id="' + f.id + '">' +
+                    '<svg class="ml-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' +
+                    '<span class="ml-folder-name">' + escapeHtml(f.name) + '</span>' +
+                    '<button class="ml-folder-menu-btn" data-folder-id="' + f.id + '" data-folder-name="' + escapeHtml(f.name) + '" data-folder-slug="' + escapeHtml(f.slug) + '">&hellip;</button>' +
+                '</div>';
+        }
+
+        html += '</div>';
+
+        sidebar.innerHTML = html;
+
+        // Attach folder click listeners
+        var folderItems = sidebar.querySelectorAll('.ml-folder-item');
+        for (var j = 0; j < folderItems.length; j++) {
+            folderItems[j].addEventListener('click', function (e) {
+                if (e.target.classList.contains('ml-folder-menu-btn')) return;
+                state.currentFolder = this.getAttribute('data-folder') || null;
+                state.currentPage = 1;
+                renderFolderSidebar();
+                loadMedia();
+            });
+        }
+
+        // Attach folder menu (rename/delete) listeners
+        var menuBtns = sidebar.querySelectorAll('.ml-folder-menu-btn');
+        for (var k = 0; k < menuBtns.length; k++) {
+            menuBtns[k].addEventListener('click', function (e) {
+                e.stopPropagation();
+                var folderId = parseInt(this.getAttribute('data-folder-id'), 10);
+                var folderName = this.getAttribute('data-folder-name');
+                var folderSlug = this.getAttribute('data-folder-slug');
+                showFolderMenu(folderId, folderName, folderSlug);
+            });
+        }
+    }
+
+    // ── Rendering: Media grid ───────────────────────────
+
+    function renderGrid() {
+        var grid = document.getElementById('ml-grid');
+        if (!grid) return;
+
+        if (state.loading) {
+            grid.innerHTML =
+                '<div class="ml-grid-loading">' +
+                    '<div class="ml-loading-spinner"></div>' +
+                    '<p>Loading media...</p>' +
+                '</div>';
+            return;
+        }
+
+        if (state.mediaItems.length === 0) {
+            grid.innerHTML =
+                '<div class="ml-grid-empty">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="ml-empty-icon"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
+                    '<p>No media found. Upload files to get started.</p>' +
+                '</div>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < state.mediaItems.length; i++) {
+            var item = state.mediaItems[i];
+            var isImage = item.type === 'image';
+            var thumb = item.thumbnail_url || item.url || '';
+            var name = item.filename || item.original_filename || 'unnamed';
+            var altText = item.alt_text || '';
+
+            html +=
+                '<div class="ml-card" data-media-id="' + item.id + '">' +
+                    '<div class="ml-card-thumb">';
+
+            if (isImage && thumb) {
+                html += '<img src="' + escapeHtml(thumb) + '" alt="' + escapeHtml(altText) + '" loading="lazy" />';
+            } else {
+                html += '<div class="ml-card-thumb-placeholder">' + getTypeIcon(item.type, item.mime_type) + '</div>';
+            }
+
+            html +=
+                    '</div>' +
+                    '<div class="ml-card-info">' +
+                        '<p class="ml-card-name" title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</p>' +
+                        '<p class="ml-card-meta">' + formatFileSize(item.size) + ' &middot; ' + formatDate(item.created_at) + '</p>' +
+                    '</div>' +
+                    '<div class="ml-card-actions">' +
+                        '<button class="ml-card-btn ml-copy-url" data-url="' + escapeHtml(item.url || '') + '" title="Copy URL">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                        '</button>' +
+                        '<button class="ml-card-btn ml-edit-meta" data-media-id="' + item.id + '" title="Edit metadata">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+                        '</button>' +
+                        '<button class="ml-card-btn ml-delete-media" data-media-id="' + item.id + '" data-media-name="' + escapeHtml(name) + '" title="Delete">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+        }
+
+        grid.innerHTML = html;
+
+        // Attach card action listeners
+        var copyBtns = grid.querySelectorAll('.ml-copy-url');
+        for (var c = 0; c < copyBtns.length; c++) {
+            copyBtns[c].addEventListener('click', function () {
+                var url = this.getAttribute('data-url');
+                copyToClipboard(url);
                 showToast('URL copied to clipboard', 'success');
             });
         }
 
-        // Save
-        var saveBtn = modal.querySelector('#ml-edit-save');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', async function () {
-                var altText = modal.querySelector('#ml-edit-alt').value;
-                var caption = modal.querySelector('#ml-edit-caption').value;
-                var folder = modal.querySelector('#ml-edit-folder').value;
-                var updated = await updateMediaItem(mediaId, {
-                    alt_text: altText,
-                    caption: caption,
-                    folder: folder
-                });
-                if (updated) {
-                    modal.remove();
-                    await fetchMedia();
+        var editBtns = grid.querySelectorAll('.ml-edit-meta');
+        for (var e = 0; e < editBtns.length; e++) {
+            editBtns[e].addEventListener('click', function () {
+                var mediaId = parseInt(this.getAttribute('data-media-id'), 10);
+                showEditModal(mediaId);
+            });
+        }
+
+        var deleteBtns = grid.querySelectorAll('.ml-delete-media');
+        for (var d = 0; d < deleteBtns.length; d++) {
+            deleteBtns[d].addEventListener('click', function () {
+                var mediaId = parseInt(this.getAttribute('data-media-id'), 10);
+                var mediaName = this.getAttribute('data-media-name');
+                handleDeleteMedia(mediaId, mediaName);
+            });
+        }
+    }
+
+    // ── Rendering: Pagination ───────────────────────────
+
+    function renderPagination() {
+        var pagination = document.getElementById('ml-pagination');
+        if (!pagination) return;
+
+        if (state.totalPages <= 1) {
+            pagination.innerHTML = '<span class="ml-pagination-info">' + state.totalItems + ' item(s)</span>';
+            return;
+        }
+
+        var html = '<span class="ml-pagination-info">Page ' + state.currentPage + ' of ' + state.totalPages + ' (' + state.totalItems + ' total)</span>';
+
+        if (state.currentPage > 1) {
+            html += '<button class="ml-btn ml-btn-small ml-page-btn" data-page="' + (state.currentPage - 1) + '">&laquo; Prev</button>';
+        }
+
+        // Show up to 5 page numbers around current page
+        var start = Math.max(1, state.currentPage - 2);
+        var end = Math.min(state.totalPages, state.currentPage + 2);
+
+        if (start > 1) {
+            html += '<button class="ml-btn ml-btn-small ml-page-btn" data-page="1">1</button>';
+            if (start > 2) html += '<span class="ml-pagination-ellipsis">...</span>';
+        }
+
+        for (var p = start; p <= end; p++) {
+            html += '<button class="ml-btn ml-btn-small ml-page-btn' + (p === state.currentPage ? ' ml-btn-active' : '') + '" data-page="' + p + '">' + p + '</button>';
+        }
+
+        if (end < state.totalPages) {
+            if (end < state.totalPages - 1) html += '<span class="ml-pagination-ellipsis">...</span>';
+            html += '<button class="ml-btn ml-btn-small ml-page-btn" data-page="' + state.totalPages + '">' + state.totalPages + '</button>';
+        }
+
+        if (state.currentPage < state.totalPages) {
+            html += '<button class="ml-btn ml-btn-small ml-page-btn" data-page="' + (state.currentPage + 1) + '">Next &raquo;</button>';
+        }
+
+        pagination.innerHTML = html;
+
+        var pageBtns = pagination.querySelectorAll('.ml-page-btn');
+        for (var i = 0; i < pageBtns.length; i++) {
+            pageBtns[i].addEventListener('click', function () {
+                state.currentPage = parseInt(this.getAttribute('data-page'), 10);
+                loadMedia();
+            });
+        }
+    }
+
+    // ── Modals ──────────────────────────────────────────
+
+    function showEditModal(mediaId) {
+        // Find media item in current items
+        var item = null;
+        for (var i = 0; i < state.mediaItems.length; i++) {
+            if (state.mediaItems[i].id === mediaId) {
+                item = state.mediaItems[i];
+                break;
+            }
+        }
+
+        if (!item) {
+            // Fetch from API
+            apiGet(API.get + '?id=' + mediaId).then(function (data) {
+                if (data.success && data.media) {
+                    renderEditModal(data.media);
+                } else {
+                    showToast('Could not load media details', 'error');
                 }
             });
+            return;
         }
 
-        // Delete
-        var deleteBtn = modal.querySelector('#ml-edit-delete');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async function () {
-                if (!confirm('Are you sure you want to delete this media item? This cannot be undone.')) return;
-                await deleteMediaItem(mediaId);
-                modal.remove();
+        renderEditModal(item);
+    }
+
+    function renderEditModal(item) {
+        var overlay = document.createElement('div');
+        overlay.className = 'ml-modal-overlay';
+        overlay.id = 'ml-edit-modal';
+
+        // Build folder options
+        var folderOptions = '<option value="">No folder</option>';
+        for (var i = 0; i < state.folders.length; i++) {
+            var f = state.folders[i];
+            folderOptions += '<option value="' + escapeHtml(f.slug) + '"' + (item.folder === f.slug ? ' selected' : '') + '>' + escapeHtml(f.name) + '</option>';
+        }
+
+        overlay.innerHTML =
+            '<div class="ml-modal">' +
+                '<div class="ml-modal-header">' +
+                    '<h3>Edit Media Details</h3>' +
+                    '<button class="ml-modal-close">&times;</button>' +
+                '</div>' +
+                '<div class="ml-modal-body">' +
+                    '<div class="ml-modal-preview">';
+
+        if (item.type === 'image' && (item.thumbnail_url || item.url)) {
+            overlay.innerHTML += '<img src="' + escapeHtml(item.thumbnail_url || item.url) + '" alt="' + escapeHtml(item.alt_text) + '" />';
+        } else {
+            overlay.innerHTML += '<div class="ml-modal-preview-placeholder">' + getTypeIcon(item.type, item.mime_type) + '</div>';
+        }
+
+        overlay.innerHTML +=
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>Filename</label>' +
+                        '<input type="text" class="ml-form-input" value="' + escapeHtml(item.filename || '') + '" readonly>' +
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>Alt Text</label>' +
+                        '<input type="text" class="ml-form-input" id="ml-edit-alt" value="' + escapeHtml(item.alt_text || '') + '" placeholder="Describe this image for accessibility">' +
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>Caption</label>' +
+                        '<input type="text" class="ml-form-input" id="ml-edit-caption" value="' + escapeHtml(item.caption || '') + '" placeholder="Caption shown below image">' +
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>Folder</label>' +
+                        '<select class="ml-form-input" id="ml-edit-folder">' + folderOptions + '</select>' +
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>URL</label>' +
+                        '<input type="text" class="ml-form-input" value="' + escapeHtml(item.url || '') + '" readonly>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="ml-modal-footer">' +
+                    '<button class="ml-btn ml-btn-secondary ml-modal-cancel">Cancel</button>' +
+                    '<button class="ml-btn ml-btn-primary ml-modal-save" data-media-id="' + item.id + '">Save Changes</button>' +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(overlay);
+
+        requestAnimationFrame(function () { overlay.classList.add('ml-modal-show'); });
+
+        // Close handlers
+        overlay.querySelector('.ml-modal-close').addEventListener('click', function () { closeModal(overlay); });
+        overlay.querySelector('.ml-modal-cancel').addEventListener('click', function () { closeModal(overlay); });
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeModal(overlay);
+        });
+
+        // Save handler
+        overlay.querySelector('.ml-modal-save').addEventListener('click', function () {
+            var mediaId = parseInt(this.getAttribute('data-media-id'), 10);
+            handleUpdateMetadata(mediaId, {
+                alt_text: document.getElementById('ml-edit-alt').value,
+                caption: document.getElementById('ml-edit-caption').value,
+                folder: document.getElementById('ml-edit-folder').value,
+            }).then(function (data) {
+                if (data && data.success) {
+                    closeModal(overlay);
+                    loadMedia();
+                }
             });
+        });
+    }
+
+    function showFolderMenu(folderId, folderName, folderSlug) {
+        var overlay = document.createElement('div');
+        overlay.className = 'ml-modal-overlay';
+        overlay.id = 'ml-folder-menu-modal';
+
+        overlay.innerHTML =
+            '<div class="ml-modal ml-modal-small">' +
+                '<div class="ml-modal-header">' +
+                    '<h3>Edit Folder</h3>' +
+                    '<button class="ml-modal-close">&times;</button>' +
+                '</div>' +
+                '<div class="ml-modal-body">' +
+                    '<div class="ml-form-group">' +
+                        '<label>Folder Name</label>' +
+                        '<input type="text" class="ml-form-input" id="ml-folder-name" value="' + escapeHtml(folderName) + '">' +
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>Slug</label>' +
+                        '<input type="text" class="ml-form-input" id="ml-folder-slug" value="' + escapeHtml(folderSlug) + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="ml-modal-footer">' +
+                    '<button class="ml-btn ml-btn-danger ml-folder-delete-btn" data-folder-id="' + folderId + '">Delete Folder</button>' +
+                    '<button class="ml-btn ml-btn-secondary ml-modal-cancel">Cancel</button>' +
+                    '<button class="ml-btn ml-btn-primary ml-folder-save-btn" data-folder-id="' + folderId + '">Save</button>' +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(function () { overlay.classList.add('ml-modal-show'); });
+
+        overlay.querySelector('.ml-modal-close').addEventListener('click', function () { closeModal(overlay); });
+        overlay.querySelector('.ml-modal-cancel').addEventListener('click', function () { closeModal(overlay); });
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeModal(overlay);
+        });
+
+        overlay.querySelector('.ml-folder-save-btn').addEventListener('click', function () {
+            var fid = parseInt(this.getAttribute('data-folder-id'), 10);
+            var name = document.getElementById('ml-folder-name').value;
+            var slug = document.getElementById('ml-folder-slug').value;
+            if (!name) { showToast('Name is required', 'error'); return; }
+            handleRenameFolder(fid, name, slug).then(function (data) {
+                if (data && data.success) closeModal(overlay);
+            });
+        });
+
+        overlay.querySelector('.ml-folder-delete-btn').addEventListener('click', function () {
+            var fid = parseInt(this.getAttribute('data-folder-id'), 10);
+            handleDeleteFolder(fid);
+            closeModal(overlay);
+        });
+    }
+
+    function showNewFolderModal() {
+        var overlay = document.createElement('div');
+        overlay.className = 'ml-modal-overlay';
+        overlay.id = 'ml-new-folder-modal';
+
+        overlay.innerHTML =
+            '<div class="ml-modal ml-modal-small">' +
+                '<div class="ml-modal-header">' +
+                    '<h3>New Folder</h3>' +
+                    '<button class="ml-modal-close">&times;</button>' +
+                '</div>' +
+                '<div class="ml-modal-body">' +
+                    '<div class="ml-form-group">' +
+                        '<label>Folder Name</label>' +
+                        '<input type="text" class="ml-form-input" id="ml-new-folder-name" placeholder="e.g. Screenshots">' +
+                    '</div>' +
+                    '<div class="ml-form-group">' +
+                        '<label>Slug (URL-friendly name)</label>' +
+                        '<input type="text" class="ml-form-input" id="ml-new-folder-slug" placeholder="e.g. screenshots">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="ml-modal-footer">' +
+                    '<button class="ml-btn ml-btn-secondary ml-modal-cancel">Cancel</button>' +
+                    '<button class="ml-btn ml-btn-primary ml-new-folder-create">Create</button>' +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(function () { overlay.classList.add('ml-modal-show'); });
+
+        // Auto-generate slug from name
+        var nameInput = overlay.querySelector('#ml-new-folder-name');
+        var slugInput = overlay.querySelector('#ml-new-folder-slug');
+        nameInput.addEventListener('input', function () {
+            slugInput.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        });
+
+        overlay.querySelector('.ml-modal-close').addEventListener('click', function () { closeModal(overlay); });
+        overlay.querySelector('.ml-modal-cancel').addEventListener('click', function () { closeModal(overlay); });
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeModal(overlay);
+        });
+
+        overlay.querySelector('.ml-new-folder-create').addEventListener('click', function () {
+            var name = nameInput.value;
+            var slug = slugInput.value;
+            if (!name) { showToast('Name is required', 'error'); return; }
+            if (!slug) { showToast('Slug is required', 'error'); return; }
+            handleCreateFolder(name, slug).then(function (data) {
+                if (data && data.success) closeModal(overlay);
+            });
+        });
+    }
+
+    function closeModal(overlay) {
+        overlay.classList.remove('ml-modal-show');
+        setTimeout(function () { overlay.remove(); }, 300);
+    }
+
+    // ── Clipboard ───────────────────────────────────────
+
+    function copyToClipboard(text) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+        } else {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
         }
     }
 
-    /**
-     * Renders folder options for a select element.
-     * @param {Array} folders - The folder tree.
-     * @param {string} selected - The currently selected folder slug.
-     * @param {number} depth - The nesting depth.
-     * @returns {string} HTML string.
-     */
-    function renderFolderOptions(folders, selected, depth) {
-        depth = depth || 0;
-        var html = '';
-        for (var i = 0; i < folders.length; i++) {
-            var f = folders[i];
-            var prefix = depth > 0 ? '— '.repeat(depth) : '';
-            html += '<option value="' + escapeHtml(f.slug) + '"' + (f.slug === selected ? ' selected' : '') + '>' + prefix + escapeHtml(f.name) + '</option>';
-            if (f.children && f.children.length > 0) {
-                html += renderFolderOptions(f.children, selected, depth + 1);
-            }
-        }
-        return html;
-    }
+    // ── Event listeners ──────────────────────────────────
 
-    // ── New folder modal ───────────────────────────────
-
-    /**
-     * Opens a dialog to create a new folder.
-     */
-    function openNewFolderDialog() {
-        var name = prompt('Enter folder name:');
-        if (name && name.trim()) {
-            createFolder(name.trim(), null);
-        }
-    }
-
-    /**
-     * Opens a dialog to rename a folder.
-     * @param {number} folderId - The folder ID.
-     */
-    function openRenameFolderDialog(folderId) {
-        var folder = findFolderById(state.folders, folderId);
-        var name = prompt('Enter new folder name:', folder ? folder.name : '');
-        if (name && name.trim()) {
-            renameFolder(folderId, name.trim());
-        }
-    }
-
-    /**
-     * Finds a folder by ID in the tree.
-     * @param {Array} folders - The folder tree.
-     * @param {number} id - The folder ID.
-     * @returns {Object|null} The folder or null.
-     */
-    function findFolderById(folders, id) {
-        for (var i = 0; i < folders.length; i++) {
-            if (folders[i].id === id) return folders[i];
-            if (folders[i].children) {
-                var found = findFolderById(folders[i].children, id);
-                if (found) return found;
-            }
-        }
-        return null;
-    }
-
-    // ── Event listeners ─────────────────────────────────
-
-    /**
-     * Attaches all event listeners to the rendered UI.
-     */
     function attachEventListeners() {
-        // Folder navigation
-        var folderItems = state.container.querySelectorAll('.ml-folder-item');
-        folderItems.forEach(function (item) {
-            item.addEventListener('click', function (e) {
-                // Don't navigate if clicking action buttons
-                if (e.target.closest('.ml-folder-actions')) return;
-                var folder = item.getAttribute('data-folder');
-                state.currentFolder = folder || null;
-                state.currentPage = 1;
-                fetchMedia();
-            });
-        });
-
-        // Folder rename
-        state.container.querySelectorAll('.ml-folder-rename').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var folderId = parseInt(btn.getAttribute('data-folder-id'), 10);
-                openRenameFolderDialog(folderId);
-            });
-        });
-
-        // Folder delete
-        state.container.querySelectorAll('.ml-folder-delete').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var folderId = parseInt(btn.getAttribute('data-folder-id'), 10);
-                if (confirm('Delete this folder? Media items will be moved to "General".')) {
-                    deleteFolder(folderId);
-                }
-            });
-        });
-
-        // New folder button
-        var newFolderBtn = state.container.querySelector('#ml-new-folder');
-        if (newFolderBtn) {
-            newFolderBtn.addEventListener('click', openNewFolderDialog);
-        }
-
-        // Search
-        var searchInput = state.container.querySelector('#ml-search');
+        // Search input
+        var searchInput = document.querySelector('.ml-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', debounce(function () {
-                state.searchQuery = searchInput.value;
+                state.searchQuery = this.value;
                 state.currentPage = 1;
-                if (state.searchQuery.trim()) {
-                    searchMedia();
-                } else {
-                    fetchMedia();
-                }
-            }, 300));
+                loadMedia();
+            }, 400));
         }
 
         // Type filter
-        var typeFilter = state.container.querySelector('#ml-type-filter');
+        var typeFilter = document.querySelector('.ml-type-filter');
         if (typeFilter) {
             typeFilter.addEventListener('change', function () {
-                state.typeFilter = typeFilter.value;
+                state.typeFilter = this.value;
                 state.currentPage = 1;
-                fetchMedia();
+                loadMedia();
             });
         }
 
         // Sort
-        var sortSelect = state.container.querySelector('#ml-sort');
+        var sortSelect = document.querySelector('.ml-sort-select');
         if (sortSelect) {
             sortSelect.addEventListener('change', function () {
-                var parts = sortSelect.value.split('-');
+                var parts = this.value.split(':');
                 state.sortBy = parts[0];
-                state.sortOrder = parts[1] || 'DESC';
-                fetchMedia();
+                state.sortOrder = parts[1];
+                loadMedia();
             });
         }
 
         // Upload button
-        var uploadBtn = state.container.querySelector('#ml-upload-btn');
-        var fileInput = state.container.querySelector('#ml-file-input');
+        var uploadBtn = document.querySelector('.ml-upload-btn');
+        var fileInput = document.getElementById('ml-file-input');
         if (uploadBtn && fileInput) {
             uploadBtn.addEventListener('click', function () {
                 fileInput.click();
             });
             fileInput.addEventListener('change', function () {
-                if (fileInput.files.length > 0) {
-                    uploadFiles(fileInput.files, state.currentFolder || 'general');
-                    fileInput.value = '';
+                if (this.files && this.files.length > 0) {
+                    handleUploadFiles(this.files);
+                    this.value = '';
                 }
             });
+        }
+
+        // New folder button
+        var newFolderBtn = document.querySelector('.ml-new-folder-btn');
+        if (newFolderBtn) {
+            newFolderBtn.addEventListener('click', showNewFolderModal);
         }
 
         // Dropzone
-        var dropzone = state.container.querySelector('#ml-dropzone');
+        var dropzone = document.getElementById('ml-dropzone');
         if (dropzone) {
             dropzone.addEventListener('click', function () {
-                fileInput.click();
+                if (fileInput) fileInput.click();
             });
+
             dropzone.addEventListener('dragover', function (e) {
                 e.preventDefault();
-                dropzone.classList.add('ml-dropzone-active');
+                e.stopPropagation();
+                this.classList.add('ml-dropzone-active');
             });
-            dropzone.addEventListener('dragleave', function () {
-                dropzone.classList.remove('ml-dropzone-active');
+
+            dropzone.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('ml-dropzone-active');
             });
+
             dropzone.addEventListener('drop', function (e) {
                 e.preventDefault();
-                dropzone.classList.remove('ml-dropzone-active');
-                if (e.dataTransfer.files.length > 0) {
-                    uploadFiles(e.dataTransfer.files, state.currentFolder || 'general');
+                e.stopPropagation();
+                this.classList.remove('ml-dropzone-active');
+                if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                    handleUploadFiles(e.dataTransfer.files);
                 }
             });
         }
 
-        // Media card actions
-        state.container.querySelectorAll('.ml-card-copy').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var url = btn.getAttribute('data-url');
-                copyToClipboard(url);
+        // Global drag & drop on the container
+        var container = state.container;
+        if (container) {
+            container.addEventListener('dragover', function (e) {
+                e.preventDefault();
             });
-        });
-
-        state.container.querySelectorAll('.ml-card-edit').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var mediaId = parseInt(btn.getAttribute('data-media-id'), 10);
-                openEditModal(mediaId);
-            });
-        });
-
-        state.container.querySelectorAll('.ml-card-delete').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var mediaId = parseInt(btn.getAttribute('data-media-id'), 10);
-                if (confirm('Are you sure you want to delete this media item? This cannot be undone.')) {
-                    deleteMediaItem(mediaId);
+            container.addEventListener('drop', function (e) {
+                e.preventDefault();
+                if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                    // Only handle if drop wasn't on the dropzone (which handles its own)
+                    if (!e.target.closest('#ml-dropzone')) {
+                        handleUploadFiles(e.dataTransfer.files);
+                    }
                 }
             });
-        });
-
-        // Pagination
-        state.container.querySelectorAll('.ml-btn-page').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                if (btn.classList.contains('disabled') || btn.disabled) return;
-                var page = parseInt(btn.getAttribute('data-page'), 10);
-                if (page >= 1 && page <= state.totalPages) {
-                    state.currentPage = page;
-                    fetchMedia();
-                }
-            });
-        });
-    }
-
-    /**
-     * Searches media items.
-     */
-    async function searchMedia() {
-        if (state.loading) return;
-        state.loading = true;
-        renderLoading();
-
-        try {
-            var params = new URLSearchParams();
-            params.set('q', state.searchQuery);
-            params.set('limit', ITEMS_PER_PAGE.toString());
-            params.set('offset', ((state.currentPage - 1) * ITEMS_PER_PAGE).toString());
-
-            var response = await fetch(API_BASE + '/search?' + params.toString(), { credentials: 'same-origin' });
-            var data = await response.json();
-
-            if (data.success) {
-                state.mediaItems = data.results || [];
-                state.totalItems = state.mediaItems.length;
-                state.totalPages = 1;
-            } else {
-                state.mediaItems = [];
-                showToast('Search failed: ' + (data.error || 'Unknown error'), 'error');
-            }
-        } catch (error) {
-            state.mediaItems = [];
-            showToast('Search failed: ' + error.message, 'error');
-        } finally {
-            state.loading = false;
-            render();
         }
     }
 
-    /**
-     * Copies text to clipboard.
-     * @param {string} text - The text to copy.
-     */
-    function copyToClipboard(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function () {
-                showToast('URL copied to clipboard', 'success');
-            }).catch(function () {
-                fallbackCopy(text);
-            });
-        } else {
-            fallbackCopy(text);
-        }
-    }
+    // ── Init ─────────────────────────────────────────────
 
-    /**
-     * Fallback clipboard copy for older browsers.
-     * @param {string} text - The text to copy.
-     */
-    function fallbackCopy(text) {
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            showToast('URL copied to clipboard', 'success');
-        } catch (e) {
-            showToast('Failed to copy URL', 'error');
-        }
-        textarea.remove();
-    }
-
-    // ── Public API ──────────────────────────────────────
-
-    /**
-     * Initializes the media library in a container.
-     * @param {string|HTMLElement} container - The container element or selector.
-     */
-    async function init(container) {
-        if (typeof container === 'string') {
-            container = document.querySelector(container);
-        }
+    function init(containerId) {
+        var container = document.getElementById(containerId);
         if (!container) {
-            console.error('MediaLibrary.init: container not found');
+            console.error('MediaLibrary: Container "' + containerId + '" not found');
             return;
         }
         state.container = container;
-        await fetchFolders();
-        await fetchMedia();
+        renderMainLayout();
+        loadFolders().then(function () {
+            renderFolderSidebar();
+            loadMedia();
+        });
     }
 
-    /**
-     * Refreshes the media library (re-fetches data).
-     */
-    async function refresh() {
-        await fetchFolders();
-        await fetchMedia();
-    }
-
-    // ── Expose global API ───────────────────────────────
+    // ── Public API ───────────────────────────────────────
 
     window.MediaLibrary = {
         init: init,
-        refresh: refresh,
+        loadMedia: loadMedia,
+        loadFolders: loadFolders,
     };
 
 })();

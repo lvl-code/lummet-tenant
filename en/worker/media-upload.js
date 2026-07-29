@@ -334,7 +334,7 @@ export async function handleUpload(request, env, user) {
                 contentType: mimeType,
             },
             customMetadata: {
-                uploadedBy: user.user.id.toString(),
+                uploadedBy: String(user.user_id),
                 originalFilename: originalFilename,
                 uploadedAt: new Date().toISOString(),
             },
@@ -378,7 +378,6 @@ export async function handleUpload(request, env, user) {
               throw new Error("createMediaItem returned undefined");
           }
 
-          console.log("MEDIA ITEM CREATED:", JSON.stringify(mediaItem));
 
 
         // Return success response

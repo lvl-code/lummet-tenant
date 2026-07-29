@@ -713,6 +713,9 @@ async function editReview(slug) {
     form.querySelector("[name='rating']").value = review.rating || 0;
     form.querySelector("[name='title']").value = review.title;
     form.querySelector("[name='content']").value = review.content || "";
+    setTimeout(() => {
+      RichEditor.set("review-overview", review.content || "");
+    }, 300); 
     let pros = [];
     try { pros = JSON.parse(review.pros || "[]"); } catch {}
     form.querySelector("[name='pros']").value = pros.join("\n");
@@ -737,6 +740,7 @@ function cancelReviewEdit() {
   form.querySelector("[name='id']").value = "";
   document.getElementById("reviewSubmitBtn").textContent = "Create Review";
   document.getElementById("reviewCancelEdit").style.display = "none";
+  RichEditor.set("review-overview", "");
 }
 
 
@@ -754,6 +758,9 @@ async function editNews(slug) {
     form.querySelector("[name='author']").value = article.author || "Admin";
     form.querySelector("[name='title']").value = article.title;
     form.querySelector("[name='content']").value = article.content || "";
+    setTimeout(() => {
+      RichEditor.set("news-content", article.content || "");
+    }, 300);
     form.querySelector("[name='seo_title']").value = article.seo_title || "";
     form.querySelector("[name='seo_description']").value = article.seo_description || "";
         // Set author dropdown
@@ -772,6 +779,7 @@ function cancelNewsEdit() {
   form.querySelector("[name='id']").value = "";
   document.getElementById("newsSubmitBtn").textContent = "Create Article";
   document.getElementById("newsCancelEdit").style.display = "none";
+  RichEditor.set("news-content", "");
 }
 
 

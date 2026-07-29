@@ -236,6 +236,8 @@
         });
 
         var result = await response.json();
+        console.log("UPLOAD RESULT:", result);
+        alert(JSON.stringify(result));
 
         if (!result.success) {
             throw new Error(result.error || 'Upload failed');

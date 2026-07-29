@@ -161,7 +161,7 @@ export async function renderHome(request, env) {
       "name": "Level Casino",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://level.casino/en/static/images/logo.png"
+        "url": "https://level.casino/static/images/logo.png"
       }
     }
   };
@@ -214,7 +214,7 @@ export async function renderHomebackupold(request, env) {
       "name": "Level Casino",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://level.casino/en/static/images/logo.png"
+        "url": "https://level.casino/static/images/logo.png"
       }
     }
   };
@@ -275,7 +275,7 @@ export async function renderCasino(request, env, slug) {
     "itemReviewed": {
       "@type": "Casino",
       "name": casino.name,
-      "image": casino.logo || "https://level.casino/en/static/images/logo.png",
+      "image": casino.logo || "https://level.casino/static/images/logo.png",
       "url": casino.website_url || ""
     },
     "reviewRating": {
@@ -464,7 +464,7 @@ function buildCasinoCards(casinoList, geoData = null) {
     <div class="casino-card">
       ${geoBadge}
       <div class="casino-card__header">
-        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'" loading="lazy">
+        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">
@@ -535,7 +535,7 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
     <div class="casino-card">
       ${geoBadge}
       <div class="casino-card__header">
-        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/en/static/images/logo.png'" loading="lazy">
+        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">

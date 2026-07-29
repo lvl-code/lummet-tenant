@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .map(
               (c) => `
             <a href="/en/casino/${c.slug}" class="search-result-item">
-              <img src="${c.logo || "/en/static/images/logo.png"}" alt="${c.name}" onerror="this.src='/en/static/images/logo.png'">
+              <img src="${c.logo || "/static/images/logo.png"}" alt="${c.name}" onerror="this.src='/static/images/logo.png'">
               <div>
                 <strong>${c.name}</strong>
                 <span class="muted">★ ${c.rating || "N/A"}</span>

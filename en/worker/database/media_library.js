@@ -14,7 +14,7 @@ export async function createMedia(db, data) {
     data.folder || "general",
     data.uploaded_by || null
   ).run();
-  return result.meta.last_row_id;
+  return result.meta?.last_row_id || result.last_row_id;
 }
 
 export async function getMedia(db, id) {
@@ -84,7 +84,7 @@ export async function createMediaItem(env, data) {
     ).run();
 
     return {
-        id: result.meta.last_row_id,
+        id: result.meta?.last_row_id || result.last_row_id,
         created_at: new Date().toISOString(),
     };
 }

@@ -374,13 +374,12 @@ export async function handleUpload(request, env, user) {
             caption: caption,
             file_ext: ext,
           });
-
           if (!mediaItem) {
               throw new Error("createMediaItem returned undefined");
           }
+
           console.log("MEDIA ITEM CREATED:", JSON.stringify(mediaItem));
-          return jsonResponse(201, {
-        });
+
 
         // Return success response
         return jsonResponse(201, {

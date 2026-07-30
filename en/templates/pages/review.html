@@ -109,8 +109,8 @@
     <h2>More Details</h2>
     {{content}}
   </section>
-  {{components_content_top}}
   {{review_blocks_html}}
+  {{components_content_top}}
   {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
@@ -125,10 +125,7 @@
           {{cons_html}}
         </div>
       </div>
-<section id="faq" class="review-faq">
-    <h2>Frequently Asked Questions</h2>
-    {{faq_html}}
-</section>
+      {{faq_html}}
     </div>
     <div class="review-cta">
       <div class="geo-availability" style="margin-bottom:16px;font-size:18px;">
@@ -225,12 +222,12 @@ document.querySelectorAll(".faq-question").forEach(btn => {
     });
 });
 </script>
-<!--
+
 <script>
 document.addEventListener("click", function(e) {
     if (e.target.classList.contains("faq-question")) {
         e.target.parentElement.classList.toggle("active");
     }
 });
-</script> -->
+</script>
 </article>

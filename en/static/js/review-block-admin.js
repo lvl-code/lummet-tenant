@@ -118,6 +118,9 @@ async function editReviewBlock(id, title, position) {
     form.querySelector("[name='id']").value = block.id;
     form.querySelector("[name='title']").value = block.title;
     form.querySelector("[name='content']").value = block.content || "";
+    setTimeout(() => {
+      RichEditor.set("reviewblock-content", block.content || "");
+    }, 300);
     form.querySelector("[name='position']").value = block.position || 0;
     document.getElementById("reviewBlockSubmitBtn").textContent = "Update Block";
     document.getElementById("reviewBlockCancelEdit").style.display = "";
@@ -131,6 +134,7 @@ function cancelReviewBlockEdit() {
   form.querySelector("[name='id']").value = "";
   document.getElementById("reviewBlockSubmitBtn").textContent = "Add Block";
   document.getElementById("reviewBlockCancelEdit").style.display = "none";
+  RichEditor.set("reviewblock-content", "");
 }
 
 async function deleteReviewBlock(id) {

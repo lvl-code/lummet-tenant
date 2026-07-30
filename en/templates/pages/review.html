@@ -34,6 +34,7 @@
     <a href="#bonuses">Bonuses</a>
     <a href="#payments">Payments</a>
     <a href="#licensing">Licensing</a>
+    <a href="#more-details">More Details</a>
     <a href="#verdict">Verdict</a>
     <a href="#pros-cons">Pros & Cons</a>
     <a href="#faq">FAQ</a>
@@ -104,8 +105,11 @@
 
   <h2 id="licensing">Licensing</h2>
   <p>{{licenses}}</p>
+  <section id="more-details">
+    <h2>More Details</h2>
+    {{content}}
+  </section>
   {{components_content_top}}
-  {{content}}
   {{review_blocks_html}}
   {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
@@ -157,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const sections = document.querySelectorAll(
-        "#overview,#games,#bonuses,#payments,#licensing,#verdict,#pros-cons,#faq"
+        "#overview,#games,#bonuses,#payments,#licensing,#more-details,#verdict,#pros-cons,#faq"
     );
 
     window.addEventListener("scroll", () => {

@@ -72,19 +72,60 @@ function initReviewForm() {
     const formData = new FormData(form);
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/review/update" : "/en/api/v1/review/create";
-    const payload = {
-      slug: formData.get("slug"),
-      casino_slug: formData.get("casino_slug"),
-      country_code: formData.get("country_code") || null,
-      title: formData.get("title"),
-      content: formData.get("content"),
-      pros: formData.get("pros") ? formData.get("pros").split("\n").map((p) => p.trim()).filter(Boolean) : [],
-      cons: formData.get("cons") ? formData.get("cons").split("\n").map((c) => c.trim()).filter(Boolean) : [],
-      rating: parseFloat(formData.get("rating")) || 0,
-      seo_title: formData.get("seo_title") || null,
-      seo_description: formData.get("seo_description") || null,
-      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
-    };
+  //  const payload = {
+    //  slug: formData.get("slug"),
+     // casino_slug: formData.get("casino_slug"),
+     // country_code: formData.get("country_code") || null,
+     // title: formData.get("title"),
+     // content: formData.get("content"),
+     // pros: formData.get("pros") ? formData.get("pros").split("\n").map((p) => p.trim()).filter(Boolean) : [],
+     // cons: formData.get("cons") ? formData.get("cons").split("\n").map((c) => c.trim()).filter(Boolean) : [],
+     // rating: parseFloat(formData.get("rating")) || 0,
+     // seo_title: formData.get("seo_title") || null,
+     // seo_description: formData.get("seo_description") || null,
+     // author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
+   // };
+
+const payload = {
+  slug: formData.get("slug"),
+  casino_slug: formData.get("casino_slug"),
+  country_code: formData.get("country_code") || null,
+
+  title: formData.get("title"),
+
+  overview: formData.get("overview") || "",
+  games: formData.get("games") || "",
+  bonuses: formData.get("bonuses") || "",
+  payments: formData.get("payments") || "",
+  licenses: formData.get("licenses") || "",
+  verdict: formData.get("verdict") || "",
+
+  content: formData.get("content") || "",
+
+  pros: formData.get("pros")
+    ? formData.get("pros")
+        .split("\n")
+        .map(p => p.trim())
+        .filter(Boolean)
+    : [],
+
+  cons: formData.get("cons")
+    ? formData.get("cons")
+        .split("\n")
+        .map(c => c.trim())
+        .filter(Boolean)
+    : [],
+
+  rating: parseFloat(formData.get("rating")) || 0,
+
+  seo_title: formData.get("seo_title") || null,
+
+  seo_description: formData.get("seo_description") || null,
+
+  author_id: formData.get("author_id")
+    ? parseInt(formData.get("author_id"))
+    : null
+};
 
     try {
       const res = await fetch(endpoint, {
@@ -712,10 +753,56 @@ async function editReview(slug) {
     form.querySelector("[name='country_code']").value = review.country_code || "";
     form.querySelector("[name='rating']").value = review.rating || 0;
     form.querySelector("[name='title']").value = review.title;
+    form.querySelector("[name='overview']").value = review.overview || "";
+    form.querySelector("[name='games']").value = review.games || "";
+    form.querySelector("[name='bonuses']").value = review.bonuses || "";
+    form.querySelector("[name='payments']").value = review.payments || "";
+    form.querySelector("[name='licenses']").value = review.licenses || "";
+    form.querySelector("[name='verdict']").value = review.verdict || "";
+
     form.querySelector("[name='content']").value = review.content || "";
-    setTimeout(() => {
-      RichEditor.set("review-overview", review.content || "");
-    }, 300); 
+   // setTimeout(() => {
+     // RichEditor.set("review-overview", review.content || "");
+   // }, 300); 
+setTimeout(() => {
+
+  RichEditor.set(
+    "review-overview",
+    review.overview || ""
+  );
+
+  RichEditor.set(
+    "review-games",
+    review.games || ""
+  );
+
+  RichEditor.set(
+    "review-bonuses",
+    review.bonuses || ""
+  );
+
+  RichEditor.set(
+    "review-payments",
+    review.payments || ""
+  );
+
+  RichEditor.set(
+    "review-licenses",
+    review.licenses || ""
+  );
+
+  RichEditor.set(
+    "review-verdict",
+    review.verdict || ""
+  );
+
+  RichEditor.set(
+    "review-content",
+    review.content || ""
+  );
+
+}, 300);
+
     let pros = [];
     try { pros = JSON.parse(review.pros || "[]"); } catch {}
     form.querySelector("[name='pros']").value = pros.join("\n");

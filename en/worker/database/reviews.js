@@ -27,53 +27,113 @@ export async function getReview(db, slug, countryCode = null) {
     .first();
 }
 
+
 export async function createReview(db, review) {
   return await db
     .prepare(`
       INSERT INTO reviews (
-        casino_slug, country_code, slug, title, content, pros, cons,
-        rating, seo_title, seo_description, ai_generated, author_id, published
+        casino_slug,
+        country_code,
+        slug,
+        title,
+
+        overview,
+        games,
+        bonuses,
+        payments,
+        licenses,
+        verdict,
+
+        content,
+        pros,
+        cons,
+        rating,
+        seo_title,
+        seo_description,
+        ai_generated,
+        author_id,
+        published
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      VALUES (
+        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, 1
+      )
     `)
     .bind(
       review.casino_slug,
       review.country_code,
       review.slug,
       review.title,
-      review.content,
+
+      review.overview || "",
+      review.games || "",
+      review.bonuses || "",
+      review.payments || "",
+      review.licenses || "",
+      review.verdict || "",
+
+      review.content || "",
       JSON.stringify(review.pros || []),
       JSON.stringify(review.cons || []),
-      review.rating,
-      review.seo_title,
-      review.seo_description,
+      review.rating || 0,
+      review.seo_title || null,
+      review.seo_description || null,
+
       review.ai_generated ? 1 : 0,
       review.author_id || null
     )
     .run();
 }
 
+
 export async function updateReview(db, slug, review) {
-  return db.prepare(`
-    UPDATE reviews
-    SET
-      title=?, content=?, pros=?, cons=?, rating=?,
-      seo_title=?, seo_description=?, author_id=?,
-      updated_at=CURRENT_TIMESTAMP
-    WHERE slug=?
-  `)
-  .bind(
-    review.title,
-    review.content,
-    JSON.stringify(review.pros || []),
-    JSON.stringify(review.cons || []),
-    review.rating,
-    review.seo_title,
-    review.seo_description,
-    review.author_id || null,
-    slug
-  )
-  .run();
+  return await db
+    .prepare(`
+      UPDATE reviews
+      SET
+        title = ?,
+
+        overview = ?,
+        games = ?,
+        bonuses = ?,
+        payments = ?,
+        licenses = ?,
+        verdict = ?,
+
+        content = ?,
+        pros = ?,
+        cons = ?,
+        rating = ?,
+        seo_title = ?,
+        seo_description = ?,
+        author_id = ?,
+
+        updated_at = CURRENT_TIMESTAMP
+      WHERE slug = ?
+    `)
+    .bind(
+      review.title,
+
+      review.overview || "",
+      review.games || "",
+      review.bonuses || "",
+      review.payments || "",
+      review.licenses || "",
+      review.verdict || "",
+
+      review.content || "",
+      JSON.stringify(review.pros || []),
+      JSON.stringify(review.cons || []),
+      review.rating || 0,
+      review.seo_title || null,
+      review.seo_description || null,
+      review.author_id || null,
+
+      slug
+    )
+    .run();
 }
 
 
@@ -84,19 +144,21 @@ export async function getCasinoReviews(
   const result = await db.prepare(`
     SELECT *
     FROM reviews
-    WHERE casino_slug=?
+    WHERE casino_slug = ?
     ORDER BY created_at DESC
   `)
-  .bind(casinoSlug)
-  .all();
+    .bind(casinoSlug)
+    .all();
 
   return result.results;
 }
 
+
 export async function deleteReview(db, slug) {
   return db.prepare(`
-    DELETE FROM reviews WHERE slug=?
+    DELETE FROM reviews
+    WHERE slug = ?
   `)
-  .bind(slug)
-  .run();
+    .bind(slug)
+    .run();
 }

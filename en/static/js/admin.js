@@ -838,7 +838,7 @@ async function editCategory(id) {
     form.querySelector("[name='name']").value = c.name;
     form.querySelector("[name='description']").value = c.description || "";
     setTimeout(() => {
-      RichEditor.set("category-description", c.desciption || "");
+      RichEditor.set("category-description", category.desciption || "");
     }, 300);
     form.querySelector("[name='seo_title']").value = c.seo_title || "";
     form.querySelector("[name='seo_description']").value = c.seo_description || "";

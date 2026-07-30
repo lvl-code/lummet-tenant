@@ -47,6 +47,7 @@ export async function createReview(db, review) {
         content,
         pros,
         cons,
+        faq_json,
         rating,
         seo_title,
         seo_description,
@@ -56,7 +57,7 @@ export async function createReview(db, review) {
       )
       VALUES (
         ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?, 1
       )
@@ -77,6 +78,7 @@ export async function createReview(db, review) {
       review.content || "",
       JSON.stringify(review.pros || []),
       JSON.stringify(review.cons || []),
+      review.faq_json || "[]",
       review.rating || 0,
       review.seo_title || null,
       review.seo_description || null,
@@ -105,6 +107,7 @@ export async function updateReview(db, slug, review) {
         content = ?,
         pros = ?,
         cons = ?,
+        faq_json = ?,
         rating = ?,
         seo_title = ?,
         seo_description = ?,
@@ -126,6 +129,7 @@ export async function updateReview(db, slug, review) {
       review.content || "",
       JSON.stringify(review.pros || []),
       JSON.stringify(review.cons || []),
+      review.faq_json || "[]",
       review.rating || 0,
       review.seo_title || null,
       review.seo_description || null,

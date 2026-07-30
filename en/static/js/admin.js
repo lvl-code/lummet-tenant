@@ -116,6 +116,7 @@ const payload = {
         .filter(Boolean)
     : [],
 
+  faq_json: formData.get("faq_json") || "[]",
   rating: parseFloat(formData.get("rating")) || 0,
 
   seo_title: formData.get("seo_title") || null,
@@ -809,6 +810,7 @@ setTimeout(() => {
     let cons = [];
     try { cons = JSON.parse(review.cons || "[]"); } catch {}
     form.querySelector("[name='cons']").value = cons.join("\n");
+    form.querySelector("[name='faq_json']").value = review.faq_json || "[]";
     form.querySelector("[name='seo_title']").value = review.seo_title || "";
     form.querySelector("[name='seo_description']").value = review.seo_description || "";
         // Set author dropdown

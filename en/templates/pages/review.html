@@ -100,6 +100,18 @@
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
 </div>
+{{#if faq_html}}
+<section class="review-faq" id="faq">
+  <div class="review-faq__header">
+    <h2>Frequently Asked Questions</h2>
+    <p>Answers to common questions about this casino.</p>
+  </div>
+
+  <div class="faq-accordion">
+    {{faq_html}}
+  </div>
+</section>
+{{/if}}
 
       <div class="review-pros-cons">
         <div class="pros-cons-block pros">

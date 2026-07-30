@@ -122,6 +122,20 @@
     data-editor-folder="reviews"
   ></textarea>
 </div>
+<div class="form-group">
+  <label>Frequently Asked Questions</label>
+  <textarea
+    name="faq_json"
+    id="reviewFaqJson"
+    rows="12"
+    placeholder='[
+  {"q":"Is this casino legitimate?","a":"Write the answer here."},
+  {"q":"What payment methods are available?","a":"Write the answer here."}
+]'></textarea>
+  <small class="muted">
+    Enter a valid JSON array using "q" for the question and "a" for the answer.
+  </small>
+</div>
       <div class="form-row">
         <div class="form-group"><label>Pros (one per line)</label><textarea name="pros"></textarea></div>
         <div class="form-group"><label>Cons (one per line)</label><textarea name="cons"></textarea></div>

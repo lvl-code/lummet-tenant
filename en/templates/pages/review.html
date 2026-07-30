@@ -28,10 +28,21 @@
       </div>
     </header>
     <div class="review-body">
-      <nav id="review-toc" class="review-toc">
+<nav id="review-nav" class="review-nav">
+    <a href="#overview">Overview</a>
+    <a href="#games">Games</a>
+    <a href="#bonuses">Bonuses</a>
+    <a href="#payments">Payments</a>
+    <a href="#licensing">Licensing</a>
+    <a href="#verdict">Verdict</a>
+    <a href="#pros-cons">Pros & Cons</a>
+    <a href="#faq">FAQ</a>
+</nav>
+
+      <!--<nav id="review-toc" class="review-toc">
         <h2>Contents</h2>
         <ul id="review-toc-list"></ul>
-      </nav>
+      </nav> -->
       <div class="review-content">
 
       <div class="review-summary">
@@ -100,8 +111,13 @@
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
 </div>
-
-      <div class="review-pros-cons">
+{{#if faq_html}}
+<div id="faq">
+    <h2>Frequently Asked Questions</h2>
+    {{faq_html}}
+</div>
+{{/if}}
+      <div id="pros-cons" class="review-pros-cons">
         <div class="pros-cons-block pros">
           <h3>Pros</h3>
           {{pros_html}}
@@ -120,9 +136,57 @@
     </div>
     {{components_bottom}}
   </div>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+
+    const links = document.querySelectorAll("#review-nav a");
+
+    links.forEach(link => {
+        link.addEventListener("click", e => {
+            e.preventDefault();
+
+            const target = document.querySelector(link.getAttribute("href"));
+
+            if(target){
+                target.scrollIntoView({
+                    behavior:"smooth",
+                    block:"start"
+                });
+            }
+        });
+    });
+
+    const sections = document.querySelectorAll(
+        "#overview,#games,#bonuses,#payments,#licensing,#verdict,#pros-cons,#faq"
+    );
+
+    window.addEventListener("scroll", () => {
+
+        let current = "";
+
+        sections.forEach(section => {
+            const top = section.offsetTop - 140;
+
+            if(window.scrollY >= top){
+                current = section.id;
+            }
+        });
+
+        links.forEach(link=>{
+            link.classList.remove("active");
+
+            if(link.getAttribute("href")==="#"+current){
+                link.classList.add("active");
+            }
+        });
+
+    });
+
+});
+</script>
+
+<script>
+documen.addEventListener("DOMContentLoaded", () => {
     const toc = document.getElementById("review-toc-list");
     const headings = document.querySelectorAll(".review-content h2");
 

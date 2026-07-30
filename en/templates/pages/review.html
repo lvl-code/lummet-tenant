@@ -185,93 +185,295 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function () {
+
     const nav = document.getElementById("review-nav");
+
     if (!nav) return;
 
-    const links = Array.from(nav.querySelectorAll("a"));
+    const links = Array.from(
+        nav.querySelectorAll("a[href^='#']")
+    );
 
+    if (!links.length) return;
+
+    /*
+     * Get only sections that actually exist on the page.
+     */
     const sections = links
-        .map(link => document.querySelector(link.getAttribute("href")))
+        .map(function (link) {
+            const selector = link.getAttribute("href");
+
+            try {
+                return document.querySelector(selector);
+            } catch (error) {
+                return null;
+            }
+        })
         .filter(Boolean);
 
+    if (!sections.length) return;
+
+    let activeId = "";
+    let isAutoScrolling = false;
+    let scrollTimer = null;
+    let ticking = false;
+
+
+    /*
+     * Update the active navigation item
+     * according to the section currently visible.
+     */
     function updateActiveSection() {
-        const scrollPosition = window.scrollY + 180;
+
+        if (isAutoScrolling) return;
+
+        const offset = 150;
+        const currentPosition = window.scrollY + offset;
+
         let currentSection = sections[0];
 
-        sections.forEach(section => {
-            if (section.offsetTop <= scrollPosition) {
+        sections.forEach(function (section) {
+
+            if (section.offsetTop <= currentPosition) {
                 currentSection = section;
             }
+
         });
 
         if (!currentSection) return;
 
-        links.forEach(link => {
-            link.classList.toggle(
-                "active",
-                link.getAttribute("href") === "#" + currentSection.id
-            );
-        });
+        const newId = currentSection.id;
 
-        const activeLink = nav.querySelector(
-            `a[href="#${currentSection.id}"]`
-        );
+        if (newId === activeId) return;
+
+        activeId = newId;
+
 
         /*
-         * Automatically move the horizontal navigation
-         * so the active section is visible.
+         * Update active color.
          */
-        if (activeLink) {
-            activeLink.scrollIntoView({
-                behavior: "smooth",
-                block: "nearest",
-                inline: "center"
+        links.forEach(function (link) {
+
+            link.classList.toggle(
+                "active",
+                link.getAttribute("href") === "#" + newId
+            );
+
+        });
+
+
+        /*
+         * Find the active navigation item.
+         */
+        const activeLink = nav.querySelector(
+            'a[href="#' + CSS.escape(newId) + '"]'
+        );
+
+        if (!activeLink) return;
+
+
+        /*
+         * Automatically scroll ONLY the
+         * horizontal navigation bar.
+         *
+         * The page itself is not moved here.
+         */
+        const navLeft = nav.scrollLeft;
+        const navRight = navLeft + nav.clientWidth;
+
+        const linkLeft = activeLink.offsetLeft;
+        const linkRight =
+            linkLeft + activeLink.offsetWidth;
+
+        const padding = 20;
+
+
+        /*
+         * Active item is hidden to the left.
+         */
+        if (linkLeft < navLeft + padding) {
+
+            nav.scrollTo({
+                left: Math.max(0, linkLeft - padding),
+                behavior: "smooth"
             });
+
         }
+
+
+        /*
+         * Active item is hidden to the right.
+         */
+        else if (linkRight > navRight - padding) {
+
+            nav.scrollTo({
+                left:
+                    linkRight -
+                    nav.clientWidth +
+                    padding,
+                behavior: "smooth"
+            });
+
+        }
+
     }
 
-    links.forEach(link => {
-        link.addEventListener("click", event => {
+
+    /*
+     * Handle navigation clicks.
+     */
+    links.forEach(function (link) {
+
+        link.addEventListener("click", function (event) {
+
             event.preventDefault();
 
-            const target = document.querySelector(
-                link.getAttribute("href")
-            );
+            const selector =
+                link.getAttribute("href");
+
+            let target;
+
+            try {
+                target = document.querySelector(selector);
+            } catch (error) {
+                return;
+            }
 
             if (!target) return;
 
-            const offset = 130;
+
+            /*
+             * Offset required because the review
+             * navigation is sticky.
+             */
+            const stickyOffset =
+                window.innerWidth <= 768
+                    ? 125
+                    : 145;
+
+
             const targetPosition =
                 target.getBoundingClientRect().top +
                 window.scrollY -
-                offset;
+                stickyOffset;
 
-            window.scrollTo({
-                top: targetPosition,
+
+            /*
+             * Prevent the scroll listener from
+             * immediately changing the clicked item
+             * during smooth scrolling.
+             */
+            isAutoScrolling = true;
+
+
+            /*
+             * Immediately highlight clicked item.
+             */
+            activeId = target.id;
+
+            links.forEach(function (item) {
+
+                item.classList.toggle(
+                    "active",
+                    item === link
+                );
+
+            });
+
+
+            /*
+             * Center clicked item inside the
+             * horizontal navigation bar.
+             */
+            const navTarget =
+                link.offsetLeft -
+                (nav.clientWidth / 2) +
+                (link.offsetWidth / 2);
+
+
+            nav.scrollTo({
+                left: Math.max(0, navTarget),
                 behavior: "smooth"
             });
+
+
+            /*
+             * Scroll page to selected section.
+             */
+            window.scrollTo({
+                top: Math.max(0, targetPosition),
+                behavior: "smooth"
+            });
+
+
+            /*
+             * Re-enable automatic section detection
+             * after smooth scrolling finishes.
+             */
+            clearTimeout(scrollTimer);
+
+            scrollTimer = setTimeout(function () {
+
+                isAutoScrolling = false;
+
+                updateActiveSection();
+
+            }, 700);
+
         });
+
     });
 
-    let ticking = false;
 
-    window.addEventListener("scroll", () => {
-        if (!ticking) {
-            window.requestAnimationFrame(() => {
+    /*
+     * Efficient scroll listener.
+     *
+     * requestAnimationFrame prevents the active
+     * section calculation from running excessively.
+     */
+    window.addEventListener(
+        "scroll",
+        function () {
+
+            if (ticking) return;
+
+            window.requestAnimationFrame(function () {
+
                 updateActiveSection();
+
                 ticking = false;
+
             });
 
             ticking = true;
-        }
-    }, { passive: true });
 
+        },
+        { passive: true }
+    );
+
+
+    /*
+     * Recalculate after window resize.
+     */
+    window.addEventListener(
+        "resize",
+        function () {
+
+            updateActiveSection();
+
+        },
+        { passive: true }
+    );
+
+
+    /*
+     * Set the correct active section when
+     * the page initially loads.
+     */
     updateActiveSection();
-});
-</script>
 
+});
 <!--
 <script>
 document.addEventListener("DOMContentLoaded", () => {

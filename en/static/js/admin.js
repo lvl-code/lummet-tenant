@@ -837,6 +837,9 @@ async function editCategory(id) {
     form.querySelector("[name='slug']").value = c.slug;
     form.querySelector("[name='name']").value = c.name;
     form.querySelector("[name='description']").value = c.description || "";
+    setTimeout(() => {
+      RichEditor.set("category-description", c.desciption || "");
+    }, 300);
     form.querySelector("[name='seo_title']").value = c.seo_title || "";
     form.querySelector("[name='seo_description']").value = c.seo_description || "";
     document.getElementById("categorySubmitBtn").textContent = "Update Category";
@@ -851,6 +854,7 @@ function cancelCategoryEdit() {
   form.querySelector("[name='id']").value = "";
   document.getElementById("categorySubmitBtn").textContent = "Create Category";
   document.getElementById("categoryCancelEdit").style.display = "none";
+  RichEditor.set("category-description", "");
 }
 
 // ── Country Edit ──

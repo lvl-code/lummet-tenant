@@ -135,6 +135,7 @@
     </div>
     {{components_bottom}}
   </div>
+<!--
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -183,6 +184,94 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+-->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const nav = document.getElementById("review-nav");
+    if (!nav) return;
+
+    const links = Array.from(nav.querySelectorAll("a"));
+
+    const sections = links
+        .map(link => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+    function updateActiveSection() {
+        const scrollPosition = window.scrollY + 180;
+        let currentSection = sections[0];
+
+        sections.forEach(section => {
+            if (section.offsetTop <= scrollPosition) {
+                currentSection = section;
+            }
+        });
+
+        if (!currentSection) return;
+
+        links.forEach(link => {
+            link.classList.toggle(
+                "active",
+                link.getAttribute("href") === "#" + currentSection.id
+            );
+        });
+
+        const activeLink = nav.querySelector(
+            `a[href="#${currentSection.id}"]`
+        );
+
+        /*
+         * Automatically move the horizontal navigation
+         * so the active section is visible.
+         */
+        if (activeLink) {
+            activeLink.scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+                inline: "center"
+            });
+        }
+    }
+
+    links.forEach(link => {
+        link.addEventListener("click", event => {
+            event.preventDefault();
+
+            const target = document.querySelector(
+                link.getAttribute("href")
+            );
+
+            if (!target) return;
+
+            const offset = 130;
+            const targetPosition =
+                target.getBoundingClientRect().top +
+                window.scrollY -
+                offset;
+
+            window.scrollTo({
+                top: targetPosition,
+                behavior: "smooth"
+            });
+        });
+    });
+
+    let ticking = false;
+
+    window.addEventListener("scroll", () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                updateActiveSection();
+                ticking = false;
+            });
+
+            ticking = true;
+        }
+    }, { passive: true });
+
+    updateActiveSection();
+});
+</script>
+
 <!--
 <script>
 document.addEventListener("DOMContentLoaded", () => {

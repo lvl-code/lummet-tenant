@@ -798,9 +798,28 @@ async function editPage(slug) {
     form.querySelector("[name='type']").value = page.type || "page";
     form.querySelector("[name='template']").value = page.template || "page";
     form.querySelector("[name='title']").value = page.title;
-    form.querySelector("[name='content_json']").value = page.content_json || "";
+
+    let pageContent = page.content_json || "";
+
+    // Convert JSON content into plain editor content
+    if (typeof pageContent === "string") {
+      try {
+        pageContent = JSON.parse(pageContent);
+      } catch {
+        // Already plain text
+      }
+    }
+
+    if (pageContent && typeof pageContent === "object") {
+      pageContent = pageContent.text || "";
+    }
+
+    form.querySelector("[name='content_json']").value = pageContent;
+
     setTimeout(() => {
-      RichEditor.set("page-content", page.content_json || "");
+      if (window.RichEditor && typeof RichEditor.set === "function") {
+        RichEditor.set("page-content", pageContent || "");
+      }
     }, 300);
     form.querySelector("[name='seo_title']").value = page.seo_title || "";
     form.querySelector("[name='seo_description']").value = page.seo_description || "";

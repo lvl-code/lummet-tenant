@@ -655,8 +655,17 @@ if (review.casino_slug) {
       "name": "Elie"
     }
   };
+  let casinoName = "";
+
+if (review.casino_slug) {
+  const casino = await casinos.getCasino(env.DB, review.casino_slug);
+  if (casino) {
+    casinoName = casino.name;
+  }
+}
   const html = await renderer.render("review.html", {
     ...review,
+    casino_name: casinoName,
     author_name: author?.name || "",
     author_bio: author?.bio || "",
     author_avatar: author?.avatar_url || "",

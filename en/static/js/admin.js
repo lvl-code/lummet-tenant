@@ -799,6 +799,9 @@ async function editPage(slug) {
     form.querySelector("[name='template']").value = page.template || "page";
     form.querySelector("[name='title']").value = page.title;
     form.querySelector("[name='content_json']").value = page.content_json || "";
+    setTimeout(() => {
+      RichEditor.set("page-content", page.content_json || "");
+    }, 300);
     form.querySelector("[name='seo_title']").value = page.seo_title || "";
     form.querySelector("[name='seo_description']").value = page.seo_description || "";
         // Set author dropdown
@@ -817,6 +820,7 @@ function cancelPageEdit() {
   form.querySelector("[name='id']").value = "";
   document.getElementById("pageSubmitBtn").textContent = "Create Page";
   document.getElementById("pageCancelEdit").style.display = "none";
+  RichEditor.set("page-content", "");
 }
 
 

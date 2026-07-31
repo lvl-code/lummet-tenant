@@ -1874,13 +1874,14 @@ async function updateNews(request, env) {
   const body = await request.json();
 
   validate(body, [
+    "old_slug",
     "slug",
     "title",
     "content"
   ]);
   await news.updateNews(
     env.DB,
-    body.slug,
+    body.old_slug,
     body
   );
 

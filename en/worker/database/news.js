@@ -51,21 +51,23 @@ export async function createNews(db, data) {
   .run();
 }
 
-export async function updateNews(db, slug, data) {
+export async function updateNews(db, oldslug, data) {
   return db.prepare(`
     UPDATE news
     SET
+      slug=?,
       title=?, content=?, seo_title=?, seo_description=?, author_id=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE slug=?
   `)
   .bind(
+    data.slug,
     data.title,
     data.content,
     data.seo_title,
     data.seo_description,
     data.author_id || null,
-    slug
+    oldslug
   )
   .run();
 }

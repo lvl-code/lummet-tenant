@@ -216,7 +216,9 @@ function initNewsForm() {
     const formData = new FormData(form);
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/news/update" : "/en/api/v1/news/create";
+    const oldSlug = form.dataset.slug;
     const payload = {
+      old_slug: oldSlug,
       slug: formData.get("slug"),
       title: formData.get("title"),
       content: formData.get("content"),
@@ -234,6 +236,7 @@ function initNewsForm() {
       });
       const data = await res.json();
       if (data.success) {
+        form.dataset.slug = payload.slug;
         if (alertEl) {
           alertEl.className = "alert alert--success";
           alertEl.textContent = isEdit ? "Article updated!" : "News article created!";

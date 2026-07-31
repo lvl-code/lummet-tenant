@@ -39,6 +39,9 @@ function initBannerForm() {
     e.preventDefault();
     const alertEl = document.getElementById("bannerFormAlert");
     if (alertEl) alertEl.style.display = "none";
+    if (window.RichEditor) {
+        RichEditor.syncAll();
+    }
     const formData = new FormData(form);
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/banner/update" : "/en/api/v1/banner/create";
@@ -47,6 +50,9 @@ function initBannerForm() {
       title: formData.get("title"),
       type: formData.get("type"),
       content: formData.get("content") || null,
+      content:
+          formData.get("content_rich") ||
+          formData.get("content"),
       link: formData.get("link") || null,
       button_text: formData.get("button_text") || null,
       bg_color: formData.get("bg_color"),
@@ -99,6 +105,9 @@ async function editBanner(id) {
     form.querySelector("[name='title']").value = b.title;
     form.querySelector("[name='type']").value = b.type;
     form.querySelector("[name='content']").value = b.content || "";
+    setTimeout(() => {
+      RichEditor.set("banner-content", b.content || "");
+    }, 300);
     form.querySelector("[name='link']").value = b.link || "";
     form.querySelector("[name='button_text']").value = b.button_text || "";
     form.querySelector("[name='bg_color']").value = b.bg_color || "#6c5ce7";
@@ -123,6 +132,7 @@ function cancelBannerEdit() {
   form.querySelector("[name='text_color']").value = "#ffffff";
   document.getElementById("bannerSubmitBtn").textContent = "Create Banner";
   document.getElementById("bannerCancelEdit").style.display = "none";
+  RichEditor.set("banner-content", "");
 }
 
 async function deleteBanner(id) {

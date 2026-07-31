@@ -154,11 +154,11 @@ export async function renderHome(request, env) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "url": "https://level.casino",
-    "name": "Level Casino",
+    "name": "Level.casino",
     "description": "Expert casino reviews, exclusive bonuses, and real player data.",
     "publisher": {
       "@type": "Organization",
-      "name": "Level Casino",
+      "name": "Level.casino",
       "logo": {
         "@type": "ImageObject",
         "url": "https://level.casino/static/images/logo.png"
@@ -168,7 +168,7 @@ export async function renderHome(request, env) {
 
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("home.html", {
-    seo_title: dynamicSeo.seo_title || "Level Casino — Expert Casino Reviews & Bonuses",
+    seo_title: dynamicSeo.seo_title || "Level.casino — Expert Casino Reviews & Bonuses",
     seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
     canonical: dynamicSeo.canonical || "https://level.casino/en",
     og_image: dynamicSeo.og_image || "",
@@ -207,11 +207,11 @@ export async function renderHomebackupold(request, env) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "url": "https://level.casino",
-    "name": "Level Casino",
+    "name": "Level.casino",
     "description": "Expert casino reviews, exclusive bonuses, and real player data.",
     "publisher": {
       "@type": "Organization",
-      "name": "Level Casino",
+      "name": "Level.casino",
       "logo": {
         "@type": "ImageObject",
         "url": "https://level.casino/static/images/logo.png"
@@ -220,7 +220,7 @@ export async function renderHomebackupold(request, env) {
   };
 
   const html = await renderer.render("home.html", {
-    seo_title: "Level Casino — Expert Casino Reviews & Bonuses",
+    seo_title: "Level.Casino — Expert Casino Reviews & Bonuses",
     seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
     canonical: "https://level.casino/en",
     casino_cards: buildCasinoCards(available, geoData),
@@ -286,7 +286,7 @@ export async function renderCasino(request, env, slug) {
     },
     "author": {
       "@type": "Organization",
-      "name": "Level Casino Expert Team"
+      "name": "Level.casino Expert Team"
     }
    };
 
@@ -823,7 +823,7 @@ export async function renderDashboardPage(request, env) {
 
     const html = await renderer.render("users/dashboard.html", {
         seo_title: "Dashboard",
-        seo_description: "Level Casino Dashboard",
+        seo_description: "Level.casino Dashboard",
         email: user.email,
         role: user.role
     });
@@ -856,7 +856,7 @@ export async function renderDashboardPagebackup(request, env) {
 
     const html = await renderer.render(template, {
         seo_title: "Dashboard",
-        seo_description: "Level Casino Dashboard",
+        seo_description: "Level.casino Dashboard",
         email: user.email,
         role: user.role
     });
@@ -1099,7 +1099,7 @@ export async function renderLogin(
         seo_title:
           "Login",
         seo_description:
-          "Level Casino Login",
+          "Level.casino Login",
         canonical: "https://level.casino/en/login"
       }
     );
@@ -1131,7 +1131,7 @@ export async function renderRegister(
         seo_title:
           "Register",
         seo_description:
-          "Create Level Casino account",
+          "Create Level.casino account",
         canonical: "https://level.casino/en/register"
       }
     );
@@ -1153,7 +1153,7 @@ export async function render404(request, env) {
 
   const html = await renderer.render("404.html", {
     seo_title: "404 - Page Not Found",
-    seo_description: "Sorry, this page does not exist on Level Casino."
+    seo_description: "Sorry, this page does not exist on Level.casino."
   });
 
   return new Response(html, {
@@ -1192,7 +1192,7 @@ export async function renderCasinoList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "All Online Casinos — Level Casino",
+    seo_title: dynamicSeo.seo_title || "All Online Casinos — Level.casino",
     seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings."
   }, listSchema, buildBreadcrumbs("casinoList"));
 
@@ -1290,7 +1290,7 @@ export async function renderReviewList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "All Casino Reviews — Level Casino",
+    seo_title: dynamicSeo.seo_title || "All Casino Reviews — level.casino",
     seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
   }, listSchema, buildBreadcrumbs("reviewList"));
 
@@ -1331,7 +1331,7 @@ export async function renderNewsList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Casino News — Level Casino",
+    seo_title: dynamicSeo.seo_title || "Casino News — Leveasino",
     seo_description: dynamicSeo.seo_description || "Latest iGaming and online casino industry news."
   }, listSchema, buildBreadcrumbs("newsList"));
 
@@ -1350,8 +1350,8 @@ async function renderAdminPage(request, env, template, extraData = {}) {
   // Load shared admin navigation
   const adminNav = await renderer.loadTemplate("layout/admin-nav.html");
   const html = await renderer.render(template, {
-      seo_title: "Admin — Level Casino",
-      seo_description: "Level Casino CMS Admin",
+      seo_title: "Admin — Level.casino",
+      seo_description: "Level.casino CMS Admin",
 
       email: user.email,
       role: user.role,

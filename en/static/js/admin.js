@@ -218,7 +218,7 @@ function initNewsForm() {
     const endpoint = isEdit ? "/en/api/v1/news/update" : "/en/api/v1/news/create";
     const oldSlug = form.dataset.slug;
     const payload = {
-      old_slug: oldSlug,
+      old_slug: form.dataset.slug,
       slug: formData.get("slug"),
       title: formData.get("title"),
       content: formData.get("content"),
@@ -847,6 +847,7 @@ async function editNews(slug) {
     const form = document.getElementById("newsForm");
     form.querySelector("[name='id']").value = article.id;
     form.querySelector("[name='slug']").value = article.slug;
+    form.dataset.slug = article.slug;
     form.querySelector("[name='author']").value = article.author || "Admin";
     form.querySelector("[name='title']").value = article.title;
     form.querySelector("[name='content']").value = article.content || "";

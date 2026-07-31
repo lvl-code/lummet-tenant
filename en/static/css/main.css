@@ -64,9 +64,40 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; justify-content: space-between;
   height: 64px; gap: 20px;
 }
+
+.logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-decoration:none;
+}
+
+.logo-icon{
+    width:40px;
+    height:40px;
+    object-fit:contain;
+}
+
+.logo-text{
+    font-family:Orbitron,sans-serif;
+    font-size:1.45rem;
+    font-weight:700;
+    letter-spacing:.3px;
+    color:#fff;
+}
+
+.logo-dot{
+    color:#ffffff;
+}
+
+.logo-accent{
+    color:#A855F7;
+}
+/*
 .logo { display: flex; align-items: center; gap: 8px; color: var(--white); font-weight: 700; font-size: 20px; }
 .logo:hover { text-decoration: none; }
 .logo-accent { color: var(--primary); }
+*/
 .main-nav { display: none; gap: 24px; }
 .main-nav a { color: var(--light-gray); font-size: 14px; font-weight: 500; }
 .main-nav a:hover { color: var(--white); text-decoration: none; }

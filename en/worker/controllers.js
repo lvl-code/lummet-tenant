@@ -220,7 +220,7 @@ export async function renderHomebackupold(request, env) {
   };
 
   const html = await renderer.render("home.html", {
-    seo_title: "Level.Casino — Expert Casino Reviews & Bonuses",
+    seo_title: "Level.casino — Expert Casino Reviews & Bonuses",
     seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
     canonical: "https://level.casino/en",
     casino_cards: buildCasinoCards(available, geoData),
@@ -1290,7 +1290,7 @@ export async function renderReviewList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "All Casino Reviews — level.casino",
+    seo_title: dynamicSeo.seo_title || "All Casino Reviews — Level.casino",
     seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
   }, listSchema, buildBreadcrumbs("reviewList"));
 
@@ -1331,7 +1331,7 @@ export async function renderNewsList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Casino News — Leveasino",
+    seo_title: dynamicSeo.seo_title || "Casino News — Level.casino",
     seo_description: dynamicSeo.seo_description || "Latest iGaming and online casino industry news."
   }, listSchema, buildBreadcrumbs("newsList"));
 
@@ -1401,7 +1401,7 @@ async function renderUserPage(request, env, template) {
 
   const renderer = new Renderer(env, request);
   const html = await renderer.render(template, {
-    seo_title: "Level Casino — Dashboard",
+    seo_title: "Level.casino — Dashboard",
     seo_description: "Manage your account",
     email: user.email,
     role: user.role
@@ -1451,7 +1451,7 @@ export async function renderCategoryList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Casino Categories — Level Casino",
+    seo_title: dynamicSeo.seo_title || "Casino Categories — Level.casino",
     seo_description: dynamicSeo.seo_description || "Browse online casinos by category."
   }, {}, buildBreadcrumbs("categoryList"));
 
@@ -1477,7 +1477,7 @@ export async function renderCountryList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Online Casinos by Country — Level Casino",
+    seo_title: dynamicSeo.seo_title || "Online Casinos by Country — Level.casino",
     seo_description: dynamicSeo.seo_description || "Find online casinos available in your country."
   }, {}, buildBreadcrumbs("countryList"));
 
@@ -1578,8 +1578,8 @@ export async function renderAuthor(request, env, slug) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || author.name + " — Level Casino",
-    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at Level Casino.",
+    seo_title: dynamicSeo.seo_title || author.name + " — Level.casino",
+    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at Level.casino.",
     canonical: dynamicSeo.canonical || `https://level.casino/en/author/${slug}`
   }, authorSchema, [{ label: "Home", url: "/en" }, { label: "Authors", url: null }, { label: author.name, url: null }]);
 

@@ -258,7 +258,7 @@ escapeHtml(str = "") {
 }
 
 buildSEO(data = {}) {
-  const title = data.seo_title || "Level Casino — Expert Casino Reviews";
+  const title = data.seo_title || "Level.casino — Expert Casino Reviews";
   const description = this.escapeHtml(data.seo_description || "");
   const canonical = data.canonical || "";
   const ogImage = data.og_image || "https://level.casino/static/images/logo.png";

@@ -55,13 +55,13 @@ export const seoEngine = {
           },
           "author": {
             "@type": "Organization",
-            "name": "Level Casino Research Team",
+            "name": "Level.casino Research Team",
             "url": "https://level.casino"
           },
           "reviewBody": context.summary || "Comprehensive operational performance evaluation analysis.",
           "publisher": {
             "@type": "Organization",
-            "name": "Level Casino",
+            "name": "Level.casino",
             "logo": {
               "@type": "ImageObject",
               "url": "https://level.casino/static/images/logo.png"
@@ -93,7 +93,7 @@ export const seoEngine = {
         return JSON.stringify({
           ...baseSchema,
           "@type": "Organization",
-          "name": "Level Casino",
+          "name": "Level.casino",
           "url": "https://level.casino",
           "logo": "https://level.casino/static/images/logo.png"
         }, null, 2);

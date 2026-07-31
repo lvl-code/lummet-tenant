@@ -1689,6 +1689,7 @@ async function updateCasino(request, env) {
   const body = await request.json();
 
   validate(body, [
+    "old_slug",
     "slug",
     "name",
     "affiliate_url"
@@ -1696,7 +1697,7 @@ async function updateCasino(request, env) {
 
   await casinos.updateCasino(
     env.DB,
-    body.slug,
+    body.old_slug,
     body
   );
 

@@ -67,11 +67,12 @@ export async function createCasino(db, casino) {
   return result.meta.last_row_id;
 }
 
-export async function updateCasino(db, slug, casino) {
+export async function updateCasino(db, oldSlug, casino) {
   return await db
     .prepare(`
       UPDATE casinos
       SET
+        slug= ?,
         name = ?,
         logo = ?,
         website_url = ?,
@@ -91,6 +92,7 @@ export async function updateCasino(db, slug, casino) {
       WHERE slug = ?
     `)
     .bind(
+      casino.slug,
       casino.name,
       casino.logo,
       casino.website_url,
@@ -106,7 +108,7 @@ export async function updateCasino(db, slug, casino) {
       casino.status || "draft",
       casino.logo_media_id || null,
       casino.hero_image_media_id || null,
-      slug
+      oldSlug
     )
     .run();
 }

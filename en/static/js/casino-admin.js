@@ -133,7 +133,9 @@ function initCasinoEditSubmit() {
 
     const formData = new FormData(form);
     const features = formData.get("features");
+    const oldSlug = form.dataset.slug;
     const payload = {
+      old_slug: oldSlug,
       slug: formData.get("slug"),
       name: formData.get("name"),
       logo: formData.get("logo") || null,
@@ -160,7 +162,8 @@ function initCasinoEditSubmit() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-            if (data.success) {
+      if (data.success) {
+        form.dataset.slug = payload.slug;
         if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = "Casino updated!"; alertEl.style.display = "block"; }
 
         // Sync geo rules — always run, even if empty (to allow clearing)

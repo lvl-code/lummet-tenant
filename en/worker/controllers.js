@@ -663,6 +663,14 @@ if (review.casino_slug) {
     casinoName = casino.name;
   }
 }
+  const formatDate = (date) => {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+};
   const html = await renderer.render("review.html", {
     ...review,
     casino_name: casinoName,
@@ -672,12 +680,8 @@ if (review.casino_slug) {
     author_role: author?.role || "",
     author_slug: author?.slug || "",
     author_social: author?.social_links || "",
-    reviewed_at: review.created_at
-  ? new Date(review.created_at).toLocaleDateString()
-  : "",
-updated_at: review.updated_at
-  ? new Date(review.updated_at).toLocaleDateString()
-  : "",
+    reviewed_at: formatDate(review.created_at),
+    updated_at: formatDate(review.updated_at || review.created_at),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,

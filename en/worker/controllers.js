@@ -672,6 +672,12 @@ if (review.casino_slug) {
     author_role: author?.role || "",
     author_slug: author?.slug || "",
     author_social: author?.social_links || "",
+    reviewed_at: review.created_at
+  ? new Date(review.created_at).toLocaleDateString()
+  : "",
+updated_at: review.updated_at
+  ? new Date(review.updated_at).toLocaleDateString()
+  : "",
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,

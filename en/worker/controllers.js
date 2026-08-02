@@ -292,7 +292,20 @@ export async function renderCasino(request, env, slug) {
     "author": {
       "@type": "Organization",
       "name": "Level.casino Expert Team"
-    }
+
+    },
+"publisher": {
+  "@type": "Organization",
+  "name": "Level.casino",
+  "url": "https://level.casino",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://level.casino/static/images/logo.png"
+  }
+},
+
+"datePublished": casino.created_at,
+"dateModified": casino.updated_at || casino.created_at
    };
 
   const allComponents = await renderer.renderAllComponents("casino", slug);
@@ -661,6 +674,19 @@ if (review.casino_slug) {
       "name": "Elie"
     }
   };
+  ,
+"publisher": {
+  "@type": "Organization",
+  "name": "Level.casino",
+  "url": "https://level.casino",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://level.casino/static/images/logo.png"
+  }
+},
+
+"datePublished": review.created_at,
+"dateModified": review.updated_at || review.created_at
   let casinoName = "";
 
 if (review.casino_slug) {

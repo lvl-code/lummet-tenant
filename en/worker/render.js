@@ -300,7 +300,8 @@ ${JSON.stringify(schema)}
   // =====================================================
   // FULL PAGE RENDER
   // =====================================================
-  async render(pageTemplate, data = {}, schema = {}, breadcrumbs = null) {
+  async render(pageTemplate, data = {}, schema = {}, breadcrumbs = []) {
+    breadcrumbs = Array.isArray(breadcrumbs) ? breadcrumbs : [];
     let page = await this.loadTemplate(`pages/${pageTemplate}`);
 
     // Load dynamic navigation data first

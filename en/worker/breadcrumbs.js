@@ -111,6 +111,7 @@ export function buildBreadcrumbs(route, data = {}) {
 
 export function renderBreadcrumbs(crumbs = []) {
 
+  crumbs = Array.isArray(crumbs) ? crumbs : [];
   if (!crumbs.length) {
     return "";
   }

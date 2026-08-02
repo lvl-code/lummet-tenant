@@ -674,7 +674,8 @@ if (review.casino_slug) {
     },
     "itemReviewed": {
       "@type": "Casino",
-      "name": review.title.replace("Review", "").trim(),
+      "name": casino?.name || casinoName || review.title,
+     // "name": review.title.replace("Review", "").trim(),
       "url": `https://level.casino/en/review/${slug}`
     },
     "author": {

@@ -672,8 +672,7 @@ if (review.casino_slug) {
     "author": {
       "@type": "Person",
       "name": "Elie"
-    }
-  };
+    },
   "publisher": {
   "@type": "Organization",
   "name": "Level.casino",
@@ -686,6 +685,7 @@ if (review.casino_slug) {
 
 "datePublished": review.created_at,
 "dateModified": review.updated_at || review.created_at
+};
 
   let casinoName = "";
 

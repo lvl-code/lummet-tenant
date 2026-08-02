@@ -351,3 +351,4 @@ ${JSON.stringify(schema)}
 
     return base;
   }
+}

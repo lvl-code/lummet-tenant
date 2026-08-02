@@ -690,12 +690,12 @@ if (review.casino_slug) {
     "url": "https://level.casino/static/images/logo.png"
   }
 },
-"datePublished": casino.created_at
-  ? new Date(casino.created_at).toISOString()
+"datePublished": review.created_at
+  ? new Date(review.created_at).toISOString()
   : undefined,
 
-"dateModified": (casino.updated_at || casino.created_at)
-  ? new Date(casino.updated_at || casino.created_at).toISOString()
+"dateModified": (review.updated_at || review.created_at)
+  ? new Date(review.updated_at || review.created_at).toISOString()
   : undefined,
 };
 

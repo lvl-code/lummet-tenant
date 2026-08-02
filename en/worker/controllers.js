@@ -673,7 +673,7 @@ if (review.casino_slug) {
       "@type": "Person",
       "name": "Elie"
     }
-  };,
+  };
   "publisher": {
   "@type": "Organization",
   "name": "Level.casino",

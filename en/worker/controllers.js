@@ -662,6 +662,16 @@ if (review.casino_slug) {
   const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
   const dynamicSeo = await renderer.loadDynamicSeo("review", slug);
 
+  let casino = null;
+  let casinoName = "";
+
+  if (review.casino_slug) {
+    casino = await casinos.getCasino(env.DB, review.casino_slug);
+
+    if (casino) {
+      casinoName = casino.name;
+    }
+  }
   const reviewSchema = {
     "@context": "https://schema.org",
     "@type": "Review",
@@ -704,15 +714,6 @@ if (review.casino_slug) {
   : undefined,
 };
 
-  let casino = null;
-  let casinoName = "";
-
-if (review.casino_slug) {
-    casino = await casinos.getCasino(env.DB, review.casino_slug);
-  if (casino) {
-    casinoName = casino.name;
-  }
-}
   const formatDate = (date) => {
   if (!date) return "";
   return new Date(date).toLocaleDateString("en-US", {

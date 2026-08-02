@@ -301,11 +301,18 @@ export async function renderCasino(request, env, slug) {
     "logo": {
       "@type": "ImageObject",
       "url": "https://level.casino/static/images/logo.png"
-    }
-  },
+    },
+    "mainEntityOfPage": {
+  "@type": "WebPage",
+  "@id": `https://level.casino/en/casino/${slug}`
+},
+  "datePublished": casino.created_at
+  ? new Date(casino.created_at).toISOString()
+  : undefined,
 
-  "datePublished": casino.created_at,
-  "dateModified": casino.updated_at || casino.created_at
+"dateModified": (casino.updated_at || casino.created_at)
+  ? new Date(casino.updated_at || casino.created_at).toISOString()
+  : undefined,
 };
 
   const allComponents = await renderer.renderAllComponents("casino", slug);
@@ -682,9 +689,13 @@ if (review.casino_slug) {
     "url": "https://level.casino/static/images/logo.png"
   }
 },
+"datePublished": casino.created_at
+  ? new Date(casino.created_at).toISOString()
+  : undefined,
 
-"datePublished": review.created_at,
-"dateModified": review.updated_at || review.created_at
+"dateModified": (casino.updated_at || casino.created_at)
+  ? new Date(casino.updated_at || casino.created_at).toISOString()
+  : undefined,
 };
 
   let casinoName = "";

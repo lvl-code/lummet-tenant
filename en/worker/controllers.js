@@ -281,7 +281,7 @@ export async function renderCasino(request, env, slug) {
       "@type": "Casino",
       "name": casino.name,
       "image": casino.logo || "https://level.casino/static/images/logo.png",
-      "url": casino.website_url || ""
+      "url": `https://level.casino/en/casino/${slug}`
     },
     "reviewRating": {
       "@type": "Rating",
@@ -654,6 +654,7 @@ if (review.casino_slug) {
     "itemReviewed": {
       "@type": "Casino",
       "name": review.title.replace("Review", "").trim()
+      "url": `https://level.casino/en/review/${slug}`
     },
     "author": {
       "@type": "Person",

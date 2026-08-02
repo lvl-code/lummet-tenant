@@ -139,7 +139,7 @@ export function renderBreadcrumbs(crumbs = []) {
 // Breadcrumb JSON-LD
 // =====================================================
 
-export function buildBreadcrumbSchema(crumbs = []) {
+export function buildBreadcrumbSchemabackup(crumbs = []) {
 
   return {
     "@context": "https://schema.org",
@@ -153,6 +153,29 @@ export function buildBreadcrumbSchema(crumbs = []) {
         ? `https://level.casino${crumb.url}`
         : undefined
     }))
+  };
+
+}
+
+export function buildBreadcrumbSchema(crumbs = []) {
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+
+    itemListElement: crumbs.map((crumb, index) => {
+      const item = {
+        "@type": "ListItem",
+        position: index + 1,
+        name: crumb.label
+      };
+
+      if (crumb.url) {
+        item.item = `https://level.casino${crumb.url}`;
+      }
+
+      return item;
+    })
   };
 
 }

@@ -104,3 +104,55 @@ export function buildBreadcrumbs(route, data = {}) {
 
   return crumbs;
 }
+
+// =====================================================
+// HTML Breadcrumbs
+// =====================================================
+
+export function renderBreadcrumbs(crumbs = []) {
+
+  if (!crumbs.length) {
+    return "";
+  }
+
+  const items = crumbs.map(c => {
+
+    if (c.url) {
+      return `<li><a href="${c.url}">${c.label}</a></li>`;
+    }
+
+    return `<li aria-current="page">${c.label}</li>`;
+
+  }).join("");
+
+  return `
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    ${items}
+  </ol>
+</nav>
+`;
+
+}
+
+// =====================================================
+// Breadcrumb JSON-LD
+// =====================================================
+
+export function buildBreadcrumbSchema(crumbs = []) {
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+
+    itemListElement: crumbs.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.label,
+      item: crumb.url
+        ? `https://level.casino${crumb.url}`
+        : undefined
+    }))
+  };
+
+}

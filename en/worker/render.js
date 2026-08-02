@@ -2,7 +2,10 @@
 // LEVELCASINO TEMPLATE ENGINE
 // =====================================================
 import { sanitizeHtml } from './sanitize.js';
-
+import {
+  buildBreadcrumbSchema,
+  renderBreadcrumbs
+} from "./breadcrumbs.js";
 // ── Content fields that contain user-authored HTML ──
 // These fields are sanitized via sanitizeHtml() before
 // being inserted into templates. Add new content field
@@ -283,15 +286,16 @@ buildSEO(data = {}) {
   // =====================================================
   // JSON-LD
   // =====================================================
-
-  buildSchema(schema = {}) {
-
-    return `
+  buildSchemas(schemas = []) {
+  return schemas
+    .filter(Boolean)
+    .map(schema => `
 <script type="application/ld+json">
 ${JSON.stringify(schema)}
 </script>
-`;
-  }
+`)
+    .join("\n");
+}
 
   // =====================================================
   // FULL PAGE RENDER
@@ -308,21 +312,24 @@ ${JSON.stringify(schema)}
 
     let base = await this.loadTemplate("layout/base.html");
     const seo = this.buildSEO(data);
-    const jsonld = this.buildSchema(schema);
+
+    const schemas = [];
+
+    if (schema) {
+      schemas.push(schema);
+    }
+
+    if (breadcrumbs && breadcrumbs.length) {
+      schemas.push(buildBreadcrumbSchema(breadcrumbs));
+    }
+
+    const jsonld = this.buildSchemas(schemas);
 
     base = base.replace("{{SEO}}", seo);
     base = base.replace("{{SCHEMA}}", jsonld);
     base = base.replace("{{CONTENT}}", page);
 
-    let breadcrumbHtml = null;
-    if (breadcrumbs && breadcrumbs.length > 0) {
-      const parts = breadcrumbs.map(c =>
-        c.url
-          ? `<a href="${c.url}">${c.label}</a>`
-          : `<span class="breadcrumb-current">${c.label}</span>`
-      );
-      breadcrumbHtml = `<nav class="breadcrumbs" id="breadcrumbs">${parts.join(" / ")}</nav>`;
-    }
+    const breadcrumbHtml = renderBreadcrumbs(breadcrumbs);
     base = await this.injectComponents(base, breadcrumbHtml);
 
     // Load and inject active banners
@@ -344,49 +351,3 @@ ${JSON.stringify(schema)}
 
     return base;
   }
-  async renderbackup(pageTemplate, data = {}, schema = {}, breadcrumbs = null) {
-    let page = await this.loadTemplate(`pages/${pageTemplate}`);
-    page = this.replaceVariables(page, data);
-
-    let base = await this.loadTemplate("layout/base.html");
-    const seo = this.buildSEO(data);
-    const jsonld = this.buildSchema(schema);
-
-    base = base.replace("{{SEO}}", seo);
-    base = base.replace("{{SCHEMA}}", jsonld);
-    base = base.replace("{{CONTENT}}", page);
-
-    let breadcrumbHtml = null;
-    if (breadcrumbs && breadcrumbs.length > 0) {
-      const parts = breadcrumbs.map(c =>
-        c.url
-          ? `<a href="${c.url}">${c.label}</a>`
-          : `<span class="breadcrumb-current">${c.label}</span>`
-      );
-      breadcrumbHtml = `<nav class="breadcrumbs" id="breadcrumbs">${parts.join(" / ")}</nav>`;
-    }
-    base = await this.injectComponents(base, breadcrumbHtml);
-
-        // Load dynamic navigation data
-    const navData = await this.loadNavData();
-    base = this.replaceVariables(base, navData);
-
-    // Load and inject active banners — wrapped in try-catch so banner
-    // failures never break page rendering
-    try {
-      const country = data._geo_country || this.country || "RW";
-      const bannersHtml = await this.loadActiveBanners(country);
-      base = base.replace("{{BANNERS}}", bannersHtml);
-    } catch (e) {
-      console.error("Banner loading failed:", e.message);
-      base = base.replace("{{BANNERS}}", "");
-    }
-
-    base = this.replaceVariables(base, data);
-
-    return base;
-
-
-  } 
-
-}

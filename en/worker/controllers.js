@@ -16,6 +16,11 @@ import { geoEngine } from "./geo.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
+import {
+    buildBreadcrumbs
+} from "./breadcrumbs.js";
+
+
 function cacheHeaders() {
   return {
     "Content-Type": "text/html",
@@ -95,7 +100,7 @@ function countryFullName(code) {
 
 
 
-function buildBreadcrumbs(path, data = {}) {
+function buildBreadcrumbsbackup(path, data = {}) {
   const crumbs = [{ label: "Home", url: "/en" }];
 
   if (path === "casinoList") {

@@ -666,7 +666,11 @@ if (review.casino_slug) {
     "@context": "https://schema.org",
     "@type": "Review",
     "headline": review.title,
-    "reviewBody": review.content || "",
+    "reviewBody": (review.content || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim(),
+   // "reviewBody": review.content || "",
     "reviewRating": {
       "@type": "Rating",
       "ratingValue": review.rating || "5",
@@ -700,10 +704,11 @@ if (review.casino_slug) {
   : undefined,
 };
 
+  let casino = null;
   let casinoName = "";
 
 if (review.casino_slug) {
-  const casino = await casinos.getCasino(env.DB, review.casino_slug);
+    casino = await casinos.getCasino(env.DB, review.casino_slug);
   if (casino) {
     casinoName = casino.name;
   }

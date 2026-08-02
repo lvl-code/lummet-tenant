@@ -294,19 +294,19 @@ export async function renderCasino(request, env, slug) {
       "name": "Level.casino Expert Team"
 
     },
-"publisher": {
-  "@type": "Organization",
-  "name": "Level.casino",
-  "url": "https://level.casino",
-  "logo": {
-    "@type": "ImageObject",
-    "url": "https://level.casino/static/images/logo.png"
-  }
-},
+    "publisher": {
+    "@type": "Organization",
+    "name": "Level.casino",
+    "url": "https://level.casino",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://level.casino/static/images/logo.png"
+    }
+  },
 
-"datePublished": casino.created_at,
-"dateModified": casino.updated_at || casino.created_at
-   };
+  "datePublished": casino.created_at,
+  "dateModified": casino.updated_at || casino.created_at
+};
 
   const allComponents = await renderer.renderAllComponents("casino", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
@@ -673,9 +673,8 @@ if (review.casino_slug) {
       "@type": "Person",
       "name": "Elie"
     }
-  };
-  ,
-"publisher": {
+  };,
+  "publisher": {
   "@type": "Organization",
   "name": "Level.casino",
   "url": "https://level.casino",
@@ -687,6 +686,7 @@ if (review.casino_slug) {
 
 "datePublished": review.created_at,
 "dateModified": review.updated_at || review.created_at
+
   let casinoName = "";
 
 if (review.casino_slug) {

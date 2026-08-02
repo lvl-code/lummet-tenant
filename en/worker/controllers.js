@@ -301,6 +301,7 @@ export async function renderCasino(request, env, slug) {
     "logo": {
       "@type": "ImageObject",
       "url": "https://level.casino/static/images/logo.png"
+     }
     },
     "mainEntityOfPage": {
   "@type": "WebPage",

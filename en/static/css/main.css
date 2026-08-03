@@ -368,8 +368,8 @@ a:hover { text-decoration: underline; }
 
 
 .site-header .btn--ghost {
-    padding: 5px 10px;
-    font-size: 13px;
+    padding: 2px 7px;
+    font-size: 9px;
     border-radius: 6px;
     line-height: 1.2;
 }

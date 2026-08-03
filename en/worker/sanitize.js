@@ -47,7 +47,7 @@ const ALLOWED_TAGS = new Set([
   // Figures
   'figure', 'figcaption',
   // Interactive (safe)
-  'details', 'summary',
+  'details', 'summary', "button",
   // Controlled iframe (for video embeds — src is sanitized)
   'iframe',
 ]);
@@ -59,7 +59,7 @@ const STRIP_CONTENT_TAGS = new Set([
   'script', 'style', 'object', 'embed', 'applet', 'param',
   'noscript', 'template', 'slot',
   'frame', 'frameset', 'xml', 'svg', 'math', 'canvas',
-  'map', 'area', 'form', 'input', 'button', 'textarea',
+  'map', 'area', 'form', 'input',  'textarea',
   'select', 'option', 'optgroup', 'label', 'fieldset', 'legend',
   'datalist', 'output', 'progress', 'meter',
   'link', 'meta', 'base', 'title', 'head', 'html', 'body',

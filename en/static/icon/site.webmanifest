@@ -1,6 +1,11 @@
 {
   "name": "Level.casino",
   "short_name": "Level",
+  "description": "Trusted casino reviews, bonuses and gambling guides.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/static/icon/web-app-manifest-192x192.png",
@@ -12,8 +17,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#0f172a",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  ]
 }

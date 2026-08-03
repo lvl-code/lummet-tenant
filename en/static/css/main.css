@@ -374,15 +374,15 @@ a:hover { text-decoration: underline; }
     line-height: 1;
 } */
 .site-header .btn--ghost {
-    height: 30px;
+    height: 20px;
     min-width: 20px;
     padding: 0 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 12px;
     border-radius: 2px;
-    line-height: 0.7;
+    line-height: 0.5;
 }
 
 .site-header .btn--ghost {

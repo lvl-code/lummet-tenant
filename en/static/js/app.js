@@ -16,13 +16,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // ---- Mobile nav toggle ----
+
 function initNavToggle() {
   const toggle = document.getElementById("navToggle");
   const nav = document.getElementById("mainNav");
   if (!toggle || !nav) return;
 
   toggle.addEventListener("click", () => {
-    nav.classList.toggle("active");
+    const isOpen = nav.classList.toggle("active");
+
+    toggle.innerHTML = isOpen ? "&times;" : "&#9776;";
+    toggle.setAttribute(
+      "aria-label",
+      isOpen ? "Close menu" : "Open menu"
+    );
+  });
+
+  nav.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      nav.classList.remove("active");
+      toggle.innerHTML = "&#9776;";
+      toggle.setAttribute("aria-label", "Open menu");
+    });
   });
 }
 

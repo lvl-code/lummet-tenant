@@ -264,13 +264,15 @@ buildSEO(data = {}) {
   const title = data.seo_title || "Level.casino — Expert Casino Reviews";
   const description = this.escapeHtml(data.seo_description || "");
   const canonical = data.canonical || "";
-  const ogImage = data.og_image || "https://level.casino/static/images/logo.png";
+  const ogImage = data.og_image || "https://level.casino/static/images/og-image.png";
 
   return `
 <title>${title}</title>
 <meta name="description" content="${description}">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Level.casino">
+<meta property="og:locale" content="en_US">
 <meta property="og:url" content="${canonical}">
 <meta property="og:title" content="${this.escapeHtml(title)}">
 <meta property="og:description" content="${description}">
@@ -280,6 +282,10 @@ buildSEO(data = {}) {
 <meta name="twitter:title" content="${this.escapeHtml(title)}">
 <meta name="twitter:description" content="${description}">
 <meta name="twitter:image" content="${ogImage}">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-title" content="Level.casino">
+<meta name="application-name" content="Level.casino">
+<link rel="mask-icon" href="/static/icon/favicon.svg" color="#0f172a">
 `;
 }
 
@@ -316,8 +322,24 @@ ${JSON.stringify(schema)}
 
     const schemas = [];
 
+    schemas.push({
+      "@context":"https://schema.org",
+      "@type":"Organization",
+      "name":"Level.casino",
+      "url":"https://level.casino",
+      "logo":"https://level.casino/static/images/logo.png"
+    });
+    
+    // Website Schema
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Level.casino",
+      "url": "https://level.casino"
+    });
+
     if (schema) {
-      schemas.push(schema);
+        schemas.push(schema);
     }
 
     if (breadcrumbs && breadcrumbs.length) {

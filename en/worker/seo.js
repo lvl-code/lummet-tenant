@@ -5,7 +5,7 @@ export const seoEngine = {
   generateMetaTags(seoData, currentUrl) {
     const title = seoData.title || "Premium iGaming Guide";
     const description = seoData.description || "Expert casino analytics and VIP bonus distribution data.";
-    const ogImage = seoData.image || "https://level.casino/static/images/logo.png";
+    const ogImage = seoData.image || "https://level.casino/static/images/og-image.png";
 
     return `
   <title>${title}</title>

@@ -74,5 +74,30 @@ if ("serviceWorker" in navigator) {
   });
 }
 </script>
+
+<script>
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  const btn = document.getElementById("installBtn");
+  if (btn) btn.style.display = "inline-block";
+});
+
+document.addEventListener("click", async (e) => {
+  if (e.target.id !== "installBtn") return;
+
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+
+  deferredPrompt = null;
+  e.target.style.display = "none";
+});
+</script>
+
 </body>
 </html>

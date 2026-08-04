@@ -81,19 +81,16 @@ LIMIT 5
 const pages = await env.DB.prepare(`
 SELECT
 title,
-slug,
-content
+slug
 FROM pages
 WHERE
 published = 1
-AND (
-LOWER(title) LIKE ?
-OR LOWER(content) LIKE ?
-)
+AND LOWER(title) LIKE ?
 LIMIT 5
 `)
-.bind(q,q)
+.bind(q)
 .all();
+
 
 const faqs =
 await searchFAQs(

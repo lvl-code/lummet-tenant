@@ -1843,7 +1843,7 @@ async function generateReview(request, env) {
     "review",
     body.slug,
     `Full review generation for ${body.casino} (${body.country})`,
-    "@cf/meta/llama-3-8b-instruct"
+    "@cf/zai-org/glm-4.7-flash"
   );
 
   return json({

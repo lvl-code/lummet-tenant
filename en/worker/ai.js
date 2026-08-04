@@ -19,7 +19,7 @@ export const aiEngine = {
    * Generates highly targeted, high-roller focused review copy on demand
    */
   async generateReviewSummary(env, casinoName, countryCode, languages = 'English') {
-    const model = '@cf/meta/llama-3-8b-instruct';
+    const model = '@cf/zai-org/glm-4.7-flash';
     
     const systemPrompt = `You are an expert iGaming industry copywriter specializing in premium, high-stakes casino analysis. 
 Your target audience consists of high-rollers and VIP players. Write a compelling, factual 3-sentence evaluation summary. 
@@ -43,7 +43,7 @@ Focus on high-tier VIP reward transparency, cashout speed limits, and licensing 
    * Generates hyper-optimized SEO titles and metadata objects for localized landing matrix variants
    */
   async generateDynamicSeo(env, targetDomain, contextData) {
-    const model = '@cf/meta/llama-3-8b-instruct';
+    const model = '@cf/zai-org/glm-4.7-flash';
     
     const systemPrompt = `You are an elite SEO engineer managing the domain portfolio asset ${targetDomain}. 
 Generate a strict JSON layout string containing a title tag and meta description optimized for Click-Through Rates (CTR). 
@@ -78,7 +78,7 @@ Create an localized SEO title (under 60 chars) and meta description (under 155 c
    * Generates a full-length casino review using Workers AI
    */
   async generateFullReview(env, casinoName, countryCode, slug) {
-    const model = '@cf/meta/llama-3-8b-instruct';
+    const model = '@cf/zai-org/glm-4.7-flash';
 
     const systemPrompt = `You are an expert iGaming industry copywriter specializing in premium casino reviews.
 Write a comprehensive, SEO-optimized casino review of at least 800 words.

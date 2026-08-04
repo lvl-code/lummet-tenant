@@ -729,7 +729,7 @@ if (
 
 
    if(
-url.pathname === "/api/v1/ai/chat"
+path === "/api/v1/ai/chat"
 &&
 request.method==="POST"
 ){

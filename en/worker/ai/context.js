@@ -61,7 +61,7 @@ export const aiContext = {
     return {
         reviews: data.results
     };
-}
+},
 
     async getNews(env) {
 

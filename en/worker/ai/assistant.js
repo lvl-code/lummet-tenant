@@ -164,22 +164,17 @@ lowerMessage.includes("available casinos")
 
 ){
 
-
 answer =
-
 "Available casinos in the Level.casino database:\n\n" +
 
 context.casinos
-
 .map(
-
 (casino,index)=>
-
-`${index + 1}. ${casino.name} - Rating: ${casino.rating || "N/A"}`
-
+`${index + 1}. ${casino.name} ⭐ ${casino.rating || "N/A"}/5
+https://level.casino/en/casino/${casino.slug}`
 )
+.join("\n\n");
 
-.join("\n");
 
 
 }

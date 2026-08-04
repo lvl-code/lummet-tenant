@@ -17,7 +17,6 @@
   <link rel="stylesheet" href="/static/css/casino.css">
   <link rel="stylesheet" href="/static/css/responsive.css">
   <link rel="stylesheet" href="/static/css/dashboard.css">
-  <link rel="stylesheet" href="/en/static/css/ai-chat.css">
   <link rel="stylesheet" href="/static/css/level-ai.css">
 </head>
 <body>
@@ -89,36 +88,6 @@ Ask
 
 </div>
 
-
-<script src="/en/static/js/ai-chat.js"></script>
-
-
-<script>
-
-async function levelAsk(){
-
-
-const q =
-document.getElementById(
-"level-ai-input"
-).value;
-
-
-const result =
-await askLevelAI(q);
-
-
-
-document.getElementById(
-"level-ai-result"
-)
-.innerHTML =
-result.answer;
-
-
-}
-
-</script>
 
 
 <script>

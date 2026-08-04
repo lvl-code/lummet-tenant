@@ -29,8 +29,8 @@ jobs:
         run: |
           cd en
 
-          wrangler d1 execute levelcasino-d1 --remote --command "PRAGMA table_info(casinos);"
-          wrangler d1 execute levelcasino-d1 --remote --command "PRAGMA table_info(reviews);"
-          wrangler d1 execute levelcasino-d1 --remote --command "PRAGMA table_info(news);"
-          wrangler d1 execute levelcasino-d1 --remote --command "PRAGMA table_info(pages);"
-          wrangler d1 execute levelcasino-d1 --remote --command "PRAGMA table_info(faqs);"
+          wrangler d1 execute levelcasino-db --remote --command "PRAGMA table_info(casinos);"
+          wrangler d1 execute levelcasino-db --remote --command "PRAGMA table_info(reviews);"
+          wrangler d1 execute levelcasino-db --remote --command "PRAGMA table_info(news);"
+          wrangler d1 execute levelcasino-db --remote --command "PRAGMA table_info(pages);"
+          wrangler d1 execute levelcasino-db --remote --command "PRAGMA table_info(faqs);"

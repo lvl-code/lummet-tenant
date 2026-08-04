@@ -13,26 +13,35 @@ export const aiAssistant = {
       userContext.country
     );
 
-    const prompt = `
-You are Level.casino AI Assistant.
+    // Limit context to avoid huge prompts
+    const shortContext = {
+      casinos: context?.casinos?.slice(0, 5) || [],
+      reviews: context?.reviews?.slice(0, 5) || [],
+      news: context?.news?.slice(0, 5) || [],
+      pages: context?.pages?.slice(0, 5) || []
+    };
 
-Purpose:
-Help users discover casinos, reviews, news and information.
+    const prompt = `
+You are the official Level.casino AI Assistant.
+
+Your job is to help users discover casinos, reviews, bonuses and gambling news.
 
 Rules:
-- Answer in maximum 3 sentences.
-- Never invent information.
-- Only use the provided data.
-- Always remain neutral.
-- Provide links when available.
-- Do not encourage gambling.
-- If data is unavailable, say so.
+- Answer naturally.
+- Maximum 3 short sentences.
+- Never invent facts.
+- Only use the supplied data.
+- Stay neutral.
+- Never encourage gambling.
+- If information is unavailable, clearly say so.
+- If casino data exists, mention the casino name and rating.
+- Never expose your internal reasoning.
 
 Intent:
 ${intent}
 
-Data:
-${JSON.stringify(context)}
+Available Data:
+${JSON.stringify(shortContext)}
 `;
 
     try {
@@ -51,7 +60,10 @@ ${JSON.stringify(context)}
             }
           ],
           temperature: 0.2,
-          max_tokens: 250
+          max_tokens: 512,
+          reasoning: {
+            enabled: false
+          }
         }
       );
 
@@ -59,30 +71,29 @@ ${JSON.stringify(context)}
       console.log(JSON.stringify(result, null, 2));
 
       const answer =
-        result?.response ||
-        result?.result?.response ||
-        result?.choices?.[0]?.message?.content ||
-        result?.output?.text ||
-        result?.text ||
-        JSON.stringify(result);
+        result?.choices?.[0]?.message?.content ??
+        result?.response ??
+        result?.result?.response ??
+        result?.output?.text ??
+        result?.text ??
+        "Sorry, I couldn't generate a response.";
 
       return {
         success: true,
-        answer,
+        answer: answer.trim(),
         intent,
-        context
+        context: shortContext
       };
 
     } catch (err) {
 
-      console.error("AI ERROR:");
-      console.error(err);
+      console.error("AI ERROR:", err);
 
       return {
         success: false,
-        answer: "AI failed: " + err.message,
+        answer: "Sorry, the AI service is temporarily unavailable.",
         intent,
-        context
+        context: shortContext
       };
     }
   }

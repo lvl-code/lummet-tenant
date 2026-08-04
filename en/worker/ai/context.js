@@ -42,25 +42,32 @@ export const aiContext = {
         };
     },
 
-    async searchReview(env, q) {
+    async searchReview(env,q){
 
-        const data = await env.DB.prepare(`
-            SELECT
-                title,
-                slug,
-                rating
-            FROM reviews
-            WHERE title LIKE ?
-            LIMIT 5
-        `)
-        .bind(`%${q}%`)
-        .all();
+q = cleanQuery(q);
 
-        return {
-            reviews: data.results
-        };
-    },
+const data = await env.DB.prepare(`
+SELECT
+title,
+slug,
+rating
+FROM reviews
+WHERE title LIKE ?
+OR casino_slug LIKE ?
+LIMIT 5
+`)
+.bind(
+`%${q}%`,
+`%${q}%`
+)
+.all();
 
+
+return {
+reviews:data.results
+};
+
+}
     async getNews(env) {
 
         const data = await env.DB.prepare(`
@@ -77,7 +84,31 @@ export const aiContext = {
         };
     },
 
-    async getGeo(env, country) {
+async getGeo(env,country){
+
+const data = await env.DB.prepare(`
+SELECT
+c.name,
+c.slug,
+g.status,
+g.country_code
+FROM geo_rules g
+JOIN casinos c
+ON c.slug = g.casino_slug
+WHERE g.country_code = ?
+AND g.status = 'allowed'
+LIMIT 10
+`)
+.bind(country)
+.all();
+
+
+return {
+available_casinos:data.results
+};
+
+}
+    async getGeobackup(env, country) {
 
         const data = await env.DB.prepare(`
             SELECT *
@@ -93,3 +124,15 @@ export const aiContext = {
     }
 
 };
+
+function cleanQuery(q){
+
+return q
+.toLowerCase()
+.replace(
+/(find|show|me|get|review|reviews|casino|about)/g,
+""
+)
+.trim();
+
+}

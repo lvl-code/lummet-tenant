@@ -43,26 +43,25 @@ export const aiContext = {
         };
     },
 
-
     async searchReview(env, q) {
 
-        const data = await env.DB.prepare(`
-            SELECT
-                title,
-                slug,
-                rating
-            FROM reviews
-            WHERE title LIKE ?
-            LIMIT 5
-        `)
-        .bind(`%${q}%`)
-        .all();
+    const data = await env.DB.prepare(`
+        SELECT
+            title,
+            slug,
+            rating
+        FROM reviews
+        WHERE title LIKE ?
+        OR casino_slug LIKE ?
+        LIMIT 5
+    `)
+    .bind(`%${q}%`, `%${q.toLowerCase()}%`)
+    .all();
 
-        return {
-            reviews: data.results
-        };
-    },
-
+    return {
+        reviews: data.results
+    };
+}
 
     async getNews(env) {
 

@@ -130,11 +130,6 @@ FROM reviews
 
 WHERE
 LOWER(title) LIKE ?
-OR
-REPLACE(LOWER(title),' ','') LIKE REPLACE(?, ' ','')
-OR
-REPLACE(LOWER(casino_slug),'-','') LIKE REPLACE(?, '-', '')
-
 OR LOWER(overview) LIKE ?
 
 LIMIT 5

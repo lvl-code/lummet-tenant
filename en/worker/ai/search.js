@@ -25,8 +25,7 @@ bonus_value,
 website_url
 FROM casinos
 WHERE
-published = 1
-AND (
+(
 LOWER(name) LIKE ?
 OR LOWER(bonus_title) LIKE ?
 )
@@ -45,8 +44,7 @@ casino_slug,
 overview
 FROM reviews
 WHERE
-published = 1
-AND (
+(
 LOWER(title) LIKE ?
 OR LOWER(overview) LIKE ?
 )
@@ -65,8 +63,7 @@ slug,
 excerpt
 FROM news
 WHERE
-published = 1
-AND (
+(
 LOWER(title) LIKE ?
 OR LOWER(excerpt) LIKE ?
 )
@@ -84,8 +81,8 @@ title,
 slug
 FROM pages
 WHERE
-published = 1
-AND LOWER(title) LIKE ?
+(
+LOWER(title) LIKE ?
 LIMIT 5
 `)
 .bind(q)

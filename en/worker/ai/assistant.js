@@ -11,46 +11,50 @@ async chat(
   userContext = {}
 ){
 
-  const intent =
-    await aiRouter.detect(message);
+
+const intent =
+await aiRouter.detect(message);
 
 
-  const context =
-    await aiSearch.search(
-      env,
-      message,
-      userContext.country || "RW",
-      intent
-    );
+
+const context =
+await aiSearch.search(
+  env,
+  message,
+  userContext.country || "RW",
+  intent
+);
 
 
-  const prompt = `
+
+const prompt = `
 
 You are Level.casino AI Assistant.
 
 You help users explore the Level.casino database.
 
 Your responsibilities:
+
 - Find casinos.
 - Explain casino reviews.
 - Show available casino information.
 - Answer FAQs.
 - Explain licensing, payments, crypto support and country availability.
 
-RULES:
+STRICT RULES:
 
-- Only use the provided database context.
-- Never invent information.
-- Never create fake casino names.
-- Never create fake licenses.
-- Never create fake bonuses.
-- If the database has matching results, summarize them clearly.
-- If there are no matching results, say:
-"Information is unavailable in the Level.casino database."
+- Only use information from the database context.
+- Never invent casinos.
+- Never invent licenses.
+- Never invent bonuses.
+- Never invent payment methods.
+- Keep answers short and useful.
+- If matching information exists, always use it.
+- Never say information is unavailable when matching database results exist.
 
 For listing requests:
-- If the user asks for all casinos or reviews, list the available results from the database.
-- Use bullet points when listing multiple items.
+- List available casinos or reviews from the database.
+- Use numbered lists.
 
 Casino review links:
 https://level.casino/en/review/{casino_slug}
@@ -63,10 +67,12 @@ https://level.casino/en/{slug}
 
 
 User country:
+
 ${userContext.country || "Unknown"}
 
 
 Intent:
+
 ${intent}
 
 
@@ -77,10 +83,12 @@ ${JSON.stringify(context, null, 2)}
 `;
 
 
+
 try {
 
 
 const result =
+
 await env.AI.run(
 
 "@cf/zai-org/glm-4.7-flash",
@@ -110,7 +118,8 @@ max_tokens:500
 );
 
 
-const answer =
+
+let answer =
 
 result?.response ||
 
@@ -118,9 +127,152 @@ result?.choices?.[0]?.message?.content ||
 
 result?.result?.response ||
 
-result?.output?.text ||
+result?.output?.text;
 
+
+
+const lowerMessage =
+message.toLowerCase();
+
+
+
+// =================================
+// CASINO LIST FALLBACK
+// =================================
+
+if(
+
+(!answer ||
+answer.includes("Information unavailable"))
+
+&&
+
+context.casinos?.length
+
+&&
+
+intent === "search"
+
+&&
+
+(
+lowerMessage.includes("list") ||
+lowerMessage.includes("show") ||
+lowerMessage.includes("all casinos") ||
+lowerMessage.includes("available casinos")
+)
+
+){
+
+
+answer =
+
+"Available casinos in the Level.casino database:\n\n" +
+
+context.casinos
+
+.map(
+
+(casino,index)=>
+
+`${index + 1}. ${casino.name} - Rating: ${casino.rating || "N/A"}`
+
+)
+
+.join("\n");
+
+
+}
+
+
+
+// =================================
+// REVIEW LIST FALLBACK
+// =================================
+
+if(
+
+(!answer ||
+answer.includes("Information unavailable"))
+
+&&
+
+context.reviews?.length
+
+&&
+
+intent === "casino_review"
+
+){
+
+
+answer =
+
+"Available casino reviews in the Level.casino database:\n\n" +
+
+context.reviews
+
+.map(
+
+(review,index)=>
+
+`${index + 1}. ${review.title}`
+
+)
+
+.join("\n");
+
+
+}
+
+
+
+// =================================
+// FAQ FALLBACK
+// =================================
+
+if(
+
+(!answer ||
+answer.includes("Information unavailable"))
+
+&&
+
+context.faqs?.length
+
+){
+
+
+answer =
+
+"Frequently asked questions:\n\n" +
+
+context.faqs
+
+.map(
+
+(faq,index)=>
+
+`${index + 1}. ${faq.q}\n${faq.a}`
+
+)
+
+.join("\n\n");
+
+
+}
+
+
+
+// FINAL FALLBACK
+
+if(!answer){
+
+answer =
 "Information unavailable in the Level.casino database.";
+
+}
+
 
 
 return {
@@ -138,12 +290,15 @@ context
 
 }
 
+
 catch(error){
+
 
 console.error(
 "AI ERROR:",
 error
 );
+
 
 
 return {
@@ -157,6 +312,7 @@ intent,
 context
 
 };
+
 
 }
 

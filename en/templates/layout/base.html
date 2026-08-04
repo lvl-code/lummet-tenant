@@ -65,6 +65,58 @@
   </nav>
   <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">&#8593;</button>
 
+
+
+
+<div id="level-ai">
+
+<input
+id="level-ai-input"
+placeholder="Ask Level AI..."
+>
+
+<button onclick="levelAsk()">
+Ask
+</button>
+
+
+<div id="level-ai-result"></div>
+
+
+</div>
+
+
+<script src="/en/static/js/ai-chat.js"></script>
+
+
+<script>
+
+async function levelAsk(){
+
+
+const q =
+document.getElementById(
+"level-ai-input"
+).value;
+
+
+const result =
+await askLevelAI(q);
+
+
+
+document.getElementById(
+"level-ai-result"
+)
+.innerHTML =
+result.answer;
+
+
+}
+
+</script>
+
+
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -98,6 +150,12 @@ document.addEventListener("click", async (e) => {
   e.target.style.display = "none";
 });
 </script>
+
+
+
+
+
+
 
 </body>
 </html>

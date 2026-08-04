@@ -12,6 +12,8 @@ import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
 import * as news from "./database/news.js";
 
+import { aiAssistant } from "./ai/assistant.js";
+
 import {
   login,
   logout,
@@ -725,6 +727,64 @@ if (
     }
 
 
+   if(
+url.pathname === "/api/v1/ai/chat"
+&&
+request.method==="POST"
+){
+
+
+const body =
+await request.json();
+
+
+
+if(
+!body.message ||
+body.message.length > 300
+){
+
+return Response.json({
+
+error:"Invalid message"
+
+},
+{
+status:400
+});
+
+}
+
+
+
+const result =
+await aiAssistant.chat(
+
+env,
+
+body.message,
+
+{
+
+country:
+request.cf?.country
+
+}
+
+);
+
+
+
+return Response.json({
+
+success:true,
+
+...result
+
+});
+
+
+}
     // ==================================
     // SETTINGS
     // ==================================

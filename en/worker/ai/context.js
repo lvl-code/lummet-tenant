@@ -2,7 +2,7 @@ export const aiContext = {
 
     async get(env, intent, message, country) {
 
-        switch (intent) {
+        switch(intent) {
 
             case "search":
                 return await this.searchCasino(env, message);
@@ -20,6 +20,7 @@ export const aiContext = {
                 return {};
         }
     },
+
 
     async searchCasino(env, q) {
 
@@ -42,32 +43,27 @@ export const aiContext = {
         };
     },
 
-    async searchReview(env,q){
 
-q = cleanQuery(q);
+    async searchReview(env, q) {
 
-const data = await env.DB.prepare(`
-SELECT
-title,
-slug,
-rating
-FROM reviews
-WHERE title LIKE ?
-OR casino_slug LIKE ?
-LIMIT 5
-`)
-.bind(
-`%${q}%`,
-`%${q}%`
-)
-.all();
+        const data = await env.DB.prepare(`
+            SELECT
+                title,
+                slug,
+                rating
+            FROM reviews
+            WHERE title LIKE ?
+            LIMIT 5
+        `)
+        .bind(`%${q}%`)
+        .all();
+
+        return {
+            reviews: data.results
+        };
+    },
 
 
-return {
-reviews:data.results
-};
-
-}
     async getNews(env) {
 
         const data = await env.DB.prepare(`
@@ -77,38 +73,16 @@ reviews:data.results
             FROM news
             ORDER BY created_at DESC
             LIMIT 5
-        `).all();
+        `)
+        .all();
 
         return {
             news: data.results
         };
     },
 
-async getGeo(env,country){
 
-const data = await env.DB.prepare(`
-SELECT
-c.name,
-c.slug,
-g.status,
-g.country_code
-FROM geo_rules g
-JOIN casinos c
-ON c.slug = g.casino_slug
-WHERE g.country_code = ?
-AND g.status = 'allowed'
-LIMIT 10
-`)
-.bind(country)
-.all();
-
-
-return {
-available_casinos:data.results
-};
-
-}
-    async getGeobackup(env, country) {
+    async getGeo(env, country) {
 
         const data = await env.DB.prepare(`
             SELECT *
@@ -124,15 +98,3 @@ available_casinos:data.results
     }
 
 };
-
-function cleanQuery(q){
-
-return q
-.toLowerCase()
-.replace(
-/(find|show|me|get|review|reviews|casino|about)/g,
-""
-)
-.trim();
-
-}

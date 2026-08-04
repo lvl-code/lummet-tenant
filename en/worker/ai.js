@@ -102,12 +102,23 @@ Make it factual and avoid generic fluff.`;
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.6,
-      max_tokens: 1200
+      max_tokens: 2500,
+      reasoning: {
+        enabled: false
+      }
     });
 
-    return result?.response
-      ? result.response.trim()
-      : `${casinoName} is a premium online casino offering a comprehensive gaming experience for players in ${countryCode}. Contact your administrator to configure the AI binding for full review generation.`;
+//    return result?.response
+  //    ? result.response.trim()
+    //  : `${casinoName} is a premium online casino offering a comprehensive gaming experience for players in ${countryCode}. Contact your administrator to configure the AI binding for full review generation.`;
+     const content =
+  result?.response ||
+  result?.choices?.[0]?.message?.content ||
+  null;
+
+return content
+  ? content.trim()
+  : `Unable to generate review content for ${casinoName}.`;
   }
 
 

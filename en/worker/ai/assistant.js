@@ -283,8 +283,7 @@ context.faqs
 if(!answer){
 
 answer =
-"I couldn't find that on Level.casino. You can browse all reviews and guides here:
-https://level.casino/en/";
+"I couldn't find that on Level.casino. You can browse all reviews and guides here: https://level.casino/en/";
 
 }
 

@@ -1,54 +1,95 @@
-async searchCasino(env, q) {
+export const aiContext = {
 
-    const data = await env.DB.prepare(`
-        SELECT
-            name,
-            slug,
-            rating,
-            supported_countries,
-            restricted_countries
-        FROM casinos
-        WHERE name LIKE ?
-        LIMIT 5
-    `)
-    .bind(`%${q}%`)
-    .all();
+    async get(env, intent, message, country) {
 
-    return {
-        casinos: data.results
-    };
-}
+        switch (intent) {
 
-async searchReview(env, q) {
+            case "search":
+                return await this.searchCasino(env, message);
 
-    const data = await env.DB.prepare(`
-        SELECT
-            title,
-            slug,
-            rating
-        FROM reviews
-        WHERE title LIKE ?
-        LIMIT 5
-    `)
-    .bind(`%${q}%`)
-    .all();
+            case "review":
+                return await this.searchReview(env, message);
 
-    return {
-        reviews: data.results
-    };
-}
+            case "news":
+                return await this.getNews(env);
 
-async getGeo(env, country) {
+            case "geo":
+                return await this.getGeo(env, country);
 
-    const data = await env.DB.prepare(`
-        SELECT *
-        FROM geo_rules
-        WHERE country_code = ?
-    `)
-    .bind(country)
-    .all();
+            default:
+                return {};
+        }
+    },
 
-    return {
-        geo: data.results
-    };
-}
+    async searchCasino(env, q) {
+
+        const data = await env.DB.prepare(`
+            SELECT
+                name,
+                slug,
+                rating,
+                supported_countries,
+                restricted_countries
+            FROM casinos
+            WHERE name LIKE ?
+            LIMIT 5
+        `)
+        .bind(`%${q}%`)
+        .all();
+
+        return {
+            casinos: data.results
+        };
+    },
+
+    async searchReview(env, q) {
+
+        const data = await env.DB.prepare(`
+            SELECT
+                title,
+                slug,
+                rating
+            FROM reviews
+            WHERE title LIKE ?
+            LIMIT 5
+        `)
+        .bind(`%${q}%`)
+        .all();
+
+        return {
+            reviews: data.results
+        };
+    },
+
+    async getNews(env) {
+
+        const data = await env.DB.prepare(`
+            SELECT
+                title,
+                slug
+            FROM news
+            ORDER BY created_at DESC
+            LIMIT 5
+        `).all();
+
+        return {
+            news: data.results
+        };
+    },
+
+    async getGeo(env, country) {
+
+        const data = await env.DB.prepare(`
+            SELECT *
+            FROM geo_rules
+            WHERE country_code = ?
+        `)
+        .bind(country)
+        .all();
+
+        return {
+            geo: data.results
+        };
+    }
+
+};

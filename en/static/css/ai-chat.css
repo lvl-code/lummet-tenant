@@ -29,3 +29,15 @@
     overflow-y: auto;
     font-size: 14px;
 }
+
+#ai-chat {
+ position: fixed;
+ bottom: 20px;
+ right: 20px;
+ width: 320px;
+ background:white;
+ border-radius:12px;
+ padding:15px;
+ box-shadow:0 4px 20px rgba(0,0,0,.2);
+ z-index:9999;
+}

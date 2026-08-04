@@ -366,7 +366,8 @@ if (path === "/api/v1/public/countries/list") {
 
 
 
-  if (!user) {
+  if (!user &&
+ path !== "/api/v1/ai/chat") {
     return failure("Unauthorized", 401);
   }
 

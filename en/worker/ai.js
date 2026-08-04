@@ -13,7 +13,7 @@ export const aiEngine = {
      // return await env.AI.run(model, inputs);
       const result = await env.AI.run(model, inputs);
 
-      console.log("AI RAW RESULT:", JSON.stringify(result));
+    //  console.log("AI RAW RESULT:", JSON.stringify(result));
 
       return result;
     } catch (error) {
@@ -87,11 +87,44 @@ Create an localized SEO title (under 60 chars) and meta description (under 155 c
   async generateFullReview(env, casinoName, countryCode, slug) {
     const model = '@cf/zai-org/glm-4.7-flash';
 
-    const systemPrompt = `You are an expert iGaming industry copywriter specializing in premium casino reviews.
+    /*const systemPrompt = `You are an expert iGaming industry copywriter specializing in premium casino reviews.
 Write a comprehensive, SEO-optimized casino review of at least 800 words.
 Structure your response with clear sections: Overview, Games & Software, Bonuses & Promotions, Payment Methods, Licensing & Security, Pros & Cons, and FAQ.
-Do not use markdown headers. Use plain text with section titles on their own line.`;
+Do not use markdown headers. Use plain text with section titles on their own line.`;*/
+    const systemPrompt = `You are a professional iGaming editorial writer for Level.casino.
 
+Create an accurate casino review.
+
+Rules:
+- Never invent payment methods, licenses, bonuses, providers, or features.
+- If information is uncertain, say availability depends on jurisdiction.
+- Avoid promotional exaggerations.
+- Write like an independent casino comparison website.
+- Include responsible gambling considerations.
+
+Structure:
+
+Overview
+
+Games & Software
+
+Bonuses & Promotions
+
+Payment Methods
+
+Licensing & Security
+
+Pros & Cons
+
+FAQ
+
+Requirements:
+- 1000-1200 words
+- Plain text only
+- Section titles on separate lines
+- No markdown symbols
+- No internal reasoning
+- Output only the final review text.`;
     const userPrompt = `Write a professional casino review for "${casinoName}" targeted at players from ${countryCode}.
 Include specific pros and cons. Include a FAQ section with 3-5 questions.
 Make it factual and avoid generic fluff.`;

@@ -1,21 +1,41 @@
-import * as casinosDB from "../database/casinos.js";
-import * as reviewsDB from "../database/reviews.js";
-import * as newsDB from "../database/news.js";
-import * as pagesDB from "../database/pages.js";
-import {searchFAQs}
-from "../database/faqs.js";
+import { searchFAQs } from "../database/faqs.js";
+
 
 export const aiSearch = {
 
 
-async search(env, query, country="RW") {
+async search(
+env,
+query,
+country="RW",
+intent="search"
+){
+
+const text =
+query.toLowerCase();
 
 
-const q = `%${query.toLowerCase()}%`;
+const q =
+`%${text}%`;
 
 
-// Casinos
-const casinos = await env.DB.prepare(`
+// =====================
+// CASINOS
+// =====================
+
+let casinos;
+
+
+if(
+text.includes("list") ||
+text.includes("all casinos") ||
+text.includes("available casinos") ||
+text.includes("casinos available")
+){
+
+casinos =
+await env.DB.prepare(`
+
 SELECT
 slug,
 name,
@@ -23,88 +43,189 @@ rating,
 bonus_title,
 bonus_value,
 website_url
+
 FROM casinos
+
+LIMIT 20
+
+`)
+.all();
+
+
+}
+else {
+
+
+casinos =
+await env.DB.prepare(`
+
+SELECT
+slug,
+name,
+rating,
+bonus_title,
+bonus_value,
+website_url
+
+FROM casinos
+
 WHERE
-(
+
 LOWER(name) LIKE ?
+
 OR LOWER(bonus_title) LIKE ?
-)
+
 LIMIT 10
+
 `)
 .bind(q,q)
 .all();
 
 
+}
 
-// Reviews
-const reviews = await env.DB.prepare(`
+
+// =====================
+// REVIEWS
+// =====================
+
+let reviews;
+
+
+if(
+text.includes("list") ||
+text.includes("all reviews") ||
+intent === "casino_review"
+){
+
+reviews =
+await env.DB.prepare(`
+
 SELECT
 title,
 casino_slug,
 overview
+
 FROM reviews
+
+LIMIT 20
+
+`)
+.all();
+
+
+}
+else {
+
+
+reviews =
+await env.DB.prepare(`
+
+SELECT
+title,
+casino_slug,
+overview
+
+FROM reviews
+
 WHERE
-(
+
 LOWER(title) LIKE ?
+
 OR LOWER(overview) LIKE ?
-)
+
 LIMIT 5
+
 `)
 .bind(q,q)
 .all();
 
+}
 
 
-// News
-const news = await env.DB.prepare(`
+
+// =====================
+// NEWS
+// =====================
+
+const news =
+await env.DB.prepare(`
+
 SELECT
 title,
 slug,
 excerpt
+
 FROM news
+
 WHERE
-(
+
 LOWER(title) LIKE ?
+
 OR LOWER(excerpt) LIKE ?
-)
+
 LIMIT 5
+
 `)
 .bind(q,q)
 .all();
 
 
 
-// Pages
-const pages = await env.DB.prepare(`
+
+// =====================
+// PAGES
+// =====================
+
+const pages =
+await env.DB.prepare(`
+
 SELECT
 title,
 slug
+
 FROM pages
-WHERE
-LOWER(title) LIKE ?
+
+WHERE LOWER(title) LIKE ?
+
 LIMIT 5
+
 `)
 .bind(q)
 .all();
 
 
+
+
+// =====================
+// FAQ
+// =====================
+
 const faqs =
 await searchFAQs(
 env.DB,
-query.toLowerCase()
+text
 );
+
+
 
 return {
 
 country,
 
-casinos: casinos.results || [],
+intent,
 
-reviews: reviews.results || [],
+casinos:
+casinos.results || [],
 
-news: news.results || [],
+reviews:
+reviews.results || [],
 
-pages: pages.results || [],
+news:
+news.results || [],
+
+pages:
+pages.results || [],
 
 faqs
 

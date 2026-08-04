@@ -65,6 +65,13 @@ text.includes("what is")
 )
 return "faq";
 
+if(
+text.includes("list") ||
+text.includes("show") ||
+text.includes("available") ||
+text.includes("casino")
+)
+return "search";
 
 if(
 text.includes("author") ||

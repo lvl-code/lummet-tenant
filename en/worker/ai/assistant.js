@@ -11,60 +11,54 @@ async chat(
   userContext = {}
 ){
 
-
   const intent =
     await aiRouter.detect(message);
-
 
 
   const context =
     await aiSearch.search(
       env,
       message,
-      userContext.country || "RW"
+      userContext.country || "RW",
+      intent
     );
-
 
 
   const prompt = `
 
 You are Level.casino AI Assistant.
 
-You are an independent online casino comparison assistant.
+You help users explore the Level.casino database.
 
-Your role:
-- Help users discover casino reviews.
-- Explain casino information.
-- Summarize casino news.
-- Compare casino operators.
-- Answer questions about payments, crypto support, licensing, countries and FAQs.
+Your responsibilities:
+- Find casinos.
+- Explain casino reviews.
+- Show available casino information.
+- Answer FAQs.
+- Explain licensing, payments, crypto support and country availability.
 
-STRICT ACCURACY RULES:
+RULES:
 
-- Only use information from the provided database context.
-- Never invent casinos.
-- Never invent licenses.
-- Never invent bonuses.
-- Never invent payment methods.
-- Never claim a casino is safe unless the database confirms facts.
-- If information is missing, say "Information is unavailable in the Level.casino database."
-- Remain neutral and editorial.
-- Do not encourage gambling.
-- Do not give gambling advice.
-- Maximum 5 sentences.
+- Only use the provided database context.
+- Never invent information.
+- Never create fake casino names.
+- Never create fake licenses.
+- Never create fake bonuses.
+- If the database has matching results, summarize them clearly.
+- If there are no matching results, say:
+"Information is unavailable in the Level.casino database."
 
-LINK RULES:
+For listing requests:
+- If the user asks for all casinos or reviews, list the available results from the database.
+- Use bullet points when listing multiple items.
 
-When mentioning a casino review:
-Use:
+Casino review links:
 https://level.casino/en/review/{casino_slug}
 
-When mentioning news:
-Use:
+News links:
 https://level.casino/en/news/{slug}
 
-When mentioning pages:
-Use:
+Pages:
 https://level.casino/en/{slug}
 
 
@@ -78,106 +72,93 @@ ${intent}
 
 Database context:
 
-${JSON.stringify(context)}
+${JSON.stringify(context, null, 2)}
 
 `;
-
 
 
 try {
 
 
-    const result =
-      await env.AI.run(
+const result =
+await env.AI.run(
 
-        "@cf/zai-org/glm-4.7-flash",
+"@cf/zai-org/glm-4.7-flash",
 
-        {
+{
 
-          messages:[
+messages:[
 
-            {
-              role:"system",
-              content:prompt
-            },
+{
+role:"system",
+content:prompt
+},
 
-            {
-              role:"user",
-              content:message
-            }
+{
+role:"user",
+content:message
+}
 
-          ],
+],
 
+temperature:0.2,
 
-          temperature:0.2,
+max_tokens:500
 
-          max_tokens:350
+}
 
-        }
-
-      );
-
+);
 
 
-    console.log("===== AI RESULT =====");
-    console.log(JSON.stringify(result,null,2));
+const answer =
+
+result?.response ||
+
+result?.choices?.[0]?.message?.content ||
+
+result?.result?.response ||
+
+result?.output?.text ||
+
+"Information unavailable in the Level.casino database.";
 
 
+return {
 
-    const answer =
+success:true,
 
-      result?.response ||
+answer:answer.trim(),
 
-      result?.choices?.[0]?.message?.content ||
+intent,
 
-      result?.result?.response ||
+context
 
-      result?.output?.text ||
-
-      "Information unavailable.";
-
-
-
-    return {
-
-      success:true,
-
-      answer:answer.trim(),
-
-      intent,
-
-      context
-
-    };
-
+};
 
 
 }
 
 catch(error){
 
+console.error(
+"AI ERROR:",
+error
+);
 
-    console.error(
-      "AI ERROR:",
-      error
-    );
 
+return {
 
-    return {
+success:false,
 
-      success:false,
+answer:"AI service unavailable.",
 
-      answer:"AI service unavailable.",
+intent,
 
-      intent,
+context
 
-      context
-
-    };
-
+};
 
 }
-
 
 
 }

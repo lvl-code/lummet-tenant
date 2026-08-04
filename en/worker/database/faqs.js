@@ -4,11 +4,10 @@ const result =
 await DB.prepare(`
 SELECT *
 FROM faqs
-WHERE published=1
-AND (
+WHERE
 LOWER(question) LIKE ?
 OR LOWER(answer) LIKE ?
-)
+
 LIMIT 5
 `)
 .bind(

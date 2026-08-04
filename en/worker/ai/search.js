@@ -81,7 +81,6 @@ title,
 slug
 FROM pages
 WHERE
-(
 LOWER(title) LIKE ?
 LIMIT 5
 `)

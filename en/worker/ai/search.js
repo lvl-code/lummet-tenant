@@ -22,21 +22,17 @@ name,
 rating,
 bonus_title,
 bonus_value,
-website_url,
-license,
-payment_methods,
-crypto_support
+website_url
 FROM casinos
 WHERE
 published = 1
 AND (
 LOWER(name) LIKE ?
-OR LOWER(payment_methods) LIKE ?
-OR LOWER(license) LIKE ?
+OR LOWER(bonus_title) LIKE ?
 )
 LIMIT 10
 `)
-.bind(q,q,q)
+.bind(q,q)
 .all();
 
 

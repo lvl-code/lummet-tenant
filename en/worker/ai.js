@@ -3,6 +3,8 @@ export const aiEngine = {
    * Safe execution wrapper for Cloudflare's native Workers AI system
    */
   async runInference(env, model, inputs) {
+    console.log("AI binding check:", !!env.AI);
+
     if (!env.AI) {
       console.warn("Workers AI binding is missing. Falling back to static values.");
       return null;

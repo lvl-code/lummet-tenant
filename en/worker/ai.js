@@ -10,7 +10,12 @@ export const aiEngine = {
       return null;
     }
     try {
-      return await env.AI.run(model, inputs);
+     // return await env.AI.run(model, inputs);
+      const result = await env.AI.run(model, inputs);
+
+      console.log("AI RAW RESULT:", JSON.stringify(result));
+
+      return result;
     } catch (error) {
       console.error(`Edge AI Inference Failure: ${error.message}`);
       return null;

@@ -1,100 +1,186 @@
 import { aiRouter } from "./router.js";
-import { aiContext } from "./context.js";
+import { aiSearch } from "./search.js";
+
 
 export const aiAssistant = {
-  async chat(env, message, userContext = {}) {
 
-    const intent = await aiRouter.detect(message);
 
-    const context = await aiContext.get(
+async chat(
+  env,
+  message,
+  userContext = {}
+){
+
+
+  const intent =
+    await aiRouter.detect(message);
+
+
+
+  const context =
+    await aiSearch.search(
       env,
-      intent,
       message,
-      userContext.country
+      userContext.country || "RW"
     );
 
-    // Limit context to avoid huge prompts
-    const shortContext = {
-      casinos: context?.casinos?.slice(0, 5) || [],
-      reviews: context?.reviews?.slice(0, 5) || [],
-      news: context?.news?.slice(0, 5) || [],
-      pages: context?.pages?.slice(0, 5) || []
-    };
 
-    const prompt = `
-You are the official Level.casino AI Assistant.
 
-Your job is to help users discover casinos, reviews, bonuses and gambling news.
+  const prompt = `
 
-Rules:
-- Answer naturally.
-- Maximum 3 short sentences.
-- Never invent facts.
-- Only use the supplied data.
-- Stay neutral.
-- Never encourage gambling.
-- If information is unavailable, clearly say so.
-- If casino data exists, mention the casino name and rating.
-- Never expose your internal reasoning.
+You are Level.casino AI Assistant.
+
+You are an independent online casino comparison assistant.
+
+Your role:
+- Help users discover casino reviews.
+- Explain casino information.
+- Summarize casino news.
+- Compare casino operators.
+- Answer questions about payments, crypto support, licensing, countries and FAQs.
+
+STRICT ACCURACY RULES:
+
+- Only use information from the provided database context.
+- Never invent casinos.
+- Never invent licenses.
+- Never invent bonuses.
+- Never invent payment methods.
+- Never claim a casino is safe unless the database confirms facts.
+- If information is missing, say "Information is unavailable in the Level.casino database."
+- Remain neutral and editorial.
+- Do not encourage gambling.
+- Do not give gambling advice.
+- Maximum 5 sentences.
+
+LINK RULES:
+
+When mentioning a casino review:
+Use:
+https://level.casino/en/review/{casino_slug}
+
+When mentioning news:
+Use:
+https://level.casino/en/news/{slug}
+
+When mentioning pages:
+Use:
+https://level.casino/en/{slug}
+
+
+User country:
+${userContext.country || "Unknown"}
+
 
 Intent:
 ${intent}
 
-Available Data:
-${JSON.stringify(shortContext)}
+
+Database context:
+
+${JSON.stringify(context)}
+
 `;
 
-    try {
 
-      const result = await env.AI.run(
+
+try {
+
+
+    const result =
+      await env.AI.run(
+
         "@cf/zai-org/glm-4.7-flash",
+
         {
-          messages: [
+
+          messages:[
+
             {
-              role: "system",
-              content: prompt
+              role:"system",
+              content:prompt
             },
+
             {
-              role: "user",
-              content: message
+              role:"user",
+              content:message
             }
+
           ],
-          temperature: 0.2,
-          max_tokens: 512,
-          reasoning: {
-            enabled: false
-          }
+
+
+          temperature:0.2,
+
+          max_tokens:350
+
         }
+
       );
 
-      console.log("===== AI RESULT =====");
-      console.log(JSON.stringify(result, null, 2));
 
-      const answer =
-        result?.choices?.[0]?.message?.content ??
-        result?.response ??
-        result?.result?.response ??
-        result?.output?.text ??
-        result?.text ??
-        "Sorry, I couldn't generate a response.";
 
-      return {
-        success: true,
-        answer: answer.trim(),
-        intent,
-        context: shortContext
-      };
+    console.log("===== AI RESULT =====");
+    console.log(JSON.stringify(result,null,2));
 
-    } catch (err) {
 
-      console.error("AI ERROR:", err);
 
-      return {
-        success: false,
-        answer: "Sorry, the AI service is temporarily unavailable.",
-        intent,
-        context: shortContext
-      };
-    }
-  }
+    const answer =
+
+      result?.response ||
+
+      result?.choices?.[0]?.message?.content ||
+
+      result?.result?.response ||
+
+      result?.output?.text ||
+
+      "Information unavailable.";
+
+
+
+    return {
+
+      success:true,
+
+      answer:answer.trim(),
+
+      intent,
+
+      context
+
+    };
+
+
+
+}
+
+catch(error){
+
+
+    console.error(
+      "AI ERROR:",
+      error
+    );
+
+
+    return {
+
+      success:false,
+
+      answer:"AI service unavailable.",
+
+      intent,
+
+      context
+
+    };
+
+
+}
+
+
+
+}
+
+
 };

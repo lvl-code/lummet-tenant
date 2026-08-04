@@ -2,35 +2,49 @@ export const aiRouter = {
 
 async detect(message){
 
-const text =
-message.toLowerCase();
+const text = message.toLowerCase();
 
 
 if(
 text.includes("compare") ||
-text.includes("vs")
+text.includes("vs") ||
+text.includes("difference")
 )
-return "compare";
+return "casino_compare";
 
 
 if(
 text.includes("review") ||
-text.includes("is")
+text.includes("opinion") ||
+text.includes("rating")
 )
-return "review";
+return "casino_review";
 
 
 if(
 text.includes("bitcoin") ||
 text.includes("crypto") ||
-text.includes("payment")
+text.includes("ethereum") ||
+text.includes("payment") ||
+text.includes("deposit") ||
+text.includes("withdraw")
 )
-return "payment";
+return "payment_methods";
+
+
+if(
+text.includes("license") ||
+text.includes("licensed") ||
+text.includes("regulator") ||
+text.includes("authority")
+)
+return "licensing";
 
 
 if(
 text.includes("news") ||
-text.includes("latest")
+text.includes("latest") ||
+text.includes("update")
 )
 return "news";
 
@@ -38,9 +52,18 @@ return "news";
 if(
 text.includes("country") ||
 text.includes("available") ||
+text.includes("allowed") ||
 text.includes("legal")
 )
 return "geo";
+
+
+if(
+text.includes("faq") ||
+text.includes("how") ||
+text.includes("what is")
+)
+return "faq";
 
 
 if(

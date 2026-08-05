@@ -238,26 +238,46 @@ function createSSEStream(events) {
   });
 }
 
+/**
+ * Generate fallback response when AI is unavailable
+ * Uses actual schema fields
+ */
 function generateFallback(message, context, country) {
   const countryNameStr = COUNTRY_NAMES[country] || country || 'your country';
 
   if (context.casinos.length > 0) {
-    const list = context.casinos.slice(0, 5).map((c, i) =>
-      `${i + 1}. ${c.name} — ⭐ ${c.rating || 'N/A'}/5 — ${context.geoStatuses[c.slug] === 'allowed' ? '✓ Available' : '✕ Not available'} in ${countryNameStr}\n   🔗 https://level.casino/en/casino/${c.slug}`
-    ).join('\n\n');
+    const list = context.casinos.slice(0, 5).map((c, i) => {
+      const geo = context.geoStatuses[c.slug] || 'unknown';
+      const geoIcon = geo === 'allowed' ? '✓ Available' : geo === 'blocked' ? '✕ Not available' : '? Unknown';
+      return `${i + 1}. ${c.name} — ⭐ ${c.rating || 'N/A'}/5 — ${geoIcon} in ${countryNameStr}\n   🎁 ${c.bonus_title || 'N/A'} ${c.bonus_value || ''}\n   📜 License: ${c.license || 'N/A'}\n   🔗 https://level.casino/en/casino/${c.slug}`;
+    }).join('\n\n');
     return `Here are the casinos I found on Level.casino:\n\n${list}\n\nYou can read the full reviews by following the links. I can also compare these casinos or show you their bonus details.`;
   }
 
   if (context.reviews.length > 0) {
     const list = context.reviews.slice(0, 5).map((r, i) =>
-      `${i + 1}. ${r.title} — ⭐ ${r.rating || 'N/A'}/5\n   🔗 https://level.casino/en/review/${r.slug}`
+      `${i + 1}. ${r.title} — ⭐ ${r.rating || 'N/A'}/5${r.verdict ? '\n   ' + r.verdict : ''}\n   🔗 https://level.casino/en/review/${r.slug}`
     ).join('\n\n');
     return `Here are the reviews I found:\n\n${list}\n\nWould you like me to summarize any of these reviews?`;
+  }
+
+  if (context.news.length > 0) {
+    const list = context.news.slice(0, 5).map((n, i) =>
+      `${i + 1}. ${n.title}${n.excerpt ? '\n   ' + n.excerpt : ''}\n   🔗 https://level.casino/en/news/${n.slug}`
+    ).join('\n\n');
+    return `Here are the latest news articles I found:\n\n${list}`;
   }
 
   if (context.faqs.length > 0) {
     const faq = context.faqs[0];
     return `${faq.question}\n\n${faq.answer}`;
+  }
+
+  if (context.pages.length > 0) {
+    const list = context.pages.slice(0, 5).map((p, i) =>
+      `${i + 1}. ${p.title}\n   🔗 https://level.casino/en/${p.slug}`
+    ).join('\n\n');
+    return `Here are the pages I found:\n\n${list}`;
   }
 
   return `I couldn't find that information in the Level.casino database. You can browse our independent casino reviews, guides, news, and responsible gambling resources at https://level.casino/en/ — or contact us at elie@level.casino and we'll be happy to help.`;

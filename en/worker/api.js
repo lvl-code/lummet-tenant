@@ -14,6 +14,9 @@ import * as news from "./database/news.js";
 
 import { aiAssistant } from "./ai/assistant.js";
 
+import { handleChatStream, handleClearChat } from "./ai/api.js";
+
+
 import {
   login,
   logout,
@@ -786,6 +789,16 @@ success:true,
 
 
 }
+    // ── LUMMET AI STREAMING CHAT ──
+if (path === "/api/v1/ai/chat/stream" && request.method === "POST") {
+  return handleChatStream(request, env, user);
+}
+
+// ── LUMMET AI CLEAR CONVERSATION ──
+if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
+  return handleClearChat(request, env, user);
+}
+
     // ==================================
     // SETTINGS
     // ==================================

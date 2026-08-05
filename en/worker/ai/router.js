@@ -1,140 +1,139 @@
-export const aiRouter = {
+// =====================================================
+// LUMMET AI — Enhanced Intent Router
+// =====================================================
 
-async detect(message){
+const INTENTS = {
+  CASINO_SEARCH: 'casino_search',
+  CASINO_REVIEW: 'casino_review',
+  CASINO_COMPARE: 'casino_compare',
+  BONUSES: 'bonuses',
+  PAYMENTS: 'payments',
+  CRYPTO: 'crypto',
+  LICENSING: 'licensing',
+  NEWS: 'news',
+  GEO_AVAILABILITY: 'geo',
+  AUTHORS: 'authors',
+  FAQ: 'faq',
+  RESPONSIBLE_GAMBLING: 'responsible_gambling',
+  NAVIGATION: 'navigation',
+  EDUCATIONAL: 'educational',
+  GENERAL: 'general'
+};
 
-const text = message.toLowerCase().trim();
+const INTENT_PATTERNS = [
+  {
+    intent: INTENTS.CASINO_COMPARE,
+    keywords: ['compare', ' vs ', 'versus', 'difference', 'better than', 'which is better', 'compare casinos']
+  },
+  {
+    intent: INTENTS.CRYPTO,
+    keywords: ['bitcoin', 'btc', 'crypto', 'cryptocurrency', 'ethereum', 'eth', 'litecoin', 'dogecoin', 'usdt', 'tether', 'blockchain']
+  },
+  {
+    intent: INTENTS.PAYMENTS,
+    keywords: ['payment', 'deposit', 'withdraw', 'withdrawal', 'cashout', 'payout', 'banking', 'visa', 'mastercard', 'paypal', 'skrill', 'neteller', 'bank transfer', 'ewallet']
+  },
+  {
+    intent: INTENTS.BONUSES,
+    keywords: ['bonus', 'bonuses', 'promotion', 'promo', 'free spins', 'welcome offer', 'no deposit', 'match bonus', 'vip', 'reward', 'incentive']
+  },
+  {
+    intent: INTENTS.LICENSING,
+    keywords: ['license', 'licensed', 'licence', 'regulator', 'authority', 'mga', 'ukgc', 'curacao', 'gibraltar', 'regulated']
+  },
+  {
+    intent: INTENTS.GEO_AVAILABILITY,
+    keywords: ['available in my country', 'my country', 'can i play', 'allowed in', 'restricted in', 'where can i play', 'country', 'countries', 'geo', 'jurisdiction']
+  },
+  {
+    intent: INTENTS.RESPONSIBLE_GAMBLING,
+    keywords: ['responsible gambling', 'gambling problem', 'addiction', 'self-exclusion', 'gamcare', 'gambling help', 'problem gambling', 'gamble responsibly']
+  },
+  {
+    intent: INTENTS.NEWS,
+    keywords: ['news', 'latest', 'update', 'industry news', 'igaming news', 'happening']
+  },
+  {
+    intent: INTENTS.CASINO_REVIEW,
+    keywords: ['review', 'opinion', 'rating', 'score', 'rated', 'evaluation', 'assessment']
+  },
+  {
+    intent: INTENTS.AUTHORS,
+    keywords: ['author', 'writer', 'editor', 'who wrote', 'who reviewed']
+  },
+  {
+    intent: INTENTS.FAQ,
+    keywords: ['faq', 'how do', 'how does', 'what is', 'what are', 'why', 'when', 'where', 'explain']
+  },
+  {
+    intent: INTENTS.NAVIGATION,
+    keywords: ['navigate', 'find page', 'where is', 'how to find', 'menu', 'help me find', 'sitemap']
+  },
+  {
+    intent: INTENTS.CASINO_SEARCH,
+    keywords: ['casino', 'casinos', 'list', 'show me', 'find casino', 'search', 'all casinos', 'available casinos', 'top casinos', 'best casinos']
+  }
+];
 
+/**
+ * Detect intent from user message
+ */
+export function detectIntent(message) {
+  const text = message.toLowerCase().trim();
 
-// ======================
-// COMPARE
-// ======================
+  let bestIntent = INTENTS.GENERAL;
+  let bestScore = 0;
 
-if(
-text.includes("compare") ||
-text.includes(" vs ") ||
-text.includes("difference") ||
-text.includes("better than")
-)
-return "casino_compare";
+  for (const { intent, keywords } of INTENT_PATTERNS) {
+    let score = 0;
+    for (const kw of keywords) {
+      if (text.includes(kw)) {
+        score += kw.length > 4 ? 2 : 1;
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestIntent = intent;
+    }
+  }
 
+  const isFollowUp = /^(what about|how about|and|also|what if|show me another|the first one|the last one|it|that one|this one)\b/i.test(text);
 
-// ======================
-// LIST / SEARCH
-// ======================
-
-if(
-text.includes("list") ||
-text.includes("show") ||
-text.includes("all casinos") ||
-text.includes("casinos available") ||
-text.includes("available casinos") ||
-text.includes("find casino") ||
-text.includes("casino")
-)
-return "search";
-
-
-// ======================
-// REVIEWS
-// ======================
-
-if(
-text.includes("review") ||
-text.includes("opinion") ||
-text.includes("rating") ||
-text.includes("score")
-)
-return "casino_review";
-
-
-// ======================
-// PAYMENTS
-// ======================
-
-if(
-text.includes("bitcoin") ||
-text.includes("crypto") ||
-text.includes("ethereum") ||
-text.includes("payment") ||
-text.includes("deposit") ||
-text.includes("withdraw") ||
-text.includes("withdrawal")
-)
-return "payment_methods";
-
-
-// ======================
-// LICENSING
-// ======================
-
-if(
-text.includes("license") ||
-text.includes("licensed") ||
-text.includes("licence") ||
-text.includes("regulator") ||
-text.includes("authority")
-)
-return "licensing";
-
-
-// ======================
-// NEWS
-// ======================
-
-if(
-text.includes("news") ||
-text.includes("latest") ||
-text.includes("update") ||
-text.includes("new")
-)
-return "news";
-
-
-// ======================
-// GEO AVAILABILITY
-// ======================
-
-if(
-text.includes("country") ||
-text.includes("countries") ||
-text.includes("allowed") ||
-text.includes("legal") ||
-text.includes("where can") ||
-text.includes("my country")
-)
-return "geo";
-
-
-// ======================
-// FAQ
-// ======================
-
-if(
-text.includes("faq") ||
-text.startsWith("how") ||
-text.startsWith("what is") ||
-text.startsWith("why")
-)
-return "faq";
-
-
-// ======================
-// AUTHOR
-// ======================
-
-if(
-text.includes("author") ||
-text.includes("writer")
-)
-return "author";
-
-
-// DEFAULT
-// ======================
-
-return "search";
-
-
+  return { intent: bestIntent, confidence: bestScore, isFollowUp };
 }
 
-};
+/**
+ * Extract entity names (casino names, country codes) from message
+ */
+export function extractEntities(message) {
+  const text = message.toLowerCase();
+  const entities = {
+    casinoNames: [],
+    countryCodes: [],
+    isComparison: false
+  };
+
+  if (/\b(compare|vs|versus|difference|better than)\b/i.test(message)) {
+    entities.isComparison = true;
+  }
+
+  const casinoPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
+  const commonWords = new Set(['The', 'What', 'How', 'Can', 'Are', 'Is', 'Do', 'Does', 'Which', 'Show', 'List', 'Find', 'Tell', 'Give', 'Best', 'Top', 'All', 'About', 'Compare', 'Level']);
+  let match;
+  while ((match = casinoPattern.exec(message)) !== null) {
+    const name = match[1].trim();
+    if (!commonWords.has(name) && name.length > 2) {
+      entities.casinoNames.push(name);
+    }
+  }
+
+  const countryPattern = /\b(US|CA|GB|DE|FR|IT|ES|NL|AU|NZ|JP|CN|IN|BR|MX|ZA|NG|KE|EG|SE|NO|DK|FI|PL|PT|GR|TR|RU|UA|AE|SA|QA|KR|TH|VN|PH|ID|MY|SG|AR|CL|CO|PE|AT|CH|IE|BE|CZ|HU|RO|BG|HR|MT|CY|LU|IS|RW)\b/g;
+  let cMatch;
+  while ((cMatch = countryPattern.exec(message)) !== null) {
+    entities.countryCodes.push(cMatch[1]);
+  }
+
+  return entities;
+}
+
+export { INTENTS };

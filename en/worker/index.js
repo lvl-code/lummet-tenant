@@ -71,6 +71,9 @@ import {
 from "./auth.js";
 import { cleanupExpiredSessions } from "./cron.js";
 
+import { cleanupExpiredConversations } from "./ai/memory.js";
+
+
 export default {
 
   async fetch(request, env, ctx) {
@@ -289,6 +292,7 @@ export default {
     }
   },
   async scheduled(event, env, ctx) {
+        ctx.waitUntil(cleanupExpiredConversations(env.DB));
 
         ctx.waitUntil(
             cleanupExpiredSessions(env)

@@ -22,7 +22,7 @@
 .lummet-ai-button {
   position: fixed;
   right: 15px;
-  bottom: 100px;
+  bottom: 60px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -239,7 +239,7 @@
     width: calc(100vw - 24px); height: calc(100vh - 100px);
     right: 12px; bottom: 84px; border-radius: 12px;
   }
-  .lummet-ai-button { right: 16px; bottom: 16px; }
+  .lummet-ai-button { right: 16px; bottom: 76px; }
 }
 
 /* Accessibility */

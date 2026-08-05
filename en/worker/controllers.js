@@ -28,6 +28,14 @@ function cacheHeaders() {
   };
 }
 
+function formatDate(date) {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
 const COUNTRY_NAMES = {
   // — Africa —
   DZ:"Algeria", AO:"Angola", BJ:"Benin", BW:"Botswana", BF:"Burkina Faso",

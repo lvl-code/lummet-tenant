@@ -1103,7 +1103,9 @@ export async function renderDynamicPage(request, env, slug) {
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": page.title,
-    "description": page.seo_description || ""
+    "description": page.seo_description || "",
+    "datePublished": page.created_at,
+    "dateModified": page.updated_at || page.created_at
   };
   const html = await renderer.render("page.html", {
     ...page,
@@ -1112,6 +1114,8 @@ export async function renderDynamicPage(request, env, slug) {
     author_avatar: author?.avatar_url || "",
     author_role: author?.role || "",
     author_slug: author?.slug || "",
+    datePublished: formatDate(page.created_at),
+    dateModified: formatDate(page.updated_at || page.created_at),
     content_json: parseContentJson(page.content_json),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,

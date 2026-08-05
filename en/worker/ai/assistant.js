@@ -283,8 +283,7 @@ context.faqs
 if(!answer){
 
 answer =
-"I couldn't find that on Level.casino. You can browse all reviews and guides here: https://level.casino/en/";
-
+"I couldn't find the information you're looking for. You can browse our independent casino reviews, guides, news, and responsible gambling resources here: <a href="https://level.casino/en/">Level.casino</a>. If you need further assistance or have a specific question, feel free to contact us at <a href="mailto:elie@level.casino">elie@level.casino</a> and we'll be happy to help.";
 }
 
 

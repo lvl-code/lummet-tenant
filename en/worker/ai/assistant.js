@@ -365,3 +365,9 @@ function generateFallback(message, context, country) {
   // ── Nothing found ──
   return `I couldn't find that information in the Level.casino database. You can browse our independent casino reviews, guides, news, and responsible gambling resources at https://level.casino/en/ — or contact us at elie@level.casino and we'll be happy to help.`;
 }
+
+
+export const aiAssistant = {
+  chat,
+  chatStream
+};

@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch: # Allows manual deployment triggers from Termux
 
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest

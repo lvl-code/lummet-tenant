@@ -6,14 +6,10 @@ on:
       - main
   workflow_dispatch:
 
-concurrency:
-  group: deploy-worker
-  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
       - name: Checkout Code Base

@@ -1,8 +1,8 @@
 // =====================================================
-// LUMMET AI — Main Assistant (Streaming + Non-Streaming)
+// LUMMET AI — Main Assistant (Two-Pass: Understand → Retrieve → Respond)
 // =====================================================
 
-import { detectIntent, extractEntities } from './router.js';
+import { understand } from './understand.js';
 import { retrieve } from './retrieval.js';
 import { buildSystemPrompt, buildMessages } from './prompt.js';
 import { getRecentHistory, appendMessages } from './memory.js';
@@ -35,9 +35,7 @@ export async function chat(env, message, userContext = {}) {
 
   // 1. Validate input
   const validation = validateInput(message);
-  if (!validation.valid) {
-    return { success: false, answer: validation.error, intent: null };
-  }
+  if (!validation.valid) return { success: false, answer: validation.error, intent: null };
   const sanitized = validation.sanitized;
 
   // 2. Detect injection
@@ -50,33 +48,29 @@ export async function chat(env, message, userContext = {}) {
     };
   }
 
-  // 3. Detect intent and entities
-  const { intent, isFollowUp } = detectIntent(sanitized);
-  const entities = extractEntities(sanitized);
-
-  // 4. Get conversation history
+  // 3. Get conversation history
   const conversationHistory = await getRecentHistory(db, sessionId, 6);
 
-  // 5. Retrieve from database
-  const context = await retrieve(env, sanitized, country, intent, entities, conversationHistory);
+  // 4. PASS 1 — Understand: AI analyzes intent and creates search plan
+  const plan = await understand(env, sanitized, conversationHistory);
 
-  // Log what we found for debugging
-  const contextSummary = {
+  // 5. PASS 2 — Retrieve: Database queries based on AI's plan
+  const context = await retrieve(env, sanitized, country, plan, conversationHistory);
+
+  console.log('Lummet retrieval results:', JSON.stringify({
     casinos: context.casinos?.length || 0,
     reviews: context.reviews?.length || 0,
     news: context.news?.length || 0,
     pages: context.pages?.length || 0,
     faqs: context.faqs?.length || 0,
-    countries: context.countries?.length || 0,
-    intent
-  };
-  console.log('Lummet retrieval results:', JSON.stringify(contextSummary));
+    intent: plan?.intent
+  }));
 
   // 6. Build prompt
-  const systemPrompt = buildSystemPrompt(context, country, intent, conversationHistory);
+  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory);
   const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
-  // 7. Run inference
+  // 7. PASS 3 — Respond: AI generates human-like response
   let answer;
   try {
     if (!env.AI) {
@@ -89,12 +83,7 @@ export async function chat(env, message, userContext = {}) {
         max_tokens: MAX_TOKENS
       });
 
-      answer = result?.response ||
-              result?.choices?.[0]?.message?.content ||
-              result?.result?.response ||
-              result?.output?.text ||
-              null;
-
+      answer = result?.response || result?.choices?.[0]?.message?.content || result?.result?.response || result?.output?.text || null;
       if (!answer) {
         console.warn('Lummet: AI returned empty, using fallback');
         answer = generateFallback(sanitized, context, country);
@@ -108,18 +97,10 @@ export async function chat(env, message, userContext = {}) {
   answer = answer.trim();
 
   // 8. Save to conversation memory
-  try {
-    await appendMessages(db, sessionId, sanitized, answer, userId);
-  } catch (e) {
-    console.error('Lummet memory save error:', e.message);
-  }
+  try { await appendMessages(db, sessionId, sanitized, answer, userId); }
+  catch (e) { console.error('Lummet memory save error:', e.message); }
 
-  return {
-    success: true,
-    answer,
-    intent,
-    sessionId
-  };
+  return { success: true, answer, intent: plan?.intent, sessionId };
 }
 
 /**
@@ -133,9 +114,7 @@ export async function chatStream(env, message, userContext = {}) {
 
   // 1. Validate input
   const validation = validateInput(message);
-  if (!validation.valid) {
-    return createErrorStream(validation.error);
-  }
+  if (!validation.valid) return createErrorStream(validation.error);
   const sanitized = validation.sanitized;
 
   // 2. Detect injection
@@ -147,28 +126,24 @@ export async function chatStream(env, message, userContext = {}) {
     ]);
   }
 
-  // 3. Detect intent and entities
-  const { intent } = detectIntent(sanitized);
-  const entities = extractEntities(sanitized);
-
-  // 4. Get conversation history
+  // 3. Get conversation history
   const conversationHistory = await getRecentHistory(db, sessionId, 6);
 
-  // 5. Retrieve from database
-  const context = await retrieve(env, sanitized, country, intent, entities, conversationHistory);
+  // 4. PASS 1 — Understand
+  const plan = await understand(env, sanitized, conversationHistory);
+
+  // 5. PASS 2 — Retrieve
+  const context = await retrieve(env, sanitized, country, plan, conversationHistory);
 
   console.log('Lummet stream retrieval:', JSON.stringify({
-    casinos: context.casinos?.length || 0,
-    reviews: context.reviews?.length || 0,
-    faqs: context.faqs?.length || 0,
-    intent
+    casinos: context.casinos?.length || 0, reviews: context.reviews?.length || 0, faqs: context.faqs?.length || 0, intent: plan?.intent
   }));
 
   // 6. Build prompt
-  const systemPrompt = buildSystemPrompt(context, country, intent, conversationHistory);
+  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory);
   const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
-  // 7. Run streaming inference
+  // 7. PASS 3 — Respond (streaming)
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -180,21 +155,14 @@ export async function chatStream(env, message, userContext = {}) {
           fullAnswer = generateFallback(sanitized, context, country);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
         } else {
-          const result = await env.AI.run(MODEL, {
-            messages,
-            temperature: TEMPERATURE,
-            max_tokens: MAX_TOKENS,
-            stream: true
-          });
+          const result = await env.AI.run(MODEL, { messages, temperature: TEMPERATURE, max_tokens: MAX_TOKENS, stream: true });
 
           if (result instanceof ReadableStream) {
             const reader = result.getReader();
             const decoder = new TextDecoder();
-
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-
               const chunk = decoder.decode(value, { stream: true });
               const lines = chunk.split('\n');
               for (const line of lines) {
@@ -208,16 +176,12 @@ export async function chatStream(env, message, userContext = {}) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: token })}\n\n`));
                       }
                     }
-                  } catch {
-                    // Skip non-JSON lines
-                  }
+                  } catch {}
                 }
               }
             }
           } else {
-            fullAnswer = result?.response ||
-                        result?.choices?.[0]?.message?.content ||
-                        generateFallback(sanitized, context, country);
+            fullAnswer = result?.response || result?.choices?.[0]?.message?.content || generateFallback(sanitized, context, country);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
           }
         }
@@ -227,84 +191,53 @@ export async function chatStream(env, message, userContext = {}) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
       }
 
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', intent, sessionId })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', intent: plan?.intent, sessionId })}\n\n`));
 
-      try {
-        await appendMessages(db, sessionId, sanitized, fullAnswer, userId);
-      } catch (e) {
-        console.error('Lummet memory save error:', e.message);
-      }
+      try { await appendMessages(db, sessionId, sanitized, fullAnswer, userId); }
+      catch (e) { console.error('Lummet memory save error:', e.message); }
 
       controller.close();
     }
   });
 
   return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
-    }
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' }
   });
 }
 
-/**
- * Create a simple SSE stream from an array of events
- */
+// ── Helper functions ──
+
 function createSSEStream(events) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      for (const event of events) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-      }
+      for (const event of events) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       controller.close();
     }
   });
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache'
-    }
-  });
+  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } });
 }
 
-/**
- * Create an error SSE stream
- */
 function createErrorStream(message) {
-  return createSSEStream([
-    { type: 'error', content: message },
-    { type: 'done' }
-  ]);
+  return createSSEStream([{ type: 'error', content: message }, { type: 'done' }]);
 }
 
-/**
- * Generate a fallback response when AI is unavailable or returns empty
- * Uses retrieved database context to build a useful answer
- */
 function generateFallback(message, context, country) {
   const countryNameStr = COUNTRY_NAMES[country] || country || 'your country';
   const text = message.toLowerCase();
 
-  // ── Casino results ──
   if (context.casinos && context.casinos.length > 0) {
     const isGeoQuery = text.includes('available') || text.includes('country') || text.includes('can i play') || text.includes('my country');
-
     if (isGeoQuery) {
       const available = context.casinos.filter(c => context.geoStatuses[c.slug] === 'allowed');
       const blocked = context.casinos.filter(c => context.geoStatuses[c.slug] === 'blocked');
-
       if (available.length > 0) {
-        const list = available.slice(0, 5).map((c, i) =>
-          `${i + 1}. **${c.name}** — ⭐ ${c.rating || 'N/A'}/5${c.bonus_title ? ` — ${c.bonus_title}` : ''}\n   🔗 https://level.casino/en/casino/${c.slug}`
-        ).join('\n\n');
+        const list = available.slice(0, 5).map((c, i) => `${i + 1}. **${c.name}** — ⭐ ${c.rating || 'N/A'}/5${c.bonus_title ? ` — ${c.bonus_title}` : ''}\n   🔗 https://level.casino/en/casino/${c.slug}`).join('\n\n');
         return `Here are the casinos available in ${countryNameStr} according to the Level.casino database:\n\n${list}\n\nWould you like me to show you the full review for any of these?`;
       } else if (blocked.length > 0) {
         return `Based on the Level.casino database, the casinos I found are not available in ${countryNameStr}. You can browse all casinos at https://level.casino/en/casinos to check for alternatives.`;
       }
     }
-
     const list = context.casinos.slice(0, 5).map((c, i) => {
       const geo = context.geoStatuses[c.slug];
       const geoStr = geo === 'allowed' ? ' ✓ Available' : geo === 'blocked' ? ' ✕ Not available' : '';
@@ -313,61 +246,36 @@ function generateFallback(message, context, country) {
     return `Here are the casinos I found on Level.casino:\n\n${list}\n\nI can also show you reviews, bonuses, or payment details for any of these.`;
   }
 
-  // ── Review results ──
   if (context.reviews && context.reviews.length > 0) {
-    const list = context.reviews.slice(0, 5).map((r, i) =>
-      `${i + 1}. **${r.title}** — ⭐ ${r.rating || 'N/A'}/5${r.overview ? `\n   ${r.overview}` : ''}\n   🔗 https://level.casino/en/review/${r.slug}`
-    ).join('\n\n');
+    const list = context.reviews.slice(0, 5).map((r, i) => `${i + 1}. **${r.title}** — ⭐ ${r.rating || 'N/A'}/5${r.overview ? `\n   ${r.overview}` : ''}\n   🔗 https://level.casino/en/review/${r.slug}`).join('\n\n');
     return `Here are the casino reviews I found on Level.casino:\n\n${list}\n\nWould you like me to summarize any of these reviews?`;
   }
 
-  // ── News results ──
   if (context.news && context.news.length > 0) {
-    const list = context.news.slice(0, 5).map((n, i) =>
-      `${i + 1}. **${n.title}**${n.excerpt ? `\n   ${n.excerpt}` : ''}\n   🔗 https://level.casino/en/news/${n.slug}`
-    ).join('\n\n');
+    const list = context.news.slice(0, 5).map((n, i) => `${i + 1}. **${n.title}**${n.excerpt ? `\n   ${n.excerpt}` : ''}\n   🔗 https://level.casino/en/news/${n.slug}`).join('\n\n');
     return `Here are the latest articles from Level.casino:\n\n${list}\n\nWould you like to know more about any of these?`;
   }
 
-  // ── FAQ results ──
   if (context.faqs && context.faqs.length > 0) {
-    if (context.faqs.length === 1) {
-      return `**${context.faqs[0].question}**\n\n${context.faqs[0].answer}`;
-    }
-    const list = context.faqs.slice(0, 5).map((f, i) =>
-      `${i + 1}. **${f.question}**\n   ${f.answer}`
-    ).join('\n\n');
+    if (context.faqs.length === 1) return `**${context.faqs[0].question}**\n\n${context.faqs[0].answer}`;
+    const list = context.faqs.slice(0, 5).map((f, i) => `${i + 1}. **${f.question}**\n   ${f.answer}`).join('\n\n');
     return `Here are answers to common questions:\n\n${list}`;
   }
 
-  // ── Page results ──
   if (context.pages && context.pages.length > 0) {
-    const list = context.pages.slice(0, 5).map((p, i) =>
-      `${i + 1}. **${p.title}** — 🔗 https://level.casino/en/${p.slug}`
-    ).join('\n\n');
+    const list = context.pages.slice(0, 5).map((p, i) => `${i + 1}. **${p.title}** — 🔗 https://level.casino/en/${p.slug}`).join('\n\n');
     return `Here are the pages I found on Level.casino:\n\n${list}\n\nWould you like to explore any of these?`;
   }
 
-  // ── Author results ──
   if (context.authors && context.authors.length > 0) {
-    const list = context.authors.slice(0, 5).map((a, i) =>
-      `${i + 1}. **${a.name}** — ${a.role || 'Editor'}${a.bio ? `\n   ${a.bio}` : ''}\n   🔗 https://level.casino/en/author/${a.slug}`
-    ).join('\n\n');
+    const list = context.authors.slice(0, 5).map((a, i) => `${i + 1}. **${a.name}** — ${a.role || 'Editor'}${a.bio ? `\n   ${a.bio}` : ''}\n   🔗 https://level.casino/en/author/${a.slug}`).join('\n\n');
     return `Here are the authors I found on Level.casino:\n\n${list}`;
   }
 
-  // ── Country info ──
   if (context.countries && context.countries.length > 0) {
     const c = context.countries[0];
     return `**${c.name} (${c.code})**\n\n- Currency: ${c.currency || 'N/A'}\n- Language: ${c.language || 'N/A'}\n- Legal Status: ${c.legal_status || 'N/A'}\n\nWould you like to see casinos available in ${c.name}?`;
   }
 
-  // ── Nothing found ──
   return `I couldn't find that information in the Level.casino database. You can browse our independent casino reviews, guides, news, and responsible gambling resources at https://level.casino/en/ — or contact us at elie@level.casino and we'll be happy to help.`;
 }
-
-
-export const aiAssistant = {
-  chat,
-  chatStream
-};

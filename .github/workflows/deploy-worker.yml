@@ -4,17 +4,22 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual deployment triggers from Termux
+  workflow_dispatch:
 
 concurrency:
   group: deploy-worker
   cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code Base
         uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm install
 
       - name: Deploy Worker to Cloudflare Edge
         uses: cloudflare/wrangler-action@v3

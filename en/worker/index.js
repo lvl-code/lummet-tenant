@@ -73,10 +73,19 @@ import { cleanupExpiredSessions } from "./cron.js";
 
 import { cleanupExpiredConversations } from "./ai/memory.js";
 
+import { handleLummetRequest } from "./lummet/router.js";
 
 export default {
 
   async fetch(request, env, ctx) {
+
+    const url = new URL(request.url);
+
+    // ── Check if this is the Lummet subdomain ──
+    if (url.hostname === 'lummet.level.casino') {
+      const lummetResponse = await handleLummetRequest(request, env, ctx);
+      if (lummetResponse) return lummetResponse;
+    }
 
     // ===== OLD WEBSITE PERMANENT REDIRECTS =====
     const redirectResponse = await oldpermredirect.fetch(request);
@@ -84,7 +93,6 @@ export default {
     if (redirectResponse) {
       return redirectResponse;
     }
-    const url = new URL(request.url);
 
     // Serve static assets
     if (

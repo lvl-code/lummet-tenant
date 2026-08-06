@@ -5,6 +5,14 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  
+  "routes": [
+    {
+      "pattern": "lummet.level.casino",
+      "custom_domain": true
+    }
+  ],
+
   "assets": {
     "binding": "ASSETS",
     "directory": "./en",

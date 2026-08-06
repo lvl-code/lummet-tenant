@@ -6,6 +6,7 @@ const MAX_MESSAGE_LENGTH = 500;
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 
+// Patterns that indicate prompt injection attempts
 const INJECTION_PATTERNS = [
   /ignore (all |previous |prior )?(instructions|prompts|rules)/i,
   /disregard (all |previous |prior )?(instructions|prompts|rules)/i,
@@ -18,14 +19,15 @@ const INJECTION_PATTERNS = [
   /repeat (everything|all|the text) (above|before)/i,
   /output (your|the) (system )?(prompt|instructions)/i,
   /print (your|the) (system )?(prompt|instructions)/i,
-  /what (database|sql|query|schema)/i,
-  /show (me )?(the )?(database|sql|schema|raw json)/i,
+  /what (is|are) (your|the) (database|sql|query|schema)/i,
+  /show (me )?(your|the) (database|sql|schema|raw json)/i,
   /expose (the )?(database|schema|implementation)/i,
   /\b(DROP|DELETE|INSERT|UPDATE|SELECT|CREATE|ALTER)\b.*\b(FROM|INTO|TABLE|SET|WHERE)\b/i,
 ];
 
 /**
  * Sanitize and validate user input
+ * Returns { valid, sanitized, error }
  */
 export function validateInput(message) {
   if (!message || typeof message !== 'string') {
@@ -42,6 +44,7 @@ export function validateInput(message) {
     return { valid: false, error: `Message too long (max ${MAX_MESSAGE_LENGTH} characters)` };
   }
 
+  // Remove null bytes and control characters
   const sanitized = trimmed.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
   return { valid: true, sanitized };
@@ -49,6 +52,7 @@ export function validateInput(message) {
 
 /**
  * Detect prompt injection attempts
+ * Returns { isInjection, patterns }
  */
 export function detectInjection(message) {
   const detected = [];
@@ -57,7 +61,10 @@ export function detectInjection(message) {
       detected.push(pattern.source);
     }
   }
-  return { isInjection: detected.length > 0, patterns: detected };
+  return {
+    isInjection: detected.length > 0,
+    patterns: detected
+  };
 }
 
 /**
@@ -72,14 +79,17 @@ export async function hashIP(ip) {
 
 /**
  * Check rate limit for AI chat
+ * Uses D1 to track requests per IP within time window
  */
 export async function checkRateLimit(db, ipHash) {
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString();
 
+  // Clean old entries
   await db.prepare(`
     DELETE FROM ai_rate_limits WHERE created_at < ?
   `).bind(windowStart).run();
 
+  // Count recent requests
   const row = await db.prepare(`
     SELECT COUNT(*) as c FROM ai_rate_limits
     WHERE ip_hash = ? AND created_at >= ?

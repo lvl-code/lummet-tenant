@@ -43,7 +43,7 @@ const INTENT_PATTERNS = [
   },
   {
     intent: INTENTS.GEO_AVAILABILITY,
-    keywords: ['available in my country', 'my country', 'can i play', 'allowed in', 'restricted in', 'where can i play', 'country', 'countries', 'geo', 'jurisdiction']
+    keywords: ['available in my country', 'my country', 'can i play', 'allowed in', 'restricted in', 'where can i play', 'available in', 'which casinos', 'country']
   },
   {
     intent: INTENTS.RESPONSIBLE_GAMBLING,
@@ -51,27 +51,27 @@ const INTENT_PATTERNS = [
   },
   {
     intent: INTENTS.NEWS,
-    keywords: ['news', 'latest', 'update', 'industry news', 'igaming news', 'happening']
+    keywords: ['news', 'latest', 'update', 'industry news', 'igaming news', 'happening', 'article', 'articles']
   },
   {
     intent: INTENTS.CASINO_REVIEW,
-    keywords: ['review', 'opinion', 'rating', 'score', 'rated', 'evaluation', 'assessment']
+    keywords: ['review', 'opinion', 'rating', 'score', 'rated', 'evaluation', 'assessment', 'what do you think of']
   },
   {
     intent: INTENTS.AUTHORS,
-    keywords: ['author', 'writer', 'editor', 'who wrote', 'who reviewed']
+    keywords: ['author', 'writer', 'editor', 'who wrote', 'who reviewed', 'who is the author']
   },
   {
     intent: INTENTS.FAQ,
-    keywords: ['faq', 'how do', 'how does', 'what is', 'what are', 'why', 'when', 'where', 'explain']
+    keywords: ['faq', 'how do', 'how does', 'what is', 'what are', 'why', 'when', 'where', 'explain', 'question']
   },
   {
     intent: INTENTS.NAVIGATION,
-    keywords: ['navigate', 'find page', 'where is', 'how to find', 'menu', 'help me find', 'sitemap']
+    keywords: ['navigate', 'find page', 'where is', 'how to find', 'menu', 'help me find', 'sitemap', 'what is level', 'about level', 'tell me about level', 'what is this site', 'about this site', 'what is this website']
   },
   {
     intent: INTENTS.CASINO_SEARCH,
-    keywords: ['casino', 'casinos', 'list', 'show me', 'find casino', 'search', 'all casinos', 'available casinos', 'top casinos', 'best casinos']
+    keywords: ['casino', 'casinos', 'list', 'show me', 'find casino', 'search', 'all casinos', 'available casinos', 'top casinos', 'best casinos', 'show me casinos', 'what casinos']
   }
 ];
 
@@ -97,13 +97,13 @@ export function detectIntent(message) {
     }
   }
 
-  const isFollowUp = /^(what about|how about|and|also|what if|show me another|the first one|the last one|it|that one|this one)\b/i.test(text);
+  const isFollowUp = /^(what about|how about|and|also|what if|show me another|the first one|the last one|it|that one|this one|tell me more|more details)\b/i.test(text);
 
   return { intent: bestIntent, confidence: bestScore, isFollowUp };
 }
 
 /**
- * Extract entity names (casino names, country codes) from message
+ * Extract entity names (casino names, country names) from message
  */
 export function extractEntities(message) {
   const text = message.toLowerCase();
@@ -117,8 +117,21 @@ export function extractEntities(message) {
     entities.isComparison = true;
   }
 
+  // Extract potential casino names (capitalized words that aren't common words)
   const casinoPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
-  const commonWords = new Set(['The', 'What', 'How', 'Can', 'Are', 'Is', 'Do', 'Does', 'Which', 'Show', 'List', 'Find', 'Tell', 'Give', 'Best', 'Top', 'All', 'About', 'Compare', 'Level']);
+  const commonWords = new Set([
+    'The','What','How','Can','Are','Is','Do','Does','Which','Show','List','Find',
+    'Tell','Give','Best','Top','All','About','Compare','Level','Lummet','AI',
+    'Hello','Hi','Hey','Casino','Casinos','Review','Reviews','Canada','Germany',
+    'France','Italy','Spain','Rwanda','Japan','China','Brazil','Mexico','America',
+    'Africa','Nigeria','Kenya','Egypt','Sweden','Norway','Denmark','Finland','Poland',
+    'Portugal','Greece','Turkey','Russia','Ukraine','Korea','Thailand','Vietnam',
+    'Philippines','Indonesia','Malaysia','Singapore','Argentina','Chile','Colombia',
+    'Peru','Austria','Switzerland','Ireland','Belgium','Hungary','Romania','Bulgaria',
+    'Croatia','Malta','Cyprus','Luxembourg','Iceland','Australia','England','Britain',
+    'Holland','India','United','States','Kingdom','Arab','Emirates','Saudi','South',
+    'New','Zealand','Czech','Republic','Bitcoin','Ethereum','Crypto'
+  ]);
   let match;
   while ((match = casinoPattern.exec(message)) !== null) {
     const name = match[1].trim();
@@ -127,9 +140,10 @@ export function extractEntities(message) {
     }
   }
 
-  const countryPattern = /\b(US|CA|GB|DE|FR|IT|ES|NL|AU|NZ|JP|CN|IN|BR|MX|ZA|NG|KE|EG|SE|NO|DK|FI|PL|PT|GR|TR|RU|UA|AE|SA|QA|KR|TH|VN|PH|ID|MY|SG|AR|CL|CO|PE|AT|CH|IE|BE|CZ|HU|RO|BG|HR|MT|CY|LU|IS|RW)\b/g;
-  let cMatch;
-  while ((cMatch = countryPattern.exec(message)) !== null) {
+  // Extract country codes (2-letter ISO, uppercase in original message)
+  const countryPattern = /\b(US|CA|GB|DE|FR|IT|ES|NL|AU|NZ|JP|CN|IN|BR|MX|ZA|NG|KE|EG|SE|NO|DK|FI|PL|PT|GR|TR|RU|UA|AE|SA|QA|KR|TH|VN|PH|ID|MY|SG|AR|CL|CO|PE|AT|CH|IE|BE|CZ|HU|RO|BG|HR|MT|CY|LU|IS|RW)\b/;
+  const cMatch = message.match(countryPattern);
+  if (cMatch) {
     entities.countryCodes.push(cMatch[1]);
   }
 

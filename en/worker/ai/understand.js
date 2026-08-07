@@ -66,23 +66,27 @@ export async function understand(env, message, conversationHistory = []) {
       console.warn('Lummet understand: AI binding missing, using keyword fallback');
       return fallbackUnderstanding(message);
     }
-
             const result = await env.AI.run(MODEL, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
       ],
       temperature: 0.1,
-      max_tokens: 300
+      max_tokens: 800,
+      reasoning: { enabled: false }
     });
 
-    let response = result?.response || result?.choices?.[0]?.message?.content || result?.output?.text || '';
+    // GLM-4 models may put output in different fields
+    let response = result?.response ||
+                   result?.choices?.[0]?.message?.content ||
+                   result?.choices?.[0]?.message?.reasoning_content ||
+                   result?.choices?.[0]?.text ||
+                   result?.output?.text ||
+                   '';
 
-    // Debug: log what the model actually returned
-    console.log('Lummet understand raw response type:', typeof result);
-    console.log('Lummet understand raw response keys:', result ? Object.keys(result).join(', ') : 'null');
+    // Debug: log the full choices array to see all available fields
+    console.log('Lummet understand choices:', JSON.stringify(result?.choices?.[0]?.message || {}).substring(0, 500));
     console.log('Lummet understand response text:', JSON.stringify(response).substring(0, 300));
-
     // Strip markdown code blocks if present
     response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 

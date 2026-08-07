@@ -80,6 +80,11 @@ export async function understand(env, message, conversationHistory = []) {
                    result?.output?.text ||
                    '';
 
+    // Ensure response is a string
+    if (typeof response !== 'string') {
+      response = JSON.stringify(response);
+    }
+
     // Strip markdown code blocks if present
     response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 

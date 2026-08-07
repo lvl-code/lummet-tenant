@@ -72,21 +72,16 @@ export async function understand(env, message, conversationHistory = []) {
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
       ],
       temperature: 0.1,
-      max_tokens: 800,
+      max_tokens: 2000,
       reasoning: { enabled: false }
     });
 
-    // GLM-4 models may put output in different fields
     let response = result?.response ||
                    result?.choices?.[0]?.message?.content ||
                    result?.choices?.[0]?.message?.reasoning_content ||
                    result?.choices?.[0]?.text ||
                    result?.output?.text ||
                    '';
-
-    // Debug: log the full choices array to see all available fields
-    console.log('Lummet understand choices:', JSON.stringify(result?.choices?.[0]?.message || {}).substring(0, 500));
-    console.log('Lummet understand response text:', JSON.stringify(response).substring(0, 300));
     // Strip markdown code blocks if present
     response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 

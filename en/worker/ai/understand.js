@@ -67,29 +67,50 @@ export async function understand(env, message, conversationHistory = []) {
       return fallbackUnderstanding(message);
     }
 
-    const result = await env.AI.run(MODEL, {
+        const result = await env.AI.run(MODEL, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
       ],
       temperature: 0.1,
-      max_tokens: 200,
+      max_tokens: 300,
       reasoning: { enabled: false }
     });
 
-    let response = result?.response || result?.choices?.[0]?.message?.content || '';
+    let response = result?.response || result?.choices?.[0]?.message?.content || result?.output?.text || '';
 
     // Strip markdown code blocks if present
-    response = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-    // Find the JSON object in the response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Extract JSON between first { and last }
+    const firstBrace = response.indexOf('{');
+    const lastBrace = response.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) {
       console.warn('Lummet understand: no JSON found in response, using fallback');
       return fallbackUnderstanding(message);
     }
 
-    const plan = JSON.parse(jsonMatch[0]);
+    const jsonStr = response.substring(firstBrace, lastBrace + 1);
+
+    let plan;
+    try {
+      plan = JSON.parse(jsonStr);
+    } catch (parseError) {
+      // Try to fix common JSON issues
+      let fixed = jsonStr
+        .replace(/,\s*}/g, '}')        // Remove trailing commas
+        .replace(/,\s*]/g, ']')        // Remove trailing commas in arrays
+        .replace(/'/g, '"')            // Replace single quotes with double quotes
+        .replace(/(\w+):/g, '"$1":')   // Quote unquoted keys
+        .trim();
+      try {
+        plan = JSON.parse(fixed);
+      } catch (secondError) {
+        console.warn('Lummet understand: JSON parse failed, using fallback');
+        return fallbackUnderstanding(message);
+      }
+    }
+
     console.log('Lummet understand plan:', JSON.stringify(plan));
 
     return normalizePlan(plan);

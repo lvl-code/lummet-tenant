@@ -67,17 +67,21 @@ export async function understand(env, message, conversationHistory = []) {
       return fallbackUnderstanding(message);
     }
 
-        const result = await env.AI.run(MODEL, {
+            const result = await env.AI.run(MODEL, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
       ],
       temperature: 0.1,
-      max_tokens: 300,
-      reasoning: { enabled: false }
+      max_tokens: 300
     });
 
     let response = result?.response || result?.choices?.[0]?.message?.content || result?.output?.text || '';
+
+    // Debug: log what the model actually returned
+    console.log('Lummet understand raw response type:', typeof result);
+    console.log('Lummet understand raw response keys:', result ? Object.keys(result).join(', ') : 'null');
+    console.log('Lummet understand response text:', JSON.stringify(response).substring(0, 300));
 
     // Strip markdown code blocks if present
     response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();

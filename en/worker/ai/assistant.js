@@ -8,7 +8,9 @@ import { buildSystemPrompt, buildMessages } from './prompt.js';
 import { getRecentHistory, appendMessages } from './memory.js';
 import { validateInput, detectInjection } from './security.js';
 
-const MODEL = '@cf/zai-org/glm-4.7-flash';
+const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
+
+//const MODEL = '@cf/zai-org/glm-4.7-flash';
 const MAX_TOKENS = 800;
 const TEMPERATURE = 0.3;
 

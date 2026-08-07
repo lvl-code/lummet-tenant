@@ -5,7 +5,7 @@
 
 import { detectIntent, extractEntities } from './router.js';
 
-const MODEL = '@cf/zai-org/glm-4.7-flash';
+const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 
 const SCHEMA_DESCRIPTION = `Database tables and columns:
 - casinos: name, slug, rating, bonus_title, bonus_value, license, owner, features, supported_countries, restricted_countries, featured
@@ -72,16 +72,14 @@ export async function understand(env, message, conversationHistory = []) {
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
       ],
       temperature: 0.1,
-      max_tokens: 2000,
-      reasoning: { enabled: false }
+      max_tokens: 300
     });
 
     let response = result?.response ||
                    result?.choices?.[0]?.message?.content ||
-                   result?.choices?.[0]?.message?.reasoning_content ||
-                   result?.choices?.[0]?.text ||
                    result?.output?.text ||
                    '';
+
     // Strip markdown code blocks if present
     response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 

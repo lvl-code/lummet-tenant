@@ -421,7 +421,7 @@
       showTyping();
 
       try {
-        const response = await fetch('/api/chat/stream', {
+        const response = await fetch('/en/api/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text, session_id: sessionId })
@@ -441,7 +441,7 @@
         console.error('Stream error:', error);
         hideTyping();
         try {
-          const response = await fetch('/api/chat', {
+          const response = await fetch('/en/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text, session_id: sessionId })
@@ -599,7 +599,7 @@
       if (!email || !password) return;
 
       try {
-        const res = await fetch('/api/admin/login', {
+        const res = await fetch('/en/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -631,7 +631,7 @@
 
     async function loadCasinos() {
       try {
-        const res = await fetch('/api/admin/casinos', { headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/casinos', { headers: adminHeaders() });
         const data = await res.json();
         const tbody = document.getElementById('casinosTableBody');
         if (data.casinos && data.casinos.length > 0) {
@@ -642,7 +642,7 @@
 
     async function loadReviews() {
       try {
-        const res = await fetch('/api/admin/reviews', { headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/reviews', { headers: adminHeaders() });
         const data = await res.json();
         const tbody = document.getElementById('reviewsTableBody');
         if (data.reviews && data.reviews.length > 0) {
@@ -653,7 +653,7 @@
 
     async function loadNews() {
       try {
-        const res = await fetch('/api/admin/news', { headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/news', { headers: adminHeaders() });
         const data = await res.json();
         const tbody = document.getElementById('newsTableBody');
         if (data.news && data.news.length > 0) {
@@ -664,7 +664,7 @@
 
     async function loadPages() {
       try {
-        const res = await fetch('/api/admin/pages', { headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/pages', { headers: adminHeaders() });
         const data = await res.json();
         const tbody = document.getElementById('pagesTableBody');
         if (data.pages && data.pages.length > 0) {
@@ -675,7 +675,7 @@
 
     async function togglePublish(table, slug) {
       try {
-        await fetch('/api/admin/toggle-publish', {
+        await fetch('/en/api/admin/toggle-publish', {
           method: 'POST', headers: adminHeaders(),
           body: JSON.stringify({ table, slug })
         });
@@ -698,7 +698,7 @@
       const output = document.getElementById('cmdOutput');
       output.textContent = 'Executing...';
       try {
-        const res = await fetch('/api/admin/ai-command', {
+        const res = await fetch('/en/api/admin/ai-command', {
           method: 'POST', headers: adminHeaders(),
           body: JSON.stringify({ command: cmd })
         });
@@ -714,7 +714,7 @@
       const output = document.getElementById('casinoCmdOutput');
       output.textContent = 'Executing...';
       try {
-        const res = await fetch('/api/admin/ai-command', {
+        const res = await fetch('/en/api/admin/ai-command', {
           method: 'POST', headers: adminHeaders(),
           body: JSON.stringify({ command: cmd })
         });
@@ -730,7 +730,7 @@
       const output = document.getElementById('newsCmdOutput');
       output.textContent = 'Executing...';
       try {
-        const res = await fetch('/api/admin/ai-command', {
+        const res = await fetch('/en/api/admin/ai-command', {
           method: 'POST', headers: adminHeaders(),
           body: JSON.stringify({ command: cmd })
         });
@@ -747,7 +747,7 @@
       const output = document.getElementById('reviewOutput');
       output.textContent = 'Generating review...';
       try {
-        const res = await fetch('/api/admin/generate-review', {
+        const res = await fetch('/en/api/admin/generate-review', {
           method: 'POST', headers: adminHeaders(),
           body: JSON.stringify({ casinoName: name, countryCode: country })
         });
@@ -760,7 +760,7 @@
       const output = document.getElementById('seoOutput');
       output.textContent = 'Running bulk SEO generation...';
       try {
-        const res = await fetch('/api/admin/bulk-seo', { method: 'POST', headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/bulk-seo', { method: 'POST', headers: adminHeaders() });
         const data = await res.json();
         output.textContent = data.result || 'Done.';
       } catch (e) { output.textContent = 'Error: ' + e.message; }
@@ -770,7 +770,7 @@
       const output = document.getElementById('faqOutput');
       output.textContent = 'Running bulk FAQ generation...';
       try {
-        const res = await fetch('/api/admin/bulk-faqs', { method: 'POST', headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/bulk-faqs', { method: 'POST', headers: adminHeaders() });
         const data = await res.json();
         output.textContent = data.result || 'Done.';
       } catch (e) { output.textContent = 'Error: ' + e.message; }
@@ -780,7 +780,7 @@
       const output = document.getElementById('bulkReviewOutput');
       output.textContent = 'Running bulk review generation...';
       try {
-        const res = await fetch('/api/admin/bulk-reviews', { method: 'POST', headers: adminHeaders() });
+        const res = await fetch('/en/api/admin/bulk-reviews', { method: 'POST', headers: adminHeaders() });
         const data = await res.json();
         output.textContent = data.result || 'Done.';
       } catch (e) { output.textContent = 'Error: ' + e.message; }

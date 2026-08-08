@@ -5,8 +5,22 @@
 
 // Change these imports at the top of lummet/router.js:
 import { aiAssistant } from '../ai/assistant.js';
-import { handleAdminAPI } from './admin-api.js';
+//import { handleAdminAPI } from './admin-api.js';
 import { validateInput, detectInjection, hashIP, checkRateLimit, logRequest } from '../ai/security.js';
+
+import {
+  handleAdminLogin,
+  handleGetCasinos,
+  handleGetReviews,
+  handleGetNews,
+  handleGetPages,
+  handleTogglePublish,
+  handleAiCommand,
+  handleGenerateReview,
+  handleBulkSEO,
+  handleBulkFAQs,
+  handleBulkReviews
+} from './admin-api.js';
 
 
 /**
@@ -22,6 +36,42 @@ export async function handleLummetRequest(request, env, ctx) {
 
   const path = url.pathname;
   const method = request.method;
+
+    // ── Admin API Routes ──
+  if (path === '/api/admin/login' && method === 'POST') {
+    return handleAdminLogin(request, env);
+  }
+  if (path === '/api/admin/casinos' && method === 'GET') {
+    return handleGetCasinos(request, env);
+  }
+  if (path === '/api/admin/reviews' && method === 'GET') {
+    return handleGetReviews(request, env);
+  }
+  if (path === '/api/admin/news' && method === 'GET') {
+    return handleGetNews(request, env);
+  }
+  if (path === '/api/admin/pages' && method === 'GET') {
+    return handleGetPages(request, env);
+  }
+  if (path === '/api/admin/toggle-publish' && method === 'POST') {
+    return handleTogglePublish(request, env);
+  }
+  if (path === '/api/admin/ai-command' && method === 'POST') {
+    return handleAiCommand(request, env);
+  }
+  if (path === '/api/admin/generate-review' && method === 'POST') {
+    return handleGenerateReview(request, env);
+  }
+  if (path === '/api/admin/bulk-seo' && method === 'POST') {
+    return handleBulkSEO(request, env);
+  }
+  if (path === '/api/admin/bulk-faqs' && method === 'POST') {
+    return handleBulkFAQs(request, env);
+  }
+  if (path === '/api/admin/bulk-reviews' && method === 'POST') {
+    return handleBulkReviews(request, env);
+  }
+
 
   // ── Serve index.html for root ──
     // ── Serve index.html for root ──

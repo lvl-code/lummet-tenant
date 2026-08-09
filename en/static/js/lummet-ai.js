@@ -353,28 +353,29 @@
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    // Markdown links — keep trailing punctuation outside the URL
+    // Markdown links
     html = html.replace(
-      /\[([^\]]+)\]\((https?:\/\/[^)\s]+?)([.,!?;:]?)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>$3'
+      /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
     );
 
-    // Plain URLs — punctuation stays outside the clickable link
+    // Plain URLs
     html = html.replace(
-      /(?<!["'>])(https?:\/\/[^\s<>"']+)/g,
-      function (match) {
-        let url = match;
+      /(^|[\s(])((?:https?:\/\/)[^\s<>"']+)/g,
+      function (_, prefix, url) {
         let punctuation = '';
 
-        // Move sentence punctuation outside the URL
-        while (/[.,!?;:]$/.test(url)) {
+        // Remove sentence punctuation from the end of the URL.
+        while (/[.,!?;:)]$/.test(url)) {
           punctuation = url.slice(-1) + punctuation;
           url = url.slice(0, -1);
         }
 
-        return '<a href="' + url +
-          '" target="_blank" rel="noopener noreferrer">' +
-          url + '</a>' + punctuation;
+        return prefix +
+          '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' +
+          url +
+          '</a>' +
+          punctuation;
       }
     );
 

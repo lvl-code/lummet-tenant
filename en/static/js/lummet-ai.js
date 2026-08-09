@@ -359,39 +359,22 @@
       '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>$3'
     );
 
-    // Plain URLs — safely separate trailing sentence punctuation
+    // Plain URLs — punctuation stays outside the clickable link
     html = html.replace(
       /(?<!["'>])(https?:\/\/[^\s<>"']+)/g,
       function (match) {
         let url = match;
-        let trailing = '';
+        let punctuation = '';
 
-        // Remove punctuation that normally belongs to the sentence,
-        // while preserving punctuation that can legitimately belong to a URL.
+        // Move sentence punctuation outside the URL
         while (/[.,!?;:]$/.test(url)) {
-          trailing = url.slice(-1) + trailing;
+          punctuation = url.slice(-1) + punctuation;
           url = url.slice(0, -1);
-        }
-
-        // Remove unmatched closing brackets/parentheses from the URL.
-        while (/[)\]}]$/.test(url)) {
-          const closing = url.slice(-1);
-          const opening = closing === ')' ? '(' : closing === ']' ? '[' : '{';
-
-          const opens = (url.match(new RegExp('\\\\' + opening, 'g')) || []).length;
-          const closes = (url.match(new RegExp('\\\\' + closing, 'g')) || []).length;
-
-          if (closes > opens) {
-            trailing = closing + trailing;
-            url = url.slice(0, -1);
-          } else {
-            break;
-          }
         }
 
         return '<a href="' + url +
           '" target="_blank" rel="noopener noreferrer">' +
-          url + '</a>' + trailing;
+          url + '</a>' + punctuation;
       }
     );
 

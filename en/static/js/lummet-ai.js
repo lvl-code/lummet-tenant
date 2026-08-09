@@ -353,9 +353,18 @@
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    html = html.replace(/(?<!["'>])(https?:\/\/[^\s<]+?)([.,!?;:]?)(?=\s|$|<)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2');
-//    html = html.replace(/(?<!["'>])(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    // Markdown links — keep trailing punctuation outside the URL
+    html = html.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^)\s]+?)([.,!?;:]?)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>$3'
+    );
+
+    // Plain URLs — never include sentence punctuation in href
+    html = html.replace(
+      /(?<!["'>])(https?:\/\/[^\s<>"']*?[A-Za-z0-9/#])([.,!?;:]+)?(?=\s|$|<)/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
+    );
+
     html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
     html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');

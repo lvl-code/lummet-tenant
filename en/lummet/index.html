@@ -803,8 +803,17 @@
       html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
       html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-      html = html.replace(/(?<!["'>])(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+      // Convert Markdown links while keeping trailing punctuation outside the href
+      html = html.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^)\s]+?)([.,!?;:)]*)\)/g,
+        '<a href="$2" target="_blank" rel="noopener">$1</a>$3'
+      );
+      
+      // Auto-link plain URLs without including trailing sentence punctuation
+      html = html.replace(
+        /(?<!["'>])(https?:\/\/[^\s<>"']+?)([.,!?;:)]*)(?=\s|$|<)/g,
+        '<a href="$1" target="_blank" rel="noopener">$1</a>$2'
+      );
       html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li>$1</li>');
       html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
       html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');

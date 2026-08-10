@@ -32,6 +32,7 @@ import {
   renderDashboardCasinoCreate,
   renderDashboardReviews,
   renderDashboardNews,
+  renderDashboardUpdates,
   renderDashboardPages,
   renderDashboardSettings,
   renderDashboardAI,

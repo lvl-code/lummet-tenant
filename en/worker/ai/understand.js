@@ -51,7 +51,7 @@ Examples:
 "Any crypto casinos?" → {"intent":"crypto","search_terms":["crypto"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["casinos"]}
 "stak bonus" → {"intent":"bonuses","search_terms":["stake","bonus"],"casino_names":["Stake"],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos"]}
 "which 1 can i play in rwanda" → {"intent":"geo","search_terms":[],"casino_names":[],"country_code":"RW","is_listing":true,"is_comparison":false,"tables":["casinos","countries"]}
-"what about the first one" → {"intent":"casino_search","search_terms":[],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos","reviews"]}`;
+"what about the first one" → {"intent":"casino_search","search_terms":[],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos","reviews"]}
 "What changed on Level.casino?" → {"intent":"platform_update","search_terms":["changed","level.casino"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
 "What's new on Level.casino?" → {"intent":"platform_update","search_terms":["new","level.casino"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
 "Show me the latest platform updates" → {"intent":"platform_update","search_terms":["latest","platform","updates"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}

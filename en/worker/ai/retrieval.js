@@ -23,7 +23,7 @@ const COUNTRY_NAME_TO_CODE = {
   'croatia':'HR','malta':'MT','cyprus':'CY','luxembourg':'LU','iceland':'IS'
 };
 
-const VALID_TABLES = ['casinos','reviews','review_blocks','news','pages','faqs','authors','countries','categories','geo_rules','seo_meta'];
+const VALID_TABLES = ['casinos','reviews','review_blocks','news', 'platform_updates','pages','faqs','authors','countries','categories','geo_rules','seo_meta'];
 
 function truncate(text, max = MAX_CONTENT_LENGTH) {
   if (!text) return '';
@@ -57,7 +57,7 @@ export async function retrieve(env, query, country, plan = null, conversationHis
   const tablesToSearch = plan?.tables || [];
 
   const results = {
-    casinos: [], reviews: [], reviewBlocks: [], news: [],
+    casinos: [], reviews: [], reviewBlocks: [], news: [], platformUpdates: [],
     pages: [], faqs: [], authors: [], countries: [],
     categories: [], seoMeta: [], geoStatuses: {}, casinoCategories: {}
   };
@@ -265,6 +265,115 @@ export async function retrieve(env, query, country, plan = null, conversationHis
       }
     } catch (e) { console.error('Lummet retrieve news:', e.message); }
   }
+
+  // ═══════════════════════════════════════════════════
+// PLATFORM UPDATES
+// ═══════════════════════════════════════════════════
+if (
+  shouldSearchTable(
+    'platform_updates',
+    tablesToSearch,
+    intent,
+    ['platform_update', 'updates', 'general']
+  )
+) {
+  try {
+    if (
+      intent === 'platform_update' ||
+      intent === 'updates' ||
+      text.includes('platform update') ||
+      text.includes('platform updates') ||
+      text.includes('site update') ||
+      text.includes('what changed') ||
+      text.includes('recent changes') ||
+      text.includes('new feature')
+    ) {
+      const r = await db.prepare(`
+        SELECT
+          pu.slug,
+          pu.title,
+          pu.excerpt,
+          pu.content,
+          pu.featured_image,
+          pu.seo_title,
+          pu.seo_description,
+          pu.published_at,
+          pu.updated_at,
+          a.name AS author_name,
+          a.slug AS author_slug,
+          a.role AS author_role
+        FROM platform_updates pu
+        LEFT JOIN authors a
+          ON pu.author_id = a.id
+        WHERE pu.published = 1
+        ORDER BY
+          COALESCE(pu.published_at, pu.created_at) DESC
+        LIMIT ${MAX_RESULTS}
+      `).all();
+
+      results.platformUpdates = (r.results || []).map(u => ({
+        ...u,
+        excerpt: truncate(u.excerpt, 300),
+        content: truncate(u.content, 700)
+      }));
+    } else if (allSearchTerms.length > 0) {
+      const conditions = allSearchTerms
+        .map(() =>
+          `LOWER(title) LIKE ?
+           OR LOWER(slug) LIKE ?
+           OR LOWER(excerpt) LIKE ?
+           OR LOWER(content) LIKE ?`
+        )
+        .join(' OR ');
+
+      const params = [];
+
+      for (const term of allSearchTerms) {
+        params.push(
+          `%${term}%`,
+          `%${term}%`,
+          `%${term}%`,
+          `%${term}%`
+        );
+      }
+
+      const r = await db.prepare(`
+        SELECT
+          pu.slug,
+          pu.title,
+          pu.excerpt,
+          pu.content,
+          pu.featured_image,
+          pu.seo_title,
+          pu.seo_description,
+          pu.published_at,
+          pu.updated_at,
+          a.name AS author_name,
+          a.slug AS author_slug,
+          a.role AS author_role
+        FROM platform_updates pu
+        LEFT JOIN authors a
+          ON pu.author_id = a.id
+        WHERE pu.published = 1
+          AND (${conditions})
+        ORDER BY
+          COALESCE(pu.published_at, pu.created_at) DESC
+        LIMIT ${MAX_RESULTS}
+      `).bind(...params).all();
+
+      results.platformUpdates = (r.results || []).map(u => ({
+        ...u,
+        excerpt: truncate(u.excerpt, 300),
+        content: truncate(u.content, 700)
+      }));
+    }
+  } catch (e) {
+    console.error(
+      'Lummet retrieve platform updates:',
+      e.message
+    );
+  }
+}
 
   // ═══════════════════════════════════════════════════
   // PAGES
@@ -481,6 +590,45 @@ export function buildContextString(results, country) {
       if (n.author) line += ` | Author: ${n.author}`;
       if (n.published_at) line += ` | Date: ${n.published_at}`;
       line += ` | Link: https://level.casino/en/news/${n.slug}`;
+      parts.push(line);
+    }
+  }
+
+    if (
+    results.platformUpdates &&
+    results.platformUpdates.length > 0
+  ) {
+    parts.push('\n=== PLATFORM UPDATES ===');
+
+    for (const u of results.platformUpdates) {
+      let line = `Title: ${u.title}`;
+
+      if (u.excerpt) {
+        line += ` | Summary: ${u.excerpt}`;
+      }
+
+      if (u.content) {
+        line += ` | Content: ${u.content}`;
+      }
+
+      if (u.author_name) {
+        line += ` | Author: ${u.author_name}`;
+      }
+
+      if (u.author_role) {
+        line += ` | Author Role: ${u.author_role}`;
+      }
+
+      if (u.published_at) {
+        line += ` | Published: ${u.published_at}`;
+      }
+
+      if (u.updated_at) {
+        line += ` | Updated: ${u.updated_at}`;
+      }
+
+      line += ` | Link: https://level.casino/en/updates/${u.slug}`;
+
       parts.push(line);
     }
   }

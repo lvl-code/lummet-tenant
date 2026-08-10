@@ -12,6 +12,7 @@ const SCHEMA_DESCRIPTION = `Database tables and columns:
 - reviews: title, slug, casino_slug, country_code, rating, overview, pros, cons, verdict, author, author_title, games, bonuses, payments, licenses, faq_json
 - review_blocks: review_slug, title, content, position
 - news: title, slug, excerpt, tags, author, published_at
+- platform_updates: slug, title, excerpt, content, featured_image, seo_title, seo_description, author_id, published, featured, published_at, updated_at
 - pages: title, slug, type
 - faqs: question, answer, slug
 - authors: name, slug, bio, role
@@ -31,7 +32,7 @@ Format:
 {"intent":"...","search_terms":[...],"casino_names":[...],"country_code":null,"is_listing":false,"is_comparison":false,"tables":[...]}
 
 Fields:
-- intent: one of casino_search, casino_review, casino_compare, bonuses, payments, crypto, licensing, news, geo, authors, faq, responsible_gambling, navigation, general
+- intent: one of casino_search, casino_review, casino_compare, bonuses, payments, crypto, licensing, news, platform_update, updates, geo, authors, faq, responsible_gambling, navigation, general
 - search_terms: meaningful keywords from the message (lowercase, no stop words like "what", "is", "the")
 - casino_names: specific casino names mentioned (preserve original capitalization). Fix obvious typos — e.g. "stak" → "Stake", "bcgame" → "BC.Game"
 - country_code: 2-letter ISO code if a country is mentioned (e.g. "Canada" → "CA", "Germany" → "DE"), null otherwise
@@ -51,6 +52,14 @@ Examples:
 "stak bonus" → {"intent":"bonuses","search_terms":["stake","bonus"],"casino_names":["Stake"],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos"]}
 "which 1 can i play in rwanda" → {"intent":"geo","search_terms":[],"casino_names":[],"country_code":"RW","is_listing":true,"is_comparison":false,"tables":["casinos","countries"]}
 "what about the first one" → {"intent":"casino_search","search_terms":[],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos","reviews"]}`;
+"What changed on Level.casino?" → {"intent":"platform_update","search_terms":["changed","level.casino"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
+"What's new on Level.casino?" → {"intent":"platform_update","search_terms":["new","level.casino"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
+"Show me the latest platform updates" → {"intent":"platform_update","search_terms":["latest","platform","updates"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
+"Tell me about the latest Level.casino update" → {"intent":"platform_update","search_terms":["latest","level.casino","update"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
+"What new features were added?" → {"intent":"platform_update","search_terms":["new","features","added"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
+"What changed with the component engine?" → {"intent":"platform_update","search_terms":["component","engine"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["platform_updates"]}
+"When was the component engine launched?" → {"intent":"platform_update","search_terms":["component","engine","launched"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["platform_updates"]}
+"Who wrote the latest platform update?" → {"intent":"platform_update","search_terms":["latest","platform","update"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["platform_updates"]}`;
 
 /**
  * Use LLM to understand user intent and extract search parameters
@@ -130,7 +139,7 @@ export async function understand(env, message, conversationHistory = []) {
  * Normalize the plan from LLM output
  */
 function normalizePlan(plan) {
-  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta'];
+  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta'];
 
   return {
     intent: plan.intent || 'general',

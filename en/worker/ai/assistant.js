@@ -63,6 +63,7 @@ export async function chat(env, message, userContext = {}) {
     casinos: context.casinos?.length || 0,
     reviews: context.reviews?.length || 0,
     news: context.news?.length || 0,
+    platformUpdates: context.platformUpdates?.length || 0,
     pages: context.pages?.length || 0,
     faqs: context.faqs?.length || 0,
     intent: plan?.intent
@@ -136,10 +137,18 @@ export async function chatStream(env, message, userContext = {}) {
 
   // 5. PASS 2 — Retrieve
   const context = await retrieve(env, sanitized, country, plan, conversationHistory);
-
+  
   console.log('Lummet stream retrieval:', JSON.stringify({
-    casinos: context.casinos?.length || 0, reviews: context.reviews?.length || 0, faqs: context.faqs?.length || 0, intent: plan?.intent
+    casinos: context.casinos?.length || 0,
+    reviews: context.reviews?.length || 0,
+    news: context.news?.length || 0,
+    platformUpdates: context.platformUpdates?.length || 0,
+    faqs: context.faqs?.length || 0,
+    intent: plan?.intent
   }));
+ // console.log('Lummet stream retrieval:', JSON.stringify({
+   // casinos: context.casinos?.length || 0, reviews: context.reviews?.length || 0, faqs: context.faqs?.length || 0, intent: plan?.intent
+ // }));
 
   // 6. Build prompt
   const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory);

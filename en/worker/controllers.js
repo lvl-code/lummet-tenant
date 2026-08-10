@@ -6,6 +6,7 @@ import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
 import * as countries from "./database/countries.js";
 import * as news from "./database/news.js";
+import * as platformUpdates from "./database/platform-updates.js";
 import { logClick }
 from "./database/clicks.js";
 import {
@@ -1411,6 +1412,283 @@ export async function renderNewsList(request, env) {
   return new Response(html, { headers: cacheHeaders() });
 }
 
+export async function renderUpdatesList(request, env) {
+  const renderer = new Renderer(env, request);
+
+  const updates =
+    await platformUpdates.getAllPlatformUpdates(env.DB);
+
+  const allComponents =
+    await renderer.renderAllComponents(
+      "updates_list",
+      "updates_list"
+    );
+
+  const dynamicSeo =
+    await renderer.loadDynamicSeo(
+      "updates_list",
+      "updates_list"
+    );
+
+  const updateCards = updates.map(update => {
+
+    const image = update.featured_image
+      ? `
+        <img
+          src="/media/${update.featured_image}"
+          alt="${update.title}"
+          class="update-card-image"
+          loading="lazy"
+        >
+      `
+      : "";
+
+    const date = formatDate(
+      update.published_at || update.created_at
+    );
+
+    return `
+      <article class="update-card">
+
+        ${image}
+
+        <div class="update-card-body">
+
+          <div class="update-card-label">
+            Platform Update
+          </div>
+
+          <h2>
+            <a href="/en/updates/${update.slug}">
+              ${update.title}
+            </a>
+          </h2>
+
+          ${
+            update.excerpt
+              ? `<p>${update.excerpt}</p>`
+              : ""
+          }
+
+          <div class="update-card-meta">
+            ${date}
+          </div>
+
+        </div>
+
+      </article>
+    `;
+  }).join("");
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Level.casino Platform Updates",
+    "description":
+      dynamicSeo.seo_description ||
+      "Latest updates, improvements, features and announcements from Level.casino.",
+    "url": "https://level.casino/en/updates",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": updates.map((update, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "url":
+          `https://level.casino/en/updates/${update.slug}`,
+        "name": update.title
+      }))
+    }
+  };
+
+  const html = await renderer.render(
+    "updates.html",
+    {
+      canonical:
+        dynamicSeo.canonical ||
+        "https://level.casino/en/updates",
+
+      category: "Platform Updates",
+
+      description:
+        dynamicSeo.seo_description ||
+        "Latest Level.casino platform updates, new features, improvements and announcements.",
+
+      update_cards:
+        updateCards,
+
+      components_top:
+        allComponents.top,
+
+      components_content_top:
+        allComponents.content_top,
+
+      components_content_bottom:
+        allComponents.content_bottom,
+
+      components_bottom:
+        allComponents.bottom,
+
+      components_sidebar:
+        allComponents.sidebar,
+
+      seo_title:
+        dynamicSeo.seo_title ||
+        "Platform Updates — Level.casino",
+
+      seo_description:
+        dynamicSeo.seo_description ||
+        "Latest Level.casino platform updates, new features, improvements and announcements."
+    },
+    listSchema,
+    buildBreadcrumbs("updatesList")
+  );
+
+  return new Response(html, {
+    headers: cacheHeaders()
+  });
+}
+
+export async function renderUpdate(request, env, slug) {
+  const update =
+    await platformUpdates.getPlatformUpdateBySlug(
+      env.DB,
+      slug
+    );
+
+  if (!update) {
+    return render404(request, env);
+  }
+
+  const renderer = new Renderer(env, request);
+
+  const allComponents =
+    await renderer.renderAllComponents(
+      "update",
+      slug
+    );
+
+  const dynamicSeo =
+    await renderer.loadDynamicSeo(
+      "update",
+      slug
+    );
+
+  const publishedDate =
+    formatDate(
+      update.published_at ||
+      update.created_at
+    );
+
+  const updatedDate =
+    formatDate(
+      update.updated_at ||
+      update.created_at
+    );
+
+  const updateSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+
+    "headline": update.title,
+
+    "description":
+      update.seo_description ||
+      update.excerpt ||
+      "",
+
+    "datePublished":
+      update.published_at ||
+      update.created_at,
+
+    "dateModified":
+      update.updated_at ||
+      update.created_at,
+
+    "author": {
+      "@type": "Person",
+      "name":
+        update.author_name ||
+        "Level.casino"
+    },
+
+    "publisher": {
+      "@type": "Organization",
+      "name": "Level.casino",
+      "url": "https://level.casino"
+    },
+
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id":
+        `https://level.casino/en/updates/${slug}`
+    }
+  };
+
+  const html = await renderer.render(
+    "update.html",
+    {
+      ...update,
+
+      canonical:
+        dynamicSeo.canonical ||
+        `https://level.casino/en/updates/${slug}`,
+
+      author_name:
+        update.author_name || "",
+
+      author_avatar:
+        update.author_avatar || "",
+
+      author_role:
+        update.author_role || "",
+
+      author_slug:
+        update.author_slug || "",
+
+      published_date:
+        publishedDate,
+
+      updated_date:
+        updatedDate,
+
+      seo_title:
+        dynamicSeo.seo_title ||
+        update.seo_title ||
+        update.title,
+
+      seo_description:
+        dynamicSeo.seo_description ||
+        update.seo_description ||
+        update.excerpt ||
+        "",
+
+      components_top:
+        allComponents.top,
+
+      components_content_top:
+        allComponents.content_top,
+
+      components_content_bottom:
+        allComponents.content_bottom,
+
+      components_bottom:
+        allComponents.bottom,
+
+      components_sidebar:
+        allComponents.sidebar
+    },
+    updateSchema,
+    buildBreadcrumbs(
+      "update",
+      { title: update.title }
+    )
+  );
+
+  return new Response(html, {
+    headers: cacheHeaders()
+  });
+}
+
 async function renderAdminPage(request, env, template, extraData = {}) {
   const user = await getCurrentUser(request, env);
   const allowedRoles = ["admin", "editor"];
@@ -1451,6 +1729,9 @@ export async function renderDashboardReviews(request, env) {
 }
 export async function renderDashboardNews(request, env) {
   return renderAdminPage(request, env, "admin/news.html");
+}
+export async function renderDashboardUpdates(request, env) {
+  return renderAdminPage(request, env, "admin/updates.html");
 }
 export async function renderDashboardPages(request, env) {
   return renderAdminPage(request, env, "admin/pages.html");

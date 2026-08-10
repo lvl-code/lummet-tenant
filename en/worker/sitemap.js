@@ -8,6 +8,7 @@ export const sitemapEngine = {
       { loc: "/en/sitemap-casinos.xml", lastmod: currentDate },
       { loc: "/en/sitemap-reviews.xml", lastmod: currentDate },
       { loc: "/en/sitemap-news.xml", lastmod: currentDate },
+      { loc: "/en/sitemap-updates.xml", lastmod: currentDate },
       { loc: "/en/sitemap-categories.xml", lastmod: currentDate },
       { loc: "/en/sitemap-countries.xml", lastmod: currentDate },
       { loc: "/en/sitemap-pages.xml", lastmod: currentDate },
@@ -46,6 +47,7 @@ export const sitemapEngine = {
       urls.push({ loc: "/en/casino", lastmod: currentDate, changefreq: "daily", priority: "0.9" });
       urls.push({ loc: "/en/review", lastmod: currentDate, changefreq: "daily", priority: "0.8" });
       urls.push({ loc: "/en/news", lastmod: currentDate, changefreq: "daily", priority: "0.7" });
+      urls.push({ loc: "/en/updates", lastmod: currentDate, changefreq: "daily", priority: "0.7" });
       urls.push({ loc: "/en/category", lastmod: currentDate, changefreq: "weekly", priority: "0.6" });
       urls.push({ loc: "/en/country", lastmod: currentDate, changefreq: "weekly", priority: "0.6" });
     }
@@ -87,6 +89,36 @@ export const sitemapEngine = {
           urls.push({ loc: `/en/news/${item.slug}`, lastmod: lm, changefreq: "weekly", priority: "0.6" });
         }
       } catch (e) { console.error("Sitemap news query failed:", e.message); }
+    }
+
+        // Platform Updates
+    if (type === "all" || type === "updates") {
+      try {
+        const r = await db.prepare(
+          `SELECT slug, updated_at FROM platform_updates
+           WHERE published = 1
+           ORDER BY COALESCE(published_at, created_at) DESC
+           LIMIT 50000`
+        ).all();
+
+        for (const item of r.results || []) {
+          const lm = item.updated_at
+            ? item.updated_at.split(" ")[0]
+            : currentDate;
+
+          urls.push({
+            loc: `/en/updates/${item.slug}`,
+            lastmod: lm,
+            changefreq: "weekly",
+            priority: "0.6"
+          });
+        }
+      } catch (e) {
+        console.error(
+          "Sitemap platform updates query failed:",
+          e.message
+        );
+      }
     }
 
     // Categories

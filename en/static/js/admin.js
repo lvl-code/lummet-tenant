@@ -1142,3 +1142,795 @@ function cancelCountryEdit() {
   document.getElementById("countrySubmitBtn").textContent = "Create Country";
   document.getElementById("countryCancelEdit").style.display = "none";
 }
+
+
+
+/* =========================================================
+PLATFORM UPDATES
+========================================================= */
+
+async function loadPlatformUpdatesTable() {
+const tbody = document.getElementById("updatesTableBody");
+
+if (!tbody) return;
+
+try {
+const res = await fetch(
+"/en/api/v1/platform-updates/list"
+);
+
+const data = await res.json();
+
+if (!res.ok || !data.success) {
+  throw new Error(
+    data.error || "Failed to load platform updates."
+  );
+}
+
+const updates = data.updates || [];
+
+if (!updates.length) {
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" class="muted">
+        No platform updates yet.
+      </td>
+    </tr>
+  `;
+
+  return;
+}
+
+tbody.innerHTML = updates.map(update => {
+
+  const published = Number(update.published) === 1;
+  const featured = Number(update.featured) === 1;
+
+  const dateValue =
+    update.published_at ||
+    update.created_at;
+
+  const date = dateValue
+    ? new Date(dateValue).toLocaleDateString()
+    : "—";
+
+  const author =
+    update.author_name ||
+    "No author";
+
+  return `
+    <tr>
+
+      <td>
+        <strong>
+          ${escapeHtml(update.title || "Untitled")}
+        </strong>
+
+        <div class="muted">
+          /updates/${escapeHtml(update.slug || "")}
+        </div>
+      </td>
+
+      <td>
+        ${escapeHtml(author)}
+      </td>
+
+      <td>
+        ${
+          published
+            ? '<span class="status status--success">Published</span>'
+            : '<span class="status status--muted">Draft</span>'
+        }
+      </td>
+
+      <td>
+        ${
+          featured
+            ? '<span class="status status--success">Featured</span>'
+            : '<span class="muted">No</span>'
+        }
+      </td>
+
+      <td>
+        ${escapeHtml(date)}
+      </td>
+
+      <td class="table-actions">
+
+        ${
+          published
+            ? `
+              <a
+                href="/en/updates/${encodeURIComponent(update.slug)}"
+                class="btn btn--ghost btn--sm"
+                target="_blank"
+                rel="noopener"
+              >
+                View
+              </a>
+            `
+            : ""
+        }
+
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm"
+          onclick="editPlatformUpdate(${Number(update.id)})"
+        >
+          Edit
+        </button>
+
+        <button
+          type="button"
+          class="btn btn--danger btn--sm"
+          onclick="deletePlatformUpdate(${Number(update.id)})"
+        >
+          Delete
+        </button>
+
+      </td>
+
+    </tr>
+  `;
+}).join("");
+
+} catch (error) {
+
+console.error(
+  "Failed to load platform updates:",
+  error
+);
+
+tbody.innerHTML = `
+  <tr>
+    <td colspan="6" class="muted">
+      Failed to load platform updates.
+    </td>
+  </tr>
+`;
+
+}
+}
+
+/* =========================================================
+INITIALIZE FORM
+========================================================= */
+
+function initPlatformUpdateForm() {
+const form =
+document.getElementById("platformUpdateForm");
+
+if (!form) return;
+
+form.addEventListener(
+"submit",
+async function(event) {
+
+  event.preventDefault();
+
+  const alertEl =
+    document.getElementById(
+      "platformUpdateFormAlert"
+    );
+
+  if (alertEl) {
+    alertEl.style.display = "none";
+  }
+
+  const formData =
+    new FormData(form);
+
+  const id =
+    formData.get("id");
+
+  const isEdit =
+    Boolean(id);
+
+  const endpoint =
+    isEdit
+      ? "/en/api/v1/platform-updates/update"
+      : "/en/api/v1/platform-updates/create";
+
+  const payload = {
+    id: id
+      ? Number(id)
+      : null,
+
+    slug:
+      String(
+        formData.get("slug") || ""
+      ).trim(),
+
+    title:
+      String(
+        formData.get("title") || ""
+      ).trim(),
+
+    excerpt:
+      String(
+        formData.get("excerpt") || ""
+      ).trim() || null,
+
+    content:
+      formData.get("content") || "",
+
+    featured_image:
+      String(
+        formData.get("featured_image") || ""
+      ).trim() || null,
+
+    seo_title:
+      String(
+        formData.get("seo_title") || ""
+      ).trim() || null,
+
+    seo_description:
+      String(
+        formData.get("seo_description") || ""
+      ).trim() || null,
+
+    author_id:
+      formData.get("author_id")
+        ? Number(formData.get("author_id"))
+        : null,
+
+    published:
+      Number(
+        formData.get("published") || 0
+      ),
+
+    featured:
+      Number(
+        formData.get("featured") || 0
+      ),
+
+    published_at:
+      formData.get("published_at")
+        || null
+  };
+
+  if (!payload.slug) {
+    showPlatformUpdateAlert(
+      "Slug is required.",
+      "error"
+    );
+    return;
+  }
+
+  if (!payload.title) {
+    showPlatformUpdateAlert(
+      "Title is required.",
+      "error"
+    );
+    return;
+  }
+
+  if (!payload.content.trim()) {
+    showPlatformUpdateAlert(
+      "Content is required.",
+      "error"
+    );
+    return;
+  }
+
+  const submitBtn =
+    document.getElementById(
+      "platformUpdateSubmitBtn"
+    );
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent =
+      isEdit
+        ? "Saving..."
+        : "Creating...";
+  }
+
+  try {
+
+    const res = await fetch(
+      endpoint,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          JSON.stringify(payload)
+      }
+    );
+
+    const data =
+      await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(
+        data.error ||
+        "Failed to save platform update."
+      );
+    }
+
+    showPlatformUpdateAlert(
+      isEdit
+        ? "Platform update updated successfully."
+        : "Platform update created successfully.",
+      "success"
+    );
+
+    resetPlatformUpdateForm();
+
+    await loadPlatformUpdatesTable();
+
+  } catch (error) {
+
+    console.error(
+      "Platform update save error:",
+      error
+    );
+
+    showPlatformUpdateAlert(
+      error.message ||
+      "Failed to save platform update.",
+      "error"
+    );
+
+  } finally {
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+
+      submitBtn.textContent =
+        "Create Update";
+    }
+  }
+}
+
+);
+}
+
+/* =========================================================
+EDIT
+========================================================= */
+
+async function editPlatformUpdate(id) {
+
+try {
+
+const res = await fetch(
+  "/en/api/v1/platform-updates/list"
+);
+
+const data =
+  await res.json();
+
+if (!res.ok || !data.success) {
+  throw new Error(
+    data.error ||
+    "Failed to load platform updates."
+  );
+}
+
+const update =
+  (data.updates || [])
+    .find(
+      item =>
+        Number(item.id) === Number(id)
+    );
+
+if (!update) {
+  showPlatformUpdateAlert(
+    "Platform update not found.",
+    "error"
+  );
+
+  return;
+}
+
+const form =
+  document.getElementById(
+    "platformUpdateForm"
+  );
+
+if (!form) return;
+
+
+form.dataset.id =
+  String(update.id);
+
+
+form.querySelector(
+  "[name='id']"
+).value =
+  update.id;
+
+
+form.querySelector(
+  "[name='slug']"
+).value =
+  update.slug || "";
+
+
+form.querySelector(
+  "[name='title']"
+).value =
+  update.title || "";
+
+
+form.querySelector(
+  "[name='excerpt']"
+).value =
+  update.excerpt || "";
+
+
+form.querySelector(
+  "[name='content']"
+).value =
+  update.content || "";
+
+
+form.querySelector(
+  "[name='featured_image']"
+).value =
+  update.featured_image || "";
+
+
+form.querySelector(
+  "[name='seo_title']"
+).value =
+  update.seo_title || "";
+
+
+form.querySelector(
+  "[name='seo_description']"
+).value =
+  update.seo_description || "";
+
+
+form.querySelector(
+  "[name='author_id']"
+).value =
+  update.author_id || "";
+
+
+form.querySelector(
+  "[name='published']"
+).value =
+  Number(update.published) === 1
+    ? "1"
+    : "0";
+
+
+form.querySelector(
+  "[name='featured']"
+).value =
+  Number(update.featured) === 1
+    ? "1"
+    : "0";
+
+
+const publishedAt =
+  form.querySelector(
+    "[name='published_at']"
+  );
+
+if (publishedAt) {
+
+  publishedAt.value =
+    formatDateTimeLocal(
+      update.published_at
+    );
+}
+
+
+const title =
+  document.getElementById(
+    "updatesFormTitle"
+  );
+
+if (title) {
+  title.textContent =
+    "Edit Platform Update";
+}
+
+
+const submitBtn =
+  document.getElementById(
+    "platformUpdateSubmitBtn"
+  );
+
+if (submitBtn) {
+  submitBtn.textContent =
+    "Save Changes";
+}
+
+
+const cancelBtn =
+  document.getElementById(
+    "platformUpdateCancelBtn"
+  );
+
+if (cancelBtn) {
+  cancelBtn.style.display =
+    "inline-flex";
+}
+
+
+const editor =
+  document.querySelector(
+    '[data-editor-id="platform-update-content"]'
+  );
+
+if (editor) {
+
+  editor.value =
+    update.content || "";
+
+  editor.dispatchEvent(
+    new Event(
+      "input",
+      {
+        bubbles: true
+      }
+    )
+  );
+}
+
+
+form.scrollIntoView({
+  behavior: "smooth",
+  block: "start"
+});
+
+} catch (error) {
+
+console.error(
+  "Platform update edit error:",
+  error
+);
+
+showPlatformUpdateAlert(
+  error.message ||
+  "Failed to load platform update.",
+  "error"
+);
+
+}
+}
+
+/* =========================================================
+DELETE
+========================================================= */
+
+async function deletePlatformUpdate(id) {
+
+if (!confirm(
+"Delete this platform update permanently?"
+)) {
+return;
+}
+
+try {
+
+const res = await fetch(
+  "/en/api/v1/platform-updates/delete",
+  {
+    method: "POST",
+
+    headers: {
+      "Content-Type":
+        "application/json"
+    },
+
+    body:
+      JSON.stringify({
+        id: Number(id)
+      })
+  }
+);
+
+const data =
+  await res.json();
+
+if (!res.ok || !data.success) {
+  throw new Error(
+    data.error ||
+    "Delete failed."
+  );
+}
+
+await loadPlatformUpdatesTable();
+
+showPlatformUpdateAlert(
+  "Platform update deleted.",
+  "success"
+);
+
+} catch (error) {
+
+console.error(
+  "Platform update delete error:",
+  error
+);
+
+showPlatformUpdateAlert(
+  error.message ||
+  "Failed to delete platform update.",
+  "error"
+);
+
+}
+}
+
+/* =========================================================
+CANCEL EDIT
+========================================================= */
+
+function cancelPlatformUpdateEdit() {
+resetPlatformUpdateForm();
+}
+
+/* =========================================================
+RESET FORM
+========================================================= */
+
+function resetPlatformUpdateForm() {
+
+const form =
+document.getElementById(
+"platformUpdateForm"
+);
+
+if (!form) return;
+
+form.reset();
+
+form.dataset.id = "";
+
+const id =
+form.querySelector(
+"[name='id']"
+);
+
+if (id) {
+id.value = "";
+}
+
+const title =
+document.getElementById(
+"updatesFormTitle"
+);
+
+if (title) {
+title.textContent =
+"Add Platform Update";
+}
+
+const submitBtn =
+document.getElementById(
+"platformUpdateSubmitBtn"
+);
+
+if (submitBtn) {
+submitBtn.textContent =
+"Create Update";
+}
+
+const cancelBtn =
+document.getElementById(
+"platformUpdateCancelBtn"
+);
+
+if (cancelBtn) {
+cancelBtn.style.display =
+"none";
+}
+
+const alertEl =
+document.getElementById(
+"platformUpdateFormAlert"
+);
+
+if (alertEl) {
+alertEl.style.display =
+"none";
+}
+}
+
+/* =========================================================
+ALERT
+========================================================= */
+
+function showPlatformUpdateAlert(
+message,
+type = "error"
+) {
+
+const alertEl =
+document.getElementById(
+"platformUpdateFormAlert"
+);
+
+if (!alertEl) return;
+
+alertEl.className =
+type === "success"
+? "alert alert--success"
+: "alert alert--error";
+
+alertEl.textContent =
+message;
+
+alertEl.style.display =
+"block";
+}
+
+/* =========================================================
+DATETIME HELPER
+========================================================= */
+
+function formatDateTimeLocal(value) {
+
+if (!value) return "";
+
+const date =
+new Date(value);
+
+if (Number.isNaN(date.getTime())) {
+return "";
+}
+
+const pad =
+number =>
+String(number).padStart(2, "0");
+
+return (
+date.getFullYear() +
+"-" +
+pad(date.getMonth() + 1) +
+"-" +
+pad(date.getDate()) +
+"T" +
+pad(date.getHours()) +
+":" +
+pad(date.getMinutes())
+);
+}
+
+/* =========================================================
+HTML ESCAPE
+========================================================= */
+
+function escapeHtml(value) {
+
+return String(value ?? "")
+.replace(/&/g, "&")
+.replace(/</g, "<")
+.replace(/>/g, ">")
+.replace(/"/g, '&quot;')
+.replace(/'/g, "'");
+}
+
+/* =========================================================
+INITIALIZE
+========================================================= */
+
+document.addEventListener(
+"DOMContentLoaded",
+function() {
+
+if (
+  document.getElementById(
+    "platformUpdateForm"
+  )
+) {
+
+  initPlatformUpdateForm();
+
+  loadPlatformUpdatesTable();
+}
+
+}
+);

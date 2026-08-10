@@ -32,7 +32,7 @@ export function getRoute(request) {
   if (path === "/en/casino") return { type: "casinoList" };
   if (path === "/en/review") return { type: "reviewList" };
   if (path === "/en/news") return { type: "newsList" };
-
+  if (path === "/en/updates") return { type: "updatesList" };
 
   // =====================================================
   // CASINO
@@ -76,6 +76,21 @@ export function getRoute(request) {
     return {
       type: "news",
       slug: newsMatch[1]
+    };
+  }
+
+  // =====================================================
+// PLATFORM UPDATE
+// /en/updates/new-lummet-ai-feature
+// =====================================================
+
+  const updateMatch =
+    path.match(/^\/en\/updates\/([^/]+)$/);
+
+  if (updateMatch) {
+    return {
+      type: "update",
+      slug: updateMatch[1]
     };
   }
 
@@ -157,6 +172,7 @@ export function getRoute(request) {
   if (path === "/en/dashboard/casino/create") return { type: "dashboardCasinoCreate" };
   if (path === "/en/dashboard/reviews") return { type: "dashboardReviews" };
   if (path === "/en/dashboard/news") return { type: "dashboardNews" };
+  if (path === "/en/dashboard/updates")  return { type: "dashboardUpdates" };
   if (path === "/en/dashboard/pages") return { type: "dashboardPages" };
   if (path === "/en/dashboard/settings") return { type: "dashboardSettings" };
   if (path === "/en/dashboard/ai") return { type: "dashboardAI" };
@@ -246,6 +262,10 @@ export function getRoute(request) {
   if (path === "/sitemap-news.xml" || path === "/en/sitemap-news.xml") {
       return { type: "sitemap-news" };
   }
+  if (path === "/sitemap-updates.xml" || path === "/en/sitemap-updates.xml") {
+      return { type: "sitemap-updates" };
+  }
+
   if (path === "/sitemap-categories.xml" || path === "/en/sitemap-categories.xml") {
       return { type: "sitemap-categories" };
   }

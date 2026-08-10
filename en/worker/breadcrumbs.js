@@ -17,6 +17,9 @@ const ROUTES = {
     { label: "News", url: "/en/news" }
   ],
 
+  updatesList: [
+    { label: "Platform Updates", url: "/en/updates" }
+  ],
   categoryList: [
     { label: "Categories", url: "/en/category" }
   ],
@@ -66,6 +69,12 @@ export function buildBreadcrumbs(route, data = {}) {
       );
       break;
 
+    case "update":
+      crumbs.push(
+        { label: "Platform Updates", url: "/en/updates" },
+        { label: data.title, url: null }
+      );
+      break;
     case "category":
       crumbs.push(
         { label: "Categories", url: "/en/category" },

@@ -16,6 +16,8 @@ import {
   renderCasinoList,
   renderReviewList,
   renderNewsList,
+  renderUpdatesList,
+  renderUpdate,
   renderDashboardComponents,
   renderDashboardMedia,
   renderDashboardNav,
@@ -180,6 +182,18 @@ export default {
         return renderReviewList(request, env);
       case "newsList":
         return renderNewsList(request, env);
+
+
+      case "updatesList":
+        return renderUpdatesList(request, env);
+
+      case "update":
+        return renderUpdate(
+          request,
+          env,
+          route.slug
+        );
+
       case "categoryList":
         return renderCategoryList(request, env);
       case "countryList":
@@ -192,6 +206,8 @@ export default {
         return renderDashboardReviews(request, env);
       case "dashboardNews":
         return renderDashboardNews(request, env);
+      case "dashboardUpdates":
+        return renderDashboardUpdates(request, env);
       case "dashboardPages":
         return renderDashboardPages(request, env);
       case "dashboardSettings":
@@ -275,6 +291,9 @@ export default {
         return sitemapEngine.generate(env.DB, "reviews");
       case "sitemap-news":
         return sitemapEngine.generate(env.DB, "news");
+      case "sitemap-updates":
+        return sitemapEngine.generate(env.DB, "updates");
+
       case "sitemap-categories":
         return sitemapEngine.generate(env.DB, "categories");
       case "sitemap-countries":

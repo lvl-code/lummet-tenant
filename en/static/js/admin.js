@@ -1828,8 +1828,28 @@ alertEl.style.display =
 /* =========================================================
 ALERT
 ========================================================= */
+function showPlatformUpdateAlert(message, type = "error") {
+  const alertEl = document.getElementById(
+    "platformUpdateFormAlert"
+  );
 
-function showPlatformUpdateAlert(
+  if (!alertEl) return;
+
+  alertEl.className =
+    type === "success"
+      ? "alert alert--success"
+      : "alert alert--error";
+
+  alertEl.textContent = message;
+  alertEl.style.display = "block";
+
+  clearTimeout(window.platformUpdateAlertTimer);
+
+  window.platformUpdateAlertTimer = setTimeout(() => {
+    alertEl.style.display = "none";
+  }, 5000);
+}
+function showPlatformUpdateAlertbackup(
 message,
 type = "error"
 ) {

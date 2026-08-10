@@ -1657,26 +1657,12 @@ if (cancelBtn) {
     "inline-flex";
 }
 
-
-const editor =
-  document.querySelector(
-    '[data-editor-id="platform-update-content"]'
+setTimeout(() => {
+  RichEditor.set(
+    "platform-update-content",
+    update.content || ""
   );
-
-if (editor) {
-
-  editor.value =
-    update.content || "";
-
-  editor.dispatchEvent(
-    new Event(
-      "input",
-      {
-        bubbles: true
-      }
-    )
-  );
-}
+}, 300);
 
 
 form.scrollIntoView({

@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       "/en/dashboard/casino/create": "casinos",
       "/en/dashboard/reviews": "reviews",
       "/en/dashboard/news": "news",
+      "/en/dashboard/updates": "platform-updates",
       "/en/dashboard/pages": "pages",
       "/en/dashboard/categories": "categories",
       "/en/dashboard/countries": "countries",

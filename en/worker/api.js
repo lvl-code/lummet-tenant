@@ -403,7 +403,24 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/geo": "casinos",
       "/api/v1/media": "media",
       "/api/v1/nav": "nav",
+      "/api/v1/platform-updates": "platform-updates",
     };
+    const readResourceMap = {
+      "/api/v1/platform-updates/list": "platform-updates",
+    };
+    if (request.method === "GET") {
+  for (const [readPath, resource] of Object.entries(readResourceMap)) {
+    if (path === readPath) {
+      if (!permDB.checkPermission(userPermissions, resource, "read")) {
+        return json({
+          success: false,
+          error: `Forbidden: ${user.role} role cannot read ${resource}`
+        }, 403);
+      }
+      break;
+    }
+  }
+}
 
     let resource = null;
     let action = "create";

@@ -3,14 +3,14 @@
 // =====================================================
 
 const RESOURCES = [
-  "casinos", "reviews", "news", "pages", "categories",
+  "casinos", "reviews", "news", "platform-updates", "pages", "categories",
   "countries", "authors", "components", "seo", "settings",
   "media", "nav", "permissions", "users"
 ];
 
 const ACTIONS = ["create", "read", "update", "delete"];
 const RESOURCE_LABELS = {
-  casinos: "Casinos", reviews: "Reviews", news: "News", pages: "Pages",
+  casinos: "Casinos", reviews: "Reviews", news: "News",   "platform-updates": "Platform Updates", pages: "Pages",
   categories: "Categories", countries: "Countries", authors: "Authors",
   components: "Components", seo: "SEO Meta", settings: "Settings",
   media: "Media", nav: "Navigation", permissions: "Permissions", users: "Users"

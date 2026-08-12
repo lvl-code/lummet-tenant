@@ -1,6 +1,6 @@
 // =====================================================
 // item-access-admin.js — Admin UI for item-level access
-// Loaded on /en/dashboard/item-access
+// Uses the Level.casino admin layout CSS classes
 // =====================================================
 
 const ITEM_ACCESS_RESOURCES = [
@@ -29,7 +29,9 @@ const SCOPE_OPTIONS = [
 let itemAccessUsers = [];
 let itemAccessCurrentUser = null;
 let itemAccessMatrix = {};
-let systemDefaultScope = 'all';
+let itemAccessDefaultScope = 'all';
+
+// ── Init ───────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!document.getElementById('itemAccessContent')) return;
@@ -37,11 +39,58 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initItemAccess() {
+  await loadDefaultScope();
   await loadItemAccessUsers();
-  await loadSystemDefaultScope();
   setupUserSelector();
-  renderSystemDefaultBanner();
 }
+
+// ── Default Scope ──────────────────────
+
+async function loadDefaultScope() {
+  try {
+    const res = await fetch('/en/api/v1/admin/item-access/default-scope');
+    const data = await res.json();
+    if (data.success) {
+      itemAccessDefaultScope = data.scope;
+      const select = document.getElementById('defaultScopeSelect');
+      if (select) select.value = itemAccessDefaultScope;
+    }
+  } catch (e) {
+    console.error('Failed to load default scope:', e);
+  }
+}
+
+async function saveDefaultScope() {
+  const select = document.getElementById('defaultScopeSelect');
+  const status = document.getElementById('defaultScopeStatus');
+  if (!select || !status) return;
+
+  const scope = select.value;
+  status.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/en/api/v1/admin/item-access/default-scope', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope })
+    });
+    const data = await res.json();
+    if (data.success) {
+      itemAccessDefaultScope = scope;
+      status.textContent = '✓ Saved';
+      status.style.color = '#27ae60';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+    } else {
+      status.textContent = '✗ ' + (data.error || 'Failed');
+      status.style.color = '#e74c3c';
+    }
+  } catch (e) {
+    status.textContent = '✗ Error';
+    status.style.color = '#e74c3c';
+  }
+}
+
+// ── User Loading ───────────────────────
 
 async function loadItemAccessUsers() {
   try {
@@ -50,51 +99,7 @@ async function loadItemAccessUsers() {
     itemAccessUsers = data.users || [];
   } catch (e) {
     console.error('Failed to load users:', e);
-  }
-}
-
-async function loadSystemDefaultScope() {
-  try {
-    const res = await fetch('/en/api/v1/admin/item-access/default-scope');
-    const data = await res.json();
-    if (data.success) systemDefaultScope = data.scope;
-  } catch (e) {
-    console.error('Failed to load default scope:', e);
-  }
-}
-
-function renderSystemDefaultBanner() {
-  const banner = document.getElementById('itemAccessDefaultBanner');
-  if (!banner) return;
-  const color = systemDefaultScope === 'none' ? '#e74c3c' : '#27ae60';
-  banner.innerHTML = `
-    <div style="padding:0.75rem 1rem;border-radius:6px;background:#f8f9fa;border-left:4px solid ${color};margin-bottom:1.5rem;">
-      <strong>System Default Scope:</strong> ${systemDefaultScope.toUpperCase()}
-      <span class="muted" style="margin-left:0.5rem;">
-        — When no explicit rule exists for a user, this scope is used.
-      </span>
-      <button onclick="changeDefaultScope()" style="float:right;" class="btn btn--sm">Change</button>
-    </div>
-  `;
-}
-
-async function changeDefaultScope() {
-  const newScope = prompt(
-    `Set system default scope.\n\nCurrent: ${systemDefaultScope}\n\nOptions: all, own, assigned, none\n\nRecommended after configuring all users: none`,
-    systemDefaultScope
-  );
-  if (!newScope || !['all', 'own', 'assigned', 'none'].includes(newScope)) return;
-
-  try {
-    await fetch('/en/api/v1/admin/item-access/default-scope', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope: newScope })
-    });
-    systemDefaultScope = newScope;
-    renderSystemDefaultBanner();
-  } catch (e) {
-    alert('Failed: ' + e.message);
+    showAlert('Failed to load users.', 'error');
   }
 }
 
@@ -107,77 +112,82 @@ function setupUserSelector() {
       .filter(u => u.role !== 'admin')
       .map(u => `<option value="${u.id}">${u.email} (${u.role})</option>`)
       .join('');
-
-  select.addEventListener('change', (e) => {
-    const userId = parseInt(e.target.value, 10);
-    if (userId) {
-      loadUserItemAccess(userId);
-    } else {
-      document.getElementById('itemAccessContent').innerHTML = '';
-    }
-  });
 }
 
-async function loadUserItemAccess(userId) {
+// ── Load User Access Rules ─────────────
+
+async function loadUserItemAccess() {
+  const select = document.getElementById('itemAccessUserSelect');
+  const userId = parseInt(select?.value, 10);
+  if (!userId) {
+    document.getElementById('itemAccessContent').innerHTML = '';
+    return;
+  }
+
   itemAccessCurrentUser = userId;
 
   try {
     const res = await fetch(`/en/api/v1/admin/item-access/user?user_id=${userId}`);
     const data = await res.json();
+
+    if (!data.success) {
+      showAlert(data.error || 'Failed to load access rules.', 'error');
+      return;
+    }
+
     itemAccessMatrix = {};
     for (const rule of (data.access || [])) {
-      itemAccessMatrix[`${rule.resource}|${rule.action}`] = rule.scope;
+      const key = `${rule.resource}|${rule.action}`;
+      itemAccessMatrix[key] = rule.scope;
     }
+
     renderItemAccessMatrix();
+    renderAssignmentPanel();
   } catch (e) {
-    document.getElementById('itemAccessContent').innerHTML =
-      '<p class="alert alert--error">Failed to load access rules.</p>';
+    showAlert('Failed to load access rules: ' + e.message, 'error');
   }
 }
+
+// ── Render Access Matrix ───────────────
 
 function renderItemAccessMatrix() {
   const container = document.getElementById('itemAccessContent');
   if (!container) return;
 
-  const userEmail = itemAccessUsers.find(u => u.id === itemAccessCurrentUser)?.email || '';
+  const userLabel = itemAccessUsers.find(u => u.id === itemAccessCurrentUser)?.email || '';
 
   let html = `
-    <div class="card">
-      <div class="card__header">
-        <h3>Item-Level Access — ${userEmail}</h3>
-        <p class="muted">Controls <strong>which records</strong> this user can access.
-        Blank cells use the system default (${systemDefaultScope.toUpperCase()}).</p>
-      </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Resource</th>
-            ${ITEM_ACCESS_ACTIONS.map(a => `<th style="text-align:center">${a.label}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
+    <div class="admin-section">
+      <h2>Access Matrix — ${userLabel}</h2>
+      <p class="muted" style="margin-bottom:16px">
+        Controls <strong>which records</strong> this user can access for each resource and action.
+        "All" = all records, "Own" = only records they created, "Assigned" = only explicitly assigned records, "None" = no records.
+      </p>
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Resource</th>
+              ${ITEM_ACCESS_ACTIONS.map(a => `<th style="text-align:center">${a.label}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
   `;
 
   for (const resource of ITEM_ACCESS_RESOURCES) {
     html += `<tr><td><strong>${resource.label}</strong></td>`;
     for (const action of ITEM_ACCESS_ACTIONS) {
       const key = `${resource.key}|${action.key}`;
-      const currentScope = itemAccessMatrix[key];
-      const isExplicit = currentScope !== undefined;
-      const displayScope = currentScope || systemDefaultScope;
-
+      const currentScope = itemAccessMatrix[key] || itemAccessDefaultScope;
       html += `<td style="text-align:center">
         <select
           data-resource="${resource.key}"
           data-action="${action.key}"
-          class="scope-select"
           onchange="saveItemAccessScope(this)"
+          style="min-width:90px"
         >
-          <option value="" ${!isExplicit ? 'selected' : ''}>
-            Default (${systemDefaultScope})
-          </option>
           ${SCOPE_OPTIONS.map(opt =>
-            `<option value="${opt.value}" ${isExplicit && currentScope === opt.value ? 'selected' : ''}>${opt.label}</option>`
+            `<option value="${opt.value}" ${currentScope === opt.value ? 'selected' : ''}>${opt.label}</option>`
           ).join('')}
         </select>
       </td>`;
@@ -186,17 +196,8 @@ function renderItemAccessMatrix() {
   }
 
   html += `
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card" style="margin-top:1.5rem">
-      <div class="card__header">
-        <h3>Item Assignments</h3>
-        <p class="muted">Assign specific records to this user (used when scope = "Assigned").</p>
-      </div>
-      <div id="assignmentPanel">
-        ${renderAssignmentPanel()}
+          </tbody>
+        </table>
       </div>
     </div>
   `;
@@ -204,14 +205,37 @@ function renderItemAccessMatrix() {
   container.innerHTML = html;
 }
 
+// ── Render Assignment Panel ────────────
+
 function renderAssignmentPanel() {
-  let html = '<div class="form-row"><label>Resource:</label><select id="assignResourceSelect" onchange="loadAssignmentList()">';
-  for (const r of ITEM_ACCESS_RESOURCES) {
-    html += `<option value="${r.key}">${r.label}</option>`;
-  }
-  html += '</select></div><div id="assignmentList"></div>';
-  return html;
+  const container = document.getElementById('itemAccessContent');
+  if (!container) return;
+
+  let html = container.innerHTML;
+
+  html += `
+    <div class="admin-section" style="margin-top:40px">
+      <h2>Item Assignments</h2>
+      <p class="muted" style="margin-bottom:16px">
+        Assign specific records to this user. Used when scope is set to <strong>Assigned</strong>.
+      </p>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Select Resource</label>
+          <select id="assignResourceSelect" onchange="loadAssignmentList()">
+            <option value="">Select a resource…</option>
+            ${ITEM_ACCESS_RESOURCES.map(r => `<option value="${r.key}">${r.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="assignmentList"></div>
+    </div>
+  `;
+
+  container.innerHTML = html;
 }
+
+// ── Save Scope ─────────────────────────
 
 async function saveItemAccessScope(selectEl) {
   const resource = selectEl.dataset.resource;
@@ -219,36 +243,32 @@ async function saveItemAccessScope(selectEl) {
   const scope = selectEl.value;
 
   try {
-    if (scope === '') {
-      // Revert to default — delete the explicit row
-      await fetch('/en/api/v1/admin/item-access/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: itemAccessCurrentUser,
-          resource,
-          action
-        })
-      });
+    const res = await fetch('/en/api/v1/admin/item-access/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: itemAccessCurrentUser,
+        resource,
+        action,
+        scope
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Brief visual feedback
+      const originalBg = selectEl.style.backgroundColor;
+      selectEl.style.backgroundColor = '#d4edda';
+      setTimeout(() => { selectEl.style.backgroundColor = originalBg; }, 800);
     } else {
-      await fetch('/en/api/v1/admin/item-access/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: itemAccessCurrentUser,
-          resource,
-          action,
-          scope
-        })
-      });
+      showAlert(data.error || 'Failed to save scope.', 'error');
+      loadUserItemAccess();
     }
-    selectEl.style.borderColor = '#27ae60';
-    setTimeout(() => { selectEl.style.borderColor = ''; }, 1000);
   } catch (e) {
-    alert('Failed to save: ' + e.message);
-    loadUserItemAccess(itemAccessCurrentUser);
+    showAlert('Failed to save: ' + e.message, 'error');
   }
 }
+
+// ── Assignment List ─────────────────────
 
 async function loadAssignmentList() {
   const resource = document.getElementById('assignResourceSelect')?.value;
@@ -258,12 +278,14 @@ async function loadAssignmentList() {
   listEl.innerHTML = '<p class="muted">Loading…</p>';
 
   try {
+    // Get user's assigned items
     const assignRes = await fetch(
       `/en/api/v1/admin/item-access/assignments?user_id=${itemAccessCurrentUser}&resource=${resource}`
     );
     const assignData = await assignRes.json();
     const assignedIds = new Set(assignData.item_ids || []);
 
+    // Get all items for this resource
     const endpointMap = {
       'casinos': '/en/api/v1/casinos/list',
       'reviews': '/en/api/v1/reviews/list',
@@ -280,24 +302,48 @@ async function loadAssignmentList() {
     let idKey = 'id';
     let labelKey = 'name';
 
-    if (resource === 'casinos') { items = listData.casinos || []; }
-    else if (resource === 'reviews') { items = listData.reviews || []; labelKey = 'title'; }
-    else if (resource === 'news') { items = listData.news || []; labelKey = 'title'; }
-    else if (resource === 'pages') { items = listData.pages || []; labelKey = 'title'; }
-    else if (resource === 'platform-updates') { items = listData.updates || []; labelKey = 'title'; }
-    else if (resource === 'media') { items = listData.items || []; labelKey = 'filename'; }
+    if (resource === 'casinos') {
+      items = listData.casinos || [];
+    } else if (resource === 'reviews') {
+      items = listData.reviews || [];
+      labelKey = 'title';
+    } else if (resource === 'news') {
+      items = listData.news || [];
+      labelKey = 'title';
+    } else if (resource === 'pages') {
+      items = listData.pages || [];
+      labelKey = 'title';
+    } else if (resource === 'platform-updates') {
+      items = listData.updates || [];
+      labelKey = 'title';
+    } else if (resource === 'media') {
+      items = listData.items || [];
+      labelKey = 'filename';
+    }
 
     if (items.length === 0) {
       listEl.innerHTML = '<p class="muted">No items found.</p>';
       return;
     }
 
-    let html = '<table class="table"><thead><tr><th>Item</th><th style="text-align:center">Assigned</th></tr></thead><tbody>';
+    let html = `
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align:center;width:100px">Assigned</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
     for (const item of items) {
       const itemId = item[idKey];
       const isAssigned = assignedIds.has(itemId);
+      const label = item[labelKey] || item.slug || itemId;
       html += `<tr>
-        <td>${item[labelKey] || item.slug || itemId}</td>
+        <td>${label}</td>
         <td style="text-align:center">
           <input type="checkbox"
             ${isAssigned ? 'checked' : ''}
@@ -306,46 +352,25 @@ async function loadAssignmentList() {
         </td>
       </tr>`;
     }
-    html += '</tbody></table>';
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
     listEl.innerHTML = html;
   } catch (e) {
-    listEl.innerHTML = `<p class="alert alert--error">Failed to load: ${e.message}</p>`;
+    listEl.innerHTML = `<p class="alert">Failed to load: ${e.message}</p>`;
   }
 }
+
+// ── Toggle Assignment ──────────────────
 
 async function toggleItemAccessAssignment(itemId, checked, resource) {
   const endpoint = checked ? 'assign' : 'unassign';
-
   try {
-    const res = await fetch(
-      `/en/api/v1/admin/item-access/${endpoint}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: itemAccessCurrentUser,
-          resource,
-          item_id: itemId
-        })
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || `HTTP ${res.status}`);
-    }
-
-  } catch (e) {
-    alert('Failed: ' + e.message);
-    loadAssignmentList();
-  }
-}
-
-async function toggleItemAccessAssignmentbackup(itemId, checked, resource) {
-  const endpoint = checked ? 'assign' : 'unassign';
-  try {
-    await fetch(`/en/api/v1/admin/item-access/${endpoint}`, {
+    const res = await fetch(`/en/api/v1/admin/item-access/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -354,14 +379,32 @@ async function toggleItemAccessAssignmentbackup(itemId, checked, resource) {
         item_id: itemId
       })
     });
+    const data = await res.json();
+    if (!data.success) {
+      showAlert(data.error || 'Failed to update assignment.', 'error');
+      loadAssignmentList();
+    }
   } catch (e) {
-    alert('Failed: ' + e.message);
+    showAlert('Failed: ' + e.message, 'error');
     loadAssignmentList();
   }
 }
 
-// Expose for inline handlers
+// ── Alert Helper ───────────────────────
+
+function showAlert(message, type) {
+  const alert = document.getElementById('itemAccessAlert');
+  if (!alert) return;
+  alert.textContent = message;
+  alert.style.display = 'block';
+  alert.className = 'alert' + (type === 'error' ? ' alert--error' : '');
+  setTimeout(() => { alert.style.display = 'none'; }, 4000);
+}
+
+// ── Expose for inline handlers ────────
+
+window.saveDefaultScope = saveDefaultScope;
+window.loadUserItemAccess = loadUserItemAccess;
 window.saveItemAccessScope = saveItemAccessScope;
 window.loadAssignmentList = loadAssignmentList;
 window.toggleItemAccessAssignment = toggleItemAccessAssignment;
-window.changeDefaultScope = changeDefaultScope;

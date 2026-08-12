@@ -301,7 +301,7 @@ async function loadAssignmentList() {
         <td style="text-align:center">
           <input type="checkbox"
             ${isAssigned ? 'checked' : ''}
-            onchange="toggleAssignment(${itemId}, this.checked, '${resource}')"
+            onchange="toggleItemAccessAssignment(${itemId}, this.checked, '${resource}')"
           />
         </td>
       </tr>`;
@@ -313,7 +313,36 @@ async function loadAssignmentList() {
   }
 }
 
-async function toggleAssignment(itemId, checked, resource) {
+async function toggleItemAccessAssignment(itemId, checked, resource) {
+  const endpoint = checked ? 'assign' : 'unassign';
+
+  try {
+    const res = await fetch(
+      `/en/api/v1/admin/item-access/${endpoint}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: itemAccessCurrentUser,
+          resource,
+          item_id: itemId
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+
+  } catch (e) {
+    alert('Failed: ' + e.message);
+    loadAssignmentList();
+  }
+}
+
+async function toggleItemAccessAssignmentbackup(itemId, checked, resource) {
   const endpoint = checked ? 'assign' : 'unassign';
   try {
     await fetch(`/en/api/v1/admin/item-access/${endpoint}`, {
@@ -334,5 +363,5 @@ async function toggleAssignment(itemId, checked, resource) {
 // Expose for inline handlers
 window.saveItemAccessScope = saveItemAccessScope;
 window.loadAssignmentList = loadAssignmentList;
-window.toggleAssignment = toggleAssignment;
+window.toggleItemAccessAssignment = toggleItemAccessAssignment;
 window.changeDefaultScope = changeDefaultScope;

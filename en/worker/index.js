@@ -231,7 +231,7 @@ export default {
       case "dashboardPermissions":
         return renderDashboardPermissions(request, env);
       case "dashboardItemAccess":
-        return renderDashboardPage(request, env);
+        return renderDashboardItemAccess(request, env);
 
       case "dashboardUsers":
         return renderDashboardUsers(request, env);

@@ -22,6 +22,7 @@ import {
   renderDashboardMedia,
   renderDashboardNav,
   renderDashboardPermissions,
+  renderDashboardItemAccess,
   renderDashboardUsers,
   renderDashboardInquiries,
   renderDashboardSubmissions,

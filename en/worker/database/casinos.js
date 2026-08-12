@@ -40,9 +40,10 @@ export async function createCasino(db, casino) {
         sort_order,
         status,
         logo_media_id,
-        hero_image_media_id
+        hero_image_media_id,
+        created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       casino.slug,
@@ -60,7 +61,8 @@ export async function createCasino(db, casino) {
       casino.sort_order || 0,
       casino.status || "draft",
       casino.logo_media_id || null,
-      casino.hero_image_media_id || null
+      casino.hero_image_media_id || null,
+      casino.created_by || null
     )
     .run();
 

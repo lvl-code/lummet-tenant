@@ -13,6 +13,20 @@ import * as categories from "./database/categories.js";
 import * as news from "./database/news.js";
 import * as platformUpdates from "./database/platform-updates.js";
 
+import * as itemAccess from "./database/item-access.js";
+import {
+  handleGetUserItemAccess,
+  handleSetUserItemAccess,
+  handleDeleteUserItemAccess,
+  handleAssignItem,
+  handleUnassignItem,
+  handleGetUserAssignments,
+  handleGetItemAssignees,
+  handleGetResources,
+  handleGetDefaultScope,
+  handleSetDefaultScope
+} from "./database/item-access-api.js";
+
 
 import { aiAssistant } from "./ai/assistant.js";
 
@@ -490,44 +504,38 @@ if (path === "/api/v1/old/geo/check") {
       path === "/api/v1/casino/create" &&
       request.method === "POST"
     ) {
-      return createCasino(request, env);
+      return createCasino(request, env, user);
     }
 
     if (
       path === "/api/v1/casino/update" &&
       request.method === "POST"
     ) {
-      return updateCasino(request, env);
+      return updateCasino(request, env, user);
     }
 
     if (
       path === "/api/v1/casino/delete" &&
       request.method === "POST"
     ) {
-      return deleteCasino(request, env);
+      return deleteCasino(request, env, user);
     }
 
-    if (path === "/api/v1/casinos/list") {
-  const casinos = await env.DB.prepare(`
-SELECT
-  id,
-  slug,
-  name,
-  rating,
-  featured,
-  sort_order,
-  status,
-  published
-FROM casinos
-ORDER BY
-  featured DESC,
-  sort_order ASC,
-  rating DESC
-`)
-.all();
+if (path === "/api/v1/casinos/list") {
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(
+    env.DB, user, 'casinos', 'read', ''
+  );
+  const whereClause = condition ? `WHERE ${condition}` : '';
+
+  const casinos = await env.DB.prepare(
+    `SELECT id, slug, name, rating, featured, sort_order, status, published
+     FROM casinos ${whereClause}
+     ORDER BY featured DESC, sort_order ASC, rating DESC`
+  ).bind(...params).all();
 
   return json({ casinos: casinos.results });
 }
+
 
 if (path === "/api/v1/casino/get") {
   const url = new URL(request.url);
@@ -543,6 +551,9 @@ if (path === "/api/v1/casino/get") {
   `).bind(slug).first();
 
   if (!casino) return failure("Casino not found",404);
+  // Item-level access check — prevents IDOR
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, 'casinos', 'read', casino);
+  if (!canAccess) return failure("Casino not found", 404);
 
   const categoryRows = await env.DB.prepare(`
     SELECT category_id
@@ -564,25 +575,47 @@ if (path === "/api/v1/casino/get") {
 
 // List reviews
 if (path === "/api/v1/reviews/list") {
-  const result = await env.DB.prepare(`
-    SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC
-  `).all();
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(
+    env.DB, user, 'reviews', 'read', ''
+  );
+  const whereParts = ['published = 1'];
+  if (condition) whereParts.push(condition);
+  const whereClause = 'WHERE ' + whereParts.join(' AND ');
+
+  const result = await env.DB.prepare(
+    `SELECT * FROM reviews ${whereClause} ORDER BY created_at DESC`
+  ).bind(...params).all();
   return json({ reviews: result.results });
 }
 
 // List news
 if (path === "/api/v1/news/list") {
-  const result = await env.DB.prepare(`
-    SELECT * FROM news WHERE published = 1 ORDER BY created_at DESC
-  `).all();
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(
+    env.DB, user, 'news', 'read', ''
+  );
+  const whereParts = ['published = 1'];
+  if (condition) whereParts.push(condition);
+  const whereClause = 'WHERE ' + whereParts.join(' AND ');
+
+  const result = await env.DB.prepare(
+    `SELECT * FROM news ${whereClause} ORDER BY created_at DESC`
+  ).bind(...params).all();
   return json({ news: result.results });
 }
+
+// List pages
 if (path === "/api/v1/pages/list") {
-  const result = await env.DB.prepare(`
-    SELECT * FROM pages ORDER BY created_at DESC
-  `).all();
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(
+    env.DB, user, 'pages', 'read', ''
+  );
+  const whereClause = condition ? `WHERE ${condition}` : '';
+
+  const result = await env.DB.prepare(
+    `SELECT * FROM pages ${whereClause} ORDER BY created_at DESC`
+  ).bind(...params).all();
   return json({ pages: result.results });
 }
+
 
 // List categories
 if (path === "/api/v1/categories/list") {
@@ -648,34 +681,33 @@ if (
   path === "/api/v1/news/create" &&
   request.method === "POST"
 ) {
-  return createNews(request, env);
+  return createNews(request, env, user);
 }
 
 if (
   path === "/api/v1/news/update" &&
   request.method === "POST"
 ) {
-  return updateNews(request, env);
+  return updateNews(request, env, user);
 }
 
 if (
   path === "/api/v1/news/delete" &&
   request.method === "POST"
 ) {
-  return deleteNews(request, env);
+  return deleteNews(request, env, user);
 }
 
 /* =========================================================
 PLATFORM UPDATES ADMIN API========================================================= */
+if (path === "/api/v1/platform-updates/list" &&request.method === "GET") {return listPlatformUpdates(request, env, user);}
 
-if (path === "/api/v1/platform-updates/list" &&request.method === "GET") {return listPlatformUpdates(request, env);}
+if (path === "/api/v1/platform-updates/create" &&request.method === "POST") {return createPlatformUpdate(request, env, user);}
 
-if (path === "/api/v1/platform-updates/create" &&request.method === "POST") {return createPlatformUpdate(request, env);}
+if (path === "/api/v1/platform-updates/update" &&request.method === "POST") {return updatePlatformUpdate(request, env, user);}
 
-if (path === "/api/v1/platform-updates/update" &&request.method === "POST") {return updatePlatformUpdate(request, env);}
+if (path === "/api/v1/platform-updates/delete" &&request.method === "POST") {return deletePlatformUpdate(request, env, user);}
 
-if (path === "/api/v1/platform-updates/delete" &&request.method === "POST") {return deletePlatformUpdate(request, env);}
-    
     // ==================================
     // REVIEWS
     // ==================================
@@ -684,14 +716,14 @@ if (path === "/api/v1/platform-updates/delete" &&request.method === "POST") {ret
       path === "/api/v1/review/create" &&
       request.method === "POST"
     ) {
-      return createReview(request, env);
+      return createReview(request, env, user);
     }
 
     if (
       path === "/api/v1/review/update" &&
       request.method === "POST"
     ) {
-      return updateReview(request, env);
+      return updateReview(request, env, user);
     }
 
     // ==================================
@@ -702,14 +734,14 @@ if (path === "/api/v1/platform-updates/delete" &&request.method === "POST") {ret
       path === "/api/v1/page/create" &&
       request.method === "POST"
     ) {
-      return createPage(request, env);
+      return createPage(request, env, user);
     }
 
     if (
       path === "/api/v1/page/update" &&
       request.method === "POST"
     ) {
-      return updatePage(request, env);
+      return updatePage(request, env, user);
     }
 
     // ==================================
@@ -914,6 +946,12 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     if (path === "/api/v1/review/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
+
+      const existing = await itemAccess.getItemBySlug(env.DB, 'reviews', body.slug);
+      if (!existing) return failure("Review not found", 404);
+      const canDelete = await itemAccess.canAccessItem(env.DB, user, 'reviews', 'delete', existing);
+      if (!canDelete) return failure("Review not found", 404);
+
       const { deleteReview } = await import("./database/reviews.js");
       await deleteReview(env.DB, body.slug);
       return success();
@@ -922,10 +960,17 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     if (path === "/api/v1/page/delete" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["slug"]);
+
+      const existing = await itemAccess.getItemBySlug(env.DB, 'pages', body.slug);
+      if (!existing) return failure("Page not found", 404);
+      const canDelete = await itemAccess.canAccessItem(env.DB, user, 'pages', 'delete', existing);
+      if (!canDelete) return failure("Page not found", 404);
+
       const { deletePage } = await import("./database/pages.js");
       await deletePage(env.DB, body.slug);
       return success();
     }
+
     // ==================================
     // COMPONENTS CRUD
     // ==================================
@@ -1435,6 +1480,42 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       }
       return success();
     }
+
+    // ==================================
+    // ITEM-LEVEL ACCESS MANAGEMENT (admin only)
+    // ==================================
+
+    if (path === "/api/v1/admin/item-access/user" && request.method === "GET") {
+      return handleGetUserItemAccess(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/set" && request.method === "POST") {
+      return handleSetUserItemAccess(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/delete" && request.method === "POST") {
+      return handleDeleteUserItemAccess(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/assign" && request.method === "POST") {
+      return handleAssignItem(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/unassign" && request.method === "POST") {
+      return handleUnassignItem(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/assignments" && request.method === "GET") {
+      return handleGetUserAssignments(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/assignees" && request.method === "GET") {
+      return handleGetItemAssignees(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/resources" && request.method === "GET") {
+      return handleGetResources(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/default-scope" && request.method === "GET") {
+      return handleGetDefaultScope(request, env, user);
+    }
+    if (path === "/api/v1/admin/item-access/default-scope" && request.method === "POST") {
+      return handleSetDefaultScope(request, env, user);
+    }
+
     // ==================================
     // USER DASHBOARD — BOOKMARKS
     // ==================================
@@ -1767,7 +1848,7 @@ function validate(body, required) {
 // CASINOS
 // =====================================================
 
-async function createCasino(request, env) {
+async function createCasino(request, env, user) {
 
   const body = await request.json();
   validate(body, [
@@ -1775,7 +1856,8 @@ async function createCasino(request, env) {
     "name",
     "affiliate_url"
   ]);
-
+  // SECURITY: set ownership server-side, never trust body.created_by
+  body.created_by = user.user_id;
   const casinoId = await casinos.createCasino(env.DB, body);
   if (Array.isArray(body.category_ids)) {
     await casinos.setCasinoCategories(
@@ -1788,7 +1870,7 @@ async function createCasino(request, env) {
   return success();
 }
 
-async function updateCasino(request, env) {
+async function updateCasino(request, env, user) {
 
   const body = await request.json();
 
@@ -1798,6 +1880,12 @@ async function updateCasino(request, env) {
     "name",
     "affiliate_url"
   ]);
+
+  // Item-level access check
+  const existing = await itemAccess.getItemBySlug(env.DB, 'casinos', body.old_slug);
+  if (!existing) return failure("Casino not found", 404);
+  const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'casinos', 'update', existing);
+  if (!canUpdate) return failure("Casino not found", 404);
 
   await casinos.updateCasino(
     env.DB,
@@ -1821,9 +1909,16 @@ async function updateCasino(request, env) {
   return success();
 }
 
-async function deleteCasino(request, env) {
+async function deleteCasino(request, env, user) {
   const body = await request.json();
   validate(body, ["slug"]);
+
+  // Item-level access check
+  const existing = await itemAccess.getItemBySlug(env.DB, 'casinos', body.slug);
+  if (!existing) return failure("Casino not found", 404);
+  const canDelete = await itemAccess.canAccessItem(env.DB, user, 'casinos', 'delete', existing);
+  if (!canDelete) return failure("Casino not found", 404);
+
   await casinos.deleteCasino(
     env.DB,
     body.slug
@@ -1838,9 +1933,10 @@ async function deleteCasino(request, env) {
 // REVIEWS
 // =====================================================
 
-async function createReview(request, env) {
+async function createReview(request, env, user) {
   const body = await request.json();
   validate(body, ["slug", "title", "content", "casino_slug"]);
+  body.created_by = user.user_id;
   await reviews.createReview(
     env.DB,
     body
@@ -1849,9 +1945,16 @@ async function createReview(request, env) {
   return success();
 }
 
-async function updateReview(request, env) {
+async function updateReview(request, env, user) {
   const body = await request.json();
   validate(body, ["slug", "title", "content"]);
+
+  // Item-level access check
+  const existing = await itemAccess.getItemBySlug(env.DB, 'reviews', body.slug);
+  if (!existing) return failure("Review not found", 404);
+  const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'reviews', 'update', existing);
+  if (!canUpdate) return failure("Review not found", 404);
+
   await reviews.updateReview(
     env.DB,
     body.slug,
@@ -1867,9 +1970,10 @@ async function updateReview(request, env) {
 // PAGES
 // =====================================================
 
-async function createPage(request, env) {
+async function createPage(request, env, user) {
   const body = await request.json();
   validate(body, ["slug", "type", "template", "title"]);
+  body.created_by = user.user_id;
   await pages.createPage(
     env.DB,
     body
@@ -1878,9 +1982,16 @@ async function createPage(request, env) {
   return success();
 }
 
-async function updatePage(request, env) {
+async function updatePage(request, env, user) {
   const body = await request.json();
   validate(body, ["slug", "title"]);
+
+  // Item-level access check
+  const existing = await itemAccess.getItemBySlug(env.DB, 'pages', body.slug);
+  if (!existing) return failure("Page not found", 404);
+  const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'pages', 'update', existing);
+  if (!canUpdate) return failure("Page not found", 404);
+
   await pages.updatePage(
     env.DB,
     body.slug,
@@ -1961,7 +2072,7 @@ async function generateReview(request, env) {
 // NEWS
 // ==================================
 
-async function createNews(request, env) {
+async function createNews(request, env, user) {
   const body = await request.json();
 
   validate(body, [
@@ -1969,12 +2080,13 @@ async function createNews(request, env) {
     "title",
     "content"
   ]);
+  body.created_by = user.user_id;
   await news.createNews(env.DB, body);
   await invalidateNews(env);
   return success();
 }
 
-async function updateNews(request, env) {
+async function updateNews(request, env, user) {
   const body = await request.json();
 
   validate(body, [
@@ -1983,6 +2095,13 @@ async function updateNews(request, env) {
     "title",
     "content"
   ]);
+
+  // Item-level access check
+  const existing = await itemAccess.getItemBySlug(env.DB, 'news', body.old_slug);
+  if (!existing) return failure("News article not found", 404);
+  const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'news', 'update', existing);
+  if (!canUpdate) return failure("News article not found", 404);
+
   await news.updateNews(
     env.DB,
     body.old_slug,
@@ -1993,10 +2112,17 @@ async function updateNews(request, env) {
   return success();
 }
 
-async function deleteNews(request, env) {
+async function deleteNews(request, env, user) {
   const body = await request.json();
 
   validate(body, ["slug"]);
+
+  // Item-level access check
+  const existing = await itemAccess.getItemBySlug(env.DB, 'news', body.slug);
+  if (!existing) return failure("News article not found", 404);
+  const canDelete = await itemAccess.canAccessItem(env.DB, user, 'news', 'delete', existing);
+  if (!canDelete) return failure("News article not found", 404);
+
   await news.deleteNews(
     env.DB,
     body.slug
@@ -2013,17 +2139,27 @@ async function deleteNews(request, env) {
 /* =========================================================
 PLATFORM UPDATES FUNCTIONS
 ========================================================= */
+async function listPlatformUpdates(request, env, user) {
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(
+    env.DB, user, 'platform-updates', 'read', 'pu'
+  );
+  const whereClause = condition ? `WHERE ${condition}` : '';
 
-async function listPlatformUpdates(request, env) {
-const result = await env.DB.prepare("SELECT pu.*, a.name AS author_name, a.slug AS author_slug, a.avatar_url AS author_avatar, a.role AS author_role FROM platform_updates pu LEFT JOIN authors a ON pu.author_id = a.id ORDER BY COALESCE(pu.published_at, pu.created_at) DESC").all();
+  const result = await env.DB.prepare(
+    `SELECT pu.*, a.name AS author_name, a.slug AS author_slug,
+            a.avatar_url AS author_avatar, a.role AS author_role
+     FROM platform_updates pu
+     LEFT JOIN authors a ON pu.author_id = a.id
+     ${whereClause}
+     ORDER BY COALESCE(pu.published_at, pu.created_at) DESC`
+  ).bind(...params).all();
 
-return json({
-success: true,
-updates: result.results || []
-});
+  return json({ success: true, updates: result.results || [] });
 }
 
-async function createPlatformUpdate(request, env) {
+
+
+async function createPlatformUpdate(request, env, user) {
 const body = await request.json();
 
 validate(body, [
@@ -2031,6 +2167,8 @@ validate(body, [
 "title",
 "content"
 ]);
+
+body.created_by = user.user_id;
 
 const existing = await env.DB.prepare("SELECT id FROM platform_updates WHERE slug = ? LIMIT 1")
 .bind(body.slug)
@@ -2057,13 +2195,14 @@ seo_description: body.seo_description || null,
 author_id: body.author_id || null,
 published: body.published ?? 1,
 featured: body.featured ?? 0,
-published_at: body.published_at || null
+published_at: body.published_at || null,
+created_by: user.user_id
 });
 
 return success();
 }
 
-async function updatePlatformUpdate(request, env) {
+async function updatePlatformUpdate(request, env, user) {
 const body = await request.json();
 
 validate(body, [
@@ -2073,10 +2212,7 @@ validate(body, [
 "content"
 ]);
 
-const existing = await env.DB.prepare("SELECT id FROM platform_updates WHERE id = ? LIMIT 1")
-.bind(body.id)
-.first();
-
+const existing = await itemAccess.getItemById(env.DB, 'platform-updates', body.id);
 if (!existing) {
 return json(
 {
@@ -2086,6 +2222,10 @@ error: "Platform update not found."
 404
 );
 }
+
+// Item-level access check
+const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'platform-updates', 'update', existing);
+if (!canUpdate) return json({ success: false, error: "Platform update not found." }, 404);
 
 const duplicate = await env.DB.prepare("SELECT id FROM platform_updates WHERE slug = ? AND id != ? LIMIT 1")
 .bind(body.slug, body.id)
@@ -2122,15 +2262,12 @@ published_at: body.published_at || null
 return success();
 }
 
-async function deletePlatformUpdate(request, env) {
+async function deletePlatformUpdate(request, env, user) {
 const body = await request.json();
 
 validate(body, ["id"]);
 
-const existing = await env.DB.prepare("SELECT id FROM platform_updates WHERE id = ? LIMIT 1")
-.bind(body.id)
-.first();
-
+const existing = await itemAccess.getItemById(env.DB, 'platform-updates', body.id);
 if (!existing) {
 return json(
 {
@@ -2140,6 +2277,10 @@ error: "Platform update not found."
 404
 );
 }
+
+// Item-level access check
+const canDelete = await itemAccess.canAccessItem(env.DB, user, 'platform-updates', 'delete', existing);
+if (!canDelete) return json({ success: false, error: "Platform update not found." }, 404);
 
 await platformUpdates.deletePlatformUpdate(
 env.DB,

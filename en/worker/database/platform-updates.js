@@ -89,9 +89,10 @@ export async function createPlatformUpdate(db, data) {
       author_id,
       published,
       featured,
-      published_at
+      published_at,
+      created_by
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.slug,
     data.title,
@@ -103,7 +104,8 @@ export async function createPlatformUpdate(db, data) {
     data.author_id || null,
     data.published ?? 1,
     data.featured ?? 0,
-    data.published_at || null
+    data.published_at || null,
+    data.created_by || null
   ).run();
 
   return result;

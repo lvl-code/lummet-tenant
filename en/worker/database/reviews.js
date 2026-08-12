@@ -53,13 +53,14 @@ export async function createReview(db, review) {
         seo_description,
         ai_generated,
         author_id,
-        published
+        published,
+        created_by
       )
       VALUES (
         ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, ?, 1
+        ?, ?, 1, ?
       )
     `)
     .bind(
@@ -84,7 +85,8 @@ export async function createReview(db, review) {
       review.seo_description || null,
 
       review.ai_generated ? 1 : 0,
-      review.author_id || null
+      review.author_id || null,
+      review.created_by || null
     )
     .run();
 }

@@ -1,0 +1,26 @@
+<!-- =====================================================
+     ADMIN — ITEM-LEVEL ACCESS CONTROL
+     Separate from the existing Permissions page.
+     ===================================================== -->
+
+<div class="page-header">
+  <h1>Item Access Control</h1>
+  <p class="muted">Per-user, per-resource record visibility. This is a second authorization layer on top of the existing role permission system.</p>
+</div>
+
+<div id="itemAccessDefaultBanner"></div>
+
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h3>Select User</h3>
+  </div>
+  <div class="card__body">
+    <select id="itemAccessUserSelect" class="form-control">
+      <option value="">Select a user…</option>
+    </select>
+  </div>
+</div>
+
+<div id="itemAccessContent"></div>
+
+<script src="/en/static/js/item-access-admin.js"></script>

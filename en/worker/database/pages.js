@@ -14,9 +14,9 @@ export async function createPage(db, page) {
   return await db
     .prepare(`
       INSERT INTO pages (
-        slug, type, template, title, content_json, seo_title, seo_description, author_id, published
+        slug, type, template, title, content_json, seo_title, seo_description, author_id, published, created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     `)
     .bind(
       page.slug,
@@ -27,6 +27,7 @@ export async function createPage(db, page) {
       page.seo_title,
       page.seo_description,
       page.author_id || null
+      page.created_by || null
     )
     .run();
 }

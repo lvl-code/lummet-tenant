@@ -229,6 +229,9 @@ export default {
         return renderDashboardNav(request, env);
       case "dashboardPermissions":
         return renderDashboardPermissions(request, env);
+      case "dashboardItemAccess":
+        return renderDashboardPage(request, env);
+
       case "dashboardUsers":
         return renderDashboardUsers(request, env);
       case "dashboardInquiries":

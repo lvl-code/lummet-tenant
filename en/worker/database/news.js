@@ -35,9 +35,9 @@ export async function getAllNews(
 export async function createNews(db, data) {
   return db.prepare(`
     INSERT INTO news(
-      slug, title, content, author, author_id, seo_title, seo_description, published
+      slug, title, content, author, author_id, seo_title, seo_description, published, created_by
     )
-    VALUES(?,?,?,?,?,?,?,1)
+    VALUES(?,?,?,?,?,?,?,1,?)
   `)
   .bind(
     data.slug,
@@ -46,7 +46,8 @@ export async function createNews(db, data) {
     data.author || "Admin",
     data.author_id || null,
     data.seo_title,
-    data.seo_description
+    data.seo_description,
+    data.created_by || null
   )
   .run();
 }

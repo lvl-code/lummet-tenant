@@ -23,10 +23,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Admin sees everything
     if (user.role === "admin") return;
 
-    const res = await fetch("/en/api/v1/permissions/list");
+    const res = await fetch("/en/api/v1/user/permissions");
     const permData = await res.json();
-    const permissions = permData.permissions || {};
-    const rolePermissions = permissions[user.role] || {};
+    const rolePermissions = permData.permissions || {};
+
+    //const res = await fetch("/en/api/v1/permissions/list");
+    //const permData = await res.json();
+    //const permissions = permData.permissions || {};
+    //const rolePermissions = permissions[user.role] || {};
 
     // Permission helper
     const can = (resource, action) => {

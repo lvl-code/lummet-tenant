@@ -1494,6 +1494,18 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       return success();
     }
 
+    // CURRENT USER PERMISSIONS
+    // Returns only the authenticated user's effective permissions.
+    // This is intentionally separate from /permissions/list,
+    // which exposes the full permission matrix to authorized users.
+
+    if (path === "/api/v1/user/permissions" && request.method === "GET") {
+      return json({
+        success: true,
+        permissions: userPermissions || {}
+      });
+    }
+
     // ==================================
     // PERMISSIONS MANAGEMENT
     // ==================================

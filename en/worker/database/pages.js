@@ -26,7 +26,7 @@ export async function createPage(db, page) {
       JSON.stringify(page.content_json || {}),
       page.seo_title,
       page.seo_description,
-      page.author_id || null
+      page.author_id || null,
       page.created_by || null
     )
     .run();

@@ -390,12 +390,79 @@ if (path === "/api/v1/public/countries/list") {
     return failure("Unauthorized", 401);
   }
 
-// Load permissions for user
-  const userPermissions = await permDB.getPermissionsForUser(env.DB, user);
-  const writeMethods = ["POST", "PUT", "DELETE"];
 
+    const userPermissions = await permDB.getPermissionsForUser(env.DB, user);
+
+  // ── READ permission gate (GET requests) ──
+  // Previously unreachable because it was nested inside writeMethods.
+    // ── READ permission gate (GET requests) ──
+  if (request.method === "GET") {
+    const readResourceMap = {
+      // Casinos
+      "/api/v1/casinos/list": "casinos",
+      "/api/v1/casino/get": "casinos",
+      "/api/v1/geo/list": "casinos",
+      // Reviews
+      "/api/v1/reviews/list": "reviews",
+      "/api/v1/review-blocks/list": "reviews",
+      // News
+      "/api/v1/news/list": "news",
+      // Pages
+      "/api/v1/pages/list": "pages",
+      // Categories
+      "/api/v1/categories/list": "categories",
+      "/api/v1/category/get-by-id": "categories",
+      // Countries
+      "/api/v1/countries/list": "countries",
+      "/api/v1/country/get-by-id": "countries",
+      "/api/v1/country/get-by-code": "countries",
+      // Authors
+      "/api/v1/authors/list": "authors",
+      "/api/v1/author/get": "authors",
+      "/api/v1/author/content": "authors",
+      // Components
+      "/api/v1/components/list": "components",
+      "/api/v1/component/get": "components",
+      "/api/v1/components/page": "components",
+      // SEO
+      "/api/v1/seo/list": "seo",
+      "/api/v1/seo/get": "seo",
+      // Media
+      "/api/v1/media/list": "media",
+      "/api/v1/media/browse": "media",
+      "/api/v1/media/search": "media",
+      "/api/v1/media/get": "media",
+      "/api/v1/media/folders": "media",
+      "/api/v1/media/folders/tree": "media",
+      "/api/v1/media/folder/count": "media",
+      // Nav
+      "/api/v1/nav/list": "nav",
+      // Settings
+      "/api/v1/settings/get": "settings",
+      // Permissions
+      "/api/v1/permissions/list": "permissions",
+      // Platform Updates
+      "/api/v1/platform-updates/list": "platform-updates",
+      // Banners
+      "/api/v1/banners/list": "banners",
+    };
+
+    for (const [readPath, res] of Object.entries(readResourceMap)) {
+      if (path === readPath) {
+        if (!permDB.checkPermission(userPermissions, res, "read")) {
+          return json({
+            success: false,
+            error: `Forbidden: ${user.role} role cannot read ${res}`
+          }, 403);
+        }
+        break;
+      }
+    }
+  }
+
+  // ── WRITE permission gate (POST, PUT, DELETE) ──
+  const writeMethods = ["POST", "PUT", "DELETE"];
   if (writeMethods.includes(request.method)) {
-    // Determine resource from path
     const resourceMap = {
       "/api/v1/casino": "casinos",
       "/api/v1/casinos": "casinos",
@@ -419,22 +486,6 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/nav": "nav",
       "/api/v1/platform-updates": "platform-updates",
     };
-    const readResourceMap = {
-      "/api/v1/platform-updates/list": "platform-updates",
-    };
-    if (request.method === "GET") {
-  for (const [readPath, resource] of Object.entries(readResourceMap)) {
-    if (path === readPath) {
-      if (!permDB.checkPermission(userPermissions, resource, "read")) {
-        return json({
-          success: false,
-          error: `Forbidden: ${user.role} role cannot read ${resource}`
-        }, 403);
-      }
-      break;
-    }
-  }
-}
 
     let resource = null;
     let action = "create";
@@ -448,7 +499,6 @@ if (path === "/api/v1/public/countries/list") {
       }
     }
 
-    // For GET requests to write endpoints that use POST (like create/update)
     if (path.endsWith("/create") || path.endsWith("/save") || path.endsWith("/sync") || path.endsWith("/assign") || path.endsWith("/toggle") || path.endsWith("/reorder") || path.endsWith("/unassign") || path.endsWith("/bulk-assign") || path.endsWith("/update-assignment")) {
       action = "create";
     } else if (path.endsWith("/update")) {

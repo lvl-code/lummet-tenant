@@ -1516,6 +1516,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     }
 
     if (path === "/api/v1/permissions/save" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
       const body = await request.json();
       validate(body, ["role", "resource", "action", "allowed"]);
       await permDB.setPermission(
@@ -1529,6 +1530,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     }
 
     if (path === "/api/v1/permissions/bulk-save" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
       const body = await request.json();
       validate(body, ["role", "permissions"]);
       for (const perm of body.permissions) {

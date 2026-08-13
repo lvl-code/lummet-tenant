@@ -33,6 +33,16 @@
       return `
       <div class="casino-card">
         ${geoBadge}
+        <button
+          type="button"
+          class="casino-card__bookmark"
+          data-bookmark-slug="${casino.slug}"
+          aria-label="Save ${casino.name} to bookmarks"
+          aria-pressed="false"
+          title="Save ${casino.name}"
+        >
+          <span class="bookmark-icon" aria-hidden="true">♡</span>
+        </button>
         <div class="casino-card__header">
           <img src="${c.logo || '/static/images/logo.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
           <div class="casino-card__rating">${'★'.repeat(Math.round(c.rating||0))}${'☆'.repeat(5-Math.round(c.rating||0))}</div>

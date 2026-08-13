@@ -470,7 +470,7 @@ async function toggleCasinoBookmark(button) {
   button.classList.add("is-loading");
 
   try {
-    // Explicitly verify authentication before changing the bookmark.
+    // Check whether the user is actually authenticated.
     const profileRes = await fetch("/en/api/v1/user/profile", {
       credentials: "same-origin",
       headers: {
@@ -478,7 +478,14 @@ async function toggleCasinoBookmark(button) {
       }
     });
 
-    if (!profileRes.ok) {
+    const profileData = await profileRes.json().catch(() => ({}));
+
+    // Not authenticated
+    if (
+      !profileRes.ok ||
+      !profileData.user ||
+      !profileData.user.id
+    ) {
       window.location.href =
         `/en/login?redirect=${encodeURIComponent(
           window.location.pathname + window.location.search
@@ -531,6 +538,7 @@ async function toggleCasinoBookmark(button) {
     button.classList.remove("is-loading");
   }
 }
+
 async function toggleCasinoBookmarkbackup(button) {
   const slug = button.dataset.bookmarkSlug;
 

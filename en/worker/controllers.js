@@ -496,8 +496,18 @@ function buildCasinoCards(casinoList, geoData = null) {
       </div>`;
 
     return `
-    <div class="casino-card">
+    <div class="casino-card" data-casino-slug="${casino.slug}">
       ${geoBadge}
+      <button
+          type="button"
+          class="casino-card__bookmark"
+          data-bookmark-slug="${casino.slug}"
+          aria-label="Save ${casino.name} to bookmarks"
+          aria-pressed="false"
+          title="Save ${casino.name}"
+       >
+          <span class="bookmark-icon" aria-hidden="true">♡</span>
+       </button>
       <div class="casino-card__header">
         <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
@@ -567,8 +577,18 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
       </div>`;
 
     return `
-    <div class="casino-card">
+    <div class="casino-card" data-casino-slug="${casino.slug}">
       ${geoBadge}
+      <button
+        type="button"
+        class="casino-card__bookmark"
+        data-bookmark-slug="${casino.slug}"
+        aria-label="Save ${casino.name} to bookmarks"
+        aria-pressed="false"
+        title="Save ${casino.name}"
+      >
+        <span class="bookmark-icon" aria-hidden="true">♡</span>
+      </button>
       <div class="casino-card__header">
         <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>

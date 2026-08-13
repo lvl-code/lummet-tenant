@@ -98,13 +98,33 @@ async function initBookmarksPage() {
 
 async function removeBookmark(slug) {
   try {
-    await fetch("/en/api/v1/user/bookmark/remove", {
+    const res = await fetch("/en/api/v1/user/bookmark/remove", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ casino_slug: slug })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        casino_slug: slug
+      })
     });
-    initBookmarksPage();
-  } catch { alert("Failed to remove bookmark"); }
+
+    if (!res.ok) {
+      throw new Error("Failed to remove bookmark");
+    }
+
+    const data = await res.json();
+
+    if (data.success === false) {
+      throw new Error(data.error || "Failed to remove bookmark");
+    }
+
+    await initBookmarksPage();
+
+  } catch (error) {
+    console.error("Remove bookmark:", error);
+    alert("Failed to remove bookmark");
+  }
 }
 
 // ── Inquiries ──

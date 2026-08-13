@@ -355,3 +355,166 @@ function initScrollToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 }
+
+
+// =====================================================
+// CASINO BOOKMARKS
+// =====================================================
+
+let userBookmarks = new Set();
+
+document.addEventListener("DOMContentLoaded", () => {
+  initCasinoBookmarks();
+});
+
+async function initCasinoBookmarks() {
+  const buttons = document.querySelectorAll("[data-bookmark-slug]");
+
+  if (!buttons.length) return;
+
+  /*
+   * Guests will receive an authentication error from this endpoint.
+   * That is expected. We simply leave the cards in their default state.
+   */
+  try {
+    const res = await fetch("/en/api/v1/user/bookmarks", {
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      return;
+    }
+
+    const data = await res.json();
+
+    userBookmarks = new Set(
+      (data.bookmarks || [])
+        .map(bookmark => bookmark.slug || bookmark.casino_slug)
+        .filter(Boolean)
+    );
+
+    updateBookmarkButtons();
+  } catch {
+    // Guest or unavailable session.
+  }
+
+  buttons.forEach(button => {
+    if (button.dataset.bookmarkInitialized === "true") {
+      return;
+    }
+
+    button.dataset.bookmarkInitialized = "true";
+
+    button.addEventListener("click", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      await toggleCasinoBookmark(button);
+    });
+  });
+
+  updateBookmarkButtons();
+}
+
+function updateBookmarkButtons() {
+  document.querySelectorAll("[data-bookmark-slug]").forEach(button => {
+    const slug = button.dataset.bookmarkSlug;
+    const bookmarked = userBookmarks.has(slug);
+
+    button.classList.toggle(
+      "is-bookmarked",
+      bookmarked
+    );
+
+    button.setAttribute(
+      "aria-pressed",
+      bookmarked ? "true" : "false"
+    );
+
+    const icon = button.querySelector(".bookmark-icon");
+
+    if (icon) {
+      icon.textContent = bookmarked ? "♥" : "♡";
+    }
+
+    const card = button.closest(".casino-card");
+    const name = card?.querySelector("h3")?.textContent?.trim() || "casino";
+
+    button.setAttribute(
+      "aria-label",
+      bookmarked
+        ? `Remove ${name} from bookmarks`
+        : `Save ${name} to bookmarks`
+    );
+
+    button.setAttribute(
+      "title",
+      bookmarked
+        ? `Remove ${name} from bookmarks`
+        : `Save ${name} to bookmarks`
+    );
+  });
+}
+
+async function toggleCasinoBookmark(button) {
+  const slug = button.dataset.bookmarkSlug;
+
+  if (!slug) return;
+
+  /*
+   * If we don't know the user is authenticated, first attempt the
+   * request. The existing API remains the source of truth.
+   */
+  const currentlyBookmarked = userBookmarks.has(slug);
+
+  button.disabled = true;
+  button.classList.add("is-loading");
+
+  try {
+    const endpoint = currentlyBookmarked
+      ? "/en/api/v1/user/bookmark/remove"
+      : "/en/api/v1/user/bookmark/add";
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        casino_slug: slug
+      })
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      window.location.href =
+        `/en/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || data.success === false) {
+      throw new Error(data.error || "Bookmark request failed");
+    }
+
+    if (currentlyBookmarked) {
+      userBookmarks.delete(slug);
+    } else {
+      userBookmarks.add(slug);
+    }
+
+    updateBookmarkButtons();
+
+  } catch (error) {
+    console.error("Bookmark error:", error);
+  } finally {
+    button.disabled = false;
+    button.classList.remove("is-loading");
+  }
+}

@@ -464,6 +464,78 @@ async function toggleCasinoBookmark(button) {
 
   if (!slug) return;
 
+  const currentlyBookmarked = userBookmarks.has(slug);
+
+  button.disabled = true;
+  button.classList.add("is-loading");
+
+  try {
+    // Explicitly verify authentication before changing the bookmark.
+    const profileRes = await fetch("/en/api/v1/user/profile", {
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!profileRes.ok) {
+      window.location.href =
+        `/en/login?redirect=${encodeURIComponent(
+          window.location.pathname + window.location.search
+        )}`;
+      return;
+    }
+
+    const endpoint = currentlyBookmarked
+      ? "/en/api/v1/user/bookmark/remove"
+      : "/en/api/v1/user/bookmark/add";
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        casino_slug: slug
+      })
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      window.location.href =
+        `/en/login?redirect=${encodeURIComponent(
+          window.location.pathname + window.location.search
+        )}`;
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || data.success === false) {
+      throw new Error(data.error || "Bookmark request failed");
+    }
+
+    if (currentlyBookmarked) {
+      userBookmarks.delete(slug);
+    } else {
+      userBookmarks.add(slug);
+    }
+
+    updateBookmarkButtons();
+
+  } catch (error) {
+    console.error("Bookmark error:", error);
+  } finally {
+    button.disabled = false;
+    button.classList.remove("is-loading");
+  }
+}
+async function toggleCasinoBookmarkbackup(button) {
+  const slug = button.dataset.bookmarkSlug;
+
+  if (!slug) return;
+
   /*
    * If we don't know the user is authenticated, first attempt the
    * request. The existing API remains the source of truth.

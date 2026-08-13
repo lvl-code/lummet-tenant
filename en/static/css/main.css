@@ -231,7 +231,7 @@ a:hover { text-decoration: underline; }
 
 .casino-card__bookmark {
   position: absolute;
-  top: 12px;
+  top: 54px;
   right: 12px;
   z-index: 10;
 

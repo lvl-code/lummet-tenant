@@ -66,7 +66,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       "/en/dashboard/submissions",
       "/en/dashboard/notifications",
       "/en/dashboard/banners",
-      "/en/dashboard/ai"
+      "/en/dashboard/ai",
+      "/en/dashboard/item-access"
     ];
 
     document.querySelectorAll(".admin-nav a").forEach(link => {

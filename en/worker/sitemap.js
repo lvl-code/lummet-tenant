@@ -14,6 +14,7 @@ export const sitemapEngine = {
       { loc: "/en/sitemap-categories.xml", lastmod: currentDate },
       { loc: "/en/sitemap-countries.xml", lastmod: currentDate },
       { loc: "/en/sitemap-pages.xml", lastmod: currentDate },
+      { loc: "/en/sitemap-authors.xml", lastmod: currentDate },
     ];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
@@ -51,6 +52,7 @@ export const sitemapEngine = {
       urls.push({ loc: "/en/review", lastmod: currentDate, changefreq: "daily", priority: "0.8" });
       urls.push({ loc: "/en/news", lastmod: currentDate, changefreq: "daily", priority: "0.7" });
       urls.push({ loc: "/en/updates", lastmod: currentDate, changefreq: "daily", priority: "0.7" });
+      urls.push({ loc: "/en/author", lastmod: currentDate, changefreq: "weekly", priority: "0.6" });
       urls.push({ loc: "/en/category", lastmod: currentDate, changefreq: "weekly", priority: "0.6" });
       urls.push({ loc: "/en/country", lastmod: currentDate, changefreq: "weekly", priority: "0.6" });
     }
@@ -123,6 +125,37 @@ export const sitemapEngine = {
         );
       }
     }
+
+    // Authors
+if (type === "all" || type === "authors") {
+  try {
+    const r = await db.prepare(
+      `SELECT slug, updated_at
+       FROM authors
+       WHERE published = 1
+       ORDER BY updated_at DESC
+       LIMIT 50000`
+    ).all();
+
+    for (const item of r.results || []) {
+      const lm = item.updated_at
+        ? item.updated_at.split(" ")[0]
+        : currentDate;
+
+      urls.push({
+        loc: `/en/author/${item.slug}`,
+        lastmod: lm,
+        changefreq: "monthly",
+        priority: "0.5"
+      });
+    }
+  } catch (e) {
+    console.error(
+      "Sitemap authors query failed:",
+      e.message
+    );
+  }
+}
 
     // Categories
     if (type === "all" || type === "categories") {

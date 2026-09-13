@@ -161,7 +161,7 @@ if (type === "all" || type === "authors") {
     // Categories
     if (type === "all" || type === "categories") {
       try {
-        const r = await db.prepare(`SELECT slug FROM categories LIMIT 50000`).all();
+        const r = await db.prepare(`SELECT slug FROM categories WHERE published = 1 AND status != 'draft' LIMIT 50000`).all();
         for (const item of r.results || []) {
           urls.push({ loc: `/en/category/${item.slug}`, lastmod: currentDate, changefreq: "weekly", priority: "0.6" });
         }
@@ -171,7 +171,7 @@ if (type === "all" || type === "authors") {
     // Countries
     if (type === "all" || type === "countries") {
       try {
-        const r = await db.prepare(`SELECT code FROM countries LIMIT 50000`).all();
+        const r = await db.prepare(`SELECT code FROM countries WHERE published = 1 AND status != 'draft' LIMIT 50000`).all();
         for (const item of r.results || []) {
           urls.push({ loc: `/en/country/${item.code}`, lastmod: currentDate, changefreq: "monthly", priority: "0.5" });
         }

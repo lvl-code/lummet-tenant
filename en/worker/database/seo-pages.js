@@ -100,12 +100,12 @@ export async function createSeoPage(db, data) {
   const result = await db
     .prepare(`
       INSERT INTO seo_pages (
-        page_type, slug, country_code, category_id, title, nav_label, seo_title, seo_description,
+        page_type, slug, country_code, category_id, title, nav_label, seo_title, seo_description, seo_keywords,
         og_image, featured_image, canonical_url, robots, author_id, content_json,
         casino_mode, min_casino_count, status, published, sitemap_enabled,
         auto_generated, created_by, updated_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       data.page_type,
@@ -116,6 +116,7 @@ export async function createSeoPage(db, data) {
       data.nav_label || null,
       data.seo_title || null,
       data.seo_description || null,
+      data.seo_keywords || null,
       data.og_image || null,
       data.featured_image || null,
       data.canonical_url || null,
@@ -153,7 +154,7 @@ export async function updateSeoPage(db, id, data) {
   await db
     .prepare(`
       UPDATE seo_pages SET
-        slug = ?, title = ?, nav_label = ?, seo_title = ?, seo_description = ?,
+        slug = ?, title = ?, nav_label = ?, seo_title = ?, seo_description = ?, seo_keywords = ?,
         og_image = ?, featured_image = ?, canonical_url = ?, robots = ?,
         author_id = ?, content_json = ?, casino_mode = ?, min_casino_count = ?,
         status = ?, published = ?, sitemap_enabled = ?, updated_by = ?,
@@ -166,6 +167,7 @@ export async function updateSeoPage(db, id, data) {
       data.nav_label !== undefined ? (data.nav_label || null) : existing.nav_label,
       data.seo_title ?? existing.seo_title,
       data.seo_description ?? existing.seo_description,
+      data.seo_keywords ?? existing.seo_keywords,
       data.og_image ?? existing.og_image,
       data.featured_image ?? existing.featured_image,
       data.canonical_url ?? existing.canonical_url,

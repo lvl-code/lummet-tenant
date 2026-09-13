@@ -202,11 +202,11 @@ export async function createNews(db, data) {
   return await db.prepare(`
     INSERT INTO news (
       slug, title, content, author, author_id,
-      ai_generated, seo_title, seo_description,
+      ai_generated, seo_title, seo_description, seo_keywords,
       published, featured_image, excerpt, tags,
       published_at, ad_mode, created_by
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   .bind(
     slug,
@@ -217,6 +217,7 @@ export async function createNews(db, data) {
     data.ai_generated ? 1 : 0,
     normalizeText(data.seo_title),
     normalizeText(data.seo_description),
+    normalizeText(data.seo_keywords),
     published,
     normalizeId(data.featured_image),
     normalizeText(data.excerpt),
@@ -303,6 +304,7 @@ export async function updateNews(db, oldSlug, data) {
       ai_generated  = ?,
       seo_title     = ?,
       seo_description = ?,
+      seo_keywords  = ?,
       published     = ?,
       featured_image = ?,
       excerpt       = ?,
@@ -321,6 +323,7 @@ export async function updateNews(db, oldSlug, data) {
     data.ai_generated ? 1 : 0,
     normalizeText(data.seo_title),
     normalizeText(data.seo_description),
+    normalizeText(data.seo_keywords),
     published,
     normalizeId(data.featured_image),
     normalizeText(data.excerpt),

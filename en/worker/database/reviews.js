@@ -51,6 +51,7 @@ export async function createReview(db, review) {
         rating,
         seo_title,
         seo_description,
+        seo_keywords,
         ai_generated,
         author_id,
         published,
@@ -60,7 +61,7 @@ export async function createReview(db, review) {
         ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, ?, 1, ?
+        ?, ?, ?, 1, ?
       )
     `)
     .bind(
@@ -83,6 +84,7 @@ export async function createReview(db, review) {
       review.rating || 0,
       review.seo_title || null,
       review.seo_description || null,
+      review.seo_keywords || null,
 
       review.ai_generated ? 1 : 0,
       review.author_id || null,
@@ -113,6 +115,7 @@ export async function updateReview(db, slug, review) {
         rating = ?,
         seo_title = ?,
         seo_description = ?,
+        seo_keywords = ?,
         author_id = ?,
 
         updated_at = CURRENT_TIMESTAMP
@@ -135,6 +138,7 @@ export async function updateReview(db, slug, review) {
       review.rating || 0,
       review.seo_title || null,
       review.seo_description || null,
+      review.seo_keywords || null,
       review.author_id || null,
 
       slug

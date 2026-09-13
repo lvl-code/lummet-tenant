@@ -35,7 +35,7 @@ async function initCasinoEditForm() {
     }
 
     // Pre-fill form fields
-    const fields = ["name", "slug", "logo", "website_url", "affiliate_url", "rating", "bonus_title", "bonus_value", "seo_title", "seo_description", "featured", "sort_order", "status"];
+    const fields = ["name", "slug", "logo", "website_url", "affiliate_url", "rating", "bonus_title", "bonus_value", "seo_title", "seo_description", "seo_keywords", "featured", "sort_order", "status"];
     for (const field of fields) {
       const input = form.querySelector(`[name="${field}"]`);
       if (input && casino[field] !== undefined) {
@@ -147,6 +147,7 @@ function initCasinoEditSubmit() {
       features: features ? features.split(",").map(f => f.trim()).filter(Boolean) : [],
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
       featured: parseInt(formData.get("featured")) || 0,
       sort_order: parseInt(formData.get("sort_order")) || 0,
       status: formData.get("status") || "draft",

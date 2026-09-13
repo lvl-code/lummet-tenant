@@ -86,13 +86,14 @@ export async function createPlatformUpdate(db, data) {
       featured_image,
       seo_title,
       seo_description,
+      seo_keywords,
       author_id,
       published,
       featured,
       published_at,
       created_by
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.slug,
     data.title,
@@ -101,6 +102,7 @@ export async function createPlatformUpdate(db, data) {
     data.featured_image || null,
     data.seo_title || null,
     data.seo_description || null,
+    data.seo_keywords || null,
     data.author_id || null,
     data.published ?? 1,
     data.featured ?? 0,
@@ -123,6 +125,7 @@ export async function updatePlatformUpdate(db, id, data) {
       featured_image = ?,
       seo_title = ?,
       seo_description = ?,
+      seo_keywords = ?,
       author_id = ?,
       published = ?,
       featured = ?,
@@ -137,6 +140,7 @@ export async function updatePlatformUpdate(db, id, data) {
     data.featured_image || null,
     data.seo_title || null,
     data.seo_description || null,
+    data.seo_keywords || null,
     data.author_id || null,
     data.published ?? 1,
     data.featured ?? 0,

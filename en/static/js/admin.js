@@ -123,6 +123,8 @@ const payload = {
 
   seo_description: formData.get("seo_description") || null,
 
+  seo_keywords: formData.get("seo_keywords") || null,
+
   author_id: formData.get("author_id")
     ? parseInt(formData.get("author_id"))
     : null
@@ -296,6 +298,7 @@ function initNewsForm() {
       tags: formData.get("tags") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
       published: parseInt(formData.get("published") || "1"),
       published_at: formData.get("published_at") || null,
       ai_generated: parseInt(formData.get("ai_generated") || "0")
@@ -400,6 +403,7 @@ function initNewsFormbackup() {
       author: formData.get("author") || "Admin",
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
       author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
     };
 
@@ -499,6 +503,7 @@ function initPageForm() {
       content_json: formData.get("content_json") || {},
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
       author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
     };
 
@@ -3072,6 +3077,7 @@ function initCategoryForm() {
       description: formData.get("description") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
       content_json: { sections: seoPageState.category.sections },
       robots: formData.get("robots") || "index,follow",
       status: formData.get("status") || "published",
@@ -3228,6 +3234,7 @@ function initCountryForm() {
       legal_status: formData.get("legal_status") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
       content_json: { sections: seoPageState.country.sections },
       robots: formData.get("robots") || "index,follow",
       status: formData.get("status") || "published",
@@ -3387,6 +3394,7 @@ setTimeout(() => {
     form.querySelector("[name='faq_json']").value = review.faq_json || "[]";
     form.querySelector("[name='seo_title']").value = review.seo_title || "";
     form.querySelector("[name='seo_description']").value = review.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = review.seo_keywords || "";
         // Set author dropdown
     const authorSelect = form.querySelector("[name='author_id']");
     if (authorSelect) authorSelect.value = review.author_id || "";
@@ -3452,6 +3460,7 @@ async function editNews(slug) {
     // SEO
     form.querySelector("[name='seo_title']").value = article.seo_title || "";
     form.querySelector("[name='seo_description']").value = article.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = article.seo_keywords || "";
 
     // Publishing
     const publishedSelect = form.querySelector("[name='published']");
@@ -3499,6 +3508,7 @@ async function editNewsbackup(slug) {
     }, 300);
     form.querySelector("[name='seo_title']").value = article.seo_title || "";
     form.querySelector("[name='seo_description']").value = article.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = article.seo_keywords || "";
         // Set author dropdown
     const authorSelect = form.querySelector("[name='author_id']");
     if (authorSelect) authorSelect.value = article.author_id || "";
@@ -3654,6 +3664,9 @@ async function editPage(slug) {
     form.querySelector("[name='seo_description']").value =
       page.seo_description || "";
 
+    form.querySelector("[name='seo_keywords']").value =
+      page.seo_keywords || "";
+
     // Author
     const authorSelect = form.querySelector("[name='author_id']");
     if (authorSelect) {
@@ -3717,6 +3730,7 @@ async function editPagebackup(slug) {
     }, 300);
     form.querySelector("[name='seo_title']").value = page.seo_title || "";
     form.querySelector("[name='seo_description']").value = page.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = page.seo_keywords || "";
         // Set author dropdown
     const authorSelect = form.querySelector("[name='author_id']");
     if (authorSelect) authorSelect.value = page.author_id || "";
@@ -3755,6 +3769,7 @@ async function editCategory(id) {
     }, 300);
     form.querySelector("[name='seo_title']").value = c.seo_title || "";
     form.querySelector("[name='seo_description']").value = c.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = c.seo_keywords || "";
     form.querySelector("[name='robots']").value = c.robots || "index,follow";
     form.querySelector("[name='status']").value = c.status || "published";
     form.querySelector("[name='published']").value = c.published === 0 ? "0" : "1";
@@ -3802,6 +3817,7 @@ async function editCountry(code) {
     form.querySelector("[name='legal_status']").value = c.legal_status || "";
     form.querySelector("[name='seo_title']").value = c.seo_title || "";
     form.querySelector("[name='seo_description']").value = c.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = c.seo_keywords || "";
     form.querySelector("[name='robots']").value = c.robots || "index,follow";
     form.querySelector("[name='status']").value = c.status || "published";
     form.querySelector("[name='published']").value = c.published === 0 ? "0" : "1";
@@ -4062,6 +4078,11 @@ async function(event) {
         formData.get("seo_description") || ""
       ).trim() || null,
 
+    seo_keywords:
+      String(
+        formData.get("seo_keywords") || ""
+      ).trim() || null,
+
     author_id:
       formData.get("author_id")
         ? Number(formData.get("author_id"))
@@ -4280,6 +4301,12 @@ form.querySelector(
   "[name='seo_description']"
 ).value =
   update.seo_description || "";
+
+
+form.querySelector(
+  "[name='seo_keywords']"
+).value =
+  update.seo_keywords || "";
 
 
 form.querySelector(
@@ -5345,6 +5372,7 @@ async function editCountryPage(id) {
   document.getElementById("countryPageNavLabel").value = p.nav_label || "";
   document.getElementById("countryPageSeoTitle").value = p.seo_title || "";
   document.getElementById("countryPageSeoDescription").value = p.seo_description || "";
+  document.getElementById("countryPageSeoKeywords").value = p.seo_keywords || "";
   document.getElementById("countryPageOgImage").value = p.og_image || "";
   document.getElementById("countryPageFeaturedImage").value = p.featured_image || "";
   document.getElementById("countryPageCanonical").value = p.canonical_url || "";
@@ -5419,6 +5447,7 @@ function initCountryPageForm() {
       nav_label: document.getElementById("countryPageNavLabel").value || null,
       seo_title: document.getElementById("countryPageSeoTitle").value,
       seo_description: document.getElementById("countryPageSeoDescription").value,
+      seo_keywords: document.getElementById("countryPageSeoKeywords").value,
       og_image: document.getElementById("countryPageOgImage").value,
       featured_image: document.getElementById("countryPageFeaturedImage").value,
       canonical_url: document.getElementById("countryPageCanonical").value,
@@ -5530,6 +5559,7 @@ async function editCategoryCountry(id) {
   document.getElementById("categoryCountryNavLabel").value = p.nav_label || "";
   document.getElementById("categoryCountrySeoTitle").value = p.seo_title || "";
   document.getElementById("categoryCountrySeoDescription").value = p.seo_description || "";
+  document.getElementById("categoryCountrySeoKeywords").value = p.seo_keywords || "";
   document.getElementById("categoryCountryOgImage").value = p.og_image || "";
   document.getElementById("categoryCountryCanonical").value = p.canonical_url || "";
   document.getElementById("categoryCountryRobots").value = p.robots || "index,follow";
@@ -5623,6 +5653,7 @@ function initCategoryCountryForm() {
       nav_label: document.getElementById("categoryCountryNavLabel").value || null,
       seo_title: document.getElementById("categoryCountrySeoTitle").value,
       seo_description: document.getElementById("categoryCountrySeoDescription").value,
+      seo_keywords: document.getElementById("categoryCountrySeoKeywords").value,
       og_image: document.getElementById("categoryCountryOgImage").value,
       canonical_url: document.getElementById("categoryCountryCanonical").value,
       robots: document.getElementById("categoryCountryRobots").value,

@@ -100,14 +100,15 @@ export async function renderComponent(renderer, component) {
 
 export async function renderPageComponents(renderer, db, pageType, pageSlug, injectionPoint = null, ctx = null) {
   const components = await loadPageComponents(db, pageType, pageSlug, injectionPoint);
-  const htmlParts = [];
-  const bannerComponents = [];
 
-  for (const component of components) {
-    const html = await renderComponent(renderer, component);
-    htmlParts.push(html);
-    if (component.type === "banner") bannerComponents.push(component);
-  }
+  // Each component's template load/render is independent of the
+  // others, so render them concurrently instead of one at a time.
+  // Promise.all preserves array order, so htmlParts still joins in
+  // the original position order.
+  const htmlParts = await Promise.all(
+    components.map(component => renderComponent(renderer, component))
+  );
+  const bannerComponents = components.filter(c => c.type === "banner");
 
   logBannerViews(db, ctx, bannerComponents, pageType, pageSlug);
 
@@ -160,11 +161,17 @@ export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug,
     if (grouped[point]) grouped[point].push(row);
   }
 
-  const rendered = {};
+  // Build the component objects for every injection point up front
+  // (all synchronous — JSON.parse only), then render every single
+  // component across every injection point concurrently. This is the
+  // hot path for every public page render (called once per request),
+  // so replacing the old nested sequential for-loops with one
+  // Promise.all is the single biggest win here: page time used to be
+  // the SUM of every component's template render, now it's the MAX.
   const bannerComponents = [];
+  const componentsByPoint = {};
   for (const point of Object.keys(grouped)) {
-    const htmlParts = [];
-    for (const row of grouped[point]) {
+    componentsByPoint[point] = grouped[point].map(row => {
       const component = {
         id: row.id,
         type: row.type,
@@ -185,12 +192,21 @@ export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug,
         try { component.settings = JSON.parse(row.settings_json); } catch { component.settings = {}; }
       }
 
-      const html = await renderComponent(renderer, component);
-      htmlParts.push(html);
       if (component.type === "banner") bannerComponents.push(component);
-    }
-    rendered[point] = htmlParts.join("\n");
+      return component;
+    });
   }
+
+  const points = Object.keys(componentsByPoint);
+  const renderedByPoint = await Promise.all(
+    points.map(point =>
+      Promise.all(componentsByPoint[point].map(component => renderComponent(renderer, component)))
+        .then(htmlParts => htmlParts.join("\n"))
+    )
+  );
+
+  const rendered = {};
+  points.forEach((point, i) => { rendered[point] = renderedByPoint[i]; });
 
   logBannerViews(db, ctx, bannerComponents, pageType, pageSlug);
 

@@ -198,8 +198,19 @@ function buildBreadcrumbsbackup(path, data = {}) {
 
 export async function renderHome(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const casinoList = await casinos.getAllCasinos(env.DB);
+
+  // site, casinoList, components/SEO, and the latest-reviews/news
+  // lists are all independent of each other — fetch them concurrently.
+  const [site, casinoList, allComponents, dynamicSeo, latestReviews, allNews] = await Promise.all([
+    getSiteContext(request, env),
+    casinos.getAllCasinos(env.DB),
+    renderer.renderAllComponents("homepage", "homepage"),
+    renderer.loadDynamicSeo("homepage", "homepage"),
+    reviews.getLatestReviews(env.DB, 6),
+    news.getAllNews(env.DB),
+  ]);
+  const latestNews = allNews.slice(0, 4);
+
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
@@ -210,12 +221,6 @@ export async function renderHome(request, env) {
     geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
   );
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
-
-  const allComponents = await renderer.renderAllComponents("homepage", "homepage");
-  const dynamicSeo = await renderer.loadDynamicSeo("homepage", "homepage");
-
-  const latestReviews = await reviews.getLatestReviews(env.DB, 6);
-  const latestNews = (await news.getAllNews(env.DB)).slice(0, 4);
 
   const reviewCardsHtml = latestReviews.map(r => `
     <div class="casino-card">
@@ -403,7 +408,6 @@ export async function renderCasino(request, env, slug, ctx = null) {
   if (!casino) return render404(request, env);
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
 
   // Parse features from JSON string
   let features = [];
@@ -427,7 +431,6 @@ export async function renderCasino(request, env, slug, ctx = null) {
     city: request.cf?.city || "Unknown"
   };
   const geoInfo = geoEngine.process(request, edgeGeo);
-  const geoRule = await getGeoRule(env.DB, slug, geoInfo.country);
 
   // Analytics (Phase: page-view instrumentation). Fire-and-forget via
   // ctx.waitUntil — does not delay this render. Reuses the geoInfo
@@ -445,6 +448,37 @@ export async function renderCasino(request, env, slug, ctx = null) {
       }).catch(() => {})
     );
   }
+
+  // ── Related Casinos ({{{related_casinos_html}}}) ──────────
+  // Kicked off here (not awaited yet) so it runs concurrently with
+  // the other independent lookups below instead of after them.
+  const relatedCasinosPromise = (async () => {
+    try {
+      const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoInfo.country, 6);
+      if (relatedCasinos.length === 0) return "";
+      const relatedGeoData = {
+        country: geoInfo.country,
+        statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
+      };
+      const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoInfo.country);
+      return buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
+    } catch (e) {
+      console.error("Related casinos failed to load:", e.message);
+      return "";
+    }
+  })();
+
+  // These six lookups don't depend on each other's results, so run
+  // them concurrently instead of one-by-one — this is the single
+  // biggest win for casino-page load time.
+  const [site, geoRule, allComponents, dynamicSeo, bonusDisplay, relatedCasinosHtml] = await Promise.all([
+    getSiteContext(request, env),
+    getGeoRule(env.DB, slug, geoInfo.country),
+    renderer.renderAllComponents("casino", slug, ctx),
+    renderer.loadDynamicSeo("casino", slug),
+    resolveBonusDisplay(env, casino, geoInfo.country),
+    relatedCasinosPromise,
+  ]);
 
   const casinoSchema = {
     "@context": "https://schema.org",
@@ -488,10 +522,6 @@ export async function renderCasino(request, env, slug, ctx = null) {
   : undefined,
 };
 
-  const allComponents = await renderer.renderAllComponents("casino", slug, ctx);
-  const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
-  const bonusDisplay = await resolveBonusDisplay(env, casino, geoInfo.country);
-
   // Analytics: OFFER_VIEW when a real offer (not just a legacy bonus
   // field / GEO override fallback) was actually resolved and shown.
   // Reuses the SAME ctx/geoInfo already in scope for the CASINO_VIEW
@@ -507,27 +537,6 @@ export async function renderCasino(request, env, slug, ctx = null) {
         landingPage: `/en/casino/${slug}`
       }).catch(() => {})
     );
-  }
-
-  // ── Related Casinos ({{{related_casinos_html}}}) ──────────
-  // Same pattern as related_news_html in renderNews(): compute
-  // the HTML in the controller, pass it as a data key, template
-  // guards on it being non-empty. Reuses the existing
-  // buildCasinoCards() card renderer — no second card design.
-  let relatedCasinosHtml = "";
-  try {
-    const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoInfo.country, 6);
-    if (relatedCasinos.length > 0) {
-      const relatedGeoData = {
-        country: geoInfo.country,
-        statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
-      };
-      const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoInfo.country);
-      relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
-    }
-  } catch (e) {
-    console.error("Related casinos failed to load:", e.message);
-    relatedCasinosHtml = "";
   }
 
   const html = await renderer.render("casino.html", {
@@ -847,11 +856,6 @@ export async function renderReview(request, env, slug, ctx = null) {
   }
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  let author = null;
-  if (review.author_id) {
-    author = await authors.getAuthorById(env.DB, review.author_id);
-  }
 
   let pros = [], cons = [];
 
@@ -894,9 +898,8 @@ export async function renderReview(request, env, slug, ctx = null) {
     ? `<ul>${cons.map(c => `<li>${c}</li>`).join("")}</ul>`
     : "<p class='muted'>No cons listed.</p>";
 
-  // Geo evaluation for the casino connected to this review
+  // Geo evaluation for the casino connected to this review (sync, no DB)
   let geoCountry = "";
-  let geoStatus = "allowed";
   let geoFlag = "";
   if (review.casino_slug) {
     const edgeGeo = {
@@ -906,55 +909,58 @@ export async function renderReview(request, env, slug, ctx = null) {
     const geoInfo = geoEngine.process(request, edgeGeo);
     geoCountry = geoInfo.country;
     geoFlag = countryToFlag(geoCountry);
-    //const geoRule = await getGeoRule(env.DB, review.casino_slug, geoInfo.country);
-    //geoStatus = geoRule ? geoRule.status : "allowed";
-    // With:
-    geoStatus = await evaluateCasinoGeo(env, review.casino_slug, geoInfo.country);
-
   }
 
-  let casinoCardHtml = "";
+  // All of these are independent of each other, so run them
+  // concurrently instead of one-by-one. Also fetches the linked
+  // casino exactly once (it was previously fetched twice — once
+  // for the casino card, again for the schema/related-casinos).
+  const [site, author, casino, geoStatus, allComponents, reviewBlocksHtml, dynamicSeo, reviewDisplayContent] = await Promise.all([
+    getSiteContext(request, env),
+    review.author_id ? authors.getAuthorById(env.DB, review.author_id) : Promise.resolve(null),
+    review.casino_slug ? casinos.getCasino(env.DB, review.casino_slug) : Promise.resolve(null),
+    review.casino_slug ? evaluateCasinoGeo(env, review.casino_slug, geoCountry) : Promise.resolve("allowed"),
+    renderer.renderAllComponents("review", slug, ctx),
+    renderer.renderReviewBlocks(slug),
+    renderer.loadDynamicSeo("review", slug),
+    injectInlineAds(review.content || "", env, request, "review").catch(e => {
+      console.error("Inline ad injection error (review):", e.message);
+      return review.content || "";
+    }),
+  ]);
 
-if (review.casino_slug) {
-  const casino = await casinos.getCasino(env.DB, review.casino_slug);
+  const casinoName = casino?.name || "";
 
-  if (casino) {
-    const reviewBonusOverrides = await resolveBonusOverridesForList(env, [casino], geoCountry);
-    casinoCardHtml = buildReviewCasinoCards(
-      [casino],
-      {
-        country: geoCountry,
-        statuses: {
-          [casino.slug]: geoStatus
-        }
-      },
-      reviewBonusOverrides
-    );
-  }
-}
+  // casinoCardHtml and relatedCasinosHtml both depend on `casino`
+  // above but not on each other, so they run together too.
+  const [casinoCardHtml, relatedCasinosHtml] = await Promise.all([
+    (async () => {
+      if (!casino) return "";
+      const reviewBonusOverrides = await resolveBonusOverridesForList(env, [casino], geoCountry);
+      return buildReviewCasinoCards(
+        [casino],
+        { country: geoCountry, statuses: { [casino.slug]: geoStatus } },
+        reviewBonusOverrides
+      );
+    })(),
+    (async () => {
+      if (!casino) return "";
+      try {
+        const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoCountry, 6);
+        if (relatedCasinos.length === 0) return "";
+        const relatedGeoData = {
+          country: geoCountry,
+          statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
+        };
+        const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoCountry);
+        return buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
+      } catch (e) {
+        console.error("Related casinos failed to load:", e.message);
+        return "";
+      }
+    })(),
+  ]);
 
-  const allComponents = await renderer.renderAllComponents("review", slug, ctx);
-  const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
-  const dynamicSeo = await renderer.loadDynamicSeo("review", slug);
-
-  // ── Inline advertisement injection (was missing for reviews) ──
-  let reviewDisplayContent = review.content || "";
-  try {
-    reviewDisplayContent = await injectInlineAds(reviewDisplayContent, env, request, "review");
-  } catch (e) {
-    console.error("Inline ad injection error (review):", e.message);
-  }
-
-  let casino = null;
-  let casinoName = "";
-
-  if (review.casino_slug) {
-    casino = await casinos.getCasino(env.DB, review.casino_slug);
-
-    if (casino) {
-      casinoName = casino.name;
-    }
-  }
   const reviewSchema = {
     "@context": "https://schema.org",
     "@type": "Review",
@@ -1005,28 +1011,6 @@ if (review.casino_slug) {
     day: "numeric"
   });
 };
-
-  // ── Related Casinos ({{{related_casinos_html}}}) ──────────
-  // Same reuse of buildCasinoCards()/getRelatedCasinos() as
-  // renderCasino() above. Only computed when this review is
-  // actually attached to a casino (review.casino_slug).
-  let relatedCasinosHtml = "";
-  if (casino) {
-    try {
-      const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoCountry, 6);
-      if (relatedCasinos.length > 0) {
-        const relatedGeoData = {
-          country: geoCountry,
-          statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
-        };
-        const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoCountry);
-        relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
-      }
-    } catch (e) {
-      console.error("Related casinos failed to load:", e.message);
-      relatedCasinosHtml = "";
-    }
-  }
 
   const html = await renderer.render("review.html", {
     ...review,
@@ -1106,15 +1090,49 @@ export async function renderNews(request, env, slug, ctx = null) {
 
   const renderer = new Renderer(env, request);
 
-  const site = await getSiteContext(request, env);
+  // ── Related news by shared tags ──────────────────────
+  const relatedNewsPromise = (async () => {
+    if (!article.tags) return "";
+    try {
+      const related = await news.getRelatedNews(env.DB, article.slug, article.tags, 3);
+      if (related.length === 0) return "";
+      return related.map(item => {
+        const img = item.featured_image_url || item.featured_image_thumbnail || "";
+        const imgHtml = img
+          ? `<div style="aspect-ratio:16/9;overflow:hidden;border-radius:8px"><img src="${escapeHtml(img)}" alt="${escapeHtml(item.featured_image_alt || item.title)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
+          : "";
+        const date = item.published_at || item.created_at;
+        return `
+            <article style="overflow:hidden;border:1px solid var(--light-gray);border-radius:10px;background:var(--white);transition:transform 0.2s,box-shadow 0.2s">
+              <a href="/en/news/${encodeURIComponent(item.slug)}" style="display:block;color:inherit;text-decoration:none">
+                ${imgHtml}
+                <div style="padding:14px">
+                  ${date ? `<time style="display:block;margin-bottom:6px;color:var(--gray);font-size:12px">${escapeHtml(formatDate(date))}</time>` : ""}
+                  <h3 style="margin:0 0 6px;font-size:16px;line-height:1.3;color:var(--dark)">${escapeHtml(item.title)}</h3>
+                  ${item.excerpt ? `<p style="margin:0;color:var(--gray);font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(item.excerpt)}</p>` : ""}
+                </div>
+              </a>
+            </article>
+          `;
+      }).join("");
+    } catch (e) {
+      console.error("Related news error:", e.message);
+      return "";
+    }
+  })();
 
-  let author = null;
-  if (article.author_id) {
-    author = await authors.getAuthorById(env.DB, article.author_id);
-  }
-
-  const allComponents = await renderer.renderAllComponents("news", slug, ctx);
-  const dynamicSeo = await renderer.loadDynamicSeo("news", slug);
+  // These are all independent of each other, so run them concurrently.
+  const [site, author, allComponents, dynamicSeo, relatedNewsHtml, displayContent] = await Promise.all([
+    getSiteContext(request, env),
+    article.author_id ? authors.getAuthorById(env.DB, article.author_id) : Promise.resolve(null),
+    renderer.renderAllComponents("news", slug, ctx),
+    renderer.loadDynamicSeo("news", slug),
+    relatedNewsPromise,
+    injectInlineAds(article.content || "", env, request, "news").catch(e => {
+      console.error("Inline ad injection error:", e.message);
+      return article.content || "";
+    }),
+  ]);
 
   const canonical = dynamicSeo.canonical || site.url(`/en/news/${article.slug}`);
 
@@ -1170,47 +1188,6 @@ export async function renderNews(request, env, slug, ctx = null) {
       })
       .join("");
   }
-
-  // ── Related news by shared tags ──────────────────────
-  let relatedNewsHtml = "";
-  if (article.tags) {
-    try {
-      const related = await news.getRelatedNews(env.DB, article.slug, article.tags, 3);
-      if (related.length > 0) {
-        relatedNewsHtml = related.map(item => {
-          const img = item.featured_image_url || item.featured_image_thumbnail || "";
-          const imgHtml = img
-            ? `<div style="aspect-ratio:16/9;overflow:hidden;border-radius:8px"><img src="${escapeHtml(img)}" alt="${escapeHtml(item.featured_image_alt || item.title)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
-            : "";
-          const date = item.published_at || item.created_at;
-          return `
-            <article style="overflow:hidden;border:1px solid var(--light-gray);border-radius:10px;background:var(--white);transition:transform 0.2s,box-shadow 0.2s">
-              <a href="/en/news/${encodeURIComponent(item.slug)}" style="display:block;color:inherit;text-decoration:none">
-                ${imgHtml}
-                <div style="padding:14px">
-                  ${date ? `<time style="display:block;margin-bottom:6px;color:var(--gray);font-size:12px">${escapeHtml(formatDate(date))}</time>` : ""}
-                  <h3 style="margin:0 0 6px;font-size:16px;line-height:1.3;color:var(--dark)">${escapeHtml(item.title)}</h3>
-                  ${item.excerpt ? `<p style="margin:0;color:var(--gray);font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(item.excerpt)}</p>` : ""}
-                </div>
-              </a>
-            </article>
-          `;
-        }).join("");
-      }
-    } catch (e) {
-      console.error("Related news error:", e.message);
-    }
-  }
-
-    // ── Inline advertisement injection ────────────────────
-  let displayContent = article.content || "";
-  try {
-    displayContent = await injectInlineAds(displayContent, env, request, "news");
-  } catch (e) {
-    console.error("Inline ad injection error:", e.message);
-  }
-
-
 
   const wordCount = cleanContent ? cleanContent.split(/\s+/).filter(Boolean).length : 0;
 
@@ -2164,15 +2141,24 @@ export async function renderCountry(request, env, slug) {
   const countryData = country || {
     code, name: code, seo_title: null, seo_description: null
   };
-  const casinoList = await casinos.getCasinosByCountryAllowlist(env.DB, code);
+  const renderer = new Renderer(env, request);
+
+  // casinoList, site, subNavItems, components, and SEO are all
+  // independent of each other — fetch them concurrently.
+  const [casinoList, site, subNavItems, allComponents, dynamicSeo] = await Promise.all([
+    casinos.getCasinosByCountryAllowlist(env.DB, code),
+    getSiteContext(request, env),
+    nav.getScopedNavItems(env.DB, "country_subnav", "country", code),
+    renderer.renderAllComponents("country", code),
+    renderer.loadDynamicSeo("country", code),
+  ]);
 
   // Sort by rating descending (highest first)
   casinoList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  
+
   const geoData = await prepareGeoData(env, request, casinoList);
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
-  const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
+  const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
   const countrySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -2196,11 +2182,6 @@ export async function renderCountry(request, env, slug) {
   for (const c of casinoList) casinoLookupById[c.id] = c;
   const sectionsHtml = renderSeoPageSections(countryContent, casinoLookupById, {}, geoData, bonusOverrides);
   const faqSchema = seoPageFaqSchema(countryContent);
-  const subNavItems = await nav.getScopedNavItems(env.DB, "country_subnav", "country", code);
-  const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
-
-  const allComponents = await renderer.renderAllComponents("country", code);
-  const dynamicSeo = await renderer.loadDynamicSeo("country", code);
   const html = await renderer.render("country.html", {
     ...countryData,
     components_top: allComponents.top,
@@ -2229,13 +2210,22 @@ export async function renderCategory(request, env, slug) {
   if (category.published === 0) return render404(request, env);
   if (category.status === "draft") return render404(request, env);
 
-  const casinoList = await categories.getCategoryCasinos(env.DB, slug);
+  const renderer = new Renderer(env, request);
+
+  // casinoList, site, subNavItems, components, and SEO are all
+  // independent of each other — fetch them concurrently.
+  const [casinoList, site, subNavItems, allComponents, dynamicSeo] = await Promise.all([
+    categories.getCategoryCasinos(env.DB, slug),
+    getSiteContext(request, env),
+    nav.getScopedNavItems(env.DB, "category_subnav", "category", slug),
+    renderer.renderAllComponents("category", slug),
+    renderer.loadDynamicSeo("category", slug),
+  ]);
+
   const geoData = await prepareGeoData(env, request, casinoList);
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
-
-  const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
+  const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
   const categorySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -2259,11 +2249,6 @@ export async function renderCategory(request, env, slug) {
   for (const c of sortedCasinos) casinoLookupById[c.id] = c;
   const sectionsHtml = renderSeoPageSections(categoryContent, casinoLookupById, {}, geoData, bonusOverrides);
   const faqSchema = seoPageFaqSchema(categoryContent);
-  const subNavItems = await nav.getScopedNavItems(env.DB, "category_subnav", "category", slug);
-  const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
-
-  const allComponents = await renderer.renderAllComponents("category", slug);
-  const dynamicSeo = await renderer.loadDynamicSeo("category", slug);
   const html = await renderer.render("category.html", {
     slug,
     components_top: allComponents.top,
@@ -2497,25 +2482,24 @@ function buildHubSubNavHtml(items) {
 
 export async function renderCountryCustomPage(request, env, countryCode, slug) {
   const code = countryCode.toUpperCase();
-  const page = await seoPages.getSeoPageByUrl(env.DB, "country_custom", code, slug);
-  if (!page || !page.published) return render404(request, env);
 
-  const country = await countries.getCountry(env.DB, code);
+  // page, country, and the eligible-casino list are independent
+  // lookups (none needs another's result), so fetch them concurrently.
+  const [page, country, eligibleCasinos] = await Promise.all([
+    seoPages.getSeoPageByUrl(env.DB, "country_custom", code, slug),
+    countries.getCountry(env.DB, code),
+    casinos.getCasinosByCountryAllowlist(env.DB, code),
+  ]);
+  if (!page || !page.published) return render404(request, env);
   if (!country) return render404(request, env);
 
-  const eligibleCasinos = await casinos.getCasinosByCountryAllowlist(env.DB, code);
   const { mainList, editorialByKey } = await resolveSeoPageCasinos(env, page, eligibleCasinos);
-  const geoData = await prepareGeoData(env, request, mainList);
 
   const casinoLookupById = {};
   for (const c of mainList) casinoLookupById[c.id] = c;
   // Editorial sections can reference any eligible casino, even one
   // not in the main grid — make sure those resolve too.
   for (const c of eligibleCasinos) if (!casinoLookupById[c.id]) casinoLookupById[c.id] = c;
-  // One shared overrides map covers both the main grid AND any
-  // casino_grid/casino_editorial sections rendered below — every
-  // casino either could ever reference is already in casinoLookupById.
-  const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
 
   let content = {};
   try {
@@ -2525,8 +2509,20 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
   }
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const author = page.author_id ? await authors.getAuthorById(env.DB, page.author_id).catch(() => null) : null;
+
+  // geoData, site, author, and components are all independent —
+  // fetch concurrently. bonusOverrides needs geoData.country, so it
+  // stays as a follow-up step.
+  const [geoData, site, author, allComponents] = await Promise.all([
+    prepareGeoData(env, request, mainList),
+    getSiteContext(request, env),
+    page.author_id ? authors.getAuthorById(env.DB, page.author_id).catch(() => null) : Promise.resolve(null),
+    renderer.renderAllComponents("country_custom_page", `${code}/${slug}`),
+  ]);
+  // One shared overrides map covers both the main grid AND any
+  // casino_grid/casino_editorial sections rendered below — every
+  // casino either could ever reference is already in casinoLookupById.
+  const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
 
   const pageSchema = {
     "@context": "https://schema.org",
@@ -2548,7 +2544,6 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
     : pageSchema;
   const faqSchema = seoPageFaqSchema(content);
 
-  const allComponents = await renderer.renderAllComponents("country_custom_page", `${code}/${slug}`);
   const html = await renderer.render("seo-landing.html", {
     title: page.title,
     intro: content.intro || "",
@@ -2580,20 +2575,25 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
 
 export async function renderCategoryCountryPage(request, env, categorySlug, countryCode) {
   const code = countryCode.toUpperCase();
-  const category = await categories.getCategory(env.DB, categorySlug);
-  if (!category) return render404(request, env);
-  const country = await countries.getCountry(env.DB, code);
-  if (!country) return render404(request, env);
 
-  const page = await seoPages.getSeoPageByUrl(env.DB, "category_country", code, categorySlug);
+  // category, country, the editorial page (if any), and the eligible
+  // casino list don't depend on each other — fetch concurrently.
+  // (The comment below on eligibleCasinos still applies to how the
+  // result is used, just not to when it's fetched.)
+  const [category, country, page, eligibleCasinos] = await Promise.all([
+    categories.getCategory(env.DB, categorySlug),
+    countries.getCountry(env.DB, code),
+    seoPages.getSeoPageByUrl(env.DB, "category_country", code, categorySlug),
+    seoPages.getEligibleCasinosForCategoryCountry(env.DB, categorySlug, code),
+  ]);
+  if (!category) return render404(request, env);
+  if (!country) return render404(request, env);
 
   // No editorial page yet, or it's unpublished: fall back to a pure
   // auto-generated render IF the combination is genuinely eligible
   // (real casinos exist for it), so a legitimate category x country
   // intent still resolves even before an editor has reviewed it.
   // This never creates a DB row — it's render-only.
-  const eligibleCasinos = await seoPages.getEligibleCasinosForCategoryCountry(env.DB, categorySlug, code);
-
   if ((!page || !page.published) && eligibleCasinos.length === 0) {
     return render404(request, env);
   }
@@ -2617,11 +2617,9 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     ? await resolveSeoPageCasinos(env, page, eligibleCasinos)
     : { mainList: eligibleCasinos, editorialByKey: {} };
 
-  const geoData = await prepareGeoData(env, request, mainList);
   const casinoLookupById = {};
   for (const c of mainList) casinoLookupById[c.id] = c;
   for (const c of eligibleCasinos) if (!casinoLookupById[c.id]) casinoLookupById[c.id] = c;
-  const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
 
   let content = {};
   try {
@@ -2631,8 +2629,17 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
   }
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const author = effectivePage.author_id ? await authors.getAuthorById(env.DB, effectivePage.author_id).catch(() => null) : null;
+
+  // geoData, site, author, and components are all independent —
+  // fetch concurrently. bonusOverrides needs geoData.country, so it
+  // stays as a follow-up step.
+  const [geoData, site, author, allComponents] = await Promise.all([
+    prepareGeoData(env, request, mainList),
+    getSiteContext(request, env),
+    effectivePage.author_id ? authors.getAuthorById(env.DB, effectivePage.author_id).catch(() => null) : Promise.resolve(null),
+    renderer.renderAllComponents("category_country_page", `${categorySlug}/${code}`),
+  ]);
+  const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
 
   const itemListSchema = {
     "@context": "https://schema.org",
@@ -2646,7 +2653,6 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
   };
   const faqSchema = seoPageFaqSchema(content);
 
-  const allComponents = await renderer.renderAllComponents("category_country_page", `${categorySlug}/${code}`);
   const html = await renderer.render("seo-landing.html", {
     title: effectivePage.title,
     intro: content.intro || category.description || "",
@@ -2722,13 +2728,21 @@ export async function renderDynamicPage(request, env, slug, ctx = null) {
   }
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  let author = null;
-  if (page.author_id) {
-    author = await authors.getAuthorById(env.DB, page.author_id);
-  }
-  const allComponents = await renderer.renderAllComponents("page", slug, ctx);
-  const dynamicSeo = await renderer.loadDynamicSeo("page", slug);
+
+  // ── Inline advertisement injection (was missing for pages) ──
+  const rawPageContent = parseContentJson(page.content_json);
+
+  // All of these are independent of each other — fetch concurrently.
+  const [site, author, allComponents, dynamicSeo, pageDisplayContent] = await Promise.all([
+    getSiteContext(request, env),
+    page.author_id ? authors.getAuthorById(env.DB, page.author_id) : Promise.resolve(null),
+    renderer.renderAllComponents("page", slug, ctx),
+    renderer.loadDynamicSeo("page", slug),
+    injectInlineAds(rawPageContent, env, request, "page").catch(e => {
+      console.error("Inline ad injection error (page):", e.message);
+      return rawPageContent;
+    }),
+  ]);
 
   const pageSchema = {
     "@context": "https://schema.org",
@@ -2738,13 +2752,6 @@ export async function renderDynamicPage(request, env, slug, ctx = null) {
     "datePublished": page.created_at,
     "dateModified": page.updated_at || page.created_at
   };
-  // ── Inline advertisement injection (was missing for pages) ──
-  let pageDisplayContent = parseContentJson(page.content_json);
-  try {
-    pageDisplayContent = await injectInlineAds(pageDisplayContent, env, request, "page");
-  } catch (e) {
-    console.error("Inline ad injection error (page):", e.message);
-  }
 
   const html = await renderer.render("page.html", {
     ...page,
@@ -2878,13 +2885,16 @@ export async function render404(request, env) {
 
 export async function renderCasinoList(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const casinoList = await casinos.getAllCasinos(env.DB);
+
+  const [site, casinoList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    casinos.getAllCasinos(env.DB),
+    renderer.renderAllComponents("casino_list", "casino_list"),
+    renderer.loadDynamicSeo("casino_list", "casino_list"),
+  ]);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
-  const allComponents = await renderer.renderAllComponents("casino_list", "casino_list");
-  const dynamicSeo = await renderer.loadDynamicSeo("casino_list", "casino_list");
 
   const listSchema = {
     "@context": "https://schema.org",
@@ -2917,24 +2927,32 @@ export async function renderCasinoList(request, env) {
 
 export async function renderReviewList(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const reviewList = await env.DB.prepare(
-    "SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC"
-  ).all();
-  const allComponents = await renderer.renderAllComponents("review_list", "review_list");
-  const dynamicSeo = await renderer.loadDynamicSeo("review_list", "review_list");
+
+  const [site, reviewList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    env.DB.prepare("SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC").all(),
+    renderer.renderAllComponents("review_list", "review_list"),
+    renderer.loadDynamicSeo("review_list", "review_list"),
+  ]);
 
   // Geo-aware filtering
   const reviews = reviewList.results || [];
   const casinoSlugs = [...new Set(reviews.filter(r => r.casino_slug).map(r => r.casino_slug))];
 
   let geoStatuses = {};
+  let casinoMeta = {};
   if (casinoSlugs.length > 0) {
     const placeholders = casinoSlugs.map(() => '?').join(',');
-    const rulesResult = await env.DB.prepare(`
-      SELECT casino_slug, country_code, status FROM geo_rules
-      WHERE casino_slug IN (${placeholders})
-    `).bind(...casinoSlugs).all();
+    // Independent of each other — fetch concurrently.
+    const [rulesResult, casinoRows] = await Promise.all([
+      env.DB.prepare(`
+        SELECT casino_slug, country_code, status FROM geo_rules
+        WHERE casino_slug IN (${placeholders})
+      `).bind(...casinoSlugs).all(),
+      env.DB.prepare(`
+        SELECT slug, name, logo FROM casinos WHERE slug IN (${placeholders})
+      `).bind(...casinoSlugs).all(),
+    ]);
 
     const rulesByCasino = {};
     for (const row of (rulesResult.results || [])) {
@@ -2954,14 +2972,7 @@ export async function renderReviewList(request, env) {
       else if (hasBlocked && !hasAllowed) geoStatuses[slug] = "allowed";
       else geoStatuses[slug] = "blocked";
     }
-  }
-  // NEW: fetch casino logo/name for the review cards
-  let casinoMeta = {};
-  if (casinoSlugs.length > 0) {
-    const metaPlaceholders = casinoSlugs.map(() => '?').join(',');
-    const casinoRows = await env.DB.prepare(`
-      SELECT slug, name, logo FROM casinos WHERE slug IN (${metaPlaceholders})
-    `).bind(...casinoSlugs).all();
+
     for (const row of (casinoRows.results || [])) {
       casinoMeta[row.slug] = row;
     }
@@ -3034,30 +3045,34 @@ export async function renderReviewList(request, env) {
 
 export async function renderNewsList(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
 
   const url = new URL(request.url);
   const searchQuery = (url.searchParams.get("q") || "").trim();
   const tagFilter = (url.searchParams.get("tag") || "").trim();
 
-  let newsList = [];
+  const newsListPromise = searchQuery
+    ? news.searchNews(env.DB, searchQuery, 50)
+    : tagFilter
+      ? news.getNewsByTag(env.DB, tagFilter, 50)
+      : news.getAllNews(env.DB);
+
+  // Independent of each other — fetch concurrently.
+  const [site, newsList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    newsListPromise,
+    renderer.renderAllComponents("news_list", "news_list"),
+    renderer.loadDynamicSeo("news_list", "news_list"),
+  ]);
+
   let pageTitle = "News";
   let pageDescription = `Latest iGaming industry news and updates from ${site.siteName}.`;
-
   if (searchQuery) {
-    newsList = await news.searchNews(env.DB, searchQuery, 50);
     pageTitle = `Search: ${searchQuery}`;
     pageDescription = `Search results for "${searchQuery}" — ${site.siteName} News.`;
   } else if (tagFilter) {
-    newsList = await news.getNewsByTag(env.DB, tagFilter, 50);
     pageTitle = `Tag: ${tagFilter}`;
     pageDescription = `News articles tagged with "${tagFilter}" — ${site.siteName}.`;
-  } else {
-    newsList = await news.getAllNews(env.DB);
   }
-
-  const allComponents = await renderer.renderAllComponents("news_list", "news_list");
-  const dynamicSeo = await renderer.loadDynamicSeo("news_list", "news_list");
 
   const newsListUrl = dynamicSeo.canonical || site.url("/en/news");
 
@@ -3432,21 +3447,13 @@ export async function renderNewsListbackup(request, env) {
 
 export async function renderUpdatesList(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const updates =
-    await platformUpdates.getAllPlatformUpdates(env.DB);
 
-  const allComponents =
-    await renderer.renderAllComponents(
-      "updates_list",
-      "updates_list"
-    );
-
-  const dynamicSeo =
-    await renderer.loadDynamicSeo(
-      "updates_list",
-      "updates_list"
-    );
+  const [site, updates, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    platformUpdates.getAllPlatformUpdates(env.DB),
+    renderer.renderAllComponents("updates_list", "updates_list"),
+    renderer.loadDynamicSeo("updates_list", "updates_list"),
+  ]);
 
   const updateCards = updates.map(update => {
 
@@ -3568,19 +3575,12 @@ export async function renderUpdate(request, env, slug) {
   }
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
 
-  const allComponents =
-    await renderer.renderAllComponents(
-      "update",
-      slug
-    );
-
-  const dynamicSeo =
-    await renderer.loadDynamicSeo(
-      "update",
-      slug
-    );
+  const [site, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    renderer.renderAllComponents("update", slug),
+    renderer.loadDynamicSeo("update", slug),
+  ]);
 
   const publishedDate =
     formatDate(
@@ -3809,10 +3809,13 @@ export async function renderUserNotifications(request, env) {
 
 export async function renderCategoryList(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const cats = await categories.getAllCategories(env.DB);
-  const allComponents = await renderer.renderAllComponents("category_list", "category_list");
-  const dynamicSeo = await renderer.loadDynamicSeo("category_list", "category_list");
+
+  const [site, cats, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    categories.getAllCategories(env.DB),
+    renderer.renderAllComponents("category_list", "category_list"),
+    renderer.loadDynamicSeo("category_list", "category_list"),
+  ]);
 
   const categoryCards = cats.map(c => `
     <div class="feature-card">
@@ -3885,18 +3888,17 @@ function renderAlphabeticalCountryGroups(groups) {
 
 export async function renderCountryList(request, env) {
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
 
-  const [featured, allCountries, featuredLabel] = await Promise.all([
+  const [site, featured, allCountries, featuredLabel, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
     countries.getFeaturedCountries(env.DB),
     countries.getPublishedCountries(env.DB),
-    getSetting(env.DB, "country_directory_featured_label")
+    getSetting(env.DB, "country_directory_featured_label"),
+    renderer.renderAllComponents("country_list", "country_list"),
+    renderer.loadDynamicSeo("country_list", "country_list"),
   ]);
 
   const alphaGroups = groupCountriesByFirstLetter(allCountries);
-
-  const allComponents = await renderer.renderAllComponents("country_list", "country_list");
-  const dynamicSeo = await renderer.loadDynamicSeo("country_list", "country_list");
 
   const html = await renderer.render("country-list.html", {
     featured_section_label: featuredLabel || "Featured Gambling Markets",
@@ -3955,11 +3957,15 @@ export async function renderAuthor(request, env, slug) {
   if (!author) return render404(request, env);
 
   const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const content = await authors.getAuthorContent(env.DB, author.id);
-  const stats = await authors.getAuthorStats(env.DB, author.id);
-  const allComponents = await renderer.renderAllComponents("author", slug);
-  const dynamicSeo = await renderer.loadDynamicSeo("author", slug);
+
+  // Independent of each other — fetch concurrently.
+  const [site, content, stats, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    authors.getAuthorContent(env.DB, author.id),
+    authors.getAuthorStats(env.DB, author.id),
+    renderer.renderAllComponents("author", slug),
+    renderer.loadDynamicSeo("author", slug),
+  ]);
 
   // Build review cards
   // NEW: fetch casino logo/name for review cards
@@ -4139,17 +4145,11 @@ export async function renderAuthorbackup(request, env, slug) {
 export async function renderAuthorList(request, env) {
   const renderer = new Renderer(env, request);
 
-  const authorsList = await authors.getAllAuthors(env.DB);
-
-  const allComponents = await renderer.renderAllComponents(
-    "author_list",
-    "author_list"
-  );
-
-  const dynamicSeo = await renderer.loadDynamicSeo(
-    "author_list",
-    "author_list"
-  );
+  const [authorsList, allComponents, dynamicSeo] = await Promise.all([
+    authors.getAllAuthors(env.DB),
+    renderer.renderAllComponents("author_list", "author_list"),
+    renderer.loadDynamicSeo("author_list", "author_list"),
+  ]);
 
   const authorCards = (authorsList || []).map((author) => {
     const avatar = author.avatar_url

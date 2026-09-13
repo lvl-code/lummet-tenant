@@ -48,6 +48,16 @@ export class Renderer {
     this.request = request;
     this.country = request?.cf?.country || null;
     this.siteContext = null;
+    // Per-request template cache. Templates are static assets that
+    // don't change mid-render, but loadTemplate() used to hit
+    // env.ASSETS.fetch() fresh every single call — once per
+    // component, plus header/footer/sidebar/base on every page. A
+    // page with, say, 8 components previously issued 8+ separate
+    // asset fetches for potentially the same few template files.
+    // Caching the in-flight promise (not just the resolved value)
+    // also de-dupes concurrent calls for the same template now that
+    // components render in parallel via Promise.all.
+    this.templateCache = new Map();
   }
   async getSiteContext() {
 
@@ -68,11 +78,18 @@ export class Renderer {
   // LOAD TEMPLATE FILE
   // =====================================================
   async loadTemplate(name) {
-    const file = await this.env.ASSETS.fetch(
-      new Request(`https://assets.local/templates/${name}`)
-    );
-    if (!file.ok) return null;
-    return await file.text();
+    if (this.templateCache.has(name)) {
+      return this.templateCache.get(name);
+    }
+    const promise = (async () => {
+      const file = await this.env.ASSETS.fetch(
+        new Request(`https://assets.local/templates/${name}`)
+      );
+      if (!file.ok) return null;
+      return await file.text();
+    })();
+    this.templateCache.set(name, promise);
+    return promise;
   }
 
   // =====================================================
@@ -219,14 +236,14 @@ replaceVariablesbackups(template, data = {}) {
   // INCLUDE COMPONENTS
   // =====================================================
     async injectComponents(html, breadcrumbHtml = null) {
-    const header = await this.loadTemplate("layout/header.html");
-    const footer = await this.loadTemplate("layout/footer.html");
-    const sidebar = await this.loadTemplate("layout/sidebar.html");
-
-    //const breadcrumbs = breadcrumbHtml || await this.loadTemplate("components/breadcrumbs.html");
-    const breadcrumbs = breadcrumbHtml !== null
-      ? breadcrumbHtml
-      : await this.loadTemplate("components/breadcrumbs.html");
+    const [header, footer, sidebar, breadcrumbs] = await Promise.all([
+      this.loadTemplate("layout/header.html"),
+      this.loadTemplate("layout/footer.html"),
+      this.loadTemplate("layout/sidebar.html"),
+      breadcrumbHtml !== null
+        ? Promise.resolve(breadcrumbHtml)
+        : this.loadTemplate("components/breadcrumbs.html"),
+    ]);
 
     html = html.replace("{{HEADER}}", header);
     html = html.replace("{{FOOTER}}", footer);
@@ -586,16 +603,16 @@ ${JSON.stringify(schema)}
   // =====================================================
   async render(pageTemplate, data = {}, schema = {}, breadcrumbs = []) {
     breadcrumbs = Array.isArray(breadcrumbs) ? breadcrumbs : [];
-    let page = await this.loadTemplate(`pages/${pageTemplate}`);
 
-    // Load dynamic navigation data first
-//    const navData = await this.loadNavData();
-//    const site = await this.getSiteContext();
-    const [
+    // Page template, nav data, site context, and page-nav are all
+    // independent of each other — fetch concurrently.
+    let [
+  page,
   navData,
   site,
   pagenavHtml
 ] = await Promise.all([
+  this.loadTemplate(`pages/${pageTemplate}`),
   this.loadNavData(),
   this.getSiteContext(),
   this.loadPageNav()
@@ -747,8 +764,10 @@ theme_layout_style: site.themeLayoutStyle,
       });
     }
 
-    let base = await this.loadTemplate("layout/base.html");
-    const seo = await this.buildSEO(data);
+    let [base, seo] = await Promise.all([
+      this.loadTemplate("layout/base.html"),
+      this.buildSEO(data),
+    ]);
     const schemas = [];
 
     schemas.push({

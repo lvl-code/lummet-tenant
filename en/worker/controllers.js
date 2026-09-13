@@ -264,6 +264,7 @@ export async function renderHome(request, env) {
   const html = await renderer.render("home.html", {
     seo_title: dynamicSeo.seo_title || `${site.siteName} — Expert Casino Reviews & Bonuses`,
     seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
+    seo_keywords: dynamicSeo.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url("/en"),
     og_image: dynamicSeo.og_image || "",
     casino_cards: buildCasinoCards(available, geoData, bonusOverrides),
@@ -538,6 +539,7 @@ export async function renderCasino(request, env, slug, ctx = null) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || casino.seo_title || casino.name,
     seo_description: dynamicSeo.seo_description || casino.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || casino.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url(`/en/casino/${slug}`),
     rating_display: ratingDisplay,
     features_html: featuresHtml,
@@ -1046,6 +1048,7 @@ if (review.casino_slug) {
     review_blocks_html: reviewBlocksHtml,
     seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
     seo_description: dynamicSeo.seo_description || review.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || review.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url(`/en/review/${slug}`),
     faq_html: faqHtml,
     pros_html: prosHtml,
@@ -1246,6 +1249,7 @@ export async function renderNews(request, env, slug, ctx = null) {
     canonical,
     seo_title: dynamicSeo.seo_title || article.seo_title || article.title,
     seo_description: description,
+    seo_keywords: dynamicSeo.seo_keywords || article.seo_keywords || "",
     author_name: author?.name || article.author || "",
     author_avatar: author?.avatar_url || "",
     author_role: author?.role || "",
@@ -1431,7 +1435,12 @@ export async function renderNewsbackup(request, env, slug) {
         article.title,
 
       seo_description:
-        description
+        description,
+
+      seo_keywords:
+        dynamicSeo.seo_keywords ||
+        article.seo_keywords ||
+        "",
 
     },
     articleSchema,
@@ -2201,6 +2210,7 @@ export async function renderCountry(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || countryData.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url(`/en/country/${code}`),
     robots: countryData.robots || "index,follow",
     sections_html: sectionsHtml,
@@ -2263,6 +2273,7 @@ export async function renderCategory(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || category.seo_title || category.name + " Casinos",
     seo_description: dynamicSeo.seo_description || category.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || category.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url(`/en/category/${slug}`),
     robots: category.robots || "index,follow",
     sections_html: sectionsHtml,
@@ -2555,6 +2566,7 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: page.seo_title || page.title,
     seo_description: page.seo_description || "",
+    seo_keywords: page.seo_keywords || "",
     canonical: page.canonical_url || site.url(`/en/country/${code}/${slug}`),
     og_image: page.og_image || page.featured_image || "",
     robots: page.robots || "index,follow",
@@ -2591,6 +2603,7 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     title: `${category.name} Casinos in ${country.name}`,
     seo_title: null,
     seo_description: null,
+    seo_keywords: null,
     canonical_url: null,
     og_image: null,
     featured_image: null,
@@ -2651,6 +2664,7 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     components_sidebar: allComponents.sidebar,
     seo_title: effectivePage.seo_title || effectivePage.title,
     seo_description: effectivePage.seo_description || "",
+    seo_keywords: effectivePage.seo_keywords || "",
     canonical: effectivePage.canonical_url || site.url(`/en/category/${categorySlug}/${code}`),
     og_image: effectivePage.og_image || effectivePage.featured_image || "",
     robots: effectivePage.robots || "index,follow",
@@ -2749,6 +2763,7 @@ export async function renderDynamicPage(request, env, slug, ctx = null) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || page.title,
     seo_description: dynamicSeo.seo_description || page.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || page.seo_keywords || "",
   }, pageSchema, buildBreadcrumbs("page", { title: page.title }));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -2892,7 +2907,8 @@ export async function renderCasinoList(request, env) {
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || `All Online Casinos — ${site.siteName}.`,
-    seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings."
+    seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings.",
+    seo_keywords: dynamicSeo.seo_keywords || ""
   }, listSchema, buildBreadcrumbs("casinoList"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -3009,7 +3025,8 @@ export async function renderReviewList(request, env) {
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || `All Casino Reviews — ${site.siteName}.`,
-    seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
+    seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings.",
+    seo_keywords: dynamicSeo.seo_keywords || ""
   }, listSchema, buildBreadcrumbs("reviewList"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -3128,6 +3145,7 @@ export async function renderNewsList(request, env) {
     tag_filter: escapeHtml(tagFilter),
     seo_title: dynamicSeo.seo_title || `${pageTitle} | ${site.siteName}`,
     seo_description: dynamicSeo.seo_description || pageDescription,
+    seo_keywords: dynamicSeo.seo_keywords || "",
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -3391,7 +3409,10 @@ export async function renderNewsListbackup(request, env) {
 
         seo_description:
           dynamicSeo.seo_description ||
-          `Latest news and updates from ${site.siteName}.`
+          `Latest news and updates from ${site.siteName}.`,
+
+        seo_keywords:
+          dynamicSeo.seo_keywords || ""
       },
 
       listSchema,
@@ -3523,7 +3544,8 @@ export async function renderUpdatesList(request, env) {
       components_sidebar:
         allComponents.sidebar,
       seo_title: dynamicSeo.seo_title || `Platform Updates — ${site.siteName}`,
-      seo_description: dynamicSeo.seo_description || `Latest ${site.siteName} platform updates, new features, improvements and announcements.`
+      seo_description: dynamicSeo.seo_description || `Latest ${site.siteName} platform updates, new features, improvements and announcements.`,
+      seo_keywords: dynamicSeo.seo_keywords || ""
     },
     listSchema,
     buildBreadcrumbs("updatesList")
@@ -3644,6 +3666,11 @@ export async function renderUpdate(request, env, slug) {
         dynamicSeo.seo_description ||
         update.seo_description ||
         update.excerpt ||
+        "",
+
+      seo_keywords:
+        dynamicSeo.seo_keywords ||
+        update.seo_keywords ||
         "",
 
       components_top:
@@ -3804,7 +3831,8 @@ export async function renderCategoryList(request, env) {
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || `Casino Categories — ${site.siteName}`,
-    seo_description: dynamicSeo.seo_description ||  `Browse online casinos by category on ${site.siteName}.`
+    seo_description: dynamicSeo.seo_description ||  `Browse online casinos by category on ${site.siteName}.`,
+    seo_keywords: dynamicSeo.seo_keywords || ""
   }, {}, buildBreadcrumbs("categoryList"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -3882,6 +3910,7 @@ export async function renderCountryList(request, env) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || `Online Casinos by Country — ${site.siteName}`,
     seo_description: dynamicSeo.seo_description || `Find online casinos available in your country on ${site.siteName}.`,
+    seo_keywords: dynamicSeo.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url("/en/country"),
     robots: dynamicSeo.seo_robots || "index,follow",
     og_image: dynamicSeo.og_image || ""

@@ -14,9 +14,9 @@ export async function createPage(db, page) {
   return await db
     .prepare(`
       INSERT INTO pages (
-        slug, type, template, title, content_json, seo_title, seo_description, author_id, published, created_by
+        slug, type, template, title, content_json, seo_title, seo_description, seo_keywords, author_id, published, created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     `)
     .bind(
       page.slug,
@@ -26,6 +26,7 @@ export async function createPage(db, page) {
       JSON.stringify(page.content_json || {}),
       page.seo_title,
       page.seo_description,
+      page.seo_keywords || null,
       page.author_id || null,
       page.created_by || null
     )
@@ -36,7 +37,7 @@ export async function updatePage(db, slug, page) {
   return db.prepare(`
     UPDATE pages
     SET
-      title=?, content_json=?, seo_title=?, seo_description=?, author_id=?,
+      title=?, content_json=?, seo_title=?, seo_description=?, seo_keywords=?, author_id=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE slug=?
   `)
@@ -45,6 +46,7 @@ export async function updatePage(db, slug, page) {
     JSON.stringify(page.content_json || {}),
     page.seo_title,
     page.seo_description,
+    page.seo_keywords || null,
     page.author_id || null,
     slug
   )

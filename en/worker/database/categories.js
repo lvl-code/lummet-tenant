@@ -113,13 +113,14 @@ export async function createCategory(
       description,
       seo_title,
       seo_description,
+      seo_keywords,
       content_json,
       robots,
       status,
       published
     )
     VALUES(
-      ?,?,?,?,?,?,?,?,?
+      ?,?,?,?,?,?,?,?,?,?
     )
   `)
   .bind(
@@ -128,6 +129,7 @@ export async function createCategory(
     data.description,
     data.seo_title,
     data.seo_description,
+    data.seo_keywords || null,
     typeof data.content_json === "string" ? data.content_json : JSON.stringify(data.content_json || {}),
     data.robots || "index,follow",
     data.status || "published",
@@ -143,12 +145,12 @@ export async function createCategory(
 export async function updateCategory(db, slug, data) {
   const result = await db.prepare(`
     UPDATE categories SET
-      name=?, description=?, seo_title=?, seo_description=?,
+      name=?, description=?, seo_title=?, seo_description=?, seo_keywords=?,
       content_json=?, robots=?, status=?, published=?
     WHERE slug=?
   `)
   .bind(
-    data.name, data.description, data.seo_title, data.seo_description,
+    data.name, data.description, data.seo_title, data.seo_description, data.seo_keywords || null,
     typeof data.content_json === "string" ? data.content_json : JSON.stringify(data.content_json || {}),
     data.robots || "index,follow",
     data.status || "published",

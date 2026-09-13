@@ -60,6 +60,7 @@ export async function createCasino(db, casino) {
         features,
         seo_title,
         seo_description,
+        seo_keywords,
         featured,
         sort_order,
         status,
@@ -67,7 +68,7 @@ export async function createCasino(db, casino) {
         hero_image_media_id,
         created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       casino.slug,
@@ -81,6 +82,7 @@ export async function createCasino(db, casino) {
       JSON.stringify(casino.features || []),
       casino.seo_title,
       casino.seo_description,
+      casino.seo_keywords || null,
       casino.featured || 0,
       casino.sort_order || 0,
       casino.status || "draft",
@@ -109,6 +111,7 @@ export async function updateCasino(db, oldSlug, casino) {
         features = ?,
         seo_title = ?,
         seo_description = ?,
+        seo_keywords = ?,
         featured = ?,
         sort_order = ?,
         status = ?,
@@ -129,6 +132,7 @@ export async function updateCasino(db, oldSlug, casino) {
       JSON.stringify(casino.features || []),
       casino.seo_title,
       casino.seo_description,
+      casino.seo_keywords || null,
       casino.featured || 0,
       casino.sort_order || 0,
       casino.status || "draft",

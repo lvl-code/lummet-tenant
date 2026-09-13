@@ -91,14 +91,14 @@ export async function createCountry(db, data) {
   const code = data.code.toUpperCase();
   const result = await db.prepare(`
     INSERT INTO countries (
-      code, name, currency, language, legal_status, seo_title, seo_description,
+      code, name, currency, language, legal_status, seo_title, seo_description, seo_keywords,
       content_json, robots, status, published, is_featured, featured_position, tier
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   .bind(
     code, data.name, data.currency, data.language,
-    data.legal_status, data.seo_title, data.seo_description,
+    data.legal_status, data.seo_title, data.seo_description, data.seo_keywords || null,
     typeof data.content_json === "string" ? data.content_json : JSON.stringify(data.content_json || {}),
     data.robots || "index,follow",
     data.status || "published",
@@ -116,12 +116,12 @@ export async function updateCountry(db, code, data) {
   const upperCode = code.toUpperCase();
   const result = await db.prepare(`
     UPDATE countries SET
-      name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=?,
+      name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=?, seo_keywords=?,
       content_json=?, robots=?, status=?, published=?, is_featured=?, featured_position=?, tier=?
     WHERE code=?
   `)
   .bind(
-    data.name, data.currency, data.language, data.legal_status, data.seo_title, data.seo_description,
+    data.name, data.currency, data.language, data.legal_status, data.seo_title, data.seo_description, data.seo_keywords || null,
     typeof data.content_json === "string" ? data.content_json : JSON.stringify(data.content_json || {}),
     data.robots || "index,follow",
     data.status || "published",

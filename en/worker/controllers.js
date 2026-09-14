@@ -403,8 +403,28 @@ async function resolveBonusOverridesForList(env, casinoList, countryCode) {
   return overrides;
 }
 
+// ── TEMPORARY DIAGNOSTIC — remove once the slow-page investigation
+// is done. Wraps a promise and logs how long it actually took, so
+// the breakdown is visible in `wrangler tail` / the Cloudflare
+// dashboard Logs stream without needing any local tooling.
+function timed(label, promise) {
+  const start = Date.now();
+  return Promise.resolve(promise).then(
+    (result) => {
+      console.log(`[TIMING] ${label}: ${Date.now() - start}ms`);
+      return result;
+    },
+    (err) => {
+      console.log(`[TIMING] ${label}: ${Date.now() - start}ms (REJECTED: ${err.message})`);
+      throw err;
+    }
+  );
+}
+
 export async function renderCasino(request, env, slug, ctx = null) {
-  const casino = await casinos.getCasino(env.DB, slug);
+  const __pageStart = Date.now();
+  const casino = await timed("casino fetch", casinos.getCasino(env.DB, slug));
+  console.log(`[TIMING] casino fetch resolved at +${Date.now() - __pageStart}ms`);
   if (!casino) return render404(request, env);
 
   const renderer = new Renderer(env, request);
@@ -471,14 +491,16 @@ export async function renderCasino(request, env, slug, ctx = null) {
   // These six lookups don't depend on each other's results, so run
   // them concurrently instead of one-by-one — this is the single
   // biggest win for casino-page load time.
+  const __batchStart = Date.now();
   const [site, geoRule, allComponents, dynamicSeo, bonusDisplay, relatedCasinosHtml] = await Promise.all([
-    getSiteContext(request, env),
-    getGeoRule(env.DB, slug, geoInfo.country),
-    renderer.renderAllComponents("casino", slug, ctx),
-    renderer.loadDynamicSeo("casino", slug),
-    resolveBonusDisplay(env, casino, geoInfo.country),
-    relatedCasinosPromise,
+    timed("getSiteContext", getSiteContext(request, env)),
+    timed("getGeoRule", getGeoRule(env.DB, slug, geoInfo.country)),
+    timed("renderAllComponents", renderer.renderAllComponents("casino", slug, ctx)),
+    timed("loadDynamicSeo", renderer.loadDynamicSeo("casino", slug)),
+    timed("resolveBonusDisplay", resolveBonusDisplay(env, casino, geoInfo.country)),
+    timed("relatedCasinosPromise", relatedCasinosPromise),
   ]);
+  console.log(`[TIMING] whole parallel batch: ${Date.now() - __batchStart}ms (total so far: ${Date.now() - __pageStart}ms)`);
 
   const casinoSchema = {
     "@context": "https://schema.org",
@@ -539,6 +561,7 @@ export async function renderCasino(request, env, slug, ctx = null) {
     );
   }
 
+  const __renderStart = Date.now();
   const html = await renderer.render("casino.html", {
     ...casino,
     components_top: allComponents.top,
@@ -560,6 +583,7 @@ export async function renderCasino(request, env, slug, ctx = null) {
     geoRule: geoRule || { status: "allowed", bonus_override: null },
     related_casinos_html: relatedCasinosHtml
   }, casinoSchema, buildBreadcrumbs("casino", { name: casino.name }));
+  console.log(`[TIMING] renderer.render() (templates/base/injection): ${Date.now() - __renderStart}ms (GRAND TOTAL: ${Date.now() - __pageStart}ms)`);
 
   return new Response(html, {
     headers: cacheHeaders()

@@ -26,6 +26,7 @@ import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
 import { getSetting } from "./database/settings.js";
 import { getRelatedCasinos } from "./database/related-casinos.js";
+import { getCached, setCached } from "./cache.js";
 import {
     buildBreadcrumbs
 } from "./breadcrumbs.js";
@@ -482,16 +483,37 @@ export async function renderCasino(request, env, slug, ctx = null) {
   // ── Related Casinos ({{{related_casinos_html}}}) ──────────
   // Kicked off here (not awaited yet) so it runs concurrently with
   // the other independent lookups below instead of after them.
+  //
+  // This is the single most expensive thing on this page (up to
+  // ~1.5s: getRelatedCasinos() does several sequential D1 round
+  // trips internally, then resolveBonusOverridesForList() adds
+  // one more) — but its result only depends on WHICH casino this
+  // is and the visitor's country, not on anything per-request. It
+  // doesn't change meaningfully minute-to-minute, so it's cached
+  // in KV (same getCached/setCached convention used for nav) —
+  // this turns most requests into a single fast KV read instead
+  // of ~6 D1 round trips.
   const relatedCasinosPromise = (async () => {
+    const cacheKey = `related_casinos:${casino.id}:${geoInfo.country || "none"}`;
+    try {
+      const cached = await getCached(env, cacheKey);
+      if (cached !== null) return cached;
+    } catch { /* fall through to compute fresh */ }
+
     try {
       const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoInfo.country, 6);
-      if (relatedCasinos.length === 0) return "";
+      if (relatedCasinos.length === 0) {
+        await setCached(env, cacheKey, "", 300);
+        return "";
+      }
       const relatedGeoData = {
         country: geoInfo.country,
         statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
       };
       const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoInfo.country);
-      return buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
+      const html = buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
+      await setCached(env, cacheKey, html, 300);
+      return html;
     } catch (e) {
       console.error("Related casinos failed to load:", e.message);
       return "";
@@ -985,15 +1007,25 @@ export async function renderReview(request, env, slug, ctx = null) {
     })(),
     (async () => {
       if (!casino) return "";
+      const cacheKey = `related_casinos:${casino.id}:${geoCountry || "none"}`;
+      try {
+        const cached = await getCached(env, cacheKey);
+        if (cached !== null) return cached;
+      } catch { /* fall through to compute fresh */ }
       try {
         const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoCountry, 6);
-        if (relatedCasinos.length === 0) return "";
+        if (relatedCasinos.length === 0) {
+          await setCached(env, cacheKey, "", 300);
+          return "";
+        }
         const relatedGeoData = {
           country: geoCountry,
           statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
         };
         const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoCountry);
-        return buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
+        const html = buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
+        await setCached(env, cacheKey, html, 300);
+        return html;
       } catch (e) {
         console.error("Related casinos failed to load:", e.message);
         return "";

@@ -441,13 +441,54 @@ export async function aggregateAnalyticsDaily(db, { date = null } = {}) {
   // Default: aggregate "yesterday" (UTC) — today is still accumulating
   // events and would produce a partial, misleadingly-final row.
   const targetDate = date || await db.prepare(`SELECT date('now', '-1 day') AS d`).first().then(r => r.d);
+  const dimensions = await aggregateOneDay(db, targetDate);
+  return { skipped: false, date: targetDate, dimensions };
+}
 
+async function aggregateOneDay(db, targetDate) {
   const summary = [];
   for (const dim of AGGREGATE_DIMENSIONS) {
     const rowCount = await aggregateOneDimension(db, dim, targetDate);
     summary.push({ dimension: dim.type, rows: rowCount });
   }
-  return { skipped: false, date: targetDate, dimensions: summary };
+  return summary;
+}
+
+/**
+ * Manual/admin backfill -- an explicit human action, so it deliberately
+ * does NOT check 'analytics_aggregation_cron_enabled'. That flag gates
+ * the AUTOMATIC schedule; an admin pressing "run now" (or backfilling
+ * a range of days the flag was off for) is a different, intentional
+ * action that shouldn't require the automation to also be turned on
+ * first. Same idempotent per-day aggregation as the cron path --
+ * re-running a date that's already aggregated overwrites, never
+ * double-counts (see aggregateOneDimension's ON CONFLICT).
+ *
+ * Capped at 92 days per call (roughly a quarter) so a mistaken
+ * multi-year range can't turn one admin click into thousands of
+ * sequential queries against D1.
+ */
+export async function backfillAnalyticsDaily(db, { startDate, endDate }) {
+  const dates = await db.prepare(`
+    WITH RECURSIVE d(day) AS (
+      SELECT date(?)
+      UNION ALL
+      SELECT date(day, '+1 day') FROM d WHERE day < date(?)
+    )
+    SELECT day FROM d
+  `).bind(startDate, endDate).all();
+
+  const days = (dates.results || []).map(r => r.day);
+  if (days.length > 92) {
+    throw new Error(`Date range too large (${days.length} days) -- backfill at most 92 days per call.`);
+  }
+
+  const perDay = [];
+  for (const day of days) {
+    const dimensions = await aggregateOneDay(db, day);
+    perDay.push({ date: day, dimensions });
+  }
+  return { daysProcessed: perDay.length, perDay };
 }
 
 /**

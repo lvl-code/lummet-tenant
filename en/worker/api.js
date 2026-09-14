@@ -38,6 +38,7 @@ import { importConversionReport } from "./imports/pipeline.js";
 import * as providerAdaptersDB from "./database/provider-adapters.js";
 import { syncProviderConfig } from "./adapters/sync.js";
 import { listProviderKeys } from "./adapters/registry.js";
+import * as cronHealthDB from "./database/cron-health.js";
 
 
 
@@ -558,6 +559,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/analytics/overview": "analytics",
       "/api/v1/analytics/timeseries": "analytics",
       "/api/v1/analytics/geo": "analytics",
+      "/api/v1/analytics/cron-health": "analytics",
       "/api/v1/analytics/conversions/list": "analytics_conversions",
       "/api/v1/campaigns/list": "campaigns",
       "/api/v1/campaign/get": "campaigns",
@@ -635,6 +637,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/campaign": "campaigns",
       "/api/v1/campaigns": "campaigns",
       "/api/v1/analytics/conversion": "analytics_conversions",
+      "/api/v1/analytics/aggregate-now": "analytics",
       "/api/v1/report": "reports",
       "/api/v1/reports": "reports",
       "/api/v1/analytics/alert": "analytics_alerts",
@@ -3187,6 +3190,40 @@ async function requireAdAdmin(request, env) {
       return json({ success: true, rows });
     }
 
+    // Cron/scheduled-job health -- diagnoses the exact failure mode
+    // that produces "the dashboard shows zero" support requests:
+    // 'never_run' means the Worker's scheduled() trigger itself has
+    // never fired (check wrangler.jsonc's triggers.crons), 'disabled'
+    // means it fires but the job's own feature flag is off, 'stale'
+    // means it was working and appears to have stopped. Read-only,
+    // same 'analytics' resource as overview/timeseries/geo above.
+    if (path === "/api/v1/analytics/cron-health") {
+      const health = await cronHealthDB.getCronHealth(env.DB);
+      return json({ success: true, jobs: health });
+    }
+
+    // Manual/backfill aggregation run -- admin-only (editor:analytics:create
+    // is 0 by default, see migration 0027), because this writes
+    // analytics_daily rows across EVERY casino/offer/etc. at once,
+    // ignoring the calling user's own item-access scope entirely (the
+    // aggregation itself has to see everything to produce correct
+    // tenant-wide rollups; per-user scoping happens later, at read
+    // time, in getDimensionPerformance/getGeoPerformance). Deliberately
+    // does NOT require 'analytics_aggregation_cron_enabled' to be on --
+    // see backfillAnalyticsDaily()'s own header comment for why a
+    // manual admin action shouldn't depend on the automation flag.
+    if (path === "/api/v1/analytics/aggregate-now" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["start_date", "end_date"]);
+      try {
+        const result = await analyticsDB.backfillAnalyticsDaily(env.DB, { startDate: body.start_date, endDate: body.end_date });
+        await logAudit(env.DB, { userId: user.user_id, action: 'run', entityType: 'analytics_aggregation', metadata: { start_date: body.start_date, end_date: body.end_date, days_processed: result.daysProcessed } });
+        return json({ success: true, ...result });
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
     // Records a partner-reported conversion. Never accepts a caller-
     // supplied commission figure — recordConversion() looks up the
     // applicable affiliate_commercial_terms row itself. This is an
@@ -3455,7 +3492,12 @@ async function requireAdAdmin(request, env) {
 
       const filters = {
         startDate: body.startDate, endDate: body.endDate, currency: body.currency || null,
-        outputFormat: format, selectedColumns, groupBy
+        outputFormat: format, selectedColumns, groupBy,
+        // cohort_analysis / ltv_analysis-specific filters (brief §17/§18)
+        // -- harmless no-ops for every other report type, which never
+        // reads these keys off filters.
+        cohortMetric: body.cohortMetric || undefined,
+        groupByDimension: body.groupByDimension || undefined
       };
 
       const result = await reportsDB.executeReportRun(env.DB, user, report, { filters });

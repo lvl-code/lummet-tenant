@@ -91,11 +91,38 @@ per-tenant `wrangler d1 execute` process already used for this repo (no
 cd en && npm test
 ```
 Zero npm dependencies — uses Node 22's built-in `node:test` and
-`node:sqlite` against the real schema and migrations. 148 tests covering
+`node:sqlite` against the real schema and migrations. 157 tests covering
 item-access scoping/leakage prevention, KPI math, report execution,
 Super API handlers, email delivery, and the postback/import/
 reconciliation/adapter engine below. Wired into CI on push/PR via
 `.github/workflows/test.yml`.
+
+## Cron Job Health
+
+Four background jobs (`analytics_aggregation`, `alert_evaluation`,
+`provider_sync`, `report_schedules`) all run from the Worker's single
+`scheduled()` handler, each gated by its own `system_settings` feature
+flag (default off). Two independent things can make a job produce
+nothing, and they look identical from the outside ("the dashboard shows
+zero") but need completely different fixes:
+
+1. **The trigger itself never fires** — `wrangler.jsonc`'s
+   `triggers.crons` must be uncommented and deployed, or `scheduled()`
+   is never called by Cloudflare at all, regardless of any flag.
+2. **The trigger fires, but the job's flag is off** — intentional
+   no-op every time until you `INSERT OR REPLACE INTO system_settings
+   (key, value) VALUES ('<job>_cron_enabled', 'true')`.
+
+`/dashboard/analytics` → **System Health** shows exactly which one
+you're looking at (`never_run` vs `disabled` vs `stale` vs `ok`) instead
+of leaving it to guesswork. The same page's **Run Aggregation Now**
+lets you backfill any date range immediately — it deliberately does
+NOT require `analytics_aggregation_cron_enabled` to be on, since a
+manual admin action shouldn't depend on the automation also being
+enabled first.
+
+No new migration for this — it reuses the existing `system_settings`
+key/value table.
 
 ## Conversion Postback / Import / Reconciliation Engine
 

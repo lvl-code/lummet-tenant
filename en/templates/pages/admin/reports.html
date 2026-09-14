@@ -79,6 +79,27 @@
         </div>
       </div>
 
+      <div class="form-row" id="rptCohortFilters" style="display:none">
+        <div class="form-group">
+          <label>Cohort Metric</label>
+          <select id="rptCohortMetric">
+            <option value="revenue_by_cohort">Revenue by acquisition date</option>
+            <option value="registration_to_ftd">Registration → FTD</option>
+            <option value="ftd_to_deposit">FTD → Deposit</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Group By</label>
+          <select id="rptCohortGroupBy">
+            <option value="">None</option>
+            <option value="casino">Casino</option>
+            <option value="geo">GEO</option>
+            <option value="campaign">Campaign</option>
+          </select>
+        </div>
+        <div class="form-group"><span class="muted">Only used by Cohort Analysis — ignored by every other report type.</span></div>
+      </div>
+
       <h3>Schedule this report</h3>
       <div class="form-row">
         <div class="form-group">
@@ -100,7 +121,7 @@
           <button type="button" class="btn btn--primary" onclick="createSchedule()">Schedule (deliver to me)</button>
         </div>
       </div>
-      <p class="muted">Scheduled reports deliver as an in-app notification. Email delivery isn't configured for this deployment yet.</p>
+      <p class="muted">Scheduled reports deliver as an in-app notification, and by email via Resend when the RESEND_API_KEY/RESEND_FROM_EMAIL secrets are configured for this deployment.</p>
 
       <h3>Recent Runs</h3>
       <table class="admin-table">

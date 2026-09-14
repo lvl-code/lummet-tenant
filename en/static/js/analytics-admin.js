@@ -17,7 +17,82 @@ function initAnalyticsPage() {
   });
 
   initAlertRuleForm();
+  initBackfillForm();
+  loadCronHealth();
   loadAnalytics();
+}
+
+const CRON_STATUS_BADGE = {
+  ok: '<span class="badge badge--success">ok</span>',
+  disabled: '<span class="badge">disabled</span>',
+  stale: '<span class="badge badge--danger">stale</span>',
+  never_run: '<span class="badge badge--danger">never run</span>'
+};
+
+async function loadCronHealth() {
+  const tbody = document.getElementById("anCronHealthBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch("/en/api/v1/analytics/cron-health");
+    const data = await res.json();
+    const jobs = data.jobs || [];
+
+    tbody.innerHTML = jobs.map(j => {
+      let detail = "—";
+      if (j.status === "never_run") {
+        detail = "The scheduled trigger has never invoked this job — check wrangler.jsonc's triggers.crons is uncommented and deployed.";
+      } else if (j.status === "disabled") {
+        detail = "Runs on schedule but its feature flag is off — no data is being processed.";
+      } else if (j.status === "stale") {
+        detail = "Enabled, but hasn't completed recently — the trigger may have stopped firing.";
+      } else if (j.lastResult) {
+        const parts = [];
+        if (j.lastResult.date) parts.push(`aggregated ${escapeHtmlAn(j.lastResult.date)}`);
+        if (j.lastResult.synced != null) parts.push(`${j.lastResult.synced} synced`);
+        if (j.lastResult.triggered != null) parts.push(`${j.lastResult.triggered} alert(s) triggered`);
+        if (j.lastResult.ran != null) parts.push(`${j.lastResult.ran} report(s) run`);
+        detail = parts.length ? parts.join(", ") : "ran with nothing to do";
+      }
+      return `
+        <tr>
+          <td>${escapeHtmlAn(j.label)}</td>
+          <td>${CRON_STATUS_BADGE[j.status] || j.status}</td>
+          <td>${j.lastRunAt ? escapeHtmlAn(j.lastRunAt) : '<span class="muted">never</span>'}</td>
+          <td class="muted">${escapeHtmlAn(detail)}</td>
+        </tr>
+      `;
+    }).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+function initBackfillForm() {
+  const form = document.getElementById("anBackfillForm");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("anBackfillAlert");
+    alertEl.style.display = "none";
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch("/en/api/v1/analytics/aggregate-now", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start_date: formData.get("start_date"), end_date: formData.get("end_date") }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        affShowAlert(alertEl, `Aggregated ${data.daysProcessed} day(s). Refresh the report above to see updated numbers.`, true);
+        loadCronHealth();
+      } else {
+        affShowAlert(alertEl, data.error || "Failed", false);
+      }
+    } catch {
+      affShowAlert(alertEl, "Network error", false);
+    }
+  });
 }
 
 function fmtMoney(n) {

@@ -101,7 +101,7 @@ import { handleLummetRequest } from "./lummet/router.js";
 import { getSiteContext } from "./site-context.js";
 import { confirmNewsletter, unsubscribeNewsletter } from "./newsletter.js";
 
-const appWorker = {
+export default {
 
   async fetch(request, env, ctx) {
 
@@ -590,81 +590,4 @@ case "sitemap-seo-pages":
         );
 
     }
-};
-
-// ==========================================================
-// MAINTENANCE FALLBACK WRAPPER
-// ==========================================================
-// Any uncaught error from appWorker.fetch (D1 quota exhaustion,
-// KV quota exhaustion, etc.) is caught here and turned into a
-// static, inlined maintenance page instead of a raw 500. This
-// page makes ZERO calls to D1/KV/R2/templates, so it renders
-// correctly even while those services are rate-limited or down.
-// Remove this wrapper (or just revert to exporting appWorker
-// directly) once the underlying quota/outage issue is resolved.
-// ==========================================================
-
-const MAINTENANCE_HTML = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
-<title>We'll be right back</title>
-<style>
-  html,body{height:100%;margin:0}
-  body{
-    display:flex;align-items:center;justify-content:center;
-    background:#0f1115;color:#f2f2f2;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    text-align:center;padding:24px;box-sizing:border-box;
-  }
-  .card{max-width:480px}
-  h1{font-size:1.5rem;margin:0 0 12px}
-  p{font-size:1rem;line-height:1.5;color:#c7c9d1;margin:0 0 8px}
-  .badge{
-    display:inline-block;margin-bottom:20px;padding:6px 14px;
-    border-radius:999px;background:#1f232c;color:#9ea3af;
-    font-size:.8rem;letter-spacing:.03em;text-transform:uppercase;
-  }
-</style>
-</head>
-<body>
-  <div class="card">
-    <span class="badge">Scheduled Maintenance</span>
-    <h1>We're upgrading our system</h1>
-    <p>We're making some improvements behind the scenes.</p>
-    <p>Please check back in a few hours — thanks for your patience.</p>
-  </div>
-</body>
-</html>`;
-
-function maintenanceResponse() {
-  return new Response(MAINTENANCE_HTML, {
-    status: 503,
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-      "retry-after": "7200",
-    },
-  });
-}
-
-export default {
-  async fetch(request, env, ctx) {
-    try {
-      return await appWorker.fetch(request, env, ctx);
-    } catch (err) {
-      console.error("Maintenance fallback triggered:", err && err.message ? err.message : err);
-      return maintenanceResponse();
-    }
-  },
-
-  async scheduled(event, env, ctx) {
-    try {
-      return await appWorker.scheduled(event, env, ctx);
-    } catch (err) {
-      console.error("Scheduled handler failed, skipping this run:", err && err.message ? err.message : err);
-    }
-  },
 };

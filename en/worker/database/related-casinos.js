@@ -285,7 +285,17 @@ export async function getRelatedCasinos(db, currentCasino, countryCode, limit = 
   const seedPool = Array.from(seedPoolById.values());
 
   const seedPoolIds = seedPool.map(c => c.id);
-  const categoryIdsByCasinoId = await getCategoryIdsForCasinos(db, seedPoolIds);
+  const seedSlugs = seedPool.map(c => c.slug);
+
+  // These two lookups don't depend on each other — categoryIdsByCasinoId
+  // only needs seedPoolIds, geoStatuses only needs seedSlugs (both
+  // already available from seedPool above, before scoring runs).
+  // Was two sequential D1 round-trips; this is the single biggest
+  // fixable contributor to related-casinos being slow.
+  const [categoryIdsByCasinoId, geoStatuses] = await Promise.all([
+    getCategoryIdsForCasinos(db, seedPoolIds),
+    getCasinoGeoStatuses(db, seedSlugs, countryCode),
+  ]);
 
   const scoredPool = scoreRelatedCasinoCandidates(
     seedPool,
@@ -293,9 +303,6 @@ export async function getRelatedCasinos(db, currentCasino, countryCode, limit = 
     currentFeatures,
     categoryIdsByCasinoId
   );
-
-  const seedSlugs = scoredPool.map(c => c.slug);
-  const geoStatuses = await getCasinoGeoStatuses(db, seedSlugs, countryCode);
 
   const geoEligible = scoredPool
     .filter(c => geoStatuses[c.slug] === "allowed")

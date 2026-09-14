@@ -6,6 +6,30 @@
     </div>
     <p class="muted">Figures respect your item-level access — dimensions you can't see elsewhere in the dashboard are excluded here too, including from the totals.</p>
 
+    <div class="admin-section">
+      <h2>System Health</h2>
+      <p class="muted">If everything below reads zero, check this first — it usually means the scheduled aggregation job hasn't run, not that there's no real traffic.</p>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Job</th><th>Status</th><th>Last Run</th><th>Detail</th></tr>
+        </thead>
+        <tbody id="anCronHealthBody">
+          <tr><td colspan="4" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:20px">Run Aggregation Now</h3>
+      <p class="muted">Rolls up raw events/conversions into the dashboard numbers for a date range, regardless of whether the scheduled job is enabled — use this to backfill history or to fix a stretch of zeros immediately instead of waiting for the next scheduled run.</p>
+      <form id="anBackfillForm" class="admin-form">
+        <div class="form-row">
+          <div class="form-group"><label>Start Date</label><input type="date" name="start_date" required></div>
+          <div class="form-group"><label>End Date</label><input type="date" name="end_date" required></div>
+          <div class="form-group" style="align-self:flex-end"><button type="submit" class="btn btn--primary">Run Now</button></div>
+        </div>
+      </form>
+      <div id="anBackfillAlert" class="alert" style="display:none"></div>
+    </div>
+
     <div class="form-row" style="margin-bottom:16px">
       <div class="form-group">
         <label>Dimension</label>

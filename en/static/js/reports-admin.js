@@ -1,4 +1,5 @@
 let currentReportId = null;
+let currentReportType = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   initReportsPage();
@@ -156,6 +157,9 @@ async function selectReport(id, name) {
     document.getElementById("rptSubmitBtn").textContent = "Save Changes";
     document.getElementById("rptCancelEditBtn").style.display = "inline-block";
 
+    currentReportType = report.report_type;
+    document.getElementById("rptCohortFilters").style.display = report.report_type === "cohort_analysis" ? "flex" : "none";
+
     let savedColumns = [];
     let savedGroupBy = "";
     try { savedColumns = report.columns_json ? JSON.parse(report.columns_json) : []; } catch (e) {}
@@ -184,6 +188,9 @@ async function runReport(format) {
   if (!currentReportId) return;
   const startDate = document.getElementById("rptStartDate").value;
   const endDate = document.getElementById("rptEndDate").value;
+  const cohortFilters = currentReportType === "cohort_analysis"
+    ? { cohortMetric: document.getElementById("rptCohortMetric").value, groupByDimension: document.getElementById("rptCohortGroupBy").value || undefined }
+    : {};
 
   if (format === "json") {
     const pre = document.getElementById("rptPreviewOutput");
@@ -193,7 +200,7 @@ async function runReport(format) {
       const res = await fetch("/en/api/v1/report/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: currentReportId, startDate, endDate, format: "json" }),
+        body: JSON.stringify({ id: currentReportId, startDate, endDate, format: "json", ...cohortFilters }),
       });
       const data = await res.json();
       if (!data.success) {
@@ -216,7 +223,7 @@ async function runReport(format) {
     const res = await fetch("/en/api/v1/report/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: currentReportId, startDate, endDate, format }),
+      body: JSON.stringify({ id: currentReportId, startDate, endDate, format, ...cohortFilters }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));

@@ -404,27 +404,37 @@ async function resolveBonusOverridesForList(env, casinoList, countryCode) {
 }
 
 // ── TEMPORARY DIAGNOSTIC — remove once the slow-page investigation
-// is done. Wraps a promise and logs how long it actually took, so
-// the breakdown is visible in `wrangler tail` / the Cloudflare
-// dashboard Logs stream without needing any local tooling.
-function timed(label, promise) {
-  const start = Date.now();
-  return Promise.resolve(promise).then(
-    (result) => {
-      console.log(`[TIMING] ${label}: ${Date.now() - start}ms`);
-      return result;
-    },
-    (err) => {
-      console.log(`[TIMING] ${label}: ${Date.now() - start}ms (REJECTED: ${err.message})`);
-      throw err;
-    }
-  );
+// is done. createTimer() returns a per-request `timed()` wrapper
+// that both console.logs AND collects entries into `log`, so the
+// breakdown can be returned as response headers (visible directly
+// in `curl -D -`, no dashboard or CLI needed) as well as showing up
+// in any log stream that happens to be open.
+function createTimer() {
+  const log = [];
+  function timed(label, promise) {
+    const start = Date.now();
+    return Promise.resolve(promise).then(
+      (result) => {
+        const ms = Date.now() - start;
+        log.push(`${label}=${ms}ms`);
+        console.log(`[TIMING] ${label}: ${ms}ms`);
+        return result;
+      },
+      (err) => {
+        const ms = Date.now() - start;
+        log.push(`${label}=${ms}ms(REJECTED)`);
+        console.log(`[TIMING] ${label}: ${ms}ms (REJECTED: ${err.message})`);
+        throw err;
+      }
+    );
+  }
+  return { timed, log };
 }
 
 export async function renderCasino(request, env, slug, ctx = null) {
   const __pageStart = Date.now();
-  const casino = await timed("casino fetch", casinos.getCasino(env.DB, slug));
-  console.log(`[TIMING] casino fetch resolved at +${Date.now() - __pageStart}ms`);
+  const { timed, log } = createTimer();
+  const casino = await timed("casinoFetch", casinos.getCasino(env.DB, slug));
   if (!casino) return render404(request, env);
 
   const renderer = new Renderer(env, request);
@@ -501,6 +511,7 @@ export async function renderCasino(request, env, slug, ctx = null) {
     timed("relatedCasinosPromise", relatedCasinosPromise),
   ]);
   console.log(`[TIMING] whole parallel batch: ${Date.now() - __batchStart}ms (total so far: ${Date.now() - __pageStart}ms)`);
+  log.push(`batchTotal=${Date.now() - __batchStart}ms`);
 
   const casinoSchema = {
     "@context": "https://schema.org",
@@ -584,9 +595,14 @@ export async function renderCasino(request, env, slug, ctx = null) {
     related_casinos_html: relatedCasinosHtml
   }, casinoSchema, buildBreadcrumbs("casino", { name: casino.name }));
   console.log(`[TIMING] renderer.render() (templates/base/injection): ${Date.now() - __renderStart}ms (GRAND TOTAL: ${Date.now() - __pageStart}ms)`);
+  log.push(`renderTotal=${Date.now() - __renderStart}ms`);
+  log.push(`grandTotal=${Date.now() - __pageStart}ms`);
 
   return new Response(html, {
-    headers: cacheHeaders()
+    headers: {
+      ...cacheHeaders(),
+      "X-Timing": log.join("; "),
+    }
   });
 }
 

@@ -580,6 +580,7 @@ a:hover { text-decoration: underline; }
 }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
 .auth-footer { text-align: center; margin-top: 16px; font-size: 14px; }
+.auth-lead { text-align: center; color: var(--gray); font-size: 14px; margin-bottom: 20px; }
 
 /* ===== FIX: Auth pages — full width, no sidebar (Issue #8) ===== */
 .layout-wrapper:has(.auth-page) {
@@ -1088,6 +1089,45 @@ body {
 .disclaimer-text strong {
   color: rgba(255,255,255,0.5);
 }
+
+/* Newsletter signup */
+.footer-newsletter {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.footer-newsletter h4 {
+  margin-bottom: var(--space-2);
+}
+.footer-newsletter-text {
+  color: rgba(255,255,255,0.6);
+  font-size: 14px;
+  margin-bottom: var(--space-4);
+}
+.footer-newsletter-row {
+  display: flex;
+  gap: var(--space-3);
+  max-width: 480px;
+  flex-wrap: wrap;
+}
+.footer-newsletter-row input[type="email"] {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: var(--white);
+}
+.footer-newsletter-row input[type="email"]::placeholder {
+  color: rgba(255,255,255,0.4);
+}
+.newsletter-message {
+  margin-top: var(--space-3);
+  font-size: 13px;
+}
+.newsletter-message--success { color: var(--success); }
+.newsletter-message--error { color: var(--danger); }
 
 /* Link Grid */
 .footer-grid {

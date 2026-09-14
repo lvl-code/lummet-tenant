@@ -269,6 +269,30 @@ export function getRoute(request) {
     };
   }
 
+  if (path === "/en/forgot-password") {
+    return {
+      type: "forgotPassword"
+    };
+  }
+
+  if (path === "/en/reset-password") {
+    return {
+      type: "resetPassword"
+    };
+  }
+
+  if (path === "/en/newsletter/confirm") {
+    return {
+      type: "newsletterConfirm"
+    };
+  }
+
+  if (path === "/en/newsletter/unsubscribe") {
+    return {
+      type: "newsletterUnsubscribe"
+    };
+  }
+
 
 
   if (path === "/en/user/dashboard") return { type: "userDashboard" };

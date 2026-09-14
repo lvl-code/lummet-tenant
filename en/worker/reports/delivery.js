@@ -6,64 +6,21 @@
 // for any recipient with a user_id. Email recipients (a bare `email`
 // with no `user_id`) are accepted by the schema (report_recipients.email)
 // and sent via Resend (https://resend.com) — the provider chosen for
-// this tenant. Configuration is two secrets, set per-tenant via
-// `wrangler secret put`, never committed to this repo or wrangler.jsonc
-// (consistent with how TURNSTILE_SECRET is already handled elsewhere
-// in this codebase — grepped for the convention before adding a new one):
-//   RESEND_API_KEY     — required. Missing it is a config error, not a
-//                        silent no-op — see sendEmail() below.
-//   RESEND_FROM_EMAIL  — required. No hardcoded fallback domain is used:
-//                        this is a multi-tenant codebase (7+ separate
-//                        sites sharing it), and guessing a "from"
-//                        address for a tenant that hasn't configured
-//                        one would send real email from an address
-//                        nobody chose. Better to fail loudly and name
-//                        exactly what's missing.
+// this tenant. The actual Resend call lives in the shared ../email.js
+// module (also used by auth password-reset emails and the newsletter),
+// so there is exactly one place that knows the Resend request shape.
+// Configuration is two secrets, set per-tenant via `wrangler secret put`
+// (see worker/email.js for details): RESEND_API_KEY, RESEND_FROM_EMAIL.
+
+import { sendEmail as sendResendEmail } from '../email.js';
 
 /**
- * Sends one email via the Resend API. Throws with a specific, actionable
- * message on any failure mode (missing config, Resend API error) rather
- * than pretending to succeed — callers already handle a thrown error
- * per-recipient (see deliverReportRun below) and record it, so failing
- * loudly here is safe and is what makes failures visible instead of
- * silently vanishing.
+ * Thin wrapper kept so the rest of this file (and its tests, which
+ * mock global fetch and assert on the exact request shape) doesn't
+ * need to change: `body` here maps to the shared helper's `text`.
  */
 async function sendEmail(env, { to, subject, body }) {
-  if (!env.RESEND_API_KEY) {
-    throw new Error('Email delivery is not configured for this tenant: RESEND_API_KEY secret is not set (wrangler secret put RESEND_API_KEY).');
-  }
-  if (!env.RESEND_FROM_EMAIL) {
-    throw new Error('Email delivery is not configured for this tenant: RESEND_FROM_EMAIL secret is not set (wrangler secret put RESEND_FROM_EMAIL).');
-  }
-
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [to],
-      subject,
-      text: body
-    })
-  });
-
-  if (!response.ok) {
-    // Resend's error responses are JSON with a `message` field; fall
-    // back to the raw status if the body isn't parseable, but never
-    // leak the API key (it's never included in the error path below).
-    let detail = `HTTP ${response.status}`;
-    try {
-      const errorBody = await response.json();
-      if (errorBody?.message) detail = errorBody.message;
-    } catch { /* keep the HTTP-status fallback */ }
-    throw new Error(`Resend delivery failed: ${detail}`);
-  }
-
-  const result = await response.json();
-  return result?.id ?? null;
+  return sendResendEmail(env, { to, subject, text: body });
 }
 
 /**

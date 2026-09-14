@@ -1,0 +1,12 @@
+-- Fill seo_keywords for categories: name/slug patterns + terms mined from each category's own description, seo_title and seo_description
+UPDATE categories SET seo_keywords = 'Crypto Casinos, best crypto casinos 2026, crypto casinos 2026, BC.GAME, Stake, Shuffle, Bitcoin casino, Ethereum casino, USDT casino, provably fair gaming' WHERE id = 14;
+UPDATE categories SET seo_keywords = 'Live Dealer Casinos, best live dealer casinos 2026, live dealer casinos 2026, live blackjack online, live roulette online, live casino game shows' WHERE id = 15;
+UPDATE categories SET seo_keywords = 'Slot-Focused Casinos, best slot-focused casinos 2026, slot-focused casinos 2026, Megaways slots, progressive jackpot slots, slot software providers' WHERE id = 17;
+UPDATE categories SET seo_keywords = 'New Casinos, best new casinos 2026, new casinos 2026, casino licensing check' WHERE id = 18;
+UPDATE categories SET seo_keywords = 'Casino & Sportsbook Combos, best casino & sportsbook combos 2026, casino & sportsbook combos 2026, 1Win, Jet Casino, Neospin, sports betting odds' WHERE id = 21;
+UPDATE categories SET seo_keywords = 'Sweepstakes Casinos, best sweepstakes casinos 2026, sweepstakes casinos 2026, Sweepstakes Coins, free entry sweepstakes, virtual casino coins, state eligibility restrictions, sweepstakes eligibility requirements' WHERE id = 24;
+UPDATE categories SET seo_keywords = 'Social Casinos, best social casinos 2026, social casinos 2026, social gaming platforms, virtual casino coins, responsible play information, sweepstakes eligibility requirements' WHERE id = 25;
+UPDATE categories SET seo_keywords = 'No Purchase Necessary Casinos, best no purchase necessary casinos 2026, no purchase necessary casinos 2026, free entry sweepstakes, state eligibility restrictions, no purchase necessary entry, sweepstakes eligibility requirements' WHERE id = 26;
+UPDATE categories SET seo_keywords = 'US Sweepstakes Casinos, best US sweepstakes casinos 2026, US sweepstakes casinos 2026, free entry sweepstakes, state eligibility restrictions' WHERE id = 27;
+UPDATE categories SET seo_keywords = 'Free Sweepstakes Casinos, best free sweepstakes casinos 2026, free sweepstakes casinos 2026, free entry sweepstakes, state eligibility restrictions, sweepstakes eligibility requirements' WHERE id = 28;
+UPDATE categories SET seo_keywords = 'Sweepstakes Casino Games, best sweepstakes casino games 2026, sweepstakes casino games 2026, social gaming platforms, sweepstakes scratchers games' WHERE id = 29;

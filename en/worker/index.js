@@ -71,6 +71,8 @@ import {
   handleAffiliateRedirect,
   renderLogin,
   renderRegister,
+  renderForgotPassword,
+  renderResetPassword,
   robots,
   render404,
   renderSitemapPage
@@ -97,6 +99,7 @@ import { cleanupExpiredConversations } from "./ai/memory.js";
 
 import { handleLummetRequest } from "./lummet/router.js";
 import { getSiteContext } from "./site-context.js";
+import { confirmNewsletter, unsubscribeNewsletter } from "./newsletter.js";
 
 export default {
 
@@ -177,6 +180,26 @@ if (
   );
       case "register":
   return renderRegister(
+    request,
+    env
+  );
+      case "forgotPassword":
+  return renderForgotPassword(
+    request,
+    env
+  );
+      case "resetPassword":
+  return renderResetPassword(
+    request,
+    env
+  );
+      case "newsletterConfirm":
+  return confirmNewsletter(
+    request,
+    env
+  );
+      case "newsletterUnsubscribe":
+  return unsubscribeNewsletter(
     request,
     env
   );

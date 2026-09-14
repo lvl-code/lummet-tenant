@@ -5,6 +5,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   initLoginForm();
   initRegisterForm();
+  initForgotPasswordForm();
+  initResetPasswordForm();
+  initNewsletterForms();
 });
 
 // ---- Login ----
@@ -302,5 +305,155 @@ function initRegisterForm() {
       errorEl.style.display = "block";
       if (window.turnstile) window.turnstile.reset();
     }
+  });
+}
+
+// =====================================================
+// FORGOT PASSWORD / RESET PASSWORD
+// =====================================================
+
+function initForgotPasswordForm() {
+  const form = document.getElementById("forgotPasswordForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("forgotPasswordError");
+    const successEl = document.getElementById("forgotPasswordSuccess");
+    errorEl.style.display = "none";
+    successEl.style.display = "none";
+
+    const formData = new FormData(form);
+    const payload = { email: formData.get("email") };
+
+    try {
+      const res = await fetch("/en/api/v1/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        successEl.textContent = data.message || "If an account exists for that email, a reset link has been sent.";
+        successEl.style.display = "block";
+        form.reset();
+      } else {
+        errorEl.textContent = data.error || "Something went wrong. Please try again.";
+        errorEl.style.display = "block";
+      }
+    } catch {
+      errorEl.textContent = "Network error. Try again.";
+      errorEl.style.display = "block";
+    }
+  });
+}
+
+function initResetPasswordForm() {
+  const form = document.getElementById("resetPasswordForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("resetPasswordError");
+    const successEl = document.getElementById("resetPasswordSuccess");
+    errorEl.style.display = "none";
+    successEl.style.display = "none";
+
+    const formData = new FormData(form);
+    const password = formData.get("password");
+    const passwordConfirm = formData.get("passwordConfirm");
+
+    if (password !== passwordConfirm) {
+      errorEl.textContent = "Passwords do not match.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    const payload = {
+      token: formData.get("token"),
+      password,
+    };
+
+    if (!payload.token) {
+      errorEl.textContent = "This reset link is missing its token. Please use the link from your email.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    try {
+      const res = await fetch("/en/api/v1/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        successEl.textContent = "Your password has been reset. Redirecting to login…";
+        successEl.style.display = "block";
+        form.reset();
+        setTimeout(() => { window.location.href = "/en/login"; }, 1500);
+      } else {
+        errorEl.textContent = data.error || "Could not reset password. The link may have expired.";
+        errorEl.style.display = "block";
+      }
+    } catch {
+      errorEl.textContent = "Network error. Try again.";
+      errorEl.style.display = "block";
+    }
+  });
+}
+
+// =====================================================
+// NEWSLETTER SUBSCRIBE
+// =====================================================
+// Supports multiple newsletter forms on one page (e.g. footer +
+// an inline promo block) -- each just needs class="newsletter-form".
+
+function initNewsletterForms() {
+  const forms = document.querySelectorAll(".newsletter-form");
+  if (!forms.length) return;
+
+  forms.forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const messageEl = form.querySelector(".newsletter-message");
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const formData = new FormData(form);
+      const email = formData.get("email");
+
+      if (messageEl) {
+        messageEl.style.display = "none";
+        messageEl.className = "newsletter-message";
+      }
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const res = await fetch("/en/api/v1/newsletter/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+
+        if (messageEl) {
+          messageEl.textContent = data.success
+            ? (data.message || "Check your email to confirm your subscription.")
+            : (data.error || "Something went wrong. Please try again.");
+          messageEl.className = "newsletter-message " + (data.success ? "newsletter-message--success" : "newsletter-message--error");
+          messageEl.style.display = "block";
+        }
+        if (data.success) form.reset();
+      } catch {
+        if (messageEl) {
+          messageEl.textContent = "Network error. Try again.";
+          messageEl.className = "newsletter-message newsletter-message--error";
+          messageEl.style.display = "block";
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
   });
 }

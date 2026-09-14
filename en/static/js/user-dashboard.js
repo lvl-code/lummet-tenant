@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initUserCasinoForm();
   initUserSubmissionsList();
   initProfileForm();
+  initChangePasswordForm();
 });
 
 // ── Dashboard Overview ──
@@ -467,6 +468,66 @@ function initProfileForm() {
         if (alertEl) {
           alertEl.className = "alert alert--error";
           alertEl.textContent = data.error || "Failed";
+          alertEl.style.display = "block";
+        }
+      }
+    } catch {
+      if (alertEl) {
+        alertEl.className = "alert alert--error";
+        alertEl.textContent = "Network error";
+        alertEl.style.display = "block";
+      }
+    }
+  });
+}
+
+// ── Change Password ──
+
+function initChangePasswordForm() {
+  const form = document.getElementById("changePasswordForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("changePasswordAlert");
+    if (alertEl) alertEl.style.display = "none";
+
+    const formData = new FormData(form);
+    const newPassword = formData.get("newPassword");
+    const newPasswordConfirm = formData.get("newPasswordConfirm");
+
+    if (newPassword !== newPasswordConfirm) {
+      if (alertEl) {
+        alertEl.className = "alert alert--error";
+        alertEl.textContent = "New passwords do not match.";
+        alertEl.style.display = "block";
+      }
+      return;
+    }
+
+    const payload = {
+      currentPassword: formData.get("currentPassword"),
+      newPassword,
+    };
+
+    try {
+      const res = await fetch("/en/api/v1/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (alertEl) {
+          alertEl.className = "alert alert--success";
+          alertEl.textContent = "Password changed successfully.";
+          alertEl.style.display = "block";
+        }
+        form.reset();
+      } else {
+        if (alertEl) {
+          alertEl.className = "alert alert--error";
+          alertEl.textContent = data.error || "Failed to change password.";
           alertEl.style.display = "block";
         }
       }

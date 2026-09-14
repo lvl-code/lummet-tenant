@@ -2939,6 +2939,73 @@ export async function renderRegister(
 
 }
 
+export async function renderForgotPassword(
+  request,
+  env
+){
+
+  const renderer =
+    new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+
+  const html =
+    await renderer.render(
+      "forgot-password.html",
+      {
+        seo_title:
+          "Forgot Password",
+        seo_description: `Reset your ${site.siteName} password`,
+        canonical: site.url("/en/forgot-password")
+      }
+    );
+
+  return new Response(
+    html,
+    {
+      headers:{
+        "Content-Type":
+          "text/html"
+      }
+    }
+  );
+
+}
+
+export async function renderResetPassword(
+  request,
+  env
+){
+
+  const renderer =
+    new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token") || "";
+
+  const html =
+    await renderer.render(
+      "reset-password.html",
+      {
+        seo_title:
+          "Reset Password",
+        seo_description: `Reset your ${site.siteName} password`,
+        canonical: site.url("/en/reset-password"),
+        token
+      }
+    );
+
+  return new Response(
+    html,
+    {
+      headers:{
+        "Content-Type":
+          "text/html"
+      }
+    }
+  );
+
+}
+
 export async function render404(request, env) {
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);

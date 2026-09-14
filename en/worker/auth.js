@@ -5,10 +5,18 @@
 
 import {
     getUserByEmail,
+    getUserById,
+    updateUserPassword,
     createSession,
     getSession,
-    deleteSession
+    deleteSession,
+    createPasswordReset,
+    getPasswordResetByTokenHash,
+    markPasswordResetUsed,
+    invalidateUserPasswordResets
 } from "./database/users.js";
+import { sendEmail } from "./email.js";
+import { getSiteContext } from "./site-context.js";
 
 // ── Turnstile verification ──
 
@@ -63,6 +71,27 @@ async function hashIPForAuth(ip) {
   const data = new TextEncoder().encode(ip);
   const hash = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * SHA-256 hex digest of an arbitrary string. Used to store password
+ * reset tokens as a hash (same principle as password_hash on `users`)
+ * so a leaked password_resets row isn't itself usable to reset an
+ * account -- the raw token only ever exists in the emailed link.
+ */
+async function sha256Hex(value) {
+  const data = new TextEncoder().encode(value);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Generates a random URL-safe token for one-time links (password
+ * reset, newsletter confirm/unsubscribe).
+ */
+function generateToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 
@@ -434,6 +463,136 @@ export async function register(request, env) {
     INSERT INTO users(email, password_hash, role)
     VALUES (?, ?, 'viewer')
   `).bind(email, passwordHash).run();
+
+  return json({ success: true });
+}
+
+/**
+ * Forgot password — request a reset link.
+ * Always returns success (whether or not the email is registered) so
+ * this endpoint can't be used to enumerate which emails have
+ * accounts. The reset link is emailed via Resend; see ./email.js.
+ */
+export async function forgotPassword(request, env) {
+  const body = await request.json();
+  const email = body.email?.trim();
+
+  if (!email) {
+    return json({ success: false, error: "Email is required" }, 400);
+  }
+
+  // ── Brute-force / abuse check ──
+  const ipHash = await hashIPForAuth(request.headers.get("CF-Connecting-IP"));
+  const allowed = await checkRateLimit(env, ipHash, "forgot-password");
+  if (!allowed) {
+    return json({ success: false, error: "Too many attempts. Try again in 15 minutes." }, 429);
+  }
+  await logFailedAttempt(env, ipHash, "forgot-password");
+
+  const user = await getUserByEmail(env.DB, email);
+
+  // Same response either way -- don't reveal account existence.
+  if (user) {
+    const token = generateToken();
+    const tokenHash = await sha256Hex(token);
+    const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
+
+    await createPasswordReset(env.DB, user.id, tokenHash, expires.toISOString());
+
+    const site = await getSiteContext(request, env);
+    const resetUrl = `${site.origin}/en/reset-password?token=${token}`;
+
+    try {
+      await sendEmail(env, {
+        to: user.email,
+        subject: `Reset your ${site.siteName} password`,
+        text:
+          `We received a request to reset your ${site.siteName} password.\n\n` +
+          `Reset it here (link expires in 1 hour):\n${resetUrl}\n\n` +
+          `If you didn't request this, you can safely ignore this email.`,
+        html:
+          `<p>We received a request to reset your ${site.siteName} password.</p>` +
+          `<p><a href="${resetUrl}">Click here to reset your password</a> (link expires in 1 hour).</p>` +
+          `<p>If you didn't request this, you can safely ignore this email.</p>`
+      });
+    } catch (err) {
+      // Email delivery failure shouldn't reveal account existence or
+      // block the response, but it should be visible in logs.
+      console.error("forgotPassword: email send failed", err.message);
+    }
+  }
+
+  return json({
+    success: true,
+    message: "If an account exists for that email, a reset link has been sent."
+  });
+}
+
+/**
+ * Reset password — consume a token from a forgot-password email.
+ */
+export async function resetPassword(request, env) {
+  const body = await request.json();
+  const token = body.token?.trim();
+  const password = body.password;
+
+  if (!token || !password) {
+    return json({ success: false, error: "Token and new password are required" }, 400);
+  }
+  if (password.length < 8) {
+    return json({ success: false, error: "Password must be at least 8 characters" }, 400);
+  }
+
+  const tokenHash = await sha256Hex(token);
+  const reset = await getPasswordResetByTokenHash(env.DB, tokenHash);
+
+  if (!reset || reset.used_at || new Date(reset.expires_at) < new Date()) {
+    return json({ success: false, error: "This reset link is invalid or has expired." }, 400);
+  }
+
+  const passwordHash = await hashPassword(password);
+  await updateUserPassword(env.DB, reset.user_id, passwordHash);
+  await markPasswordResetUsed(env.DB, reset.id);
+  // Invalidate any other outstanding reset links for this user.
+  await invalidateUserPasswordResets(env.DB, reset.user_id);
+
+  return json({ success: true });
+}
+
+/**
+ * Change password — for an already-logged-in user, requires their
+ * current password.
+ */
+export async function changePassword(request, env) {
+  const session = await getCurrentUser(request, env);
+  if (!session?.user_id) {
+    return json({ success: false, error: "Unauthorized" }, 401);
+  }
+
+  const body = await request.json();
+  const currentPassword = body.currentPassword;
+  const newPassword = body.newPassword;
+
+  if (!currentPassword || !newPassword) {
+    return json({ success: false, error: "Current and new password are required" }, 400);
+  }
+  if (newPassword.length < 8) {
+    return json({ success: false, error: "New password must be at least 8 characters" }, 400);
+  }
+
+  const user = await getUserById(env.DB, session.user_id);
+  if (!user) {
+    return json({ success: false, error: "Unauthorized" }, 401);
+  }
+
+  const valid = await verifyPassword(currentPassword, user.password_hash);
+  if (!valid) {
+    return json({ success: false, error: "Current password is incorrect" }, 401);
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await updateUserPassword(env.DB, user.id, passwordHash);
+  await invalidateUserPasswordResets(env.DB, user.id);
 
   return json({ success: true });
 }

@@ -69,9 +69,13 @@ import {
   login,
   logout,
   register,
-  getCurrentUser
+  getCurrentUser,
+  forgotPassword,
+  resetPassword,
+  changePassword
 }
 from "./auth.js";
+import { subscribeNewsletter } from "./newsletter.js";
 import { dashboardStatsAPI } from "./controllers.js";
 import { aiEngine } from "./ai.js";
 import * as componentsDB from "./database/components.js";
@@ -141,6 +145,22 @@ if (path === "/api/v1/auth/register") {
 
 if(path === "/api/v1/auth/logout"){
   return logout(request,env);
+}
+
+if (path === "/api/v1/auth/forgot-password" && request.method === "POST") {
+  return forgotPassword(request, env);
+}
+
+if (path === "/api/v1/auth/reset-password" && request.method === "POST") {
+  return resetPassword(request, env);
+}
+
+if (path === "/api/v1/auth/change-password" && request.method === "POST") {
+  return changePassword(request, env);
+}
+
+if (path === "/api/v1/newsletter/subscribe" && request.method === "POST") {
+  return subscribeNewsletter(request, env);
 }
 
 

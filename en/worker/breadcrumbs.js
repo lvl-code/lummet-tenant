@@ -34,6 +34,10 @@ const ROUTES = {
     { label: "Countries", url: "/en/country" }
   ],
 
+  paymentMethodList: [
+    { label: "Payment Methods", url: "/en/payment-methods" }
+  ],
+
   dashboard: [
     { label: "Dashboard", url: null }
   ]
@@ -97,6 +101,13 @@ export function buildBreadcrumbs(route, data = {}) {
     case "country":
       crumbs.push(
         { label: "Countries", url: "/en/country" },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "paymentMethod":
+      crumbs.push(
+        { label: "Payment Methods", url: "/en/payment-methods" },
         { label: data.name || data.title, url: null }
       );
       break;

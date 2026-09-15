@@ -2,6 +2,7 @@ import { Renderer } from "./render.js";
 import { getSiteContext } from "./site-context.js";
 import * as authors from "./database/authors.js";
 import * as categories from "./database/categories.js";
+import * as paymentMethods from "./database/payment-methods.js";
 import * as casinos from "./database/casinos.js";
 import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
@@ -197,7 +198,12 @@ function buildBreadcrumbsbackup(path, data = {}) {
   return crumbs;
 }
 
-export async function renderHome(request, env) {
+// The actual cold render -- everything renderHome used to do. This
+// still hits D1/casinos/reviews/news/components on every call; it's
+// only ever invoked directly on a cache miss, and otherwise runs in
+// the background to refresh a stale cached copy (see renderHome()
+// below, which is the exported/routed entry point now).
+async function renderHomeHtml(request, env) {
   const renderer = new Renderer(env, request);
 
   // site, casinoList, components/SEO, and the latest-reviews/news
@@ -222,6 +228,7 @@ export async function renderHome(request, env) {
     geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
   );
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, casinoList);
 
   const reviewCardsHtml = latestReviews.map(r => `
     <div class="casino-card">
@@ -273,9 +280,9 @@ export async function renderHome(request, env) {
     seo_keywords: dynamicSeo.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url("/en"),
     og_image: dynamicSeo.og_image || "",
-    casino_cards: buildCasinoCards(available, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(available, geoData, bonusOverrides, paymentMethodsByCasino),
     casino_count: casinoList.length,
-    hidden_casino_cards: buildCasinoCards(others, geoData, bonusOverrides),
+    hidden_casino_cards: buildCasinoCards(others, geoData, bonusOverrides, paymentMethodsByCasino),
     has_hidden: others.length > 0,
     hidden_count: others.length,
     components_top: allComponents.top,
@@ -291,9 +298,62 @@ export async function renderHome(request, env) {
     no_news: latestNews.length === 0
   }, homeSchema, buildBreadcrumbs("home"));
 
-  return new Response(html, {
-    headers: cacheHeaders()
-  });
+  return html;
+}
+
+// =====================================================
+// HOMEPAGE -- full-page cache wrapper (stale-while-revalidate)
+// =====================================================
+// This is the routed entry point (see index.js). It caches the
+// ENTIRE rendered HTML per (hostname, visitor country) in KV, so a
+// cache hit costs zero D1 reads. See cache.js's PAGE_CACHE /
+// getCachedPage / setCachedPage / tryAcquireRegenLock for the
+// mechanics. `ctx` is optional -- if it's not passed (or has no
+// waitUntil), a stale hit is still served immediately, it just
+// won't trigger a background refresh; the next miss/expiry will
+// re-render synchronously instead.
+export async function renderHome(request, env, ctx) {
+  const { getCachedPage, setCachedPage, tryAcquireRegenLock, CACHE_KEYS, PAGE_CACHE } =
+    await import("./cache.js");
+
+  const hostname = new URL(request.url).hostname;
+  const country = request.cf?.country || "XX";
+  const cacheKey = CACHE_KEYS.PAGE_HOME(hostname, country);
+
+  const cached = await getCachedPage(env, cacheKey);
+
+  if (cached) {
+    const ageSeconds = (Date.now() - cached.generatedAt) / 1000;
+
+    if (ageSeconds > PAGE_CACHE.FRESH_SECONDS && ctx?.waitUntil) {
+      ctx.waitUntil(regenerateHome(request, env, cacheKey));
+    }
+
+    return new Response(cached.html, { headers: cacheHeaders() });
+  }
+
+  // Nothing cached at all -- render synchronously, this visitor pays
+  // the D1 cost once, everyone else gets it from cache until it expires.
+  const html = await renderHomeHtml(request, env);
+  await setCachedPage(env, cacheKey, html);
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+async function regenerateHome(request, env, cacheKey) {
+  const { setCachedPage, tryAcquireRegenLock } = await import("./cache.js");
+
+  const gotLock = await tryAcquireRegenLock(env, cacheKey);
+  if (!gotLock) return; // another request is already regenerating this exact page
+
+  try {
+    const html = await renderHomeHtml(request, env);
+    await setCachedPage(env, cacheKey, html);
+  } catch (err) {
+    // Regeneration failed (D1 still over quota, etc.) -- leave the
+    // existing stale copy in place; it keeps being served as-is
+    // until this succeeds or the KV entry's TTL runs out.
+    console.error("Home page background regeneration failed:", err.message);
+  }
 }
 
 
@@ -368,6 +428,32 @@ function bonusDisplayFromResult(result, fallback) {
 }
 
 /**
+ * All GEO-eligible offers for one casino, as the {title, value} pairs
+ * a card renders -- not just the single winning one. Used to show a
+ * "1st Deposit Bonus / 2nd Deposit Bonus / ..." expandable list per
+ * card instead of one collapsed bonus line. Falls back to a single
+ * legacy-field row when there are no active Offers for the casino at
+ * all yet, so cards for casinos not yet migrated onto the Offer
+ * system still show something.
+ */
+function bonusRowsFromResult(result, fallback) {
+  const eligible = result.eligibleOffers || [];
+  if (eligible.length) {
+    return eligible.map((offer) => ({
+      bonus_title: OFFER_TYPE_LABELS[offer.offer_type] || fallback.bonus_title,
+      bonus_value: offer.public_headline || fallback.bonus_value,
+    }));
+  }
+  if (!result.geoBlocked && result.geoRule?.bonus_override) {
+    return [{ bonus_title: fallback.bonus_title, bonus_value: result.geoRule.bonus_override }];
+  }
+  if (fallback.bonus_value) {
+    return [fallback];
+  }
+  return [];
+}
+
+/**
  * Batched version of resolveBonusDisplay() for list/grid contexts
  * (buildCasinoCards/buildReviewCasinoCards). Calls
  * resolveOffersForCasinos() -- the batched sibling of
@@ -388,20 +474,38 @@ async function resolveBonusOverridesForList(env, casinoList, countryCode) {
         bonus_title: casino.bonus_title || "Welcome Bonus",
         bonus_value: casino.bonus_value || "",
       };
-      const result = results[casino.id] || { offer: null, geoBlocked: false, geoRule: null };
+      const result = results[casino.id] || { offer: null, eligibleOffers: [], geoBlocked: false, geoRule: null };
       overrides[casino.id] = bonusDisplayFromResult(result, fallback);
+      overrides[casino.id].bonus_rows = bonusRowsFromResult(result, fallback);
     }
   } catch (err) {
     console.error("Batched offer resolution failed, falling back to legacy bonus fields for the whole list:", err.message);
     for (const casino of casinoList) {
       if (!casino.id) continue;
-      overrides[casino.id] = {
+      const fallback = {
         bonus_title: casino.bonus_title || "Welcome Bonus",
         bonus_value: casino.bonus_value || "",
       };
+      overrides[casino.id] = { ...fallback, bonus_rows: fallback.bonus_value ? [fallback] : [] };
     }
   }
   return overrides;
+}
+
+/**
+ * Batched payment-method lookup for a casino list, mirroring
+ * resolveBonusOverridesForList()'s degrade-on-failure shape: a
+ * broken payment-methods query should never take a listing page
+ * down, it should just render cards without the payment-icon row.
+ */
+async function resolvePaymentMethodsForList(env, casinoList) {
+  try {
+    const ids = casinoList.map((c) => c.id).filter((id) => id != null);
+    return await paymentMethods.getPaymentMethodsForCasinos(env.DB, ids);
+  } catch (err) {
+    console.error("Payment method lookup failed, cards will render without payment icons:", err.message);
+    return {};
+  }
 }
 
 // ── TEMPORARY DIAGNOSTIC — remove once the slow-page investigation
@@ -721,14 +825,18 @@ function sortCasinosByGeo(casinoList, geoData) {
   return [...allowed, ...blocked];
 }
 
-function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}) {
-  return casinoList.map(casino => {
+function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}, paymentMethodsByCasino = {}) {
+  return casinoList.map((casino, index) => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
     const bonusDisplay = bonusOverrides[casino.id] || {
       bonus_title: casino.bonus_title || "Welcome Bonus",
       bonus_value: casino.bonus_value || "",
     };
+    const bonusRows = bonusDisplay.bonus_rows && bonusDisplay.bonus_rows.length
+      ? bonusDisplay.bonus_rows
+      : (bonusDisplay.bonus_value ? [bonusDisplay] : []);
+    const cardPaymentMethods = paymentMethodsByCasino[casino.id] || [];
  //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
  //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
@@ -768,8 +876,36 @@ function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}) {
     </div>
       </div>`;
 
+    // Each row starts collapsed; clicking it (via the shared
+    // js-bonusToggle delegate handler, see casino-cards.js) toggles
+    // .is-open on the row, which CSS uses to reveal .bonus-row__details.
+    // First row starts expanded so a single-offer card still shows its
+    // value without a click, matching the old always-visible behavior.
+    const bonusRowsHtml = bonusRows.length ? `
+      <ul class="casino-card__bonus-list">
+        ${bonusRows.map((row, i) => `
+          <li class="bonus-row${i === 0 ? " is-open" : ""}">
+            <button type="button" class="bonus-row__toggle js-bonusToggle" aria-expanded="${i === 0 ? "true" : "false"}">
+              <span class="bonus-row__title">${row.bonus_title}</span>
+              <span class="bonus-row__chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div class="bonus-row__details">
+              <span class="bonus-value">${row.bonus_value}</span>
+            </div>
+          </li>`).join("")}
+      </ul>` : "";
+
+    const paymentMethodsHtml = cardPaymentMethods.length ? `
+      <div class="casino-card__payment-methods" aria-label="Payment methods">
+        ${cardPaymentMethods.map(pm => `
+          <a href="/en/payment-methods/${pm.slug}" class="payment-method-icon" title="${escapeHtml(pm.name)}">
+            ${pm.icon_url ? `<img src="${pm.icon_url}" alt="${escapeHtml(pm.name)}" loading="lazy" onerror="this.parentElement.style.display='none'">` : escapeHtml(pm.name)}
+          </a>`).join("")}
+      </div>` : "";
+
     return `
     <div class="casino-card" data-casino-slug="${casino.slug}">
+      <span class="casino-card__number" aria-hidden="true">${index + 1}</span>
       ${geoBadge}
       <button
           type="button"
@@ -791,10 +927,8 @@ function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}) {
   </div>
 </div>
 <div class="casino-card__body">
-  <div class="casino-card__bonus">
-    <span class="bonus-title">${bonusDisplay.bonus_title}</span>
-    <span class="bonus-value">${bonusDisplay.bonus_value}</span>
-  </div>
+  ${bonusRowsHtml}
+  ${paymentMethodsHtml}
   ${geoStatusText}
   ${complianceHtml}
 </div>
@@ -2230,6 +2364,7 @@ export async function renderCountry(request, env, slug) {
 
   const geoData = await prepareGeoData(env, request, casinoList);
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, casinoList);
   const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
   const countrySchema = {
     "@context": "https://schema.org",
@@ -2268,7 +2403,7 @@ export async function renderCountry(request, env, slug) {
     robots: countryData.robots || "index,follow",
     sections_html: sectionsHtml,
     hub_subnav_html: hubSubNavHtml,
-    casino_cards: buildCasinoCards(casinoList, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(casinoList, geoData, bonusOverrides, paymentMethodsByCasino),
   }, [countrySchema, faqSchema].filter(Boolean), buildBreadcrumbs("country", { name: countryData.name }));
   return new Response(html, {
     headers: cacheHeaders()
@@ -2296,6 +2431,7 @@ export async function renderCategory(request, env, slug) {
 
   const geoData = await prepareGeoData(env, request, casinoList);
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
   const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
   const categorySchema = {
@@ -2337,7 +2473,7 @@ export async function renderCategory(request, env, slug) {
     hub_subnav_html: hubSubNavHtml,
     category: category.name,
     description: category.description,
-    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides, paymentMethodsByCasino),
   }, [categorySchema, faqSchema].filter(Boolean), buildBreadcrumbs("category", { category: category.name }));
 
   return new Response(html, {
@@ -2595,6 +2731,7 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
   // casino_grid/casino_editorial sections rendered below — every
   // casino either could ever reference is already in casinoLookupById.
   const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, Object.values(casinoLookupById));
 
   const pageSchema = {
     "@context": "https://schema.org",
@@ -2620,7 +2757,7 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
     title: page.title,
     intro: content.intro || "",
     sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides),
-    casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides, paymentMethodsByCasino),
     has_casinos: mainList.length > 0,
     country_name: country.name,
     country_code: code,
@@ -2712,6 +2849,7 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     renderer.renderAllComponents("category_country_page", `${categorySlug}/${code}`),
   ]);
   const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, Object.values(casinoLookupById));
 
   const itemListSchema = {
     "@context": "https://schema.org",
@@ -2729,7 +2867,7 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     title: effectivePage.title,
     intro: content.intro || category.description || "",
     sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides),
-    casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides, paymentMethodsByCasino),
     has_casinos: mainList.length > 0,
     country_name: country.name,
     country_code: code,
@@ -3034,6 +3172,7 @@ export async function renderCasinoList(request, env) {
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
   const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, casinoList);
 
   const listSchema = {
     "@context": "https://schema.org",
@@ -3049,7 +3188,7 @@ export async function renderCasinoList(request, env) {
     canonical: dynamicSeo.canonical ||site.url("/en/casino"),
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
-    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides, paymentMethodsByCasino),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -3976,6 +4115,100 @@ export async function renderCategoryList(request, env) {
     seo_description: dynamicSeo.seo_description ||  `Browse online casinos by category on ${site.siteName}.`,
     seo_keywords: dynamicSeo.seo_keywords || ""
   }, {}, buildBreadcrumbs("categoryList"));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+// =====================================================
+// PAYMENT METHODS
+// /en/payment-methods            (list)
+// /en/payment-methods/:slug      (detail)
+// Reuses category.html's slug+description+casino_cards shape --
+// same technique renderCategoryList() above already uses for a
+// listing page that isn't really "a category" either.
+// =====================================================
+
+export async function renderPaymentMethodList(request, env) {
+  const renderer = new Renderer(env, request);
+
+  const [site, methods, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    paymentMethods.getPublishedPaymentMethods(env.DB),
+    renderer.renderAllComponents("payment_method_list", "payment_method_list"),
+    renderer.loadDynamicSeo("payment_method_list", "payment_method_list"),
+  ]);
+
+  const methodCards = methods.map(m => `
+    <a href="/en/payment-methods/${m.slug}" class="feature-card feature-card--payment-method">
+      ${m.icon_url ? `<img src="${m.icon_url}" alt="${escapeHtml(m.name)}" class="payment-method-card__icon" loading="lazy" onerror="this.style.display='none'">` : ""}
+      <h3>${escapeHtml(m.name)}</h3>
+    </a>
+  `).join("");
+
+  const html = await renderer.render("category.html", {
+    category: "Payment Methods",
+    description: "Browse casinos by the deposit and withdrawal methods they support.",
+    casino_cards: `<div class="features-grid">${methodCards}</div>`,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || `Payment Methods — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || `Browse online casinos by supported payment method on ${site.siteName}.`,
+    seo_keywords: dynamicSeo.seo_keywords || "",
+  }, {}, buildBreadcrumbs("paymentMethodList"));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderPaymentMethod(request, env, slug) {
+  const method = await paymentMethods.getPaymentMethod(env.DB, slug);
+  if (!method) return render404(request, env);
+  if (method.published === 0) return render404(request, env);
+  if (method.status === "draft") return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+
+  const [casinoList, site, allComponents, dynamicSeo] = await Promise.all([
+    paymentMethods.getCasinosForPaymentMethod(env.DB, slug),
+    getSiteContext(request, env),
+    renderer.renderAllComponents("payment_method", slug),
+    renderer.loadDynamicSeo("payment_method", slug),
+  ]);
+
+  const geoData = await prepareGeoData(env, request, casinoList);
+  const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
+  const paymentMethodsByCasino = await resolvePaymentMethodsForList(env, casinoList);
+  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+
+  const paymentMethodSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `Casinos That Accept ${method.name}`,
+    "itemListElement": sortedCasinos.map((c, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": site.url(`/en/casino/${c.slug}`),
+    })),
+  };
+
+  const html = await renderer.render("category.html", {
+    slug,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || method.seo_title || `${method.name} Casinos`,
+    seo_description: dynamicSeo.seo_description || method.seo_description || method.description || "",
+    seo_keywords: dynamicSeo.seo_keywords || method.seo_keywords || "",
+    canonical: dynamicSeo.canonical || site.url(`/en/payment-methods/${slug}`),
+    robots: "index,follow",
+    category: method.name,
+    description: method.description || `Online casinos that accept ${method.name} for deposits and withdrawals.`,
+    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides, paymentMethodsByCasino),
+  }, [paymentMethodSchema], buildBreadcrumbs("paymentMethod", { name: method.name }));
 
   return new Response(html, { headers: cacheHeaders() });
 }

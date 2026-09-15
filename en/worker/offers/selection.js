@@ -106,10 +106,10 @@ export async function resolveOfferForCasino(db, { casinoId = null, casinoSlug = 
   const eligible = candidates.filter(o => isOfferDateEligible(o, now) && isOfferGeoEligible(o, countryCode));
 
   if (eligible.length) {
-    return { offer: eligible[0], geoBlocked: false, geoRule };
+    return { offer: eligible[0], eligibleOffers: eligible, geoBlocked: false, geoRule };
   }
 
-  return { offer: null, geoBlocked: false, geoRule };
+  return { offer: null, eligibleOffers: [], geoBlocked: false, geoRule };
 }
 
 /**
@@ -171,7 +171,7 @@ export async function resolveOffersForCasinos(db, casinos, countryCode, { now = 
     );
 
     if (geoAccess.status === 'blocked') {
-      results[casino.id] = { offer: null, geoBlocked: true, geoRule };
+      results[casino.id] = { offer: null, eligibleOffers: [], geoBlocked: true, geoRule };
       continue;
     }
 
@@ -179,8 +179,8 @@ export async function resolveOffersForCasinos(db, casinos, countryCode, { now = 
     const eligible = candidates.filter(o => isOfferDateEligible(o, now) && isOfferGeoEligible(o, countryCode));
 
     results[casino.id] = eligible.length
-      ? { offer: eligible[0], geoBlocked: false, geoRule }
-      : { offer: null, geoBlocked: false, geoRule };
+      ? { offer: eligible[0], eligibleOffers: eligible, geoBlocked: false, geoRule }
+      : { offer: null, eligibleOffers: [], geoBlocked: false, geoRule };
   }
 
   return results;

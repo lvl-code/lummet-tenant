@@ -58,6 +58,12 @@ export const CACHE_KEYS = {
   SITE_SETTINGS: (hostname) =>
   `site-settings:${String(hostname || "").toLowerCase()}`,
 
+  // Full rendered homepage HTML, per tenant hostname + visitor country
+  // (casino availability/geo-blocking means the page isn't identical
+  // across countries, so it can't share one cache entry).
+  PAGE_HOME: (hostname, country) =>
+    `page:home:${String(hostname || "").toLowerCase()}:${country || "XX"}`,
+
   // Navigation (per location)
   NAV: (location) => `nav:${location}`,
 
@@ -93,6 +99,65 @@ export async function invalidateNav(env) {
   await invalidate(env, CACHE_KEYS.NAV_ALL_LOCATIONS);
 }
 
+
+// =====================================================
+// FULL-PAGE CACHE (stale-while-revalidate)
+// =====================================================
+// Caches an entire rendered page's HTML, not just the data that
+// feeds it. On a hit, the page is served straight out of KV with
+// zero D1 reads. Once it's older than FRESH_SECONDS it's still
+// served immediately (stale), while a single background request
+// re-renders and refreshes it via ctx.waitUntil -- visitors never
+// wait on D1, and D1 only gets hit once per FRESH_SECONDS window
+// per (page, country), not once per request.
+
+export const PAGE_CACHE = {
+  FRESH_SECONDS: 60,   // serve straight from cache, no regen, within this window
+  KV_TTL: 3600,        // how long a stale copy stays servable/regenerable before it's gone
+  LOCK_TTL: 20,         // background-regen lock -- avoids duplicate concurrent regenerations
+};
+
+export async function getCachedPage(env, key) {
+  if (!env.CACHE) return null;
+  try {
+    const raw = await env.CACHE.get(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function setCachedPage(env, key, html) {
+  if (!env.CACHE) return;
+  try {
+    await env.CACHE.put(
+      key,
+      JSON.stringify({ html, generatedAt: Date.now() }),
+      { expirationTtl: PAGE_CACHE.KV_TTL }
+    );
+  } catch (e) {
+    console.error("Page cache put failed:", e.message);
+  }
+}
+
+// Best-effort lock so a stampede of visitors hitting a stale page
+// doesn't all trigger their own background regeneration at once.
+// If the lock write itself fails (e.g. KV also over quota), we just
+// let regeneration proceed uncoordinated -- a duplicate render is
+// harmless, unlike blocking the page.
+export async function tryAcquireRegenLock(env, key) {
+  if (!env.CACHE) return true;
+  const lockKey = `lock:${key}`;
+  try {
+    const existing = await env.CACHE.get(lockKey);
+    if (existing) return false;
+    await env.CACHE.put(lockKey, "1", { expirationTtl: PAGE_CACHE.LOCK_TTL });
+    return true;
+  } catch {
+    return true;
+  }
+}
 
 export async function deleteCached(
   env,

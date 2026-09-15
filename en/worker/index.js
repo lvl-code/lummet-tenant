@@ -57,6 +57,8 @@ import {
   renderDashboardSettings,
   renderDashboardAI,
   renderCategoryList,
+  renderPaymentMethodList,
+  renderPaymentMethod,
   renderCountryList,
   renderDashboardCategories,
   renderDashboardCountries,
@@ -174,7 +176,7 @@ if (
     switch (route.type) {
 
       case "home":
-        return renderHome(request, env);
+        return renderHome(request, env, ctx);
       case "login":
   return renderLogin(
     request,
@@ -304,6 +306,10 @@ if (
         return renderCategoryList(request, env);
       case "countryList":
         return renderCountryList(request, env);
+      case "paymentMethodList":
+        return renderPaymentMethodList(request, env);
+      case "paymentMethod":
+        return renderPaymentMethod(request, env, route.slug);
       case "dashboardCasinos":
         return renderDashboardCasinos(request, env);
       case "dashboardCasinoCreate":

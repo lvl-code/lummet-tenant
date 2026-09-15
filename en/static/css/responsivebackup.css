@@ -643,11 +643,41 @@ code {
   }
 }
 
-/* Full-bleed containers + orange card borders: moved to the end of
-   supportive.css. That file (loaded after this one) is what actually
-   sets .container's mobile padding (16px, overriding main.css's
-   20px) -- a rule here would've been silently overridden by it, the
-   way the earlier -20px negative-margin version in this spot was
-   slightly off (it assumed 20px, but 16px is what's actually applied
-   on mobile). Keeping the real fix in the one file that owns that
-   value avoids that class of bug happening again. */
+
+
+
+/* ---- Full-bleed cards on mobile ----
+   Below the single-column breakpoint (casino-grid/news-grid already
+   drop to 1 column under 768px -- see casino.css / main.css), let
+   the grid span edge-to-edge instead of sitting inside .container's
+   20px gutter (main.css). Cards read bigger and more "native app",
+   while each card's own border-radius still separates it from the
+   page background -- only the outer gutter is removed, not the
+   cards' own styling.
+   Applies everywhere these grids are used (home, country, category,
+   news-list, and the casino_grid.html / news_feed.html components)
+   since it targets the shared .casino-grid/.news-grid classes
+   directly as a *direct child of .container* -- it intentionally
+   does NOT match the "Related Casinos" grid nested inside the
+   .info-block card on casino.html, since that grid lives inside its
+   own boxed card rather than the page's main content flow. */
+@media (max-width: 767px) {
+  .container > .casino-grid,
+  .container > .news-grid {
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+}
+
+/* Generic version of the same technique for any OTHER container child
+   that should bleed to the screen edges on mobile -- add
+   class="bleed-mobile" to it (e.g. a component-engine banner strip,
+   a homepage_sections_html block). Kept separate from the rule above
+   so existing markup needs no changes to get the casino/news grid
+   treatment, while new sections can opt in explicitly. */
+@media (max-width: 767px) {
+  .container > .bleed-mobile {
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+}

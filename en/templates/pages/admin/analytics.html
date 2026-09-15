@@ -28,6 +28,18 @@
         </div>
       </form>
       <div id="anBackfillAlert" class="alert" style="display:none"></div>
+
+      <h3 style="margin-top:20px">Other Manual Runs</h3>
+      <p class="muted">Same idea as above, for the other two background jobs — each does real work immediately regardless of its own automation flag. Alert evaluation is safe to click repeatedly: an already-open alert for the same condition is never duplicated. Report delivery only picks up schedules that are actually due right now — this doesn't force an early run of something not due yet.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <button type="button" class="btn btn--secondary" id="anEvaluateAlertsBtn">Evaluate Alert Rules Now</button>
+        </div>
+        <div class="form-group">
+          <button type="button" class="btn btn--secondary" id="anRunReportsBtn">Run Due Scheduled Reports Now</button>
+        </div>
+      </div>
+      <div id="anManualRunAlert" class="alert" style="display:none"></div>
     </div>
 
     <div class="form-row" style="margin-bottom:16px">

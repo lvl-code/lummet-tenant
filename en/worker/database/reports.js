@@ -928,7 +928,20 @@ export async function runDueReportSchedules(db, env) {
   if (!flag || flag.value !== 'true') {
     return { skipped: true, reason: 'feature flag disabled' };
   }
+  const result = await runDueReportSchedulesNow(db, env);
+  return { skipped: false, ...result };
+}
 
+/**
+ * Manual/admin trigger -- same reasoning as backfillAnalyticsDaily
+ * (analytics.js) and evaluateAllRulesNow (alerts.js): an explicit
+ * human action deliberately does NOT check
+ * 'report_schedules_cron_enabled'. Only picks up schedules that are
+ * actually due (next_run_at <= now) -- pressing this button doesn't
+ * force-run everything early, it just stops waiting on the disabled
+ * automatic trigger for whatever's already due right now.
+ */
+export async function runDueReportSchedulesNow(db, env) {
   const { deliverReportRun } = await import('../reports/delivery.js');
 
   const due = await db.prepare(`
@@ -999,5 +1012,5 @@ export async function runDueReportSchedules(db, env) {
     }
   }
 
-  return { skipped: false, processed: summary.length, summary };
+  return { processed: summary.length, summary };
 }

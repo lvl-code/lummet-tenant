@@ -658,6 +658,8 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/campaigns": "campaigns",
       "/api/v1/analytics/conversion": "analytics_conversions",
       "/api/v1/analytics/aggregate-now": "analytics",
+      "/api/v1/analytics/alerts/evaluate-now": "analytics",
+      "/api/v1/analytics/reports/run-due-now": "analytics",
       "/api/v1/report": "reports",
       "/api/v1/reports": "reports",
       "/api/v1/analytics/alert": "analytics_alerts",
@@ -2853,6 +2855,7 @@ async function requireAdAdmin(request, env) {
       if (config.status !== "active") return failure("Cannot sync a disabled integration", 422);
 
       const result = await syncProviderConfig(env.DB, env, config);
+      await cronHealthDB.recordCronRun(env.DB, 'provider_sync', { skipped: false, synced: 1 });
       await logAudit(env.DB, { userId: user.user_id, action: 'sync_now', entityType: 'provider_adapter_config', entityId: body.id, metadata: { ok: result.ok, imported: result.importedCount } });
       return json({ success: true, ...result });
     }
@@ -3237,11 +3240,36 @@ async function requireAdAdmin(request, env) {
       validate(body, ["start_date", "end_date"]);
       try {
         const result = await analyticsDB.backfillAnalyticsDaily(env.DB, { startDate: body.start_date, endDate: body.end_date });
+        await cronHealthDB.recordCronRun(env.DB, 'analytics_aggregation', { skipped: false, date: `${body.start_date} to ${body.end_date}`, daysProcessed: result.daysProcessed });
         await logAudit(env.DB, { userId: user.user_id, action: 'run', entityType: 'analytics_aggregation', metadata: { start_date: body.start_date, end_date: body.end_date, days_processed: result.daysProcessed } });
         return json({ success: true, ...result });
       } catch (error) {
         return failure(error.message, 422);
       }
+    }
+
+    // Manual alert-rule evaluation -- same "explicit admin action
+    // doesn't need the automation flag on" reasoning as aggregate-now
+    // above. Also updates the SAME cron-health row the scheduled path
+    // writes to, so /dashboard/analytics System Health reflects manual
+    // activity too, not only cron ticks.
+    if (path === "/api/v1/analytics/alerts/evaluate-now" && request.method === "POST") {
+      const result = await alertsDB.evaluateAllRulesNow(env.DB);
+      await cronHealthDB.recordCronRun(env.DB, 'alert_evaluation', { skipped: false, summary: result.summary });
+      await logAudit(env.DB, { userId: user.user_id, action: 'run', entityType: 'alert_evaluation', metadata: { evaluated: result.evaluated, triggered: result.summary.filter(s => s.triggered).length } });
+      return json({ success: true, ...result });
+    }
+
+    // Manual scheduled-report run -- same reasoning. Only picks up
+    // schedules that are ACTUALLY due right now (next_run_at <= now),
+    // so this can't be used to force an early run of something not
+    // due yet -- it just stops waiting on a disabled cron for what's
+    // already due.
+    if (path === "/api/v1/analytics/reports/run-due-now" && request.method === "POST") {
+      const result = await reportsDB.runDueReportSchedulesNow(env.DB, env);
+      await cronHealthDB.recordCronRun(env.DB, 'report_schedules', { skipped: false, results: result.summary });
+      await logAudit(env.DB, { userId: user.user_id, action: 'run', entityType: 'report_schedules', metadata: { processed: result.processed } });
+      return json({ success: true, ...result });
     }
 
     // Records a partner-reported conversion. Never accepts a caller-

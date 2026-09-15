@@ -91,7 +91,7 @@ per-tenant `wrangler d1 execute` process already used for this repo (no
 cd en && npm test
 ```
 Zero npm dependencies — uses Node 22's built-in `node:test` and
-`node:sqlite` against the real schema and migrations. 157 tests covering
+`node:sqlite` against the real schema and migrations. 163 tests covering
 item-access scoping/leakage prevention, KPI math, report execution,
 Super API handlers, email delivery, and the postback/import/
 reconciliation/adapter engine below. Wired into CI on push/PR via
@@ -115,11 +115,22 @@ zero") but need completely different fixes:
 
 `/dashboard/analytics` → **System Health** shows exactly which one
 you're looking at (`never_run` vs `disabled` vs `stale` vs `ok`) instead
-of leaving it to guesswork. The same page's **Run Aggregation Now**
-lets you backfill any date range immediately — it deliberately does
-NOT require `analytics_aggregation_cron_enabled` to be on, since a
-manual admin action shouldn't depend on the automation also being
-enabled first.
+of leaving it to guesswork. The same page has three manual triggers,
+none of which require their corresponding `_cron_enabled` flag —
+each does real work immediately, useful when you're deliberately not
+running Cloudflare Cron Triggers at all (e.g. on a plan that doesn't
+include them) and still want these jobs to run on demand:
+
+- **Run Aggregation Now** — backfills `analytics_daily` for any date range.
+- **Evaluate Alert Rules Now** — runs every enabled rule once; safe to
+  click repeatedly, an already-open alert for the same condition is
+  never duplicated.
+- **Run Due Scheduled Reports Now** — delivers whatever's actually due
+  (`next_run_at <= now`); doesn't force an early run of anything not
+  due yet.
+
+Manual runs update the same "last run" tracking the cron path does, so
+System Health reflects whichever one actually happened most recently.
 
 No new migration for this — it reuses the existing `system_settings`
 key/value table.

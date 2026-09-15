@@ -12,6 +12,8 @@ import { createTestDb, applyMigrations } from './support/d1-shim.js';
 import { backfillAnalyticsDaily } from '../worker/database/analytics.js';
 import { recordCronRun, getCronHealth, CRON_JOBS } from '../worker/database/cron-health.js';
 import { runAnalyticsAggregation, runProviderSync } from '../worker/cron.js';
+import { evaluateAllRulesNow, evaluateAlertRules } from '../worker/database/alerts.js';
+import { runDueReportSchedulesNow, runDueReportSchedules } from '../worker/database/reports.js';
 
 async function seedCasino(db) {
   await db.prepare(`INSERT INTO users (id, email, password_hash, role) VALUES (1, 'admin@test.local', 'x', 'admin')`).run();
@@ -135,5 +137,110 @@ describe('backfillAnalyticsDaily -- manual run does NOT depend on the cron flag'
       () => backfillAnalyticsDaily(db, { startDate: '2020-01-01', endDate: '2020-12-31' }),
       /too large/
     );
+  });
+});
+
+describe('evaluateAllRulesNow -- manual alert trigger does NOT depend on the cron flag', () => {
+  let db;
+  beforeEach(async () => {
+    db = createTestDb();
+    applyMigrations(db);
+    await db.prepare(`INSERT INTO users (id, email, password_hash, role) VALUES (1, 'admin@test.local', 'x', 'admin')`).run();
+  });
+
+  test('evaluates and triggers a due rule with the automation flag OFF (default)', async () => {
+    // A simple, always-triggerable rule: zero_conversion on a global
+    // scope with an impossibly low threshold day-count is awkward to
+    // seed generically, so use the same tracking_link_health path the
+    // existing evaluateHealthRule tests already exercise -- seed an
+    // unhealthy tracking link and a health-failure rule.
+    await db.prepare(`INSERT INTO affiliate_partners (id, name, slug, status, created_by) VALUES (1, 'P', 'p', 'active', 1)`).run();
+    await db.prepare(`INSERT INTO affiliate_programs (id, partner_id, name, status, created_by) VALUES (1, 1, 'Prog', 'active', 1)`).run();
+    await db.prepare(`INSERT INTO casinos (id, name, slug, website_url, affiliate_url, created_by) VALUES (1, 'C', 'c', 'https://c.example', 'https://aff.example', 1)`).run();
+    await db.prepare(`
+      INSERT INTO tracking_links (id, internal_name, tracking_code, destination_url, casino_id, partner_id, program_id, status, health_status)
+      VALUES (1, 'link', 'code1', 'https://out.example', 1, 1, 1, 'active', 'unhealthy')
+    `).run();
+    await db.prepare(`
+      INSERT INTO analytics_alert_rules (name, metric, scope_type, scope_id, threshold_type, threshold_value, comparison_window_days, enabled, created_by)
+      VALUES ('Broken link', 'tracking_link_health', 'tracking_link', 1, 'health_failure', 1, 7, 1, 1)
+    `).run();
+
+    // No 'alert_rules_cron_enabled' row at all -- must still work.
+    const result = await evaluateAllRulesNow(db);
+    assert.equal(result.evaluated, 1);
+    assert.equal(result.summary[0].triggered, true);
+
+    const openAlerts = await db.prepare(`SELECT COUNT(*) AS c FROM analytics_alerts WHERE status = 'open'`).first();
+    assert.equal(openAlerts.c, 1);
+  });
+
+  test('running it twice in a row does not create a duplicate open alert for the same unresolved condition', async () => {
+    await db.prepare(`INSERT INTO affiliate_partners (id, name, slug, status, created_by) VALUES (1, 'P', 'p', 'active', 1)`).run();
+    await db.prepare(`INSERT INTO affiliate_programs (id, partner_id, name, status, created_by) VALUES (1, 1, 'Prog', 'active', 1)`).run();
+    await db.prepare(`INSERT INTO casinos (id, name, slug, website_url, affiliate_url, created_by) VALUES (1, 'C', 'c', 'https://c.example', 'https://aff.example', 1)`).run();
+    await db.prepare(`
+      INSERT INTO tracking_links (id, internal_name, tracking_code, destination_url, casino_id, partner_id, program_id, status, health_status)
+      VALUES (1, 'link', 'code1', 'https://out.example', 1, 1, 1, 'active', 'unhealthy')
+    `).run();
+    await db.prepare(`
+      INSERT INTO analytics_alert_rules (name, metric, scope_type, scope_id, threshold_type, threshold_value, comparison_window_days, enabled, created_by)
+      VALUES ('Broken link', 'tracking_link_health', 'tracking_link', 1, 'health_failure', 1, 7, 1, 1)
+    `).run();
+
+    await evaluateAllRulesNow(db);
+    const second = await evaluateAllRulesNow(db);
+    assert.equal(second.summary[0].skipped, 'already open');
+
+    const openAlerts = await db.prepare(`SELECT COUNT(*) AS c FROM analytics_alerts WHERE status = 'open'`).first();
+    assert.equal(openAlerts.c, 1);
+  });
+
+  test('the flag-gated evaluateAlertRules() wrapper still correctly skips when the flag is off (refactor safety)', async () => {
+    const result = await evaluateAlertRules(db);
+    assert.equal(result.skipped, true);
+  });
+});
+
+describe('runDueReportSchedulesNow -- manual report trigger does NOT depend on the cron flag', () => {
+  let db, env;
+  beforeEach(async () => {
+    db = createTestDb();
+    applyMigrations(db);
+    await db.prepare(`INSERT INTO users (id, email, password_hash, role) VALUES (1, 'admin@test.local', 'x', 'admin')`).run();
+    env = { DB: db };
+  });
+
+  test('runs a due schedule with the automation flag OFF (default)', async () => {
+    await db.prepare(`INSERT INTO report_definitions (id, name, report_type, owner_id) VALUES (1, 'Sched Report', 'casino_performance', 1)`).run();
+    await db.prepare(`
+      INSERT INTO report_schedules (id, report_id, frequency, timezone, next_run_at, enabled, output_format, created_by)
+      VALUES (1, 1, 'daily', 'UTC', datetime('now', '-1 hour'), 1, 'json', 1)
+    `).run();
+    await db.prepare(`INSERT INTO report_recipients (schedule_id, user_id) VALUES (1, 1)`).run();
+
+    // No 'report_schedules_cron_enabled' row at all -- must still work.
+    const result = await runDueReportSchedulesNow(db, env);
+    assert.equal(result.processed, 1);
+    assert.equal(result.summary[0].success, true);
+
+    const run = await db.prepare(`SELECT status FROM report_runs WHERE report_id = 1`).first();
+    assert.equal(run.status, 'success');
+  });
+
+  test('a schedule that is not yet due is left alone', async () => {
+    await db.prepare(`INSERT INTO report_definitions (id, name, report_type, owner_id) VALUES (1, 'Future Report', 'casino_performance', 1)`).run();
+    await db.prepare(`
+      INSERT INTO report_schedules (id, report_id, frequency, timezone, next_run_at, enabled, output_format, created_by)
+      VALUES (1, 1, 'daily', 'UTC', datetime('now', '+1 day'), 1, 'json', 1)
+    `).run();
+
+    const result = await runDueReportSchedulesNow(db, env);
+    assert.equal(result.processed, 0);
+  });
+
+  test('the flag-gated runDueReportSchedules() wrapper still correctly skips when the flag is off (refactor safety)', async () => {
+    const result = await runDueReportSchedules(db, env);
+    assert.equal(result.skipped, true);
   });
 });

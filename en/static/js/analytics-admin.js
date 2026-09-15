@@ -18,6 +18,7 @@ function initAnalyticsPage() {
 
   initAlertRuleForm();
   initBackfillForm();
+  initManualRunButtons();
   loadCronHealth();
   loadAnalytics();
 }
@@ -91,6 +92,53 @@ function initBackfillForm() {
       }
     } catch {
       affShowAlert(alertEl, "Network error", false);
+    }
+  });
+}
+
+function initManualRunButtons() {
+  const alertsBtn = document.getElementById("anEvaluateAlertsBtn");
+  const reportsBtn = document.getElementById("anRunReportsBtn");
+  const alertEl = document.getElementById("anManualRunAlert");
+  if (!alertsBtn || !reportsBtn) return;
+
+  alertsBtn.addEventListener("click", async () => {
+    alertsBtn.disabled = true;
+    alertEl.style.display = "none";
+    try {
+      const res = await fetch("/en/api/v1/analytics/alerts/evaluate-now", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        const triggered = (data.summary || []).filter(s => s.triggered).length;
+        affShowAlert(alertEl, `Evaluated ${data.evaluated} rule(s), ${triggered} newly triggered.`, true);
+        loadCronHealth();
+        loadOpenAlerts();
+      } else {
+        affShowAlert(alertEl, data.error || "Failed", false);
+      }
+    } catch {
+      affShowAlert(alertEl, "Network error", false);
+    } finally {
+      alertsBtn.disabled = false;
+    }
+  });
+
+  reportsBtn.addEventListener("click", async () => {
+    reportsBtn.disabled = true;
+    alertEl.style.display = "none";
+    try {
+      const res = await fetch("/en/api/v1/analytics/reports/run-due-now", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        affShowAlert(alertEl, `${data.processed} due schedule(s) processed.`, true);
+        loadCronHealth();
+      } else {
+        affShowAlert(alertEl, data.error || "Failed", false);
+      }
+    } catch {
+      affShowAlert(alertEl, "Network error", false);
+    } finally {
+      reportsBtn.disabled = false;
     }
   });
 }

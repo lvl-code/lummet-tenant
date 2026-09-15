@@ -269,7 +269,21 @@ export async function evaluateAlertRules(db) {
   if (!flag || flag.value !== 'true') {
     return { skipped: true, reason: 'feature flag disabled' };
   }
+  const result = await evaluateAllRulesNow(db);
+  return { skipped: false, ...result };
+}
 
+/**
+ * Manual/admin trigger -- an explicit human action, so (same reasoning
+ * as backfillAnalyticsDaily in analytics.js) it deliberately does NOT
+ * check 'alert_rules_cron_enabled'. That flag gates the AUTOMATIC
+ * schedule; an admin pressing "evaluate now" is a different,
+ * intentional action that shouldn't require the automation to also be
+ * turned on first. Identical evaluation logic either way -- same
+ * dedup-by-open-alert behavior, so pressing this repeatedly never
+ * creates duplicate alerts for a still-open condition.
+ */
+export async function evaluateAllRulesNow(db) {
   const targetDate = await db.prepare(`SELECT date('now', '-1 day') AS d`).first().then(r => r.d);
   const rules = await db.prepare(`SELECT * FROM analytics_alert_rules WHERE enabled = 1`).all();
 
@@ -307,7 +321,7 @@ export async function evaluateAlertRules(db) {
     }
   }
 
-  return { skipped: false, date: targetDate, evaluated: summary.length, summary };
+  return { date: targetDate, evaluated: summary.length, summary };
 }
 
 // ── Scoped reads ─────────────────────────────────────

@@ -2552,6 +2552,9 @@ padding:22px;
 .feature-card--country:hover { background: var(--panel-bg-hover, #e9edf2); }
 .feature-card--country h3 { margin: 0; font-size: 16px; }
 
+.feature-card--payment-method { display: flex; flex-direction: column; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.payment-method-card__icon { width: 48px; height: 48px; object-fit: contain; }
+
 .country-directory__search-wrap { margin-bottom: 20px; }
 .country-directory__search { width: 100%; max-width: 360px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border, #dde2e8); font-size: 15px; }
 

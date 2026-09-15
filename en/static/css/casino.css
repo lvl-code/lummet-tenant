@@ -289,6 +289,97 @@
   gap: 2px;
 }
 
+/* ---------- Multiple, click-to-expand bonus rows ----------
+   Replaces the single always-visible .casino-card__bonus block when
+   a casino has more than one active Offer (1st deposit, 2nd deposit,
+   cashback, ...). Only one row's .bonus-value is visible unless the
+   row carries .is-open -- toggled by the delegated click handler in
+   casino-cards.js via .js-bonusToggle. */
+.casino-card__bonus-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bonus-row {
+  background: var(--bg);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bonus-row__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.bonus-row__title {
+  color: #596579;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.bonus-row__chevron {
+  color: var(--gray);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform .15s ease;
+  flex-shrink: 0;
+}
+.bonus-row.is-open .bonus-row__chevron { transform: rotate(180deg); }
+
+.bonus-row__details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .2s ease, padding .2s ease;
+  padding: 0 12px;
+}
+.bonus-row.is-open .bonus-row__details {
+  max-height: 120px;
+  padding: 0 12px 10px;
+}
+.bonus-row__details .bonus-value {
+  -webkit-line-clamp: unset;
+}
+
+/* ---------- Payment method icon row ---------- */
+.casino-card__payment-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.payment-method-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: var(--white);
+  border: 1px solid var(--light-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.payment-method-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .casino-card__geo-status {
   font-size: 12px;
   font-weight: 600;
@@ -352,6 +443,28 @@
 .geo-badge--allowed .geo-badge__icon { color: var(--success, #00b894); }
 .geo-badge--blocked .geo-badge__icon { color: var(--danger, #e74c3c); }
 .geo-badge--unknown .geo-badge__icon { color: var(--gray, #64748b); }
+
+/* Rank number -- sits flush in the card's top-left corner (not inset
+   like the bookmark/geo badges) so it reads as a list position, not
+   another action button. */
+.casino-card__number {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  color: var(--dark);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 0 0 8px 0;
+  box-shadow: var(--shadow);
+}
 
 .casino-card__bookmark {
   position: absolute;

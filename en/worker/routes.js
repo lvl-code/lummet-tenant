@@ -146,6 +146,26 @@ export function getRoute(request) {
   }
 
   // =====================================================
+  // PAYMENT METHODS
+  // /en/payment-methods            (list)
+  // /en/payment-methods/visa       (detail)
+  // =====================================================
+
+  if (path === "/en/payment-methods") {
+    return { type: "paymentMethodList" };
+  }
+
+  const paymentMethodMatch =
+    path.match(/^\/en\/payment-methods\/([^\/]+)$/);
+
+  if (paymentMethodMatch) {
+    return {
+      type: "paymentMethod",
+      slug: paymentMethodMatch[1]
+    };
+  }
+
+  // =====================================================
   // CATEGORY x COUNTRY SEO LANDING PAGE
   // /en/category/crypto-casinos/ca
   // Category MUST come from the existing category database (unlike

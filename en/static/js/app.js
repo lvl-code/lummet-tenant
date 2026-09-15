@@ -510,6 +510,25 @@ async function initCasinoBookmarks() {
   updateBookmarkButtons();
 }
 
+// =====================================================
+// CASINO CARD BONUS ROWS (click to expand)
+// =====================================================
+// Delegated on document so it works for cards injected after page
+// load too (load-more, AJAX pagination) without re-binding anything.
+// Only one .js-bonusToggle per .bonus-row, so toggling that row's
+// own .is-open class is all this needs to do -- the CSS
+// (.bonus-row.is-open .bonus-row__details) handles the expand/collapse.
+document.addEventListener("click", (event) => {
+  const toggle = event.target.closest(".js-bonusToggle");
+  if (!toggle) return;
+
+  const row = toggle.closest(".bonus-row");
+  if (!row) return;
+
+  const isOpen = row.classList.toggle("is-open");
+  toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+});
+
 function updateBookmarkButtons() {
   document.querySelectorAll("[data-bookmark-slug]").forEach(button => {
     const slug = button.dataset.bookmarkSlug;

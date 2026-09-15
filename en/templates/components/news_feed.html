@@ -19,7 +19,10 @@
 
     grid.innerHTML = news.map(n => {
       const image = n.featured_image_url || n.featured_image_thumbnail || "";
-      const imageAlt = n.featured_image_alt || n.title || "News article";
+      // Guard against a bare numeric media/database ID (e.g. "5782")
+      // being used as ALT text -- fall back to the title instead.
+      const rawAlt = (n.featured_image_alt || "").trim();
+      const imageAlt = (rawAlt && !/^\d+$/.test(rawAlt)) ? rawAlt : (n.title || "News article");
       const excerpt = n.excerpt || "";
       const publishedDate = n.published_at || n.created_at;
 

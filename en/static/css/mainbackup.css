@@ -18,19 +18,19 @@
   --dark-2: var(--theme-surface-alt, #16213e);
 
   --gray: var(--theme-text-muted, #64748b);
-  --light-gray: var(--theme-border, #e3e6ef);        /* nudged toward a cooler blue-gray */
-  --bg: var(--theme-background, #f5f7fc);            /* faint blue-lavender tint instead of flat gray */
+  --light-gray: var(--theme-border, #e2e8f0);
+  --bg: var(--theme-background, #f8fafc);
   --white: #fff;
 
   /* Semantic status colors stay fixed — not part of tenant branding */
-  --success: #06a674;    /* was #00b894 -- shifted a touch toward forest-green */
+  --success: #00b894;
   --danger: #e74c3c;
   --warning: #fdcb6e;
 
   --radius: var(--theme-card-radius, 12px);
-  --btn-radius: var(--theme-button-radius, 14px);    /* was 8px -- buttons now rounder than cards */
-  --shadow: 0 2px 8px rgba(15,23,42,0.12);           /* was rgba(0,0,0,0.08) -- slate-tinted, more depth */
-  --shadow-lg: 0 10px 34px rgba(15,23,42,0.16);      /* was 0 8px 30px rgba(0,0,0,0.12) */
+  --btn-radius: var(--theme-button-radius, 8px);
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
   --container: var(--theme-container-width, 1200px);
 
   /* Spacing scale — did not exist anywhere in the codebase before.
@@ -66,8 +66,8 @@
   --theme-primary-hover: #D8840D !important;
   --theme-accent: #EE9F28 !important;
 
-  --theme-surface: #14172b !important;      /* was pure #000000 -- navy-tinted black */
-  --theme-surface-alt: #1b2040 !important;  /* was #0A0A0A -- lifted, slightly blue */
+  --theme-surface: #000000 !important;
+  --theme-surface-alt: #0A0A0A !important;
 
   --primary: var(--theme-primary, #EE9F28);
   --primary-dark: var(--theme-primary-hover, #D8840D);

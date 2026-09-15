@@ -48,6 +48,20 @@
         <small class="muted">Recommended aspect ratio: 16:9.</small>
       </div>
 
+      <div class="form-group">
+        <label>OG Image</label>
+        <input type="hidden" name="og_image" id="newsOgImageId" value="">
+        <div id="newsOgImagePreview" style="display:none;margin-bottom:10px">
+          <img id="newsOgImageImg" src="" alt="" style="width:100%;max-width:400px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--light-gray)">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" id="newsChangeOgImage" class="btn btn--secondary btn--sm">Change</button>
+            <button type="button" id="newsRemoveOgImage" class="btn btn--danger btn--sm">Remove</button>
+          </div>
+        </div>
+        <button type="button" id="newsSelectOgImage" class="btn btn--secondary btn--sm">Select OG Image</button>
+        <small class="muted">Optional image used when this article is shared on social platforms. If empty, the Featured Image will be used.</small>
+      </div>
+
       <div class="form-group"><label>Content *</label>
         <textarea name="content" id="content" rows="15" placeholder="Enter article content... Type &lt;!--AD--&gt; anywhere to inject an advertisement."
                   data-rich-editor data-editor-id="news-content" data-editor-folder="news"></textarea>

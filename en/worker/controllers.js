@@ -76,6 +76,15 @@ function truncateText(text = "", max = 160) {
   return clean.slice(0, max).replace(/\s+\S*$/, "") + "…";
 }
 
+// Guards against meaningless ALT text (empty, or a bare database/media
+// ID such as "5782" or "1000044672") slipping into rendered <img alt>
+// attributes. Falls back to the given title/description instead.
+function safeAlt(altText, fallback = "") {
+  const trimmed = String(altText || "").trim();
+  if (!trimmed || /^\d+$/.test(trimmed)) return fallback;
+  return trimmed;
+}
+
 function toIsoDate(value) {
   if (!value) return undefined;
 
@@ -1305,7 +1314,7 @@ export async function renderNews(request, env, slug, ctx = null) {
       return related.map(item => {
         const img = item.featured_image_url || item.featured_image_thumbnail || "";
         const imgHtml = img
-          ? `<div style="aspect-ratio:16/9;overflow:hidden;border-radius:8px"><img src="${escapeHtml(img)}" alt="${escapeHtml(item.featured_image_alt || item.title)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
+          ? `<div style="aspect-ratio:16/9;overflow:hidden;border-radius:8px"><img src="${escapeHtml(img)}" alt="${escapeHtml(safeAlt(item.featured_image_alt, item.title))}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
           : "";
         const date = item.published_at || item.created_at;
         return `
@@ -1354,7 +1363,22 @@ export async function renderNews(request, env, slug, ctx = null) {
 
   const articleAuthorName = author?.name || article.author || site.siteName;
   const featuredImage = article.featured_image_url || article.featured_image_thumbnail || "";
-  const featuredImageAlt = article.featured_image_alt || article.title;
+  const featuredImageAlt = safeAlt(article.featured_image_alt, article.title);
+
+  // ── Social image: dedicated OG Image -> Featured Image -> site default ──
+  // The News Dashboard lets an editor set an OG Image independently of the
+  // Featured Image; when it's empty, the visible Featured Image is reused
+  // for sharing instead of falling straight through to the site logo.
+  const socialImageRaw = article.og_image_url || featuredImage || "";
+  const socialImage = socialImageRaw ? site.url(socialImageRaw) : site.ogImageUrl;
+  const socialImageAlt = article.og_image_url
+    ? safeAlt(article.og_image_alt, article.title)
+    : featuredImageAlt;
+  // Only emit width/height when the selected social image's real
+  // dimensions are known from the stored media record — never a guessed
+  // 1200x675 for an image whose actual size we don't have.
+  const socialImageWidth = article.og_image_url ? article.og_image_width : article.featured_image_width;
+  const socialImageHeight = article.og_image_url ? article.og_image_height : article.featured_image_height;
 
   // Build author HTML in the controller — avoids template {{else}} issues
   let authorHtml = "";
@@ -1433,6 +1457,11 @@ export async function renderNews(request, env, slug, ctx = null) {
     seo_title: dynamicSeo.seo_title || article.seo_title || article.title,
     seo_description: description,
     seo_keywords: dynamicSeo.seo_keywords || article.seo_keywords || "",
+    og_type: "article",
+    og_image: socialImage,
+    og_image_alt: socialImageAlt,
+    ...(socialImageWidth ? { og_image_width: socialImageWidth } : {}),
+    ...(socialImageHeight ? { og_image_height: socialImageHeight } : {}),
     author_name: author?.name || article.author || "",
     author_avatar: author?.avatar_url || "",
     author_role: author?.role || "",
@@ -3361,7 +3390,7 @@ export async function renderNewsList(request, env) {
     const date = article.published_at || article.created_at;
 
     const imageHtml = image
-      ? `<div style="aspect-ratio:16/9;overflow:hidden"><img src="${escapeHtml(image)}" alt="${escapeHtml(article.featured_image_alt || article.title)}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s" loading="lazy" decoding="async"></div>`
+      ? `<div style="aspect-ratio:16/9;overflow:hidden"><img src="${escapeHtml(image)}" alt="${escapeHtml(safeAlt(article.featured_image_alt, article.title))}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s" loading="lazy" decoding="async"></div>`
       : `<div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--gray);font-size:13px">No image</div>`;
 
     const authorHtml = article.author_name
@@ -4384,7 +4413,7 @@ export async function renderAuthor(request, env, slug) {
   const newsCards = content.news.map(n => {
     const image = n.featured_image_url || n.featured_image_thumbnail || "";
     const imageHtml = image
-      ? `<div style="aspect-ratio:16/9;overflow:hidden"><img src="${escapeHtml(image)}" alt="${escapeHtml(n.featured_image_alt || n.title)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
+      ? `<div style="aspect-ratio:16/9;overflow:hidden"><img src="${escapeHtml(image)}" alt="${escapeHtml(safeAlt(n.featured_image_alt, n.title))}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
       : `<div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--gray);font-size:13px">No image</div>`;
 
     return `

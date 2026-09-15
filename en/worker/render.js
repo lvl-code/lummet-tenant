@@ -554,6 +554,23 @@ async buildSEO(data = {}) {
     data.og_image ||
     site.ogImageUrl;
 
+  // Defaults to "website" so every existing page (homepage, casino,
+  // country, static pages, etc.) keeps its current behavior. Callers
+  // that need a different type (e.g. News Article pages) pass og_type.
+  const ogType = this.escapeHtml(data.og_type || "website");
+
+  // Optional — only rendered when the caller supplies them (e.g. when
+  // the real dimensions of the selected image are known).
+  const ogImageWidthTag = data.og_image_width
+    ? `<meta property="og:image:width" content="${this.escapeHtml(String(data.og_image_width))}">\n`
+    : "";
+  const ogImageHeightTag = data.og_image_height
+    ? `<meta property="og:image:height" content="${this.escapeHtml(String(data.og_image_height))}">\n`
+    : "";
+  const ogImageAltTag = data.og_image_alt
+    ? `<meta property="og:image:alt" content="${this.escapeHtml(data.og_image_alt)}">\n`
+    : "";
+
   const robots = this.escapeHtml(data.robots || "index, follow");
 
   const keywords = this.escapeHtml(data.seo_keywords || "");
@@ -566,14 +583,14 @@ async buildSEO(data = {}) {
 <meta name="description" content="${description}">
 ${keywordsTag}<meta name="robots" content="${robots}">
 <link rel="canonical" href="${canonical}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="${ogType}">
 <meta property="og:site_name" content="${this.escapeHtml(site.siteName)}">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="${canonical}">
 <meta property="og:title" content="${this.escapeHtml(title)}">
 <meta property="og:description" content="${description}">
 <meta property="og:image" content="${ogImage}">
-<meta name="twitter:card" content="summary_large_image">
+${ogImageWidthTag}${ogImageHeightTag}${ogImageAltTag}<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:url" content="${canonical}">
 <meta name="twitter:title" content="${this.escapeHtml(title)}">
 <meta name="twitter:description" content="${description}">

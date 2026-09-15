@@ -279,6 +279,15 @@ function initNewsForm() {
   if (changeBtn) changeBtn.addEventListener("click", openNewsFeaturedImagePicker);
   if (removeBtn) removeBtn.addEventListener("click", clearNewsFeaturedImage);
 
+  // ── OG image picker buttons ──────────────────
+  const ogSelectBtn = document.getElementById("newsSelectOgImage");
+  const ogChangeBtn = document.getElementById("newsChangeOgImage");
+  const ogRemoveBtn = document.getElementById("newsRemoveOgImage");
+
+  if (ogSelectBtn) ogSelectBtn.addEventListener("click", openNewsOgImagePicker);
+  if (ogChangeBtn) ogChangeBtn.addEventListener("click", openNewsOgImagePicker);
+  if (ogRemoveBtn) ogRemoveBtn.addEventListener("click", clearNewsOgImage);
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("newsFormAlert");
@@ -296,6 +305,7 @@ function initNewsForm() {
       author: formData.get("author") || "Admin",
       author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
       featured_image: formData.get("featured_image") ? parseInt(formData.get("featured_image")) : null,
+      og_image: formData.get("og_image") ? parseInt(formData.get("og_image")) : null,
       excerpt: formData.get("excerpt") || null,
       tags: formData.get("tags") || null,
       seo_title: formData.get("seo_title") || null,
@@ -324,6 +334,7 @@ function initNewsForm() {
         form.dataset.slug = "";
         form.querySelector("[name='id']").value = "";
         clearNewsFeaturedImage();
+        clearNewsOgImage();
         if (window.RichEditor && typeof RichEditor.set === "function") {
           RichEditor.set("news-content", "");
         }
@@ -376,6 +387,42 @@ function clearNewsFeaturedImage() {
   const imgEl = document.getElementById("newsFeaturedImageImg");
   const preview = document.getElementById("newsFeaturedImagePreview");
   const selectBtn = document.getElementById("newsSelectFeaturedImage");
+
+  if (idInput) idInput.value = "";
+  if (imgEl) { imgEl.src = ""; imgEl.alt = ""; }
+  if (preview) preview.style.display = "none";
+  if (selectBtn) selectBtn.style.display = "";
+}
+
+// ── OG Image (optional, independent of Featured Image) ──────
+function openNewsOgImagePicker() {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function(media) {
+    if (!media || !media.id) return;
+    setNewsOgImage(media.id, media.url || media.thumbnail_url || "", media.alt_text || "");
+  }, "news");
+}
+
+function setNewsOgImage(id, url, alt) {
+  const idInput = document.getElementById("newsOgImageId");
+  const imgEl = document.getElementById("newsOgImageImg");
+  const preview = document.getElementById("newsOgImagePreview");
+  const selectBtn = document.getElementById("newsSelectOgImage");
+
+  if (idInput) idInput.value = String(id);
+  if (imgEl) { imgEl.src = url; imgEl.alt = alt; }
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+}
+
+function clearNewsOgImage() {
+  const idInput = document.getElementById("newsOgImageId");
+  const imgEl = document.getElementById("newsOgImageImg");
+  const preview = document.getElementById("newsOgImagePreview");
+  const selectBtn = document.getElementById("newsSelectOgImage");
 
   if (idInput) idInput.value = "";
   if (imgEl) { imgEl.src = ""; imgEl.alt = ""; }
@@ -3457,6 +3504,17 @@ async function editNews(slug) {
       );
     } else {
       clearNewsFeaturedImage();
+    }
+
+    // OG image (optional — independent of Featured Image)
+    if (article.og_image && (article.og_image_url || article.og_image_thumbnail)) {
+      setNewsOgImage(
+        article.og_image,
+        article.og_image_url || article.og_image_thumbnail,
+        article.og_image_alt || ""
+      );
+    } else {
+      clearNewsOgImage();
     }
 
     // SEO

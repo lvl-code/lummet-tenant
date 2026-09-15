@@ -16,14 +16,19 @@ export async function getNews(db, slug) {
       m.caption         AS featured_image_caption,
       m.width           AS featured_image_width,
       m.height          AS featured_image_height,
+      og.url            AS og_image_url,
+      og.alt_text       AS og_image_alt,
+      og.width          AS og_image_width,
+      og.height         AS og_image_height,
       a.name            AS author_name,
       a.slug            AS author_slug,
       a.bio             AS author_bio,
       a.avatar_url      AS author_avatar,
       a.role            AS author_role
     FROM news n
-    LEFT JOIN media_library m ON m.id = n.featured_image
-    LEFT JOIN authors a       ON a.id = n.author_id
+    LEFT JOIN media_library m  ON m.id = n.featured_image
+    LEFT JOIN media_library og ON og.id = n.og_image
+    LEFT JOIN authors a        ON a.id = n.author_id
     WHERE n.slug = ?
     LIMIT 1
   `)
@@ -60,12 +65,16 @@ export async function getAllNewsAdmin(db) {
       m.url            AS featured_image_url,
       m.thumbnail_url   AS featured_image_thumbnail,
       m.alt_text        AS featured_image_alt,
+      og.url            AS og_image_url,
+      og.thumbnail_url  AS og_image_thumbnail,
+      og.alt_text       AS og_image_alt,
       a.name            AS author_name,
       a.slug            AS author_slug,
       a.avatar_url      AS author_avatar
     FROM news n
-    LEFT JOIN media_library m ON m.id = n.featured_image
-    LEFT JOIN authors a       ON a.id = n.author_id
+    LEFT JOIN media_library m  ON m.id = n.featured_image
+    LEFT JOIN media_library og ON og.id = n.og_image
+    LEFT JOIN authors a        ON a.id = n.author_id
     ORDER BY COALESCE(n.published_at, n.created_at) DESC, n.id DESC
   `).all();
 
@@ -203,10 +212,10 @@ export async function createNews(db, data) {
     INSERT INTO news (
       slug, title, content, author, author_id,
       ai_generated, seo_title, seo_description, seo_keywords,
-      published, featured_image, excerpt, tags,
+      published, featured_image, og_image, excerpt, tags,
       published_at, ad_mode, created_by
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   .bind(
     slug,
@@ -220,6 +229,7 @@ export async function createNews(db, data) {
     normalizeText(data.seo_keywords),
     published,
     normalizeId(data.featured_image),
+    normalizeId(data.og_image),
     normalizeText(data.excerpt),
     normalizeText(data.tags),
     publishedAt,
@@ -307,6 +317,7 @@ export async function updateNews(db, oldSlug, data) {
       seo_keywords  = ?,
       published     = ?,
       featured_image = ?,
+      og_image      = ?,
       excerpt       = ?,
       tags          = ?,
       published_at  = ?,
@@ -326,6 +337,7 @@ export async function updateNews(db, oldSlug, data) {
     normalizeText(data.seo_keywords),
     published,
     normalizeId(data.featured_image),
+    normalizeId(data.og_image),
     normalizeText(data.excerpt),
     normalizeText(data.tags),
     data.published_at || null,

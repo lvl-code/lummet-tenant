@@ -4297,6 +4297,10 @@ export async function renderDashboardCategories(request, env) {
   return renderAdminPage(request, env, "admin/categories.html");
 }
 
+export async function renderDashboardPaymentMethods(request, env) {
+  return renderAdminPage(request, env, "admin/payment-methods.html");
+}
+
 export async function renderDashboardCountries(request, env) {
   return renderAdminPage(request, env, "admin/countries.html");
 }

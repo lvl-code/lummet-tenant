@@ -10,6 +10,7 @@ import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
+import * as paymentMethods from "./database/payment-methods.js";
 import * as news from "./database/news.js";
 import * as platformUpdates from "./database/platform-updates.js";
 import * as seoPages from "./database/seo-pages.js";
@@ -503,6 +504,10 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/countries/list": "countries",
       "/api/v1/country/get-by-id": "countries",
       "/api/v1/country/get-by-code": "countries",
+      // Payment Methods
+      "/api/v1/payment-methods/list": "payment_methods",
+      "/api/v1/payment-method/get-by-id": "payment_methods",
+      "/api/v1/payment-method/casinos": "payment_methods",
       // Authors
       "/api/v1/authors/list": "authors",
       "/api/v1/author/get": "authors",
@@ -623,6 +628,8 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/categories": "categories",
       "/api/v1/country": "countries",
       "/api/v1/countries": "countries",
+      "/api/v1/payment-method": "payment_methods",
+      "/api/v1/payment-methods": "payment_methods",
       "/api/v1/author": "authors",
       "/api/v1/authors": "authors",
       "/api/v1/component": "components",
@@ -1150,6 +1157,66 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       if (!slug) return failure("slug is required", 422);
       const rows = await categories.getCategoryCasinos(env.DB, slug);
       return json({ success: true, casinos: rows });
+    }
+
+
+
+    // ==================================
+    // PAYMENT METHODS CRUD
+    // ==================================
+    if (path === "/api/v1/payment-methods/list" && request.method === "GET") {
+      const rows = await paymentMethods.getAllPaymentMethods(env.DB);
+      return json({ success: true, payment_methods: rows });
+    }
+
+    if (path === "/api/v1/payment-method/get-by-id" && request.method === "GET") {
+      const urlObj = new URL(request.url);
+      const id = urlObj.searchParams.get("id");
+      if (!id) return failure("id is required", 422);
+      const row = await env.DB.prepare(`SELECT * FROM payment_methods WHERE id = ?`).bind(id).first();
+      if (!row) return failure("Not found", 404);
+      return json({ success: true, payment_method: row });
+    }
+
+    if (path === "/api/v1/payment-method/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug", "name"]);
+      await paymentMethods.createPaymentMethod(env.DB, body);
+      return success();
+    }
+
+    if (path === "/api/v1/payment-method/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug", "name"]);
+      await paymentMethods.updatePaymentMethod(env.DB, body.slug, body);
+      return success();
+    }
+
+    if (path === "/api/v1/payment-method/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["slug"]);
+      await paymentMethods.deletePaymentMethod(env.DB, body.slug);
+      return success();
+    }
+
+    // Casinos currently linked to a payment method -- feeds the
+    // "which casinos accept this" checkbox pre-check on the edit form.
+    if (path === "/api/v1/payment-method/casinos" && request.method === "GET") {
+      const urlObj = new URL(request.url);
+      const slug = urlObj.searchParams.get("slug");
+      if (!slug) return failure("slug is required", 422);
+      const casinoIds = await paymentMethods.getCasinoIdsForPaymentMethod(env.DB, slug);
+      return json({ success: true, casino_ids: casinoIds });
+    }
+
+    // Replaces the full casino list for one payment method in a
+    // single call (delete-then-reinsert under the hood -- see
+    // setCasinoPaymentMethods). Body: { payment_method_id, casino_ids: [...] }
+    if (path === "/api/v1/payment-method/set-casinos" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["payment_method_id"]);
+      await paymentMethods.setCasinoPaymentMethods(env.DB, body.payment_method_id, body.casino_ids || []);
+      return success();
     }
 
 

@@ -57,6 +57,22 @@ export async function getCasinosForPaymentMethod(db, slug) {
 }
 
 /**
+ * Just the casino ids linked to a payment method -- for the admin
+ * form's "which casinos already accept this" checkbox pre-check.
+ * Cheaper than getCasinosForPaymentMethod() when the full casino
+ * rows aren't needed.
+ */
+export async function getCasinoIdsForPaymentMethod(db, slug) {
+  const result = await db.prepare(`
+    SELECT cpm.casino_id
+    FROM casino_payment_methods cpm
+    JOIN payment_methods pm ON pm.id = cpm.payment_method_id
+    WHERE pm.slug = ?
+  `).bind(slug).all();
+  return (result.results || []).map(r => r.casino_id);
+}
+
+/**
  * Batched: payment methods for MANY casinos in one query, keyed by
  * casino_id -- the same "N+1 avoidance" shape as
  * offers/selection.js's resolveOffersForCasinos(). Card rendering

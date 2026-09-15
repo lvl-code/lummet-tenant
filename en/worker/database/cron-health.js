@@ -19,7 +19,8 @@ export const CRON_JOBS = [
   { key: 'analytics_aggregation', flagKey: 'analytics_aggregation_cron_enabled', label: 'Analytics Aggregation', expectedIntervalHours: 6 },
   { key: 'alert_evaluation', flagKey: 'alert_rules_cron_enabled', label: 'Alert Evaluation', expectedIntervalHours: 6 },
   { key: 'provider_sync', flagKey: 'provider_sync_cron_enabled', label: 'Provider API Sync', expectedIntervalHours: 6 },
-  { key: 'report_schedules', flagKey: 'report_schedules_cron_enabled', label: 'Scheduled Reports', expectedIntervalHours: 6 }
+  { key: 'report_schedules', flagKey: 'report_schedules_cron_enabled', label: 'Scheduled Reports', expectedIntervalHours: 6 },
+  { key: 'weekly_digest', flagKey: 'weekly_digest_cron_enabled', label: 'Weekly Subscriber Digest', expectedIntervalHours: 6 }
 ];
 
 /**

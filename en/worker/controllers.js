@@ -4475,6 +4475,14 @@ export async function renderDashboardUsers(request, env) {
   return renderAdminPage(request, env, "admin/users.html");
 }
 
+export async function renderDashboardSubscriptions(request, env) {
+  return renderAdminPage(request, env, "admin/subscriptions.html");
+}
+
+export async function renderDashboardEmails(request, env) {
+  return renderAdminPage(request, env, "admin/emails.html");
+}
+
 export async function renderDashboardInquiries(request, env) {
   return renderAdminPage(request, env, "admin/inquiries.html");
 }

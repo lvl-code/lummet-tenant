@@ -13,6 +13,17 @@ export async function getUserById(db, id) {
   `).bind(id).first();
 }
 
+// "New users" recipient type for the email composer -- registered
+// within the last N days.
+export async function getRecentUsers(db, sinceDays) {
+  const result = await db.prepare(`
+    SELECT id, email, role, created_at FROM users
+    WHERE created_at >= datetime('now', '-' || ? || ' days')
+    ORDER BY created_at DESC
+  `).bind(sinceDays).all();
+  return result.results || [];
+}
+
 export async function updateUserRole(db, id, role) {
   return await db.prepare(`
     UPDATE users SET role = ? WHERE id = ?

@@ -17,6 +17,7 @@ import {
 } from "./database/users.js";
 import { sendEmail } from "./email.js";
 import { getSiteContext } from "./site-context.js";
+import { upsertConfirmedSubscriberForUser } from "./database/newsletter.js";
 
 // ── Turnstile verification ──
 
@@ -459,10 +460,21 @@ export async function register(request, env) {
   }
 
   const passwordHash = await hashPassword(password);
-  await env.DB.prepare(`
+  const insertResult = await env.DB.prepare(`
     INSERT INTO users(email, password_hash, role)
     VALUES (?, ?, 'viewer')
   `).bind(email, passwordHash).run();
+
+  // Auto-subscribe every new account to the newsletter (confirmed
+  // immediately -- a registered account is already a verified email,
+  // no double opt-in needed; see upsertConfirmedSubscriberForUser).
+  // Best-effort: registration must succeed even if this fails.
+  try {
+    const newUserId = insertResult.meta.last_row_id;
+    await upsertConfirmedSubscriberForUser(env.DB, newUserId, email);
+  } catch (err) {
+    console.error("register: auto-subscribe failed", err.message);
+  }
 
   return json({ success: true });
 }

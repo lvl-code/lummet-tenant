@@ -229,6 +229,8 @@ export function getRoute(request) {
   if (path === "/en/dashboard/permissions") return { type: "dashboardPermissions" };
   if (path === "/en/dashboard/item-access") return { type: "dashboardItemAccess" };
   if (path === "/en/dashboard/users") return { type: "dashboardUsers" };
+  if (path === "/en/dashboard/subscriptions") return { type: "dashboardSubscriptions" };
+  if (path === "/en/dashboard/emails") return { type: "dashboardEmails" };
   if (path === "/en/dashboard/inquiries") return { type: "dashboardInquiries" };
   if (path === "/en/dashboard/submissions") return { type: "dashboardSubmissions" };
   if (path === "/en/dashboard/notifications") return { type: "dashboardNotifications" };

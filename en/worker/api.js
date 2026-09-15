@@ -76,6 +76,10 @@ import {
 }
 from "./auth.js";
 import { subscribeNewsletter } from "./newsletter.js";
+import * as newsletterDB from "./database/newsletter.js";
+import * as emailCampaigns from "./email-campaigns.js";
+import * as campaignDB from "./database/email-campaigns.js";
+import { notifyOnPublish } from "./content-notifications.js";
 import { dashboardStatsAPI } from "./controllers.js";
 import { aiEngine } from "./ai.js";
 import * as componentsDB from "./database/components.js";
@@ -2111,6 +2115,97 @@ async function requireAdAdmin(request, env) {
     }
 
     // ==================================
+    // ADMIN — SUBSCRIPTIONS (newsletter_subscribers)
+    // ==================================
+
+    if (path === "/api/v1/admin/subscribers" && request.method === "GET") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const url = new URL(request.url);
+      const status = url.searchParams.get("status") || null;
+      const search = url.searchParams.get("search") || null;
+      const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10) || 50, 200);
+      const offset = parseInt(url.searchParams.get("offset") || "0", 10) || 0;
+
+      const [subscribers, counts] = await Promise.all([
+        newsletterDB.listSubscribers(env.DB, { status, search, limit, offset }),
+        newsletterDB.countSubscribersByStatus(env.DB)
+      ]);
+      return json({ subscribers, counts });
+    }
+
+    if (path === "/api/v1/admin/subscribers/add" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const body = await request.json();
+      validate(body, ["email"]);
+      const email = String(body.email).trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return failure("A valid email address is required");
+      }
+      await newsletterDB.adminAddSubscriber(env.DB, email);
+      return success();
+    }
+
+    if (path === "/api/v1/admin/subscribers/unsubscribe" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const body = await request.json();
+      validate(body, ["id"]);
+      await newsletterDB.unsubscribeSubscriber(env.DB, body.id);
+      return success();
+    }
+
+    // ==================================
+    // ADMIN — EMAIL CAMPAIGNS (composer)
+    // ==================================
+
+    if (path === "/api/v1/admin/email-campaigns" && request.method === "GET") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const url = new URL(request.url);
+      const limit = Math.min(parseInt(url.searchParams.get("limit") || "30", 10) || 30, 100);
+      const offset = parseInt(url.searchParams.get("offset") || "0", 10) || 0;
+      const campaigns = await campaignDB.listCampaigns(env.DB, { limit, offset });
+      return json({ campaigns });
+    }
+
+    if (path === "/api/v1/admin/email-campaigns/preview" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const body = await request.json();
+      validate(body, ["recipientType"]);
+      try {
+        const count = await emailCampaigns.previewRecipientCount(env, {
+          recipientType: body.recipientType,
+          userIds: body.userIds || [],
+          customEmails: body.customEmails || [],
+          sinceDays: body.sinceDays || 7
+        });
+        return json({ success: true, count });
+      } catch (e) {
+        return failure(e.message);
+      }
+    }
+
+    if (path === "/api/v1/admin/email-campaigns/send" && request.method === "POST") {
+      if (user.role !== "admin") return json({ success: false, error: "Forbidden" }, 403);
+      const body = await request.json();
+      validate(body, ["subject", "bodyHtml", "recipientType"]);
+      try {
+        const result = await emailCampaigns.sendCampaign(env, request, {
+          subject: body.subject,
+          layout: body.layout || "branded",
+          bodyHtml: body.bodyHtml,
+          bodyText: body.bodyText || null,
+          recipientType: body.recipientType,
+          userIds: body.userIds || [],
+          customEmails: body.customEmails || [],
+          sinceDays: body.sinceDays || 7,
+          createdByUserId: user.user_id
+        });
+        return json({ success: true, ...result });
+      } catch (e) {
+        return failure(e.message);
+      }
+    }
+
+    // ==================================
     // ADMIN — SUBMISSION MANAGEMENT
     // ==================================
 
@@ -3821,6 +3916,13 @@ async function createCasino(request, env, user) {
     );
   }
   await invalidateCasinos(env);
+
+  // Best-effort subscriber notification -- off by default (see
+  // worker/content-notifications.js), never blocks/fails this save.
+  if (body.published !== 0) {
+    await notifyOnPublish(env, request, { type: 'casino', title: body.name, slug: body.slug });
+  }
+
   return success();
 }
 
@@ -3916,6 +4018,10 @@ async function createReview(request, env, user) {
     env.DB,
     body
   );
+
+  if (body.published !== 0) {
+    await notifyOnPublish(env, request, { type: 'review', title: body.title, slug: body.slug });
+  }
 
   return success();
 }
@@ -4068,6 +4174,11 @@ async function createNews(request, env, user) {
   body.created_by = user.user_id;
   await news.createNews(env.DB, body);
   await invalidateNews(env);
+
+  if (body.published !== 0) {
+    await notifyOnPublish(env, request, { type: 'news', title: body.title, slug: body.slug });
+  }
+
   return success();
 }
 

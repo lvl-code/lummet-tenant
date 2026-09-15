@@ -27,6 +27,8 @@ import {
   renderDashboardPermissions,
   renderDashboardItemAccess,
   renderDashboardUsers,
+  renderDashboardSubscriptions,
+  renderDashboardEmails,
   renderDashboardInquiries,
   renderDashboardSubmissions,
   renderDashboardNotifications,
@@ -92,7 +94,7 @@ import {
   getCurrentUser
 }
 from "./auth.js";
-import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync } from "./cron.js";
+import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync, runWeeklyDigest } from "./cron.js";
 import { runScheduledHealthChecks } from "./tracking/health-check.js";
 
 import { cleanupExpiredConversations } from "./ai/memory.js";
@@ -345,6 +347,10 @@ if (
 
       case "dashboardUsers":
         return renderDashboardUsers(request, env);
+      case "dashboardSubscriptions":
+        return renderDashboardSubscriptions(request, env);
+      case "dashboardEmails":
+        return renderDashboardEmails(request, env);
       case "dashboardInquiries":
         return renderDashboardInquiries(request, env);
       case "dashboardSubmissions":
@@ -586,6 +592,17 @@ case "sitemap-seo-pages":
         ctx.waitUntil(
             runProviderSync(env).catch(() => {
                 // Never let a provider sync failure affect other scheduled tasks.
+            })
+        );
+
+        // Weekly subscriber digest (this feature) -- same feature-flag
+        // convention ('weekly_digest_cron_enabled', default off). Its
+        // own internal 7-day cadence check means this is a safe no-op
+        // to leave wired in even while the underlying trigger fires
+        // every 6 hours -- see worker/cron.js runWeeklyDigest().
+        ctx.waitUntil(
+            runWeeklyDigest(env).catch(() => {
+                // Never let a digest failure affect other scheduled tasks.
             })
         );
 

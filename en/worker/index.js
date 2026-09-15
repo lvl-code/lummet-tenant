@@ -61,6 +61,7 @@ import {
   renderPaymentMethod,
   renderCountryList,
   renderDashboardCategories,
+  renderDashboardPaymentMethods,
   renderDashboardCountries,
   renderDashboardCasinoEdit,
   dashboardStatsAPI,
@@ -334,6 +335,8 @@ if (
         return renderDashboardAI(request, env);
       case "dashboardCategories":
         return renderDashboardCategories(request, env);
+      case "dashboardPaymentMethods":
+        return renderDashboardPaymentMethods(request, env);
       case "dashboardCountries":
         return renderDashboardCountries(request, env);
       case "authorList":

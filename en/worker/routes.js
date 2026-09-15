@@ -242,6 +242,7 @@ export function getRoute(request) {
   if (path === "/en/category") return { type: "categoryList" };
   if (path === "/en/country") return { type: "countryList" };
   if (path === "/en/dashboard/categories") return { type: "dashboardCategories" };
+  if (path === "/en/dashboard/payment-methods") return { type: "dashboardPaymentMethods" };
   if (path === "/en/dashboard/countries") return { type: "dashboardCountries" };
   if (path === "/en/dashboard/authors") return { type: "dashboardAuthors" };
   if (path === "/en/dashboard/media") return { type: "dashboardMedia" };

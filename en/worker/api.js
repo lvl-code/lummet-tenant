@@ -691,7 +691,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       }
     }
 
-    if (path.endsWith("/create") || path.endsWith("/save") || path.endsWith("/sync") || path.endsWith("/assign") || path.endsWith("/toggle") || path.endsWith("/reorder") || path.endsWith("/unassign") || path.endsWith("/bulk-assign") || path.endsWith("/update-assignment")) {
+    if (path.endsWith("/create") || path.endsWith("/save") || path.endsWith("/sync") || path.endsWith("/assign") || path.endsWith("/toggle") || path.endsWith("/reorder") || path.endsWith("/unassign") || path.endsWith("/bulk-assign") || path.endsWith("/update-assignment") || path.endsWith("/set-casinos") || path.endsWith("/set-payment-methods")) {
       action = "create";
     } else if (path.endsWith("/update")) {
       action = "update";

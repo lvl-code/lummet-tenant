@@ -2813,7 +2813,8 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
     seo_description: page.seo_description || "",
     seo_keywords: page.seo_keywords || "",
     canonical: page.canonical_url || site.url(`/en/country/${code}/${slug}`),
-    og_image: page.og_image || page.featured_image || "",
+    og_image: (page.og_image || page.featured_image) ? site.url(page.og_image || page.featured_image) : site.ogImageUrl,
+    og_image_alt: page.title,
     robots: page.robots || "index,follow",
     author_name: author?.name || "",
     author_id: page.author_id || null
@@ -2923,7 +2924,8 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     seo_description: effectivePage.seo_description || "",
     seo_keywords: effectivePage.seo_keywords || "",
     canonical: effectivePage.canonical_url || site.url(`/en/category/${categorySlug}/${code}`),
-    og_image: effectivePage.og_image || effectivePage.featured_image || "",
+    og_image: (effectivePage.og_image || effectivePage.featured_image) ? site.url(effectivePage.og_image || effectivePage.featured_image) : site.ogImageUrl,
+    og_image_alt: effectivePage.title,
     robots: effectivePage.robots || "index,follow",
     author_name: author?.name || "",
     author_id: effectivePage.author_id || null

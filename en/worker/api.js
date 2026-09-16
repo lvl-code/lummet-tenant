@@ -508,6 +508,8 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/payment-methods/list": "payment_methods",
       "/api/v1/payment-method/get-by-id": "payment_methods",
       "/api/v1/payment-method/casinos": "payment_methods",
+      "/api/v1/payment-method/eligible-casinos": "payment_methods",
+      "/api/v1/casino/payment-methods": "casinos",
       // Authors
       "/api/v1/authors/list": "authors",
       "/api/v1/author/get": "authors",
@@ -1209,13 +1211,45 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       return json({ success: true, casino_ids: casinoIds });
     }
 
-    // Replaces the full casino list for one payment method in a
-    // single call (delete-then-reinsert under the hood -- see
-    // setCasinoPaymentMethods). Body: { payment_method_id, casino_ids: [...] }
+    // Full casino rows accepted for this payment method's own
+    // content-section casino pickers (casino_grid/casino_editorial/
+    // casino_spotlights) -- same role as /category/eligible-casinos.
+    if (path === "/api/v1/payment-method/eligible-casinos" && request.method === "GET") {
+      const urlObj = new URL(request.url);
+      const slug = urlObj.searchParams.get("slug");
+      if (!slug) return failure("slug is required", 422);
+      const rows = await paymentMethods.getCasinosForPaymentMethod(env.DB, slug);
+      return json({ success: true, casinos: rows });
+    }
+
+    // Replaces the full casino list for ONE payment method in a
+    // single call (bulk direction #1: one method -> many casinos).
+    // Body: { payment_method_id, casino_ids: [...] }
     if (path === "/api/v1/payment-method/set-casinos" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["payment_method_id"]);
-      await paymentMethods.setCasinoPaymentMethods(env.DB, body.payment_method_id, body.casino_ids || []);
+      await paymentMethods.setCasinosForPaymentMethod(env.DB, body.payment_method_id, body.casino_ids || []);
+      return success();
+    }
+
+    // Payment methods currently linked to a casino -- feeds the
+    // "which methods this casino accepts" checkbox pre-check on the
+    // casino edit form (bulk direction #2, see below).
+    if (path === "/api/v1/casino/payment-methods" && request.method === "GET") {
+      const urlObj = new URL(request.url);
+      const casinoId = urlObj.searchParams.get("casino_id");
+      if (!casinoId) return failure("casino_id is required", 422);
+      const paymentMethodIds = await paymentMethods.getPaymentMethodIdsForCasino(env.DB, casinoId);
+      return json({ success: true, payment_method_ids: paymentMethodIds });
+    }
+
+    // Replaces the full payment-method list for ONE casino in a
+    // single call (bulk direction #2: one casino -> many methods).
+    // Body: { casino_id, payment_method_ids: [...] }
+    if (path === "/api/v1/casino/set-payment-methods" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["casino_id"]);
+      await paymentMethods.setCasinoPaymentMethods(env.DB, body.casino_id, body.payment_method_ids || []);
       return success();
     }
 

@@ -4069,6 +4069,8 @@ function initPaymentMethodForm() {
   const form = document.getElementById("paymentMethodForm");
   if (!form) return;
 
+  wireSeoSectionBuilder("payment_method", "pmFormSections", "pmFormAddSectionBtn");
+
   const selectBtn = document.getElementById("pmSelectIcon");
   const changeBtn = document.getElementById("pmChangeIcon");
   const removeBtn = document.getElementById("pmRemoveIcon");
@@ -4085,6 +4087,7 @@ function initPaymentMethodForm() {
     if (alertEl) alertEl.style.display = "none";
 
     const formData = new FormData(form);
+    syncSeoSectionsFromDom("payment_method");
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/payment-method/update" : "/en/api/v1/payment-method/create";
 
@@ -4098,6 +4101,7 @@ function initPaymentMethodForm() {
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
       seo_keywords: formData.get("seo_keywords") || null,
+      content_json: { sections: seoPageState.payment_method.sections },
       sort_order: parseInt(formData.get("sort_order") || "0"),
       status: formData.get("status") || "published",
       published: formData.get("published") === "0" ? 0 : 1,
@@ -4125,6 +4129,8 @@ function initPaymentMethodForm() {
         document.getElementById("paymentMethodCancelEdit").style.display = "none";
         document.getElementById("paymentMethodFormTitle").textContent = "Add Payment Method";
         document.getElementById("pmCasinosGroup").style.display = "none";
+        seoPageState.payment_method.sections = [];
+        renderSeoSections("payment_method");
         loadPaymentMethodsTable();
         // A brand-new method has nothing to link yet on this same
         // load (its id wasn't known to the form) -- jump straight
@@ -4202,10 +4208,29 @@ async function editPaymentMethod(id) {
     document.getElementById("paymentMethodCancelEdit").style.display = "";
     document.getElementById("paymentMethodFormTitle").textContent = `Edit — ${m.name}`;
 
+    let content = {};
+    try { content = typeof m.content_json === "string" ? JSON.parse(m.content_json) : (m.content_json || {}); } catch (e) {}
+    seoPageState.payment_method.sections = Array.isArray(content.sections) ? content.sections : [];
+    renderSeoSections("payment_method");
+    loadPaymentMethodFormEligibleCasinos(m.slug);
+
     await loadPaymentMethodCasinoCheckboxes(m.id, m.slug);
 
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
   } catch { alert("Failed to load payment method"); }
+}
+
+async function loadPaymentMethodFormEligibleCasinos(slug) {
+  if (!slug) return;
+  try {
+    const res = await fetch("/en/api/v1/payment-method/eligible-casinos?slug=" + encodeURIComponent(slug));
+    const data = await res.json().catch(() => ({}));
+    seoPageState.payment_method.eligibleCasinos = data.casinos || [];
+  } catch (e) {
+    seoPageState.payment_method.eligibleCasinos = [];
+  }
+  syncSeoSectionsFromDom("payment_method");
+  renderSeoSections("payment_method");
 }
 
 function cancelPaymentMethodEdit() {
@@ -4217,6 +4242,8 @@ function cancelPaymentMethodEdit() {
   document.getElementById("paymentMethodCancelEdit").style.display = "none";
   document.getElementById("paymentMethodFormTitle").textContent = "Add Payment Method";
   document.getElementById("pmCasinosGroup").style.display = "none";
+  seoPageState.payment_method.sections = [];
+  renderSeoSections("payment_method");
   if (window.RichEditor && typeof RichEditor.set === "function") {
     RichEditor.set("payment-method-description", "");
   }
@@ -5408,7 +5435,11 @@ const seoPageState = {
   // lists its casinos automatically; these sections are extra
   // editorial content), so only sections + eligibleCasinos matter.
   country: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null },
-  category: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null }
+  category: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null },
+  // Payment method hub pages -- same "no casino_mode, just extra
+  // editorial sections" shape as country/category above (the page
+  // already lists its casinos via the casino_payment_methods join).
+  payment_method: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null }
 };
 
 function seoCasinoPickerOptionsHtml(prefix, selectedIds) {

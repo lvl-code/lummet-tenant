@@ -1,0 +1,593 @@
+import { getRoute }
+from "./routes.js";
+import { serveMedia } from './media-upload.js';
+import { handleSuperApi } from "./super/router.js";
+import {
+  renderHome,
+  renderAuthor,
+  renderAuthorList,
+  renderDashboardAuthors,
+  renderNews,
+  renderCasino,
+  renderReview,
+  renderCountry,
+  renderCountryCustomPage,
+  renderCategory,
+  renderCategoryCountryPage,
+  renderAffiliate,
+  renderDashboardPage,
+  renderCasinoList,
+  renderReviewList,
+  renderNewsList,
+  renderUpdatesList,
+  renderUpdate,
+  renderDashboardComponents,
+  renderDashboardMedia,
+  renderDashboardNav,
+  renderDashboardPermissions,
+  renderDashboardItemAccess,
+  renderDashboardUsers,
+  renderDashboardInquiries,
+  renderDashboardSubmissions,
+  renderDashboardNotifications,
+  renderDashboardBanners,
+  renderDashboardAffiliatePartners,
+  renderDashboardAffiliatePrograms,
+  renderDashboardAffiliateAccounts,
+  renderDashboardCommercialTerms,
+  renderDashboardPostbackConfigs,
+  renderDashboardImportHistory,
+  renderDashboardProviderAdapters,
+  renderDashboardOffers,
+  renderDashboardTrackingLinks,
+  renderDashboardAnalytics,
+  renderDashboardCampaigns,
+  renderDashboardReports,
+  renderDashboardSeo,
+  renderDashboardCasinos,
+  renderDashboardCasinoCreate,
+  renderDashboardReviews,
+  renderDashboardNews,
+  renderDashboardUpdates,
+  renderDashboardCountryPages,
+  renderDashboardCategoryCountries,
+  renderDashboardPages,
+  renderDashboardSettings,
+  renderDashboardAI,
+  renderCategoryList,
+  renderCountryList,
+  renderDashboardCategories,
+  renderDashboardCountries,
+  renderDashboardCasinoEdit,
+  dashboardStatsAPI,
+
+  renderUserDashboard,
+  renderUserSubmitCasino,
+  renderUserInquiries,
+  renderUserProfile,
+  renderUserNotifications,
+  renderUserBookmarks,
+  renderDynamicPage,
+  handleAffiliateRedirect,
+  renderLogin,
+  renderRegister,
+  renderForgotPassword,
+  renderResetPassword,
+  robots,
+  render404,
+  renderSitemapPage
+}
+from "./controllers.js";
+
+import {
+  handleAPI
+}
+from "./api.js";
+
+import {
+  sitemapEngine
+}
+from "./sitemap.js";
+import {
+  getCurrentUser
+}
+from "./auth.js";
+import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync } from "./cron.js";
+import { runScheduledHealthChecks } from "./tracking/health-check.js";
+
+import { cleanupExpiredConversations } from "./ai/memory.js";
+
+import { handleLummetRequest } from "./lummet/router.js";
+import { getSiteContext } from "./site-context.js";
+import { confirmNewsletter, unsubscribeNewsletter } from "./newsletter.js";
+
+export default {
+
+  async fetch(request, env, ctx) {
+
+    const url = new URL(request.url);
+
+    // ── Check if this is the Lummet subdomain ──
+    // ── Check if this is the tenant's Lummet subdomain ──
+    if (url.hostname.startsWith("lummet.")) {
+      const lummetResponse = await handleLummetRequest(request, env, ctx);
+
+      if (lummetResponse) {
+        return lummetResponse;
+      }
+    }
+
+
+    // ==========================================================
+// HOST-AWARE PWA MANIFEST
+// ==========================================================
+
+if (
+  request.method === "GET" &&
+  url.pathname === "/site.webmanifest"
+) {
+  const site = await getSiteContext(
+    request,
+    env
+  );
+
+  const { buildSiteManifest } =
+    await import("./site-settings.js");
+
+  const manifest =
+    buildSiteManifest(
+      site,
+      site.origin
+    );
+
+  return new Response(
+    JSON.stringify(
+      manifest,
+      null,
+      2
+    ),
+    {
+      status: 200,
+      headers: {
+        "content-type":
+          "application/manifest+json; charset=utf-8",
+
+        "cache-control":
+          "public, max-age=300"
+      }
+    }
+  );
+}
+
+
+    // Serve static assets
+    if (
+      url.pathname.startsWith("/static/")
+    ) {
+      return env.ASSETS.fetch(request);
+    }
+
+    const route = getRoute(request);
+
+    switch (route.type) {
+
+      case "home":
+        return renderHome(request, env);
+      case "login":
+  return renderLogin(
+    request,
+    env
+  );
+      case "register":
+  return renderRegister(
+    request,
+    env
+  );
+      case "forgotPassword":
+  return renderForgotPassword(
+    request,
+    env
+  );
+      case "resetPassword":
+  return renderResetPassword(
+    request,
+    env
+  );
+      case "newsletterConfirm":
+  return confirmNewsletter(
+    request,
+    env
+  );
+      case "newsletterUnsubscribe":
+  return unsubscribeNewsletter(
+    request,
+    env
+  );
+
+
+
+      case "casino":
+        return renderCasino(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+
+      case "review":
+        return renderReview(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+      case "news":
+        return renderNews(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+
+      case "country":
+        return renderCountry(
+          request,
+          env,
+          route.slug
+        );
+
+      case "countryCustomPage":
+        return renderCountryCustomPage(
+          request,
+          env,
+          route.countryCode,
+          route.slug
+        );
+
+      case "category":
+        return renderCategory(
+          request,
+          env,
+          route.slug
+        );
+
+      case "categoryCountryPage":
+        return renderCategoryCountryPage(
+          request,
+          env,
+          route.categorySlug,
+          route.countryCode
+        );
+
+      case "affiliate":
+        return renderAffiliate(
+          request,
+          env,
+          route.slug
+        );
+
+      case "go":
+        return handleAffiliateRedirect(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+
+      case "dashboard":
+        return renderDashboardPage(
+          request,
+          env
+        );
+
+      case "casinoList":
+        return renderCasinoList(request, env);
+      case "reviewList":
+        return renderReviewList(request, env);
+      case "newsList":
+        return renderNewsList(request, env);
+
+
+      case "updatesList":
+        return renderUpdatesList(request, env);
+
+      case "update":
+        return renderUpdate(
+          request,
+          env,
+          route.slug
+        );
+
+      case "categoryList":
+        return renderCategoryList(request, env);
+      case "countryList":
+        return renderCountryList(request, env);
+      case "dashboardCasinos":
+        return renderDashboardCasinos(request, env);
+      case "dashboardCasinoCreate":
+        return renderDashboardCasinoCreate(request, env);
+      case "dashboardReviews":
+        return renderDashboardReviews(request, env);
+      case "dashboardNews":
+        return renderDashboardNews(request, env);
+      case "dashboardUpdates":
+        return renderDashboardUpdates(request, env);
+
+      case "dashboardCountryPages":
+        return renderDashboardCountryPages(request, env);
+
+      case "dashboardCategoryCountries":
+        return renderDashboardCategoryCountries(request, env);
+      case "dashboardPages":
+        return renderDashboardPages(request, env);
+      case "dashboardSettings":
+        return renderDashboardSettings(request, env);
+      case "dashboardAI":
+        return renderDashboardAI(request, env);
+      case "dashboardCategories":
+        return renderDashboardCategories(request, env);
+      case "dashboardCountries":
+        return renderDashboardCountries(request, env);
+      case "authorList":
+        return renderAuthorList(request, env);
+      case "author":
+        return renderAuthor(request, env, route.slug);
+      case "dashboardAuthors":
+        return renderDashboardAuthors(request, env);
+      case "dashboardMedia":
+        return renderDashboardMedia(request, env);
+      case "dashboardNav":
+        return renderDashboardNav(request, env);
+      case "dashboardPermissions":
+        return renderDashboardPermissions(request, env);
+      case "dashboardItemAccess":
+        return renderDashboardItemAccess(request, env);
+
+      case "dashboardUsers":
+        return renderDashboardUsers(request, env);
+      case "dashboardInquiries":
+        return renderDashboardInquiries(request, env);
+      case "dashboardSubmissions":
+        return renderDashboardSubmissions(request, env);
+      case "dashboardNotifications":
+        return renderDashboardNotifications(request, env);
+      case "dashboardBanners":
+        return renderDashboardBanners(request, env);
+      case "dashboardAffiliatePartners":
+        return renderDashboardAffiliatePartners(request, env);
+      case "dashboardAffiliatePrograms":
+        return renderDashboardAffiliatePrograms(request, env);
+      case "dashboardAffiliateAccounts":
+        return renderDashboardAffiliateAccounts(request, env);
+      case "dashboardCommercialTerms":
+        return renderDashboardCommercialTerms(request, env);
+      case "dashboardPostbackConfigs":
+        return renderDashboardPostbackConfigs(request, env);
+      case "dashboardImportHistory":
+        return renderDashboardImportHistory(request, env);
+      case "dashboardProviderAdapters":
+        return renderDashboardProviderAdapters(request, env);
+      case "dashboardOffers":
+        return renderDashboardOffers(request, env);
+      case "dashboardTrackingLinks":
+        return renderDashboardTrackingLinks(request, env);
+      case "dashboardAnalytics":
+        return renderDashboardAnalytics(request, env);
+      case "dashboardCampaigns":
+        return renderDashboardCampaigns(request, env);
+      case "dashboardReports":
+        return renderDashboardReports(request, env);
+
+      case "dashboardCasinoEdit":
+        return renderDashboardCasinoEdit(request, env, route.slug);
+      case "dashboardComponents":
+        return renderDashboardComponents(request, env);
+      case "dashboardSeo":
+        return renderDashboardSeo(request, env);
+
+      case "userDashboard":
+        return renderUserDashboard(request, env);
+      case "userSubmitCasino":
+        return renderUserSubmitCasino(request, env);
+      case "userInquiries":
+        return renderUserInquiries(request, env);
+      case "userProfile":
+        return renderUserProfile(request, env);
+      case "userNotifications":
+        return renderUserNotifications(request, env);
+      case "userBookmarks":
+        return renderUserBookmarks(request, env);
+
+      case "media":
+        return serveMedia(request, env, route.key);
+      case "favicon":
+        return env.ASSETS.fetch(request);
+      case "superApi":
+        return handleSuperApi(request, env, ctx, route.path);
+      case "api":
+
+  const user =
+    await getCurrentUser(
+      request,
+      env
+    );
+
+  return handleAPI(
+    request,
+    env,
+    route.path,
+    user
+  );
+
+      // REPLACE WITH:
+      case "redirect":
+        return new Response(null, { status: 302, headers: { Location: route.target } });
+      case "sitemap":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "all"
+  );
+
+case "sitemap-page":
+  return renderSitemapPage(request, env);
+
+case "sitemap-index":
+  return sitemapEngine.generateIndex(
+    request,
+    env,
+    env.DB
+  );
+
+case "sitemap-casinos":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "casinos"
+  );
+
+case "sitemap-reviews":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "reviews"
+  );
+
+case "sitemap-news":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "news"
+  );
+
+case "sitemap-updates":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "updates"
+  );
+
+case "sitemap-authors":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "authors"
+  );
+
+case "sitemap-categories":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "categories"
+  );
+
+case "sitemap-countries":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "countries"
+  );
+
+case "sitemap-pages":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "pages"
+  );
+
+case "sitemap-seo-pages":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "seo-pages"
+  );
+
+      case "robots":
+        return robots(request, env);
+
+      case "page":
+        return renderDynamicPage(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+      case "not_found":
+        return render404(request, env);
+
+      default:
+        return render404(request, env);
+
+    }
+  },
+  async scheduled(event, env, ctx) {
+        ctx.waitUntil(cleanupExpiredConversations(env.DB));
+
+        ctx.waitUntil(
+            cleanupExpiredSessions(env)
+        );
+
+        // Link health monitoring (System 3) -- runScheduledHealthChecks()
+        // checks the system_settings feature flag itself and no-ops when
+        // it's off (the default), so this call is always safe to leave
+        // in place even before the flag is deliberately enabled for a
+        // given deployment. See migrations/0025_tracking_links.sql and
+        // worker/tracking/health-check.js for the full reasoning --
+        // this does NOT get activated just by this wiring existing; it
+        // also requires both this wrangler.jsonc's cron trigger to be
+        // uncommented AND the system_settings row to be set to 'true'.
+        ctx.waitUntil(
+            runScheduledHealthChecks(env.DB).catch(() => {
+                // Never let a health-check failure affect other scheduled tasks.
+            })
+        );
+
+        // Analytics daily aggregation (Phase 4) -- same feature-flag
+        // convention as the health checks above ('analytics_aggregation_
+        // cron_enabled' in system_settings, default off). Also always
+        // safe to leave wired in: a disabled flag makes this a no-op.
+        ctx.waitUntil(
+            runAnalyticsAggregation(env).catch(() => {
+                // Never let an aggregation failure affect other scheduled tasks.
+            })
+        );
+
+        // Scheduled report execution (Phase 9) -- same feature-flag
+        // convention ('report_schedules_cron_enabled', default off).
+        ctx.waitUntil(
+            runScheduledReports(env).catch(() => {
+                // Never let a report-scheduling failure affect other scheduled tasks.
+            })
+        );
+
+        // Alert-rule evaluation (Phase 13) -- same feature-flag
+        // convention ('alert_rules_cron_enabled', default off).
+        ctx.waitUntil(
+            runAlertEvaluation(env).catch(() => {
+                // Never let alert evaluation affect other scheduled tasks.
+            })
+        );
+
+        // Outbound provider/API adapter sync (brief §10) -- same
+        // feature-flag convention ('provider_sync_cron_enabled',
+        // default off -- see migration 0035). Off until an operator
+        // has actually configured a real provider_adapter_configs row
+        // with real credentials.
+        ctx.waitUntil(
+            runProviderSync(env).catch(() => {
+                // Never let a provider sync failure affect other scheduled tasks.
+            })
+        );
+
+    }
+};

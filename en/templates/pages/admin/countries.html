@@ -24,6 +24,20 @@
       <div class="form-group"><label>SEO Keywords</label><input type="text" name="seo_keywords" placeholder="comma, separated, keywords"></div>
       <p class="muted" style="font-size:12px">SEO Description doubles as the intro line shown under the page heading — there's no separate intro field, to avoid duplicating it.</p>
 
+      <div class="form-group">
+        <label>OG Image</label>
+        <input type="hidden" name="og_image" id="countryOgImageId" value="">
+        <div id="countryOgImagePreview" style="display:none;margin-bottom:10px">
+          <img id="countryOgImageImg" src="" alt="" style="width:100%;max-width:400px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--light-gray)">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" id="countryChangeOgImage" class="btn btn--secondary btn--sm">Change</button>
+            <button type="button" id="countryRemoveOgImage" class="btn btn--danger btn--sm">Remove</button>
+          </div>
+        </div>
+        <button type="button" id="countrySelectOgImage" class="btn btn--secondary btn--sm">Select OG Image</button>
+        <small class="muted">Optional image used when this country page is shared on social platforms. If empty, the site default image will be used.</small>
+      </div>
+
       <!-- SECTIONS — same builder/section types as Country Pages -->
       <div class="form-group">
         <label>Content sections</label>

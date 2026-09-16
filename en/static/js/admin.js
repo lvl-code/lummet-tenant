@@ -3107,10 +3107,54 @@ async function deleteCategory(slug) {
   } catch { alert("Network error"); }
 }
 
+// ── Category OG Image (optional) ──────
+function openCategoryOgImagePicker() {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function(media) {
+    if (!media || !media.id) return;
+    setCategoryOgImage(media.id, media.url || media.thumbnail_url || "", media.alt_text || "");
+  }, "category");
+}
+
+function setCategoryOgImage(id, url, alt) {
+  const idInput = document.getElementById("categoryOgImageId");
+  const imgEl = document.getElementById("categoryOgImageImg");
+  const preview = document.getElementById("categoryOgImagePreview");
+  const selectBtn = document.getElementById("categorySelectOgImage");
+
+  if (idInput) idInput.value = String(id);
+  if (imgEl) { imgEl.src = url; imgEl.alt = alt; }
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+}
+
+function clearCategoryOgImage() {
+  const idInput = document.getElementById("categoryOgImageId");
+  const imgEl = document.getElementById("categoryOgImageImg");
+  const preview = document.getElementById("categoryOgImagePreview");
+  const selectBtn = document.getElementById("categorySelectOgImage");
+
+  if (idInput) idInput.value = "";
+  if (imgEl) { imgEl.src = ""; imgEl.alt = ""; }
+  if (preview) preview.style.display = "none";
+  if (selectBtn) selectBtn.style.display = "";
+}
+
 function initCategoryForm() {
   const form = document.getElementById("categoryForm");
   if (!form) return;
   wireSeoSectionBuilder("category", "categoryFormSections", "categoryFormAddSectionBtn");
+
+  const ogSelectBtn = document.getElementById("categorySelectOgImage");
+  const ogChangeBtn = document.getElementById("categoryChangeOgImage");
+  const ogRemoveBtn = document.getElementById("categoryRemoveOgImage");
+  if (ogSelectBtn) ogSelectBtn.addEventListener("click", openCategoryOgImagePicker);
+  if (ogChangeBtn) ogChangeBtn.addEventListener("click", openCategoryOgImagePicker);
+  if (ogRemoveBtn) ogRemoveBtn.addEventListener("click", clearCategoryOgImage);
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("categoryFormAlert");
@@ -3131,6 +3175,7 @@ function initCategoryForm() {
       robots: formData.get("robots") || "index,follow",
       status: formData.get("status") || "published",
       published: formData.get("published") === "0" ? 0 : 1,
+      og_image: formData.get("og_image") ? parseInt(formData.get("og_image")) : null,
     };
 
     try {
@@ -3150,6 +3195,7 @@ function initCategoryForm() {
         form.querySelector("[name='id']").value = "";
         document.getElementById("categorySubmitBtn").textContent = "Create Category";
         document.getElementById("categoryCancelEdit").style.display = "none";
+        clearCategoryOgImage();
         seoPageState.category.sections = [];
         seoPageState.category.categorySlug = null;
         renderSeoSections("category");
@@ -3262,10 +3308,54 @@ async function deleteCountry(code) {
   } catch { alert("Network error"); }
 }
 
+// ── Country OG Image (optional) ──────
+function openCountryOgImagePicker() {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function(media) {
+    if (!media || !media.id) return;
+    setCountryOgImage(media.id, media.url || media.thumbnail_url || "", media.alt_text || "");
+  }, "country");
+}
+
+function setCountryOgImage(id, url, alt) {
+  const idInput = document.getElementById("countryOgImageId");
+  const imgEl = document.getElementById("countryOgImageImg");
+  const preview = document.getElementById("countryOgImagePreview");
+  const selectBtn = document.getElementById("countrySelectOgImage");
+
+  if (idInput) idInput.value = String(id);
+  if (imgEl) { imgEl.src = url; imgEl.alt = alt; }
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+}
+
+function clearCountryOgImage() {
+  const idInput = document.getElementById("countryOgImageId");
+  const imgEl = document.getElementById("countryOgImageImg");
+  const preview = document.getElementById("countryOgImagePreview");
+  const selectBtn = document.getElementById("countrySelectOgImage");
+
+  if (idInput) idInput.value = "";
+  if (imgEl) { imgEl.src = ""; imgEl.alt = ""; }
+  if (preview) preview.style.display = "none";
+  if (selectBtn) selectBtn.style.display = "";
+}
+
 function initCountryForm() {
   const form = document.getElementById("countryForm");
   if (!form) return;
   wireSeoSectionBuilder("country", "countryFormSections", "countryFormAddSectionBtn");
+
+  const ogSelectBtn = document.getElementById("countrySelectOgImage");
+  const ogChangeBtn = document.getElementById("countryChangeOgImage");
+  const ogRemoveBtn = document.getElementById("countryRemoveOgImage");
+  if (ogSelectBtn) ogSelectBtn.addEventListener("click", openCountryOgImagePicker);
+  if (ogChangeBtn) ogChangeBtn.addEventListener("click", openCountryOgImagePicker);
+  if (ogRemoveBtn) ogRemoveBtn.addEventListener("click", clearCountryOgImage);
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("countryFormAlert");
@@ -3291,6 +3381,7 @@ function initCountryForm() {
       is_featured: formData.get("is_featured") === "1" ? 1 : 0,
       featured_position: formData.get("featured_position") ? parseInt(formData.get("featured_position")) : 0,
       tier: formData.get("tier") ? parseInt(formData.get("tier")) : 3,
+      og_image: formData.get("og_image") ? parseInt(formData.get("og_image")) : null,
     };
 
     try {
@@ -3312,6 +3403,7 @@ function initCountryForm() {
         delete form.dataset.editMode;
         document.getElementById("countrySubmitBtn").textContent = "Create Country";
         document.getElementById("countryCancelEdit").style.display = "none";
+        clearCountryOgImage();
         seoPageState.country.sections = [];
         seoPageState.country.countryCode = "";
         renderSeoSections("country");
@@ -3834,6 +3926,12 @@ async function editCategory(id) {
     form.querySelector("[name='status']").value = c.status || "published";
     form.querySelector("[name='published']").value = c.published === 0 ? "0" : "1";
 
+    if (c.og_image && (c.og_image_url)) {
+      setCategoryOgImage(c.og_image, c.og_image_url, c.og_image_alt || "");
+    } else {
+      clearCategoryOgImage();
+    }
+
     let content = {};
     try { content = typeof c.content_json === "string" ? JSON.parse(c.content_json) : (c.content_json || {}); } catch (e) {}
     const state = seoPageState.category;
@@ -3884,6 +3982,12 @@ async function editCountry(code) {
     form.querySelector("[name='is_featured']").value = c.is_featured === 1 ? "1" : "0";
     form.querySelector("[name='featured_position']").value = c.featured_position ?? 0;
     form.querySelector("[name='tier']").value = c.tier ?? 3;
+
+    if (c.og_image && c.og_image_url) {
+      setCountryOgImage(c.og_image, c.og_image_url, c.og_image_alt || "");
+    } else {
+      clearCountryOgImage();
+    }
 
     let content = {};
     try { content = typeof c.content_json === "string" ? JSON.parse(c.content_json) : (c.content_json || {}); } catch (e) {}

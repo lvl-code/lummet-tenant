@@ -6,9 +6,16 @@ export async function getCategory(
 ){
 
   return db.prepare(`
-    SELECT *
-    FROM categories
-    WHERE slug=?
+    SELECT
+      c.*,
+      m.url AS og_image_url,
+      m.alt_text AS og_image_alt,
+      m.width AS og_image_width,
+      m.height AS og_image_height
+    FROM categories c
+    LEFT JOIN media_library m
+      ON m.id = c.og_image
+    WHERE c.slug=?
     LIMIT 1
   `)
   .bind(slug)
@@ -117,10 +124,11 @@ export async function createCategory(
       content_json,
       robots,
       status,
-      published
+      published,
+      og_image
     )
     VALUES(
-      ?,?,?,?,?,?,?,?,?,?
+      ?,?,?,?,?,?,?,?,?,?,?
     )
   `)
   .bind(
@@ -133,7 +141,8 @@ export async function createCategory(
     typeof data.content_json === "string" ? data.content_json : JSON.stringify(data.content_json || {}),
     data.robots || "index,follow",
     data.status || "published",
-    data.published !== undefined ? (data.published ? 1 : 0) : 1
+    data.published !== undefined ? (data.published ? 1 : 0) : 1,
+    data.og_image ? Number(data.og_image) : null
   )
   .run();
 
@@ -146,7 +155,7 @@ export async function updateCategory(db, slug, data) {
   const result = await db.prepare(`
     UPDATE categories SET
       name=?, description=?, seo_title=?, seo_description=?, seo_keywords=?,
-      content_json=?, robots=?, status=?, published=?
+      content_json=?, robots=?, status=?, published=?, og_image=?
     WHERE slug=?
   `)
   .bind(
@@ -155,6 +164,7 @@ export async function updateCategory(db, slug, data) {
     data.robots || "index,follow",
     data.status || "published",
     data.published !== undefined ? (data.published ? 1 : 0) : 1,
+    data.og_image ? Number(data.og_image) : null,
     slug
   )
   .run();
@@ -182,5 +192,17 @@ export async function deleteCategory(db, slug) {
 
 
 export async function getCategoryById(db, id) {
-  return await db.prepare(`SELECT * FROM categories WHERE id = ? LIMIT 1`).bind(id).first();
+  return await db.prepare(`
+    SELECT
+      c.*,
+      m.url AS og_image_url,
+      m.alt_text AS og_image_alt,
+      m.width AS og_image_width,
+      m.height AS og_image_height
+    FROM categories c
+    LEFT JOIN media_library m
+      ON m.id = c.og_image
+    WHERE c.id = ?
+    LIMIT 1
+  `).bind(id).first();
 }

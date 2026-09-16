@@ -3,9 +3,16 @@ import * as nav from "./nav.js";
 export async function getCountry(db, code) {
   return await db
     .prepare(`
-      SELECT *
-      FROM countries
-      WHERE code = ?
+      SELECT
+        c.*,
+        m.url AS og_image_url,
+        m.alt_text AS og_image_alt,
+        m.width AS og_image_width,
+        m.height AS og_image_height
+      FROM countries c
+      LEFT JOIN media_library m
+        ON m.id = c.og_image
+      WHERE c.code = ?
       LIMIT 1
     `)
     .bind(code)
@@ -92,9 +99,9 @@ export async function createCountry(db, data) {
   const result = await db.prepare(`
     INSERT INTO countries (
       code, name, currency, language, legal_status, seo_title, seo_description, seo_keywords,
-      content_json, robots, status, published, is_featured, featured_position, tier
+      content_json, robots, status, published, is_featured, featured_position, tier, og_image
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   .bind(
     code, data.name, data.currency, data.language,
@@ -105,7 +112,8 @@ export async function createCountry(db, data) {
     data.published !== undefined ? (data.published ? 1 : 0) : 1,
     data.is_featured ? 1 : 0,
     data.featured_position !== undefined && data.featured_position !== null && data.featured_position !== "" ? Number(data.featured_position) : 0,
-    data.tier !== undefined && data.tier !== null && data.tier !== "" ? Number(data.tier) : 3
+    data.tier !== undefined && data.tier !== null && data.tier !== "" ? Number(data.tier) : 3,
+    data.og_image ? Number(data.og_image) : null
   )
   .run();
 
@@ -117,7 +125,7 @@ export async function updateCountry(db, code, data) {
   const result = await db.prepare(`
     UPDATE countries SET
       name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=?, seo_keywords=?,
-      content_json=?, robots=?, status=?, published=?, is_featured=?, featured_position=?, tier=?
+      content_json=?, robots=?, status=?, published=?, is_featured=?, featured_position=?, tier=?, og_image=?
     WHERE code=?
   `)
   .bind(
@@ -129,6 +137,7 @@ export async function updateCountry(db, code, data) {
     data.is_featured ? 1 : 0,
     data.featured_position !== undefined && data.featured_position !== null && data.featured_position !== "" ? Number(data.featured_position) : 0,
     data.tier !== undefined && data.tier !== null && data.tier !== "" ? Number(data.tier) : 3,
+    data.og_image ? Number(data.og_image) : null,
     upperCode
   )
   .run();

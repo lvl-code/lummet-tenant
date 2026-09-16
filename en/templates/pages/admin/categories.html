@@ -21,6 +21,20 @@
       </div>
       <div class="form-group"><label>SEO Keywords</label><input type="text" name="seo_keywords" placeholder="comma, separated, keywords"></div>
 
+      <div class="form-group">
+        <label>OG Image</label>
+        <input type="hidden" name="og_image" id="categoryOgImageId" value="">
+        <div id="categoryOgImagePreview" style="display:none;margin-bottom:10px">
+          <img id="categoryOgImageImg" src="" alt="" style="width:100%;max-width:400px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--light-gray)">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" id="categoryChangeOgImage" class="btn btn--secondary btn--sm">Change</button>
+            <button type="button" id="categoryRemoveOgImage" class="btn btn--danger btn--sm">Remove</button>
+          </div>
+        </div>
+        <button type="button" id="categorySelectOgImage" class="btn btn--secondary btn--sm">Select OG Image</button>
+        <small class="muted">Optional image used when this category page is shared on social platforms. If empty, the site default image will be used.</small>
+      </div>
+
       <!-- SECTIONS — same builder/section types as Category Countries -->
       <div class="form-group">
         <label>Content sections</label>

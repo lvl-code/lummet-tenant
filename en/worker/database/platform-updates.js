@@ -51,10 +51,17 @@ export async function getPlatformUpdateBySlug(db, slug) {
       a.name AS author_name,
       a.slug AS author_slug,
       a.avatar_url AS author_avatar,
-      a.role AS author_role
+      a.role AS author_role,
+      m.url AS featured_image_url,
+      m.thumbnail_url AS featured_image_thumbnail,
+      m.alt_text AS featured_image_alt,
+      m.width AS featured_image_width,
+      m.height AS featured_image_height
     FROM platform_updates pu
     LEFT JOIN authors a
       ON pu.author_id = a.id
+    LEFT JOIN media_library m
+      ON m.id = pu.featured_image
     WHERE pu.slug = ?
       AND pu.published = 1
     LIMIT 1

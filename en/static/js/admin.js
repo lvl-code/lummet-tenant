@@ -5836,7 +5836,11 @@ async function editCountryPage(id) {
   } else {
     clearCountryPageOgImage();
   }
-  document.getElementById("countryPageFeaturedImage").value = p.featured_image || "";
+  if (p.featured_image) {
+    setCountryPageFeaturedImage(p.featured_image, "");
+  } else {
+    clearCountryPageFeaturedImage();
+  }
   document.getElementById("countryPageCanonical").value = p.canonical_url || "";
   document.getElementById("countryPageRobots").value = p.robots || "index,follow";
   document.getElementById("countryPageAuthorSelect").value = p.author_id || "";
@@ -5871,6 +5875,7 @@ function resetCountryPageForm() {
   document.getElementById("countryPageForm").reset();
   document.getElementById("countryPageId").value = "";
   clearCountryPageOgImage();
+  clearCountryPageFeaturedImage();
   renderSeoSections("country_page");
   renderSeoCasinoSelected("country_page");
   document.getElementById("countryPageFormTitle").textContent = "Add Country Page";
@@ -5916,6 +5921,34 @@ function clearCountryPageOgImage() {
   setCountryPageOgImage("", "");
 }
 
+// ── Country Page Featured Image (stores a plain URL, picked via Media Library) ──────
+function openCountryPageFeaturedImagePicker() {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function(media) {
+    if (!media || !media.url) return;
+    setCountryPageFeaturedImage(media.url, media.alt_text || "");
+  }, "seo-pages");
+}
+
+function setCountryPageFeaturedImage(url, alt) {
+  const input = document.getElementById("countryPageFeaturedImage");
+  const imgEl = document.getElementById("countryPageFeaturedImageImg");
+  const preview = document.getElementById("countryPageFeaturedImagePreview");
+  const selectBtn = document.getElementById("countryPageSelectFeaturedImage");
+
+  if (input) input.value = url || "";
+  if (imgEl) { imgEl.src = url || ""; imgEl.alt = alt || ""; }
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+}
+
+function clearCountryPageFeaturedImage() {
+  setCountryPageFeaturedImage("", "");
+}
+
 function initCountryPageForm() {
   const form = document.getElementById("countryPageForm");
   if (!form) return;
@@ -5931,6 +5964,13 @@ function initCountryPageForm() {
   if (ogSelectBtn) ogSelectBtn.addEventListener("click", openCountryPageOgImagePicker);
   if (ogChangeBtn) ogChangeBtn.addEventListener("click", openCountryPageOgImagePicker);
   if (ogRemoveBtn) ogRemoveBtn.addEventListener("click", clearCountryPageOgImage);
+
+  const featSelectBtn = document.getElementById("countryPageSelectFeaturedImage");
+  const featChangeBtn = document.getElementById("countryPageChangeFeaturedImage");
+  const featRemoveBtn = document.getElementById("countryPageRemoveFeaturedImage");
+  if (featSelectBtn) featSelectBtn.addEventListener("click", openCountryPageFeaturedImagePicker);
+  if (featChangeBtn) featChangeBtn.addEventListener("click", openCountryPageFeaturedImagePicker);
+  if (featRemoveBtn) featRemoveBtn.addEventListener("click", clearCountryPageFeaturedImage);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

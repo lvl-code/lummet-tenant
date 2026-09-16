@@ -174,3 +174,27 @@ export async function setCasinoPaymentMethods(db, casinoId, paymentMethodIds) {
     `).bind(casinoId, pmId).run();
   }
 }
+
+/**
+ * The other direction of the same join: replace ALL casinos linked
+ * to one payment method. Deliberately a separate function rather
+ * than a "just swap the argument order" call to setCasinoPaymentMethods
+ * above -- that function deletes by casino_id, this one has to delete
+ * by payment_method_id, so they are genuinely different queries, not
+ * just relabeled parameters.
+ */
+export async function setCasinosForPaymentMethod(db, paymentMethodId, casinoIds) {
+  await db.prepare(`DELETE FROM casino_payment_methods WHERE payment_method_id = ?`).bind(paymentMethodId).run();
+  for (const casinoId of casinoIds || []) {
+    await db.prepare(`
+      INSERT OR IGNORE INTO casino_payment_methods (casino_id, payment_method_id) VALUES (?, ?)
+    `).bind(casinoId, paymentMethodId).run();
+  }
+}
+
+export async function getPaymentMethodIdsForCasino(db, casinoId) {
+  const result = await db.prepare(`
+    SELECT payment_method_id FROM casino_payment_methods WHERE casino_id = ?
+  `).bind(casinoId).all();
+  return (result.results || []).map(r => r.payment_method_id);
+}

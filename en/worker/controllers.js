@@ -4252,6 +4252,19 @@ export async function renderPaymentMethod(request, env, slug) {
     })),
   };
 
+  let methodContent = {};
+  try {
+    methodContent = typeof method.content_json === "string"
+      ? JSON.parse(method.content_json)
+      : method.content_json || {};
+  } catch {
+    methodContent = {};
+  }
+  const casinoLookupById = {};
+  for (const c of sortedCasinos) casinoLookupById[c.id] = c;
+  const sectionsHtml = renderSeoPageSections(methodContent, casinoLookupById, {}, geoData, bonusOverrides);
+  const faqSchema = seoPageFaqSchema(methodContent);
+
   const html = await renderer.render("category.html", {
     slug,
     components_top: allComponents.top,
@@ -4264,10 +4277,11 @@ export async function renderPaymentMethod(request, env, slug) {
     seo_keywords: dynamicSeo.seo_keywords || method.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url(`/en/payment-methods/${slug}`),
     robots: "index,follow",
+    sections_html: sectionsHtml,
     category: method.name,
     description: method.description || `Online casinos that accept ${method.name} for deposits and withdrawals.`,
     casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides, paymentMethodsByCasino),
-  }, [paymentMethodSchema], buildBreadcrumbs("paymentMethod", { name: method.name }));
+  }, [paymentMethodSchema, faqSchema].filter(Boolean), buildBreadcrumbs("paymentMethod", { name: method.name }));
 
   return new Response(html, { headers: cacheHeaders() });
 }

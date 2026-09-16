@@ -117,6 +117,32 @@ async function initCasinoEditForm() {
       }
     }
 
+    // Load payment methods and pre-check ones already linked to this casino
+    form.dataset.casinoId = casino.id;
+    const paymentMethodBox = document.getElementById("paymentMethodCheckboxes");
+    if (paymentMethodBox && !paymentMethodBox.dataset.loaded) {
+      paymentMethodBox.dataset.loaded = "1";
+      try {
+        const pmRes = await fetch("/en/api/v1/payment-methods/list");
+        const pmData = await pmRes.json();
+        const methods = pmData.payment_methods || [];
+        paymentMethodBox.innerHTML = methods.map(m => `
+          <label style="display:block;padding:4px 0">
+            <input type="checkbox" value="${m.id}"> ${m.name}
+          </label>
+        `).join("");
+
+        const linkedRes = await fetch(`/en/api/v1/casino/payment-methods?casino_id=${casino.id}`);
+        const linkedData = await linkedRes.json();
+        const linkedIds = linkedData.payment_method_ids || [];
+        paymentMethodBox.querySelectorAll("input").forEach(cb => {
+          if (linkedIds.includes(parseInt(cb.value))) cb.checked = true;
+        });
+      } catch {
+        paymentMethodBox.innerHTML = '<p class="muted">Failed to load payment methods</p>';
+      }
+    }
+
   } catch {
     form.innerHTML = '<div class="alert alert--error">Failed to load casino data.</div>';
   }
@@ -182,6 +208,21 @@ function initCasinoEditSubmit() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ casino_slug: payload.slug, rules })
         });
+
+        // Sync payment methods — same "always run, even if empty"
+        // rule as geo rules above, so unchecking every box actually
+        // clears the list instead of leaving stale links behind.
+        const casinoId = form.dataset.casinoId;
+        if (casinoId) {
+          const selectedPaymentMethods = Array.from(
+            document.querySelectorAll("#paymentMethodCheckboxes input:checked")
+          ).map(c => parseInt(c.value));
+          await fetch("/en/api/v1/casino/set-payment-methods", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ casino_id: parseInt(casinoId), payment_method_ids: selectedPaymentMethods })
+          });
+        }
 
         setTimeout(() => { window.location.href = "/en/dashboard/casinos"; }, 1500);
       } else {

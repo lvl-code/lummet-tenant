@@ -27,9 +27,20 @@
         <button type="submit" class="btn btn--primary btn--block">Login</button>
       </form>
       <p class="auth-footer"><a href="/en/forgot-password">Forgot your password?</a></p>
-      <p class="auth-footer">No account? <a href="/en/register">Register</a></p>
+      <p class="auth-footer">No account? <a href="/en/register" id="loginRegisterLink">Register</a></p>
       <div id="loginError" class="alert alert--error" style="display:none"></div>
     </div>
   </div>
 </section>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script>
+  // Carry a ?redirect= param (e.g. set by the Lummet AI free-message
+  // gate) through to the Register link so it isn't lost mid-flow.
+  (function () {
+    var redirect = new URLSearchParams(window.location.search).get("redirect");
+    if (redirect) {
+      var link = document.getElementById("loginRegisterLink");
+      if (link) link.href = "/en/register?redirect=" + encodeURIComponent(redirect);
+    }
+  })();
+</script>

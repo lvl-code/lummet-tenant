@@ -33,7 +33,8 @@ export async function handleChat(request, env, user) {
     const result = await aiAssistant.chat(env, body.message, {
       country: request.cf?.country || 'RW',
       sessionId,
-      userId: user?.user_id || user?.id || null
+      userId: user?.user_id || user?.id || null,
+      ipHash
     }, request );
 
     return Response.json({ success: true, ...result });
@@ -77,7 +78,8 @@ export async function handleChatStream(request, env, user) {
       {
         country: request.cf?.country || 'RW',
         sessionId,
-        userId: user?.user_id || user?.id || null
+        userId: user?.user_id || user?.id || null,
+        ipHash
       },
       request
     );

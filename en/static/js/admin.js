@@ -5529,7 +5529,8 @@ const SEO_SECTION_ROOT_IDS = {
   country_page: "countryPageSections",
   category_country: "categoryCountrySections",
   country: "countryFormSections",
-  category: "categoryFormSections"
+  category: "categoryFormSections",
+  payment_method: "pmFormSections"
 };
 
 function renderSeoSections(prefix) {

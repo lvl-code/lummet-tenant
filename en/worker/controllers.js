@@ -718,6 +718,8 @@ export async function renderCasino(request, env, slug, ctx = null) {
     seo_title: dynamicSeo.seo_title || casino.seo_title || casino.name,
     seo_description: dynamicSeo.seo_description || casino.seo_description || "",
     seo_keywords: dynamicSeo.seo_keywords || casino.seo_keywords || "",
+    og_image: casino.logo ? site.url(casino.logo) : site.ogImageUrl,
+    og_image_alt: casino.name,
     canonical: dynamicSeo.canonical || site.url(`/en/casino/${slug}`),
     rating_display: ratingDisplay,
     features_html: featuresHtml,
@@ -1248,6 +1250,8 @@ export async function renderReview(request, env, slug, ctx = null) {
     seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
     seo_description: dynamicSeo.seo_description || review.seo_description || "",
     seo_keywords: dynamicSeo.seo_keywords || review.seo_keywords || "",
+    og_image: casino?.logo ? site.url(casino.logo) : site.ogImageUrl,
+    og_image_alt: casino?.name || review.title,
     canonical: dynamicSeo.canonical || site.url(`/en/review/${slug}`),
     faq_html: faqHtml,
     pros_html: prosHtml,
@@ -3980,6 +3984,24 @@ export async function renderUpdate(request, env, slug) {
         update.seo_keywords ||
         "",
 
+      og_type: "article",
+
+      og_image:
+        update.featured_image_url
+          ? site.url(update.featured_image_url)
+          : site.ogImageUrl,
+
+      og_image_alt:
+        safeAlt(update.featured_image_alt, update.title),
+
+      ...(update.featured_image_width
+        ? { og_image_width: update.featured_image_width }
+        : {}),
+
+      ...(update.featured_image_height
+        ? { og_image_height: update.featured_image_height }
+        : {}),
+
       components_top:
         allComponents.top,
 
@@ -4464,6 +4486,8 @@ export async function renderAuthor(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || author.name + " — " + site.siteName,
     seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
+    og_image: author.avatar_url ? site.url(author.avatar_url) : site.ogImageUrl,
+    og_image_alt: author.name,
     canonical: dynamicSeo.canonical || site.url(`/en/author/${slug}`)
   }, authorSchema, buildBreadcrumbs("author", {author_name: author.name }));
   return new Response(html, { headers: cacheHeaders() });

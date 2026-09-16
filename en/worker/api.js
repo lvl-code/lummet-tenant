@@ -473,8 +473,17 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
 }
 
 
-  if (!user &&
- path !== "/api/v1/ai/chat") {
+  // Lummet AI's public endpoints are intentionally reachable while
+  // logged out -- that's how the free-tier (first 3 messages) flow
+  // works before registration/login is required. Gating past that
+  // point happens inside worker/ai/assistant.js, not here.
+  const PUBLIC_AI_PATHS = [
+    "/api/v1/ai/chat",
+    "/api/v1/ai/chat/stream",
+    "/api/v1/ai/chat/clear"
+  ];
+
+  if (!user && !PUBLIC_AI_PATHS.includes(path)) {
     return failure("Unauthorized", 401);
   }
 

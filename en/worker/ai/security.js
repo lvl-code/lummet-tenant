@@ -6,6 +6,11 @@ const MAX_MESSAGE_LENGTH = 500;
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 
+// Public (anonymous, not logged in) visitors get this many free
+// Lummet AI messages before they're asked to register/login.
+// Logged-in users (any session with a user_id) are never gated.
+export const FREE_MESSAGE_LIMIT = 3;
+
 // Patterns that indicate prompt injection attempts
 const INJECTION_PATTERNS = [
   /ignore (all |previous |prior )?(instructions|prompts|rules)/i,
@@ -105,4 +110,46 @@ export async function logRequest(db, ipHash) {
   await db.prepare(`
     INSERT INTO ai_rate_limits (ip_hash, created_at) VALUES (?, ?)
   `).bind(ipHash, new Date().toISOString()).run();
+}
+
+/**
+ * ── Free-tier (anonymous, pre-registration) usage quota ──
+ *
+ * Tracked by hashed IP rather than the client-supplied session_id so
+ * clearing localStorage / opening a new tab doesn't reset the count.
+ * Logged-in users (userId present) are never checked against this —
+ * callers should skip calling these when a userId exists.
+ */
+
+/**
+ * Returns { used, remaining, exceeded } for this IP, without
+ * consuming a message. Use before deciding whether to answer.
+ */
+export async function getFreeMessageUsage(db, ipHash) {
+  if (!ipHash) return { used: 0, remaining: FREE_MESSAGE_LIMIT, exceeded: false };
+
+  const row = await db.prepare(`
+    SELECT message_count FROM ai_free_tier_usage WHERE ip_hash = ?
+  `).bind(ipHash).first();
+
+  const used = row?.message_count || 0;
+  const remaining = Math.max(0, FREE_MESSAGE_LIMIT - used);
+
+  return { used, remaining, exceeded: used >= FREE_MESSAGE_LIMIT };
+}
+
+/**
+ * Records that one free message was answered for this IP.
+ * Call only after deciding to actually answer (not on a blocked request).
+ */
+export async function consumeFreeMessage(db, ipHash) {
+  if (!ipHash) return;
+
+  await db.prepare(`
+    INSERT INTO ai_free_tier_usage (ip_hash, message_count, first_message_at, last_message_at)
+    VALUES (?, 1, datetime('now'), datetime('now'))
+    ON CONFLICT(ip_hash) DO UPDATE SET
+      message_count = message_count + 1,
+      last_message_at = datetime('now')
+  `).bind(ipHash).run();
 }

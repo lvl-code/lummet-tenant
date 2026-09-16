@@ -16,7 +16,10 @@ const SCHEMA_DESCRIPTION = `Database tables and columns:
 - authors: name, slug, bio, role
 - countries: code, name, currency, language, legal_status
 - categories: name, slug, description
-- geo_rules: casino_slug, country_code, status, bonus_override`;
+- geo_rules: casino_slug, country_code, status, bonus_override
+- payment_methods: name, slug, method_type (card/ewallet/crypto/bank/other), description — joined to casinos via casino_payment_methods
+- nav_items: label, url, location (header/footer/etc) — the site's menu/navigation structure
+- components / page_components: homepage sections and other reusable public page blocks (type, title)`;
 
 export function buildUnderstandPrompt(site) {
   return `You are a search query analyzer for ${site.siteName},
@@ -115,7 +118,7 @@ export async function understand(env, message, conversationHistory = [], request
 }
 
 function normalizePlan(plan) {
-  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta'];
+  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta', 'payment_methods', 'nav_items', 'components'];
 
   return {
     intent: plan.intent || 'general',

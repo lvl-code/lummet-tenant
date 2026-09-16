@@ -25,7 +25,7 @@ const COUNTRY_NAME_TO_CODE = {
   'croatia':'HR','malta':'MT','cyprus':'CY','luxembourg':'LU','iceland':'IS'
 };
 
-const VALID_TABLES = ['casinos','reviews','review_blocks','news', 'platform_updates','pages','faqs','authors','countries','categories','geo_rules','seo_meta'];
+const VALID_TABLES = ['casinos','reviews','review_blocks','news', 'platform_updates','pages','faqs','authors','countries','categories','geo_rules','seo_meta','payment_methods','nav_items','components'];
 
 function truncate(text, max = MAX_CONTENT_LENGTH) {
   if (!text) return '';
@@ -62,7 +62,8 @@ export async function retrieve(env, query, country, plan = null, conversationHis
   const results = {
     casinos: [], reviews: [], reviewBlocks: [], news: [], platformUpdates: [],
     pages: [], faqs: [], authors: [], countries: [],
-    categories: [], seoMeta: [], geoStatuses: {}, casinoCategories: {}
+    categories: [], seoMeta: [], geoStatuses: {}, casinoCategories: {},
+    paymentMethods: [], casinoPaymentMethods: {}, navItems: [], homepageSections: []
   };
 
   // ═══════════════════════════════════════════════════
@@ -186,6 +187,23 @@ export async function retrieve(env, query, country, plan = null, conversationHis
               JOIN casinos cas ON cas.id = cc.casino_id WHERE cas.slug = ?
             `).bind(casino.slug).all();
             if (catR.results && catR.results.length > 0) results.casinoCategories[casino.slug] = catR.results;
+          } catch {}
+        }
+      }
+
+      // Get accepted payment methods per casino (joined via casino_payment_methods)
+      // -- only when it's actually relevant, to avoid extra queries on every casino answer
+      if (results.casinos.length > 0 && (intent === 'payments' || intent === 'crypto' || isListing)) {
+        for (const casino of results.casinos) {
+          try {
+            const pmR = await db.prepare(`
+              SELECT pm.slug, pm.name, pm.method_type FROM payment_methods pm
+              JOIN casino_payment_methods cpm ON cpm.payment_method_id = pm.id
+              JOIN casinos cas ON cas.id = cpm.casino_id
+              WHERE cas.slug = ? AND pm.published = 1
+              ORDER BY pm.sort_order ASC
+            `).bind(casino.slug).all();
+            if (pmR.results && pmR.results.length > 0) results.casinoPaymentMethods[casino.slug] = pmR.results;
           } catch {}
         }
       }
@@ -474,6 +492,68 @@ if (
     } catch (e) { console.error('Lummet retrieve seo_meta:', e.message); }
   }
 
+  // ═══════════════════════════════════════════════════
+  // PAYMENT METHODS (standalone /payment-methods pages)
+  // ═══════════════════════════════════════════════════
+  if (shouldSearchTable('payment_methods', tablesToSearch, intent, ['payments','crypto','general'])) {
+    try {
+      if (allSearchTerms.length > 0) {
+        const conditions = allSearchTerms.map(() => 'LOWER(name) LIKE ? OR LOWER(slug) LIKE ? OR LOWER(method_type) LIKE ? OR LOWER(description) LIKE ?').join(' OR ');
+        const params = [];
+        for (const term of allSearchTerms) params.push(`%${term}%`, `%${term}%`, `%${term}%`, `%${term}%`);
+        const r = await db.prepare(`
+          SELECT slug, name, method_type, description FROM payment_methods
+          WHERE published = 1 AND (${conditions}) ORDER BY sort_order ASC LIMIT ${MAX_RESULTS}
+        `).bind(...params).all();
+        results.paymentMethods = (r.results || []).map(p => ({ ...p, description: truncate(p.description, 250) }));
+      } else if (intent === 'payments' || intent === 'crypto') {
+        const r = await db.prepare(`
+          SELECT slug, name, method_type, description FROM payment_methods
+          WHERE published = 1 ${intent === 'crypto' ? "AND method_type = 'crypto'" : ''}
+          ORDER BY sort_order ASC LIMIT ${MAX_RESULTS}
+        `).all();
+        results.paymentMethods = (r.results || []).map(p => ({ ...p, description: truncate(p.description, 250) }));
+      }
+    } catch (e) { console.error('Lummet retrieve payment_methods:', e.message); }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // NAVIGATION (site menu structure)
+  // ═══════════════════════════════════════════════════
+  if (shouldSearchTable('nav_items', tablesToSearch, intent, ['navigation','general'])) {
+    try {
+      if (intent === 'navigation' || allSearchTerms.some(t => ['menu','navigate','navigation','find','sitemap'].includes(t))) {
+        const r = await db.prepare(`
+          SELECT label, url, location, parent_id FROM nav_items
+          WHERE enabled = 1 ORDER BY location ASC, position ASC LIMIT 40
+        `).all();
+        results.navItems = r.results || [];
+      }
+    } catch (e) { console.error('Lummet retrieve nav_items:', e.message); }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // HOMEPAGE SECTIONS / PUBLIC COMPONENTS
+  // ═══════════════════════════════════════════════════
+  if (shouldSearchTable('components', tablesToSearch, intent, ['navigation','general']) &&
+      (intent === 'navigation' ||
+       text.includes('homepage') || text.includes('home page') ||
+       text.includes('what is on') || text.includes("what's on") ||
+       text.includes('sections') || text.includes('layout') ||
+       text.includes('what is this site') || text.includes('about this site') ||
+       text.includes('what is this website'))) {
+    try {
+      const r = await db.prepare(`
+        SELECT c.type, c.title, c.name FROM page_components pc
+        JOIN components c ON c.id = pc.component_id
+        WHERE pc.page_type = 'homepage' AND pc.page_slug = 'homepage'
+          AND pc.enabled = 1 AND c.status = 'active'
+        ORDER BY pc.position ASC LIMIT 20
+      `).all();
+      results.homepageSections = r.results || [];
+    } catch (e) { console.error('Lummet retrieve homepage components:', e.message); }
+  }
+
   return results;
 }
 
@@ -556,6 +636,7 @@ export function buildContextString(results, country, site) {
       line += ` | Link: ${site.url(`/en/casino/${c.slug}`)}`;
       if (c.parsedFeatures && c.parsedFeatures.length > 0) line += ` | Features: ${c.parsedFeatures.join(', ')}`;
       if (results.casinoCategories && results.casinoCategories[c.slug]) line += ` | Categories: ${results.casinoCategories[c.slug].map(cat => cat.name).join(', ')}`;
+      if (results.casinoPaymentMethods && results.casinoPaymentMethods[c.slug]) line += ` | Payment methods: ${results.casinoPaymentMethods[c.slug].map(pm => pm.name).join(', ')}`;
       parts.push(line);
     }
   }
@@ -663,6 +744,29 @@ export function buildContextString(results, country, site) {
   if (results.seoMeta && results.seoMeta.length > 0) {
     parts.push('\n=== SITE INFO ===');
     for (const s of results.seoMeta) parts.push(`Page: ${s.title} | Type: ${s.page_type} | Slug: ${s.page_slug} | Description: ${s.description || ''}`);
+  }
+
+  if (results.paymentMethods && results.paymentMethods.length > 0) {
+    parts.push('\n=== PAYMENT METHODS ===');
+    for (const p of results.paymentMethods) {
+      let line = `Name: ${p.name} | Type: ${p.method_type || 'other'}`;
+      if (p.description) line += ` | ${p.description}`;
+      line += ` | Link: ${site.url(`/en/payment-methods/${p.slug}`)}`;
+      parts.push(line);
+    }
+  }
+
+  if (results.navItems && results.navItems.length > 0) {
+    parts.push('\n=== SITE NAVIGATION ===');
+    for (const n of results.navItems) {
+      parts.push(`${n.label} (${n.location}) | Link: ${site.url(n.url)}`);
+    }
+  }
+
+  if (results.homepageSections && results.homepageSections.length > 0) {
+    parts.push('\n=== HOMEPAGE SECTIONS ===');
+    for (const s of results.homepageSections) parts.push(`Section: ${s.title || s.name} | Type: ${s.type}`);
+    parts.push(`Homepage link: ${site.url('/en/')}`);
   }
 
   return parts.length > 0 ? parts.join('\n') : `No relevant information found in the ${site.siteName} database.`;

@@ -10,6 +10,20 @@ document.addEventListener("DOMContentLoaded", () => {
   initNewsletterForms();
 });
 
+/**
+ * Returns the ?redirect= param from the current URL if it's a safe,
+ * same-site relative path — e.g. so a visitor who registers/logs in
+ * from the Lummet AI free-message gate lands back where they were
+ * chatting instead of always at /en/dashboard. Returns null otherwise.
+ */
+function getSafeRedirectParam() {
+  const value = new URLSearchParams(window.location.search).get("redirect");
+  if (!value) return null;
+  // Must be an internal path: single leading slash, no protocol-relative "//".
+  if (!/^\/(?!\/)/.test(value)) return null;
+  return value;
+}
+
 // ---- Login ----
 function initLoginFormbackup() {
   const form = document.getElementById("loginForm");
@@ -139,7 +153,7 @@ function initLoginForm() {
       const data = await res.json();
 
       if (data.success) {
-        window.location.href = "/en/dashboard";
+        window.location.href = getSafeRedirectParam() || "/en/dashboard";
       } else {
         errorEl.textContent = data.error || "Login failed";
         errorEl.style.display = "block";
@@ -294,7 +308,10 @@ function initRegisterForm() {
       const data = await res.json();
 
       if (data.success) {
-        window.location.href = "/en/login";
+        const redirect = getSafeRedirectParam();
+        window.location.href = redirect
+          ? `/en/login?redirect=${encodeURIComponent(redirect)}`
+          : "/en/login";
       } else {
         errorEl.textContent = data.error || "Registration failed";
         errorEl.style.display = "block";

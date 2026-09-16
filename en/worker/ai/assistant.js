@@ -6,7 +6,13 @@ import { understand } from './understand.js';
 import { retrieve } from './retrieval.js';
 import { buildSystemPrompt, buildMessages } from './prompt.js';
 import { getRecentHistory, appendMessages } from './memory.js';
-import { validateInput, detectInjection } from './security.js';
+import {
+  validateInput,
+  detectInjection,
+  getFreeMessageUsage,
+  consumeFreeMessage,
+  FREE_MESSAGE_LIMIT
+} from './security.js';
 
 import { getSiteContext } from '../site-context.js';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
@@ -51,10 +57,30 @@ export async function chat(env, message, userContext = {}, request) {
     };
   }
 
-  // 3. Get conversation history
+  // 3. Free-tier gate — anonymous (not logged in) visitors get
+  //    FREE_MESSAGE_LIMIT messages before being asked to register/login.
+  //    Checked before any AI/DB work to avoid burning inference on a
+  //    request we're not going to answer.
+  let freeUsage = null;
+  if (!userId) {
+    freeUsage = await getFreeMessageUsage(db, userContext.ipHash);
+    if (freeUsage.exceeded) {
+      return {
+        success: true,
+        answer: buildAuthRequiredMessage(site),
+        intent: 'auth_required',
+        requiresAuth: true,
+        authLinks: buildAuthLinks(site),
+        freeMessagesRemaining: 0,
+        sessionId
+      };
+    }
+  }
+
+  // 4. Get conversation history
   const conversationHistory = await getRecentHistory(db, sessionId, 6);
 
-  // 4. PASS 1 — Understand: AI analyzes intent and creates search plan
+  // 5. PASS 1 — Understand: AI analyzes intent and creates search plan
   const plan = await understand(env, sanitized, conversationHistory, request);
 
   // 5. PASS 2 — Retrieve: Database queries based on AI's plan
@@ -104,7 +130,22 @@ export async function chat(env, message, userContext = {}, request) {
   try { await appendMessages(db, sessionId, sanitized, answer, userId); }
   catch (e) { console.error('Lummet memory save error:', e.message); }
 
-  return { success: true, answer, intent: plan?.intent, sessionId };
+  // 9. Consume one free-tier message (anonymous visitors only) and
+  //    report how many remain so the widget can show a counter.
+  let freeMessagesRemaining;
+  if (!userId) {
+    try { await consumeFreeMessage(db, userContext.ipHash); }
+    catch (e) { console.error('Lummet free-tier usage save error:', e.message); }
+    freeMessagesRemaining = Math.max(0, FREE_MESSAGE_LIMIT - ((freeUsage?.used || 0) + 1));
+  }
+
+  return {
+    success: true,
+    answer,
+    intent: plan?.intent,
+    sessionId,
+    ...(freeMessagesRemaining !== undefined ? { freeMessagesRemaining } : {})
+  };
 }
 
 /**
@@ -130,10 +171,27 @@ export async function chatStream(env, message, userContext = {}, request) {
     ]);
   }
 
-  // 3. Get conversation history
+  // 3. Free-tier gate — same rule as the non-streaming path (see chat()).
+  let freeUsage = null;
+  if (!userId) {
+    freeUsage = await getFreeMessageUsage(db, userContext.ipHash);
+    if (freeUsage.exceeded) {
+      return createSSEStream([
+        {
+          type: 'auth_required',
+          content: buildAuthRequiredMessage(site),
+          authLinks: buildAuthLinks(site),
+          freeMessagesRemaining: 0
+        },
+        { type: 'done', intent: 'auth_required', sessionId }
+      ]);
+    }
+  }
+
+  // 4. Get conversation history
   const conversationHistory = await getRecentHistory(db, sessionId, 6);
 
-  // 4. PASS 1 — Understand
+  // 5. PASS 1 — Understand
   const plan = await understand(env, sanitized, conversationHistory, request);
 
   // 5. PASS 2 — Retrieve
@@ -203,10 +261,22 @@ export async function chatStream(env, message, userContext = {}, request) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
       }
 
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', intent: plan?.intent, sessionId })}\n\n`));
-
       try { await appendMessages(db, sessionId, sanitized, fullAnswer, userId); }
       catch (e) { console.error('Lummet memory save error:', e.message); }
+
+      let freeMessagesRemaining;
+      if (!userId) {
+        try { await consumeFreeMessage(db, userContext.ipHash); }
+        catch (e) { console.error('Lummet free-tier usage save error:', e.message); }
+        freeMessagesRemaining = Math.max(0, FREE_MESSAGE_LIMIT - ((freeUsage?.used || 0) + 1));
+      }
+
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+        type: 'done',
+        intent: plan?.intent,
+        sessionId,
+        ...(freeMessagesRemaining !== undefined ? { freeMessagesRemaining } : {})
+      })}\n\n`));
 
       controller.close();
     }
@@ -232,6 +302,17 @@ function createSSEStream(events) {
 
 function createErrorStream(message) {
   return createSSEStream([{ type: 'error', content: message }, { type: 'done' }]);
+}
+
+function buildAuthLinks(site) {
+  return {
+    register: site.url('/en/register'),
+    login: site.url('/en/login')
+  };
+}
+
+function buildAuthRequiredMessage(site) {
+  return `You've used your ${FREE_MESSAGE_LIMIT} free messages with Lummet AI. Create a free ${site.siteName} account (or log in if you already have one) to keep chatting — I'll pick up right where we left off.`;
 }
 
 async function generateFallback(message, context, country, request, env) {
@@ -288,6 +369,16 @@ async function generateFallback(message, context, country, request, env) {
   if (context.countries && context.countries.length > 0) {
     const c = context.countries[0];
     return `**${c.name} (${c.code})**\n\n- Currency: ${c.currency || 'N/A'}\n- Language: ${c.language || 'N/A'}\n- Legal Status: ${c.legal_status || 'N/A'}\n\nWould you like to see casinos available in ${c.name}?`;
+  }
+
+  if (context.paymentMethods && context.paymentMethods.length > 0) {
+    const list = context.paymentMethods.slice(0, 8).map((p, i) => `${i + 1}. **${p.name}** (${p.method_type || 'other'})\n   🔗 ${site.url(`/en/payment-methods/${p.slug}`)}`).join('\n\n');
+    return `Here are the payment methods covered on ${site.siteName}:\n\n${list}`;
+  }
+
+  if (context.navItems && context.navItems.length > 0) {
+    const list = context.navItems.slice(0, 8).map((n, i) => `${i + 1}. **${n.label}** — 🔗 ${site.url(n.url)}`).join('\n\n');
+    return `Here's where to find things on ${site.siteName}:\n\n${list}`;
   }
 
   return `I couldn't find that information in the ${site.siteName} database. You can browse our independent casino reviews, guides, news, and responsible gambling resources at ${site.url("/en/")} — or contact us at ${site.url("/en/contact")} and we'll be happy to help.`;

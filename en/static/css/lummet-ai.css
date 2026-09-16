@@ -233,6 +233,28 @@
 }
 .lummet-ai-footer a { color: var(--lummet-accent); text-decoration: none; }
 
+/* Free-tier remaining-messages counter (shown above the footer link) */
+.lummet-ai-remaining {
+  color: var(--lummet-text-muted); font-size: 11px; margin-bottom: 4px;
+}
+
+/* Auth gate — shown once the free-message limit is reached */
+.lummet-ai-auth-gate {
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 4px 8px;
+  align-self: stretch;
+}
+.lummet-ai-auth-btn {
+  flex: 1; min-width: 120px; text-align: center; padding: 10px 14px;
+  border-radius: 10px; font-size: 13px; font-weight: 600; text-decoration: none;
+  border: 1px solid var(--lummet-border); color: var(--lummet-text);
+  background: var(--lummet-surface); transition: all 0.2s;
+}
+.lummet-ai-auth-btn:hover { background: var(--lummet-surface-hover); }
+.lummet-ai-auth-btn--primary {
+  background: var(--lummet-accent); border-color: var(--lummet-accent); color: #fff;
+}
+.lummet-ai-auth-btn--primary:hover { background: var(--lummet-accent-hover); }
+
 /* Mobile Responsive */
 @media (max-width: 500px) {
   .lummet-ai-window {

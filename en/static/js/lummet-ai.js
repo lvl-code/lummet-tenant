@@ -10,12 +10,39 @@
   let isStreaming = false;
   let sessionId = null;
   let messages = [];
+  let authGateActive = false;
 
-  let button, chatWindow, messagesEl, inputEl, sendBtn, clearBtn, closeBtn;
+  const SESSION_STORAGE_KEY = 'lummet_ai_session_id';
+  const REOPEN_FLAG_KEY = 'lummet_ai_reopen';
+
+  let button, chatWindow, messagesEl, inputEl, sendBtn, clearBtn, closeBtn, footerEl;
+  let siteHostname = '';
+
+  /**
+   * The session id has to survive page reloads (and a login/register
+   * round trip) for two reasons: it's how the free-message quota is
+   * counted client-side alongside the server-side IP check, and it's
+   * how a conversation "continues" into the user's dashboard once
+   * they register/login — same session_id, now attached to their
+   * account server-side (see worker/ai/memory.js appendMessages).
+   */
+  function getOrCreateSessionId() {
+    try {
+      const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (existing) return existing;
+      const fresh = 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+      window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+      return fresh;
+    } catch (e) {
+      // localStorage unavailable (private mode, etc.) — fall back to a
+      // per-load id; free-tier gating still works via the server's IP check.
+      return 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    }
+  }
 
   function init() {
     const siteOrigin = window.location.origin;
-    const siteHostname = window.location.hostname;
+    siteHostname = window.location.hostname;
     if (document.querySelector('.lummet-ai-root')) return;
 
     if (!document.querySelector('link[href*="lummet-ai.css"]')) {
@@ -93,6 +120,7 @@
     sendBtn = root.querySelector('#lummetSend');
     clearBtn = root.querySelector('.lummet-ai-clear');
     closeBtn = root.querySelector('.lummet-ai-close');
+    footerEl = root.querySelector('.lummet-ai-footer');
 
     button.addEventListener('click', toggleWindow);
     closeBtn.addEventListener('click', closeWindow);
@@ -108,7 +136,17 @@
       });
     });
 
-    sessionId = 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    sessionId = getOrCreateSessionId();
+
+    // If we just sent the visitor off to /en/login or /en/register from
+    // the auth-gate CTA, reopen the widget on the page they land back
+    // on so the conversation visibly continues.
+    try {
+      if (window.localStorage.getItem(REOPEN_FLAG_KEY) === '1') {
+        window.localStorage.removeItem(REOPEN_FLAG_KEY);
+        openWindow();
+      }
+    } catch (e) {}
   }
 
   function toggleWindow() { isOpen ? closeWindow() : openWindow(); }
@@ -140,6 +178,7 @@
   }
 
   async function sendMessage() {
+    if (authGateActive) return;
     const text = inputEl.value.trim();
     if (!text || isStreaming) return;
 
@@ -175,9 +214,14 @@
       } else {
         const data = await response.json();
         hideTyping();
-        const answer = data.answer || 'I could not generate a response.';
-        addMessage(answer, 'ai');
-        messages.push({ role: 'assistant', content: answer });
+        if (data.requiresAuth) {
+          showAuthGate(data.answer, data.authLinks);
+        } else {
+          const answer = data.answer || 'I could not generate a response.';
+          addMessage(answer, 'ai');
+          messages.push({ role: 'assistant', content: answer });
+          updateRemainingCounter(data.freeMessagesRemaining);
+        }
       }
     } catch (error) {
       console.error('Lummet stream error:', error);
@@ -189,18 +233,25 @@
         });
         const data = await response.json();
         hideTyping();
-        const answer = data.answer || 'I could not find that information.';
-        addMessage(answer, 'ai');
-        messages.push({ role: 'assistant', content: answer });
+        if (data.requiresAuth) {
+          showAuthGate(data.answer, data.authLinks);
+        } else {
+          const answer = data.answer || 'I could not find that information.';
+          addMessage(answer, 'ai');
+          messages.push({ role: 'assistant', content: answer });
+          updateRemainingCounter(data.freeMessagesRemaining);
+        }
       } catch (fallbackError) {
         hideTyping();
         addMessage('Sorry, something went wrong. Please try again.', 'ai');
       }
     } finally {
       isStreaming = false;
-      inputEl.disabled = false;
-      sendBtn.disabled = false;
-      inputEl.focus();
+      if (!authGateActive) {
+        inputEl.disabled = false;
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
     }
   }
 
@@ -215,6 +266,7 @@
     const decoder = new TextDecoder();
     let buffer = '';
     let fullText = '';
+    let gated = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -232,8 +284,13 @@
               fullText += data.content;
               bubble.innerHTML = renderMarkdown(fullText);
               scrollToBottom();
+            } else if (data.type === 'auth_required') {
+              gated = true;
+              bubble.remove();
+              showAuthGate(data.content, data.authLinks);
             } else if (data.type === 'done') {
               if (data.session_id) sessionId = data.session_id;
+              if (!gated) updateRemainingCounter(data.freeMessagesRemaining);
             } else if (data.type === 'error') {
               bubble.innerHTML = renderMarkdown(data.content || 'An error occurred.');
             }
@@ -242,8 +299,61 @@
       }
     }
 
+    if (gated) return;
+
     messages.push({ role: 'assistant', content: fullText });
     addFollowUpSuggestions();
+  }
+
+  /**
+   * Renders the "you're out of free messages" state: the message
+   * itself, plus Register/Login CTAs that carry the current page back
+   * as a redirect target so the widget can reopen post-login (see
+   * getOrCreateSessionId's docstring and the REOPEN_FLAG_KEY check in init()).
+   */
+  function showAuthGate(text, authLinks) {
+    authGateActive = true;
+
+    const existingSuggestions = messagesEl.querySelector('.lummet-ai-suggestions');
+    if (existingSuggestions) existingSuggestions.remove();
+
+    addMessage(text || "You've reached the free message limit. Please register or log in to keep chatting.", 'ai');
+    messages.push({ role: 'assistant', content: text || '' });
+
+    const returnTo = window.location.pathname + window.location.search;
+    const registerUrl = (authLinks && authLinks.register) || '/en/register';
+    const loginUrl = (authLinks && authLinks.login) || '/en/login';
+
+    const gate = document.createElement('div');
+    gate.className = 'lummet-ai-auth-gate';
+    gate.innerHTML = `
+      <a class="lummet-ai-auth-btn lummet-ai-auth-btn--primary" href="${registerUrl}?redirect=${encodeURIComponent(returnTo)}">Create free account</a>
+      <a class="lummet-ai-auth-btn" href="${loginUrl}?redirect=${encodeURIComponent(returnTo)}">Log in</a>
+    `;
+    gate.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        try { window.localStorage.setItem(REOPEN_FLAG_KEY, '1'); } catch (e) {}
+      });
+    });
+    messagesEl.appendChild(gate);
+    scrollToBottom();
+
+    inputEl.placeholder = 'Register or log in to continue…';
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+  }
+
+  function updateRemainingCounter(remaining) {
+    if (!footerEl || remaining === undefined || remaining === null) return;
+    let counter = footerEl.querySelector('.lummet-ai-remaining');
+    if (!counter) {
+      counter = document.createElement('div');
+      counter.className = 'lummet-ai-remaining';
+      footerEl.prepend(counter);
+    }
+    counter.textContent = remaining === 1
+      ? '1 free message left before you\u2019ll need to sign in'
+      : `${remaining} free messages left before you'll need to sign in`;
   }
 
   function addMessage(text, type) {
@@ -333,6 +443,10 @@
     });
 
     messages = [];
+    authGateActive = false;
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+    inputEl.placeholder = 'Ask about casinos, reviews, bonuses...';
 
     try {
       await fetch('/en/api/v1/ai/chat/clear', {

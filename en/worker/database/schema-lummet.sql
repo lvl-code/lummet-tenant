@@ -20,3 +20,15 @@ CREATE TABLE IF NOT EXISTS ai_rate_limits (
   created_at TEXT NOT NULL,
   PRIMARY KEY (ip_hash, created_at)
 );
+
+-- Public/anonymous free-tier gate: FREE_MESSAGE_LIMIT (3, see
+-- worker/ai/security.js) messages per IP before registration/login
+-- is required. See migrations/0043_ai_free_tier_usage.sql.
+CREATE TABLE IF NOT EXISTS ai_free_tier_usage (
+  ip_hash TEXT PRIMARY KEY,
+  message_count INTEGER NOT NULL DEFAULT 0,
+  first_message_at TEXT,
+  last_message_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_free_tier_last ON ai_free_tier_usage(last_message_at);

@@ -80,8 +80,17 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="categoryCountryOgImage">OG image URL</label>
-            <input type="text" id="categoryCountryOgImage" name="og_image">
+            <label>OG Image</label>
+            <input type="hidden" id="categoryCountryOgImage" name="og_image" value="">
+            <div id="categoryCountryOgImagePreview" style="display:none;margin-bottom:10px">
+              <img id="categoryCountryOgImageImg" src="" alt="" style="width:100%;max-width:400px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--light-gray)">
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button type="button" id="categoryCountryChangeOgImage" class="btn btn--secondary btn--sm">Change</button>
+                <button type="button" id="categoryCountryRemoveOgImage" class="btn btn--danger btn--sm">Remove</button>
+              </div>
+            </div>
+            <button type="button" id="categoryCountrySelectOgImage" class="btn btn--secondary btn--sm">Select OG Image</button>
+            <small class="muted">Optional image used when this page is shared on social platforms.</small>
           </div>
           <div class="form-group">
             <label for="categoryCountryCanonical">Canonical URL</label>

@@ -5831,7 +5831,11 @@ async function editCountryPage(id) {
   document.getElementById("countryPageSeoTitle").value = p.seo_title || "";
   document.getElementById("countryPageSeoDescription").value = p.seo_description || "";
   document.getElementById("countryPageSeoKeywords").value = p.seo_keywords || "";
-  document.getElementById("countryPageOgImage").value = p.og_image || "";
+  if (p.og_image) {
+    setCountryPageOgImage(p.og_image, "");
+  } else {
+    clearCountryPageOgImage();
+  }
   document.getElementById("countryPageFeaturedImage").value = p.featured_image || "";
   document.getElementById("countryPageCanonical").value = p.canonical_url || "";
   document.getElementById("countryPageRobots").value = p.robots || "index,follow";
@@ -5866,6 +5870,7 @@ function resetCountryPageForm() {
   state.countryCode = "";
   document.getElementById("countryPageForm").reset();
   document.getElementById("countryPageId").value = "";
+  clearCountryPageOgImage();
   renderSeoSections("country_page");
   renderSeoCasinoSelected("country_page");
   document.getElementById("countryPageFormTitle").textContent = "Add Country Page";
@@ -5883,6 +5888,34 @@ async function deleteCountryPage(id) {
   else alert("Delete failed: " + (data.error || "unknown error"));
 }
 
+// ── Country Page OG Image (stores a plain URL, picked via Media Library) ──────
+function openCountryPageOgImagePicker() {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function(media) {
+    if (!media || !media.url) return;
+    setCountryPageOgImage(media.url, media.alt_text || "");
+  }, "seo-pages");
+}
+
+function setCountryPageOgImage(url, alt) {
+  const input = document.getElementById("countryPageOgImage");
+  const imgEl = document.getElementById("countryPageOgImageImg");
+  const preview = document.getElementById("countryPageOgImagePreview");
+  const selectBtn = document.getElementById("countryPageSelectOgImage");
+
+  if (input) input.value = url || "";
+  if (imgEl) { imgEl.src = url || ""; imgEl.alt = alt || ""; }
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+}
+
+function clearCountryPageOgImage() {
+  setCountryPageOgImage("", "");
+}
+
 function initCountryPageForm() {
   const form = document.getElementById("countryPageForm");
   if (!form) return;
@@ -5891,6 +5924,13 @@ function initCountryPageForm() {
   wireSeoCasinoPicker("country_page", "countryPageCasinoAdd", "countryPageCasinoAddBtn", "countryPageCasinoSelected");
   wireSeoSectionBuilder("country_page", "countryPageSections", "countryPageAddSectionBtn");
   document.getElementById("countryPageSlug").addEventListener("input", () => updateSeoUrlPreview("country_page"));
+
+  const ogSelectBtn = document.getElementById("countryPageSelectOgImage");
+  const ogChangeBtn = document.getElementById("countryPageChangeOgImage");
+  const ogRemoveBtn = document.getElementById("countryPageRemoveOgImage");
+  if (ogSelectBtn) ogSelectBtn.addEventListener("click", openCountryPageOgImagePicker);
+  if (ogChangeBtn) ogChangeBtn.addEventListener("click", openCountryPageOgImagePicker);
+  if (ogRemoveBtn) ogRemoveBtn.addEventListener("click", clearCountryPageOgImage);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -6018,7 +6058,11 @@ async function editCategoryCountry(id) {
   document.getElementById("categoryCountrySeoTitle").value = p.seo_title || "";
   document.getElementById("categoryCountrySeoDescription").value = p.seo_description || "";
   document.getElementById("categoryCountrySeoKeywords").value = p.seo_keywords || "";
-  document.getElementById("categoryCountryOgImage").value = p.og_image || "";
+  if (p.og_image) {
+    setCategoryCountryOgImage(p.og_image, "");
+  } else {
+    clearCategoryCountryOgImage();
+  }
   document.getElementById("categoryCountryCanonical").value = p.canonical_url || "";
   document.getElementById("categoryCountryRobots").value = p.robots || "index,follow";
   document.getElementById("categoryCountryMinCasinos").value = p.min_casino_count ?? 1;
@@ -6054,6 +6098,7 @@ function resetCategoryCountryForm() {
   state.categorySlug = null;
   document.getElementById("categoryCountryForm").reset();
   document.getElementById("categoryCountryId").value = "";
+  clearCategoryCountryOgImage();
   renderSeoSections("category_country");
   renderSeoCasinoSelected("category_country");
   document.getElementById("categoryCountryFormTitle").textContent = "Create Category Country Page";
@@ -6079,6 +6124,34 @@ async function loadCategoriesInto(selectId) {
   } catch (e) { /* non-fatal */ }
 }
 
+// ── Category Country Page OG Image (stores a plain URL, picked via Media Library) ──────
+function openCategoryCountryOgImagePicker() {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function(media) {
+    if (!media || !media.url) return;
+    setCategoryCountryOgImage(media.url, media.alt_text || "");
+  }, "seo-pages");
+}
+
+function setCategoryCountryOgImage(url, alt) {
+  const input = document.getElementById("categoryCountryOgImage");
+  const imgEl = document.getElementById("categoryCountryOgImageImg");
+  const preview = document.getElementById("categoryCountryOgImagePreview");
+  const selectBtn = document.getElementById("categoryCountrySelectOgImage");
+
+  if (input) input.value = url || "";
+  if (imgEl) { imgEl.src = url || ""; imgEl.alt = alt || ""; }
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+}
+
+function clearCategoryCountryOgImage() {
+  setCategoryCountryOgImage("", "");
+}
+
 function initCategoryCountryForm() {
   const form = document.getElementById("categoryCountryForm");
   if (!form) return;
@@ -6087,6 +6160,13 @@ function initCategoryCountryForm() {
   wireSeoCountrySearch("category_country", "categoryCountrySearch", "categoryCountryResults", "categoryCountryCodeHidden");
   wireSeoCasinoPicker("category_country", "categoryCountryCasinoAdd", "categoryCountryCasinoAddBtn", "categoryCountryCasinoSelected");
   wireSeoSectionBuilder("category_country", "categoryCountrySections", "categoryCountryAddSectionBtn");
+
+  const ogSelectBtn = document.getElementById("categoryCountrySelectOgImage");
+  const ogChangeBtn = document.getElementById("categoryCountryChangeOgImage");
+  const ogRemoveBtn = document.getElementById("categoryCountryRemoveOgImage");
+  if (ogSelectBtn) ogSelectBtn.addEventListener("click", openCategoryCountryOgImagePicker);
+  if (ogChangeBtn) ogChangeBtn.addEventListener("click", openCategoryCountryOgImagePicker);
+  if (ogRemoveBtn) ogRemoveBtn.addEventListener("click", clearCategoryCountryOgImage);
 
   document.getElementById("categoryCountryCategorySelect").addEventListener("change", (e) => {
     const opt = e.target.options[e.target.selectedIndex];

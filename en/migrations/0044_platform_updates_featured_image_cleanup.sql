@@ -30,11 +30,22 @@
 --   WHERE featured_image IS NOT NULL AND typeof(featured_image) = 'text';
 -- to see how many rows are affected and what values they hold, so you
 -- know in advance how many will end up NULL vs successfully matched.
+--
+-- NOTE: stored values here have been observed to be a partial path
+-- (e.g. "updates/169-abc.jpeg") rather than the full media_library.url
+-- (e.g. "https://level.casino/media/updates/169-abc.jpeg"). A plain
+-- equality match against media_library.url therefore fails to find
+-- anything even when the media clearly exists, so this uses a suffix
+-- match instead. If more than one media_library row shares that same
+-- URL (duplicate uploads), this picks one arbitrarily via LIMIT 1 --
+-- harmless, but worth a manual look afterward if that matters to you.
 -- =====================================================
 
 UPDATE platform_updates
 SET featured_image = (
-  SELECT m.id FROM media_library m WHERE m.url = platform_updates.featured_image
+  SELECT m.id FROM media_library m
+  WHERE m.url LIKE '%' || platform_updates.featured_image
+  LIMIT 1
 )
 WHERE featured_image IS NOT NULL
   AND typeof(featured_image) = 'text';

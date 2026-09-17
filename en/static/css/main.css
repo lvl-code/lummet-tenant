@@ -2561,3 +2561,15 @@ padding:22px;
 .country-directory__alpha-groups { display: flex; flex-direction: column; gap: 24px; }
 .country-directory__letter { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray, #7a828e); margin: 0 0 10px; border-bottom: 1px solid var(--border, #eceff2); padding-bottom: 6px; }
 .country-directory__empty { text-align: center; color: var(--gray, #7a828e); padding: 20px 0; }
+
+
+.gpwa-seal-standalone {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 24px 0;
+}
+.gpwa-seal-standalone img {
+  max-width: 100%;
+}

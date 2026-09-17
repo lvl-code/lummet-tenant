@@ -748,6 +748,14 @@ if (heroOverlay) {
     settings.site_hero_overlay !== "false";
 }
 
+const gpwaSealEnabled =
+  document.getElementById("gpwaSealEnabled");
+
+if (gpwaSealEnabled) {
+  gpwaSealEnabled.checked =
+    settings.gpwa_seal_enabled === "true";
+}
+
     // --------------------------------------------------------
     // Populate normal fields
     // --------------------------------------------------------
@@ -2913,6 +2921,14 @@ const heroOverlay =
 
 payload.site_hero_overlay =
   heroOverlay && heroOverlay.checked
+    ? "true"
+    : "false";
+
+const gpwaSealEnabledInput =
+  document.getElementById("gpwaSealEnabled");
+
+payload.gpwa_seal_enabled =
+  gpwaSealEnabledInput && gpwaSealEnabledInput.checked
     ? "true"
     : "false";
 

@@ -26,6 +26,18 @@ const DEFAULTS = {
   // ==========================================================
 
   gaMeasurementId: "",
+
+  // ==========================================================
+  // GPWA VERIFICATION (SEAL + SCRIPT)
+  // Admin-pasted, per-tenant. Never hardcoded — each tenant may
+  // or may not be GPWA-certified, and the exact markup (domain,
+  // verify/seal/script URLs) differs per tenant certification.
+  // ==========================================================
+
+  gpwaSealEnabled: false,
+  gpwaSealHtml: "",
+  gpwaScriptHtml: "",
+
    // ==========================================================
   // THEME / PLATFORM LAYOUT
   // ==========================================================
@@ -646,6 +658,25 @@ heroOverlay:
       values.ga_measurement_id ||
       DEFAULTS.gaMeasurementId,
 
+    // ========================================================
+    // GPWA VERIFICATION
+    // Raw, admin-pasted markup — never sanitized (it legitimately
+    // contains a <script> tag) and never rendered unless BOTH the
+    // toggle is on AND the tenant has actually pasted something in.
+    // See buildGpwaSeal()/buildGpwaScript() below for the gating.
+    // ========================================================
+
+    gpwaSealEnabled:
+      values.gpwa_seal_enabled === "true",
+
+    gpwaSealHtml:
+      values.gpwa_seal_html ||
+      DEFAULTS.gpwaSealHtml,
+
+    gpwaScriptHtml:
+      values.gpwa_script_html ||
+      DEFAULTS.gpwaScriptHtml,
+
     homepageSections:
   parseHomepageSections(
     values.homepage_sections
@@ -1247,6 +1278,30 @@ export function buildGaScriptbackup(siteSettings) {
     gtag('config', '${id}');
   </script>`;
 }
+
+// ------------------------------------------------------------
+// GPWA verification (seal + script)
+// Admin-pasted per tenant. Deliberately NOT run through
+// sanitizeHtml() — the script snippet legitimately needs a
+// <script> tag, which the sanitizer strips — so access to the
+// settings fields that populate these is restricted to
+// admin/editor roles at the API layer (see api.js saveSettings).
+// Both helpers return "" unless the tenant has the toggle on
+// AND has actually pasted markup in, so an empty/never-configured
+// tenant renders nothing and the {{#if}} guards in the templates
+// collapse to nothing as well.
+// ------------------------------------------------------------
+
+export function buildGpwaSeal(siteSettings) {
+  if (!siteSettings?.gpwaSealEnabled) return "";
+  return String(siteSettings.gpwaSealHtml || "").trim();
+}
+
+export function buildGpwaScript(siteSettings) {
+  if (!siteSettings?.gpwaSealEnabled) return "";
+  return String(siteSettings.gpwaScriptHtml || "").trim();
+}
+
 
 // ------------------------------------------------------------
 // Render compliance logos safely

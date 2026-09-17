@@ -7,7 +7,9 @@ import {
   buildComplianceHtml,
   buildHomepageSectionsHtml,
   buildThemeCss,
-  buildGaScript
+  buildGaScript,
+  buildGpwaSeal,
+  buildGpwaScript
 } from "./site-settings.js";
 import {
   buildBreadcrumbSchema,
@@ -650,6 +652,12 @@ site.themeCss =
 site.gaScriptHtml =
   buildGaScript(site);
 
+site.gpwaSealMarkup =
+  buildGpwaSeal(site);
+
+site.gpwaScriptMarkup =
+  buildGpwaScript(site);
+
 const allData = {
   ...navData,
 
@@ -709,6 +717,19 @@ const allData = {
   footer_responsible_help_url: site.responsibleHelpUrl,
   footer_responsible_help_label: site.responsibleHelpLabel,
 
+  // --------------------------------------------------------
+  // GPWA verification (seal + script)
+  // gpwa_seal_enabled / gpwa_script_enabled gate the {{#if}}
+  // blocks in footer.html / base.html; the matching
+  // {{{gpwa_*_html}}} only ever carries what the tenant admin
+  // pasted into Settings → GPWA Verification. Both are empty
+  // strings ("" = falsy) for any tenant that hasn't configured
+  // GPWA, so the markup is absent, not just hidden.
+  // --------------------------------------------------------
+  gpwa_seal_enabled: site.gpwaSealMarkup ? true : false,
+  gpwa_seal_html: site.gpwaSealMarkup,
+  gpwa_script_enabled: site.gpwaScriptMarkup ? true : false,
+  gpwa_script_html: site.gpwaScriptMarkup,
 
   homepage_sections_html: site.homepageSectionsHtml,
 

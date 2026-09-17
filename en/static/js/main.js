@@ -11,17 +11,31 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /**
- * Returns the ?redirect= param from the current URL if it's a safe,
- * same-site relative path — e.g. so a visitor who registers/logs in
- * from the Lummet AI free-message gate lands back where they were
- * chatting instead of always at /en/dashboard. Returns null otherwise.
+ * Returns the ?redirect= param from the current URL if it's safe to
+ * send the visitor to — either a same-site relative path (the normal
+ * case), or an absolute URL back to this tenant's own `lummet.`
+ * subdomain (the dedicated Lummet AI chat interface uses a different
+ * origin, so its redirect back from /en/register or /en/login has to
+ * be a full URL — this is the one absolute-URL case allowed, to avoid
+ * turning this into an open redirect to arbitrary domains).
+ * Returns null otherwise.
  */
 function getSafeRedirectParam() {
   const value = new URLSearchParams(window.location.search).get("redirect");
   if (!value) return null;
-  // Must be an internal path: single leading slash, no protocol-relative "//".
-  if (!/^\/(?!\/)/.test(value)) return null;
-  return value;
+
+  // Same-site relative path: single leading slash, no protocol-relative "//".
+  if (/^\/(?!\/)/.test(value)) return value;
+
+  // Absolute URL back to lummet.<this-hostname>, https only.
+  try {
+    const target = new URL(value);
+    if (target.protocol === "https:" && target.hostname === `lummet.${window.location.hostname}`) {
+      return target.href;
+    }
+  } catch {}
+
+  return null;
 }
 
 // ---- Login ----

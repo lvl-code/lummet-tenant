@@ -6,6 +6,8 @@ import {
   logRequest
 } from '../ai/security.js';
 
+import { getCurrentUser } from '../auth.js';
+
 import {
   handleAdminLogin,
   handleGetCasinos,
@@ -258,13 +260,20 @@ async function handleChat(request, env) {
 
     await logRequest(env.DB, ipHash);
 
+    // The session cookie is shared with the parent tenant domain (see
+    // getCookieDomain() in worker/auth.js), so a visitor who's logged
+    // in on the main site is recognized here too -- unlimited chat,
+    // and this session_id's conversation attaches to their account.
+    const session = await getCurrentUser(request, env);
+
     const result = await aiAssistant.chat(
       env,
       body.message,
       {
         country: request.cf?.country || null,
         sessionId,
-        userId: null
+        userId: session?.user_id || null,
+        ipHash
       },
       request
     );
@@ -333,13 +342,16 @@ async function handleChatStream(request, env) {
 
     await logRequest(env.DB, ipHash);
 
+    const session = await getCurrentUser(request, env);
+
     return await aiAssistant.chatStream(
       env,
       body.message,
       {
         country: request.cf?.country || null,
         sessionId,
-        userId: null
+        userId: session?.user_id || null,
+        ipHash
       },
       request
     );

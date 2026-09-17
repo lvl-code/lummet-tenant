@@ -129,8 +129,15 @@ export async function chat(env, message, userContext = {}, request) {
   // URL fidelity guard: replace any URL the model produced that isn't a
   // verbatim copy of one we actually put in its context (see
   // retrieval.js's sanitizeAnswerUrls docstring for why this exists).
-  const allowedUrls = extractContextUrls(buildContextString(context, country, site));
-  answer = sanitizeAnswerUrls(answer, allowedUrls, site.url('/en/'));
+  // Wrapped defensively -- a bug in the guard itself must never turn
+  // into a failed response; worst case, an unsanitized answer is still
+  // far better than "Sorry, something went wrong."
+  try {
+    const allowedUrls = extractContextUrls(buildContextString(context, country, site));
+    answer = sanitizeAnswerUrls(answer, allowedUrls, site.url('/en/'));
+  } catch (e) {
+    console.error('Lummet URL sanitize error:', e.message);
+  }
 
   // 8. Save to conversation memory
   try { await appendMessages(db, sessionId, sanitized, answer, userId); }
@@ -221,18 +228,30 @@ export async function chatStream(env, message, userContext = {}, request) {
 
   // 7. PASS 3 — Respond (streaming)
   const encoder = new TextEncoder();
-  const allowedUrls = extractContextUrls(buildContextString(context, country, site));
   const homepageUrl = site.url('/en/');
+  let allowedUrls = null;
+  try {
+    allowedUrls = extractContextUrls(buildContextString(context, country, site));
+  } catch (e) {
+    console.error('Lummet URL context build error (streaming, guard disabled for this response):', e.message);
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
       let fullAnswer = '';
       let sanitizedAnswer = '';
-      const urlSanitizer = createStreamingUrlSanitizer(allowedUrls, homepageUrl);
+      // If we couldn't build the allowed-URL set above, skip the guard
+      // for this response rather than either crashing the stream or
+      // aggressively stripping every URL as "not allowed."
+      const urlSanitizer = allowedUrls ? createStreamingUrlSanitizer(allowedUrls, homepageUrl) : null;
 
       function emitDelta(rawToken) {
         fullAnswer += rawToken;
-        const safe = urlSanitizer.push(rawToken);
+        let safe = rawToken;
+        if (urlSanitizer) {
+          try { safe = urlSanitizer.push(rawToken); }
+          catch (e) { console.error('Lummet URL sanitize error (streaming):', e.message); safe = rawToken; }
+        }
         if (safe) {
           sanitizedAnswer += safe;
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: safe })}\n\n`));
@@ -279,10 +298,14 @@ export async function chatStream(env, message, userContext = {}, request) {
 
       // Flush whatever URL-sanitizer was still holding back (a URL that
       // never got a trailing space/newline before the stream ended).
-      const tail = urlSanitizer.flush();
-      if (tail) {
-        sanitizedAnswer += tail;
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: tail })}\n\n`));
+      if (urlSanitizer) {
+        let tail = '';
+        try { tail = urlSanitizer.flush(); }
+        catch (e) { console.error('Lummet URL sanitize flush error:', e.message); }
+        if (tail) {
+          sanitizedAnswer += tail;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: tail })}\n\n`));
+        }
       }
 
       try { await appendMessages(db, sessionId, sanitized, sanitizedAnswer.trim() || fullAnswer.trim(), userId); }

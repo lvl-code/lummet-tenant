@@ -40,6 +40,31 @@
     }
   }
 
+  const WELCOME_SUGGESTION_POOL = [
+    { label: 'Best casinos', prompt: 'Show me the best casinos' },
+    { label: 'Casino reviews', prompt: 'What casino reviews are available?' },
+    { label: 'Available in my country', prompt: 'Which casinos are available in my country?' },
+    { label: 'Crypto casinos', prompt: 'Tell me about crypto casinos' },
+    { label: 'Payment methods', prompt: 'What payment methods do casinos support?' },
+    { label: 'Bonuses', prompt: 'What bonuses are available?' },
+    { label: 'Responsible gambling', prompt: 'Tell me about responsible gambling' },
+    { label: 'Site navigation', prompt: 'What sections does this site have?' },
+    { label: "What's new", prompt: "What's the latest casino news and updates?" },
+    { label: 'Licensing & safety', prompt: 'How do I know if a casino is safe and properly licensed?' },
+    { label: 'Compare casinos', prompt: 'Compare two popular casinos' },
+    { label: 'Withdrawals', prompt: 'How do casino withdrawals typically work?' }
+  ];
+
+  function pickSuggestions(pool, count) {
+    return [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+  }
+
+  function renderWelcomeChipsHTML(count = 4) {
+    return pickSuggestions(WELCOME_SUGGESTION_POOL, count)
+      .map(s => `<button class="lummet-ai-suggestion-chip" data-prompt="${s.prompt.replace(/"/g, '&quot;')}">${s.label}</button>`)
+      .join('\n            ');
+  }
+
   function init() {
     const siteOrigin = window.location.origin;
     siteHostname = window.location.hostname;
@@ -88,10 +113,7 @@
             <p>I can help you explore casino reviews, compare casinos, check bonuses, and find information on ${siteHostname}.</p>
           </div>
           <div class="lummet-ai-suggestions">
-            <button class="lummet-ai-suggestion-chip" data-prompt="Show me the best casinos">Best casinos</button>
-            <button class="lummet-ai-suggestion-chip" data-prompt="What casino reviews are available?">Casino reviews</button>
-            <button class="lummet-ai-suggestion-chip" data-prompt="Which casinos are available in my country?">Available in my country</button>
-            <button class="lummet-ai-suggestion-chip" data-prompt="Tell me about crypto casinos">Crypto casinos</button>
+            ${renderWelcomeChipsHTML(4)}
           </div>
         </div>
 
@@ -376,12 +398,15 @@
     suggestions.className = 'lummet-ai-suggestions';
     suggestions.style.marginTop = '4px';
 
-    const chips = [
+    const FOLLOW_UP_POOL = [
       { label: 'Compare casinos', prompt: 'Compare the casinos you mentioned' },
       { label: 'Show bonuses', prompt: 'What bonuses do these casinos offer?' },
       { label: 'Payment methods', prompt: 'What payment methods are available?' },
-      { label: 'More details', prompt: 'Tell me more about the first one' }
+      { label: 'More details', prompt: 'Tell me more about the first one' },
+      { label: 'Is it licensed?', prompt: 'Is this casino properly licensed and safe?' },
+      { label: 'Withdrawal times', prompt: 'How fast are withdrawals at these casinos?' }
     ];
+    const chips = pickSuggestions(FOLLOW_UP_POOL, 4);
 
     chips.forEach(chip => {
       const btn = document.createElement('button');
@@ -428,10 +453,7 @@
         <p>I can help you explore casino reviews, compare casinos, check bonuses, and find information on ${siteHostname}.</p>
       </div>
       <div class="lummet-ai-suggestions">
-        <button class="lummet-ai-suggestion-chip" data-prompt="Show me the best casinos">Best casinos</button>
-        <button class="lummet-ai-suggestion-chip" data-prompt="What casino reviews are available?">Casino reviews</button>
-        <button class="lummet-ai-suggestion-chip" data-prompt="Which casinos are available in my country?">Available in my country</button>
-        <button class="lummet-ai-suggestion-chip" data-prompt="Tell me about crypto casinos">Crypto casinos</button>
+        ${renderWelcomeChipsHTML(4)}
       </div>
     `;
 

@@ -95,6 +95,35 @@ function generateToken() {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Session cookie domain — so the login cookie set on the main tenant
+ * domain (e.g. freewin.xyz) is also readable on its `lummet.` chat
+ * subdomain (lummet.freewin.xyz), letting Lummet AI recognize a
+ * logged-in visitor and continue their conversation into the account.
+ *
+ * Returns null (host-only cookie, previous behavior) for localhost,
+ * bare IPs, or any hostname with no dot -- Domain= is invalid/rejected
+ * by browsers there (local dev / wrangler dev).
+ */
+function getCookieDomain(request) {
+  try {
+    let hostname = new URL(request.url).hostname;
+    if (!hostname || hostname === "localhost" || !hostname.includes(".") ||
+        /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+      return null;
+    }
+    if (hostname.startsWith("www.")) hostname = hostname.slice(4);
+    return `.${hostname}`;
+  } catch {
+    return null;
+  }
+}
+
+function sessionCookieHeader(token, request) {
+  const domain = getCookieDomain(request);
+  return `session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax${domain ? `; Domain=${domain}` : ""}`;
+}
+
 
 /**
  * Hash password using PBKDF2 (100k iterations)
@@ -247,7 +276,7 @@ export async function login(request, env) {
   return new Response(JSON.stringify({ success: true }), {
     headers: {
       "Content-Type": "application/json",
-      "Set-Cookie": `session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax`
+      "Set-Cookie": sessionCookieHeader(token, request)
     }
   });
 }
@@ -279,7 +308,7 @@ export async function logout(
   status: 302,
   headers: {
     "Location": "/en/login",
-    "Set-Cookie": "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
+    "Set-Cookie": `session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax${getCookieDomain(request) ? `; Domain=${getCookieDomain(request)}` : ""}`
   }
 });
 

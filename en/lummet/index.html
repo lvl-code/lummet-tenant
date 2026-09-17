@@ -200,40 +200,7 @@
           <div class="welcome-icon">✦</div>
           <h2>Lummet AI</h2>
           <p>Your iGaming Intelligence Assistant by {{site_name}}. Ask me about casino reviews, bonuses, payment methods, licenses, and more.</p>
-          <div class="suggestions">
-            <div class="suggestion-card" onclick="sendSuggestion('Show me the best casinos available in my country')">
-              <h3>🎰 Best casinos in my country</h3>
-              <p>Find top-rated casinos available where you are</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('What casino reviews are available?')">
-              <h3>⭐ Browse casino reviews</h3>
-              <p>See all reviews published on {{site_name}}</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('Which casinos support crypto payments?')">
-              <h3>₿ Crypto casinos</h3>
-              <p>Find casinos that accept Bitcoin and crypto</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('Compare Stake and BC.Game')">
-              <h3>⚖️ Compare casinos</h3>
-              <p>Compare features, bonuses, and ratings</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('What bonuses are available?')">
-              <h3>🎁 Casino bonuses</h3>
-              <p>Find the best welcome offers and promotions</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('Tell me about responsible gambling')">
-              <h3>🛡️ Responsible gambling</h3>
-              <p>Learn about safe gambling practices</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('What is {{site_name}}?')">
-              <h3>ℹ️ About {{site_name}}</h3>
-              <p>Learn what {{site_name}} is and how it works</p>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('What payment methods do casinos support?')">
-              <h3>💳 Payment methods</h3>
-              <p>Discover deposit and withdrawal options</p>
-            </div>
-          </div>
+          <div class="suggestions" id="suggestions"></div>
         </div>
       </div>
 
@@ -391,10 +358,36 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    let sessionId = 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
+    const SITE_URL = "{{site_url}}";
+    const SESSION_STORAGE_KEY = 'lummetSessionId';
+    const REOPEN_TOAST_KEY = 'lummetReopenToast';
+
+    function getOrCreateSessionId() {
+      try {
+        const existing = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (existing) return existing;
+        const fresh = 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
+        localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+        return fresh;
+      } catch (e) {
+        return 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
+      }
+    }
+
+    let sessionId = getOrCreateSessionId();
     let isStreaming = false;
+    let authGateActive = false;
     let adminToken = sessionStorage.getItem('lummetAdminToken') || null;
     let conversations = JSON.parse(localStorage.getItem('lummetConversations') || '[]');
+
+    // If we just sent the visitor to /en/login or /en/register from the
+    // free-message gate, let them know their conversation carried over.
+    try {
+      if (localStorage.getItem(REOPEN_TOAST_KEY) === '1') {
+        localStorage.removeItem(REOPEN_TOAST_KEY);
+        setTimeout(() => showToast("You're signed in — continuing your conversation"), 400);
+      }
+    } catch (e) {}
 
     document.getElementById('input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -405,9 +398,39 @@
     });
     renderChatList();
 
+    const SUGGESTION_POOL = [
+      { icon: '🎰', title: 'Best casinos in my country', desc: 'Find top-rated casinos available where you are', prompt: 'Show me the best casinos available in my country' },
+      { icon: '⭐', title: 'Browse casino reviews', desc: 'See all reviews published on {{site_name}}', prompt: 'What casino reviews are available?' },
+      { icon: '₿', title: 'Crypto casinos', desc: 'Find casinos that accept Bitcoin and crypto', prompt: 'Which casinos support crypto payments?' },
+      { icon: '⚖️', title: 'Compare casinos', desc: 'Compare features, bonuses, and ratings', prompt: 'Compare Stake and BC.Game' },
+      { icon: '🎁', title: 'Casino bonuses', desc: 'Find the best welcome offers and promotions', prompt: 'What bonuses are available?' },
+      { icon: '🛡️', title: 'Responsible gambling', desc: 'Learn about safe gambling practices', prompt: 'Tell me about responsible gambling' },
+      { icon: 'ℹ️', title: 'About {{site_name}}', desc: 'Learn what {{site_name}} is and how it works', prompt: 'What is {{site_name}}?' },
+      { icon: '💳', title: 'Payment methods', desc: 'Discover deposit and withdrawal options', prompt: 'What payment methods do casinos support?' },
+      { icon: '🧭', title: 'Explore {{site_name}}', desc: "See what's on the site and where to find it", prompt: 'What sections and pages does {{site_name}} have?' },
+      { icon: '📰', title: "What's new", desc: 'Latest casino news and platform updates', prompt: "What's the latest casino news and updates on {{site_name}}?" },
+      { icon: '🔒', title: 'Licensing & safety', desc: 'How to tell a casino is properly licensed', prompt: 'How do I know if a casino is safe and properly licensed?' },
+      { icon: '💸', title: 'Withdrawals', desc: 'How deposits and withdrawals typically work', prompt: 'How do casino withdrawals typically work?' },
+      { icon: '🎲', title: 'Live dealer & slots', desc: 'Casinos known for live dealer games or slots', prompt: 'Which casinos have the best live dealer games?' },
+      { icon: '📱', title: 'Mobile-friendly casinos', desc: 'Casinos that work well on mobile', prompt: 'Which casinos have the best mobile experience?' }
+    ];
+
+    function renderSuggestions(count = 8) {
+      const el = document.getElementById('suggestions');
+      if (!el) return;
+      const shuffled = [...SUGGESTION_POOL].sort(() => Math.random() - 0.5).slice(0, count);
+      el.innerHTML = shuffled.map(s => `
+        <div class="suggestion-card" onclick="sendSuggestion('${s.prompt.replace(/'/g, "\\'")}')">
+          <h3>${s.icon} ${s.title}</h3>
+          <p>${s.desc}</p>
+        </div>`).join('');
+    }
+    renderSuggestions();
+
     function sendSuggestion(text) { document.getElementById('input').value = text; sendMessage(); }
 
     async function sendMessage() {
+      if (authGateActive) return;
       const input = document.getElementById('input');
       const text = input.value.trim();
       if (!text || isStreaming) return;
@@ -433,7 +456,12 @@
         } else {
           const data = await response.json();
           hideTyping();
-          addMessage(data.answer || 'Sorry, I could not generate a response.', 'ai');
+          if (data.requiresAuth) {
+            showAuthGate(data.answer, data.authLinks);
+          } else {
+            addMessage(data.answer || 'Sorry, I could not generate a response.', 'ai');
+            saveConversation(text, data.answer || '');
+          }
         }
       } catch (error) {
         console.error('Stream error:', error);
@@ -445,17 +473,62 @@
             body: JSON.stringify({ message: text, session_id: sessionId })
           });
           const data = await response.json();
-          addMessage(data.answer || 'Sorry, something went wrong.', 'ai');
+          if (data.requiresAuth) {
+            showAuthGate(data.answer, data.authLinks);
+          } else {
+            addMessage(data.answer || 'Sorry, something went wrong.', 'ai');
+            saveConversation(text, data.answer || '');
+          }
         } catch (e) {
           addMessage('Sorry, something went wrong. Please try again.', 'ai');
         }
       } finally {
         isStreaming = false;
-        input.disabled = false;
-        document.getElementById('sendBtn').disabled = false;
-        input.focus();
-        saveConversation(text);
+        if (!authGateActive) {
+          input.disabled = false;
+          document.getElementById('sendBtn').disabled = false;
+          input.focus();
+        }
       }
+    }
+
+    /**
+     * Shown once the free-message limit (see worker/ai/security.js,
+     * FREE_MESSAGE_LIMIT) is reached. Register/login happen on the main
+     * tenant domain (this page lives on the lummet. subdomain), so the
+     * redirect back has to be an absolute URL -- static/js/main.js's
+     * getSafeRedirectParam() allowlists exactly this case.
+     */
+    function showAuthGate(text, authLinks) {
+      authGateActive = true;
+      addMessage(text || "You've reached the free message limit. Please register or log in to keep chatting.", 'ai');
+
+      const returnTo = window.location.href;
+      const registerUrl = ((authLinks && authLinks.register) || `${SITE_URL}/en/register`) + '?redirect=' + encodeURIComponent(returnTo);
+      const loginUrl = ((authLinks && authLinks.login) || `${SITE_URL}/en/login`) + '?redirect=' + encodeURIComponent(returnTo);
+
+      const messagesEl = document.getElementById('messages');
+      const gate = document.createElement('div');
+      gate.className = 'message';
+      gate.innerHTML = `
+        <div class="avatar avatar-ai">✦</div>
+        <div class="message-content" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="${registerUrl}" class="back-btn" style="background:var(--accent);color:#0a0a0f;border-color:var(--accent);" id="authGateRegister">Create free account</a>
+          <a href="${loginUrl}" class="back-btn" id="authGateLogin">Log in</a>
+        </div>`;
+      messagesEl.appendChild(gate);
+      document.getElementById('authGateRegister').addEventListener('click', armReopenToast);
+      document.getElementById('authGateLogin').addEventListener('click', armReopenToast);
+      scrollToBottom();
+
+      const input = document.getElementById('input');
+      input.disabled = true;
+      input.placeholder = 'Register or log in to continue…';
+      document.getElementById('sendBtn').disabled = true;
+    }
+
+    function armReopenToast() {
+      try { localStorage.setItem(REOPEN_TOAST_KEY, '1'); } catch (e) {}
     }
 
     async function handleStream(response) {
@@ -469,7 +542,7 @@
       textEl.id = '';
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '', fullText = '';
+      let buffer = '', fullText = '', gated = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -484,6 +557,10 @@
                 fullText += data.content;
                 textEl.innerHTML = renderMarkdown(fullText);
                 scrollToBottom();
+              } else if (data.type === 'auth_required') {
+                gated = true;
+                msg.remove();
+                showAuthGate(data.content, data.authLinks);
               } else if (data.type === 'done') {
                 if (data.sessionId) sessionId = data.sessionId;
               } else if (data.type === 'error') {
@@ -493,6 +570,7 @@
           }
         }
       }
+      if (gated) return;
       saveConversation('', fullText);
     }
 
@@ -530,24 +608,22 @@
 
     function newChat() {
       sessionId = 'lummet-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
+      try { localStorage.setItem(SESSION_STORAGE_KEY, sessionId); } catch (e) {}
+      authGateActive = false;
+      const input = document.getElementById('input');
+      input.disabled = false;
+      input.placeholder = 'Message Lummet AI...';
+      document.getElementById('sendBtn').disabled = false;
       const messagesEl = document.getElementById('messages');
       messagesEl.innerHTML = `
         <div class="welcome" id="welcome">
           <div class="welcome-icon">✦</div>
           <h2>Lummet AI</h2>
           <p>Your iGaming Intelligence Assistant by {{site_name}}. Ask me about casino reviews, bonuses, payment methods, licenses, and more.</p>
-          <div class="suggestions">
-            <div class="suggestion-card" onclick="sendSuggestion('Show me the best casinos available in my country')"><h3>🎰 Best casinos in my country</h3><p>Find top-rated casinos available where you are</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('What casino reviews are available?')"><h3>⭐ Browse casino reviews</h3><p>See all reviews published on {{site_name}}</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('Which casinos support crypto payments?')"><h3>₿ Crypto casinos</h3><p>Find casinos that accept Bitcoin and crypto</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('Compare Stake and BC.Game')"><h3>⚖️ Compare casinos</h3><p>Compare features, bonuses, and ratings</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('What bonuses are available?')"><h3>🎁 Casino bonuses</h3><p>Find the best welcome offers and promotions</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('Tell me about responsible gambling')"><h3>🛡️ Responsible gambling</h3><p>Learn about safe gambling practices</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('What is {{site_name}}?')"><h3>ℹ️ About {{site_name}}</h3><p>Learn what {{site_name}} is and how it works</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('What payment methods do casinos support?')"><h3>💳 Payment methods</h3><p>Discover deposit and withdrawal options</p></div>
-          </div>
+          <div class="suggestions" id="suggestions"></div>
         </div>`;
-      document.getElementById('input').focus();
+      renderSuggestions();
+      input.focus();
       if (window.innerWidth <= 768) toggleSidebar(false);
     }
 

@@ -178,20 +178,21 @@
 
     <div class="form-group">
 
-      <label for="updateFeaturedImage">
+      <label>
         Featured Image
       </label>
 
-      <input
-        type="text"
-        id="updateFeaturedImage"
-        name="featured_image"
-        placeholder="/media/updates/example.webp"
-      >
+      <input type="hidden" id="updateFeaturedImage" name="featured_image" value="">
 
-      <small class="muted">
-        Enter the image URL or media path used for this update.
-      </small>
+      <div id="updateFeaturedImagePreview" style="display:none;margin-bottom:10px">
+        <img id="updateFeaturedImageImg" src="" alt="" style="width:100%;max-width:400px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--light-gray)">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" id="updateChangeFeaturedImage" class="btn btn--secondary btn--sm">Change</button>
+          <button type="button" id="updateRemoveFeaturedImage" class="btn btn--danger btn--sm">Remove</button>
+        </div>
+      </div>
+
+      <button type="button" id="updateSelectFeaturedImage" class="btn btn--secondary btn--sm">Select Featured Image</button>
 
     </div>
 

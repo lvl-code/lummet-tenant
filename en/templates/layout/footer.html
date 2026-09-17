@@ -5,10 +5,12 @@
 
   <div class="compliance-logos">
     {{footer_compliance}}
-    {{#if gpwa_seal_enabled}}
-    {{{gpwa_seal_html}}}
-    {{/if}}
   </div>
+  {{#if gpwa_seal_enabled}}
+  <div class="gpwa-seal-standalone">
+    {{{gpwa_seal_html}}}
+  </div>
+  {{/if}}
 
   <p class="rg-text">
     {{footer_responsible_text}}

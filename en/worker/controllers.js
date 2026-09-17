@@ -3778,11 +3778,12 @@ export async function renderUpdatesList(request, env) {
 
   const updateCards = updates.map(update => {
 
-    const image = update.featured_image
+    const imageSrc = update.featured_image_url || update.featured_image_thumbnail || "";
+    const image = imageSrc
       ? `
         <img
-          src="/media/${update.featured_image}"
-          alt="${update.title}"
+          src="${escapeHtml(imageSrc)}"
+          alt="${escapeHtml(safeAlt(update.featured_image_alt, update.title))}"
           class="update-card-image"
           loading="lazy"
         >

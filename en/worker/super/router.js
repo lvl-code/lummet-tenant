@@ -48,6 +48,32 @@ const ROUTES = [
   ["PUT", "/en/api/super/categories/:id", h.handleUpdateCategory, "categories"],
   ["DELETE", "/en/api/super/categories/:id", h.handleDeleteCategory, "categories"],
 
+  ["GET", "/en/api/super/payment-methods", h.handleListPaymentMethods, "payment_methods"],
+  ["GET", "/en/api/super/payment-methods/:id", h.handleGetPaymentMethod, "payment_methods"],
+  ["POST", "/en/api/super/payment-methods", h.handleCreatePaymentMethod, "payment_methods"],
+  ["PUT", "/en/api/super/payment-methods/:id", h.handleUpdatePaymentMethod, "payment_methods"],
+  ["DELETE", "/en/api/super/payment-methods/:id", h.handleDeletePaymentMethod, "payment_methods"],
+
+  // User Inquiries / Casino Submissions / Notifications -- see
+  // handlers.js section header: no tenant-side RBAC exists for these
+  // yet, this Super API layer is the first place they're gated at all.
+  ["GET", "/en/api/super/inquiries", h.handleListInquiries, "inquiries"],
+  ["POST", "/en/api/super/inquiries/:id/reply", h.handleReplyInquiry, "inquiries"],
+  ["GET", "/en/api/super/submissions", h.handleListSubmissions, "submissions"],
+  ["PUT", "/en/api/super/submissions/:id", h.handleUpdateSubmissionStatus, "submissions"],
+  ["POST", "/en/api/super/notifications", h.handleSendNotification, "notifications"],
+
+  // Newsletter Subscribers -- list/add only, see handlers.js section
+  // header for why sending an actual campaign is deliberately not here.
+  ["GET", "/en/api/super/newsletter-subscribers", h.handleListSubscribers, "newsletter"],
+  ["POST", "/en/api/super/newsletter-subscribers", h.handleAddSubscriber, "newsletter"],
+  ["DELETE", "/en/api/super/newsletter-subscribers/:id", h.handleUnsubscribeSubscriber, "newsletter"],
+
+  ["GET", "/en/api/super/seo", h.handleListSeoMeta, "seo"],
+  ["GET", "/en/api/super/seo/lookup", h.handleGetSeoMeta, "seo"],
+  ["POST", "/en/api/super/seo", h.handleSaveSeoMeta, "seo"],
+  ["DELETE", "/en/api/super/seo", h.handleDeleteSeoMeta, "seo"],
+
   ["GET", "/en/api/super/countries", h.handleListCountries, "countries"],
   ["GET", "/en/api/super/countries/:id", h.handleGetCountry, "countries"],
   ["POST", "/en/api/super/countries", h.handleCreateCountry, "countries"],
@@ -190,6 +216,31 @@ const ROUTES = [
   ["GET", "/en/api/super/tracking-links/:id", ah.handleGetTrackingLink, "tracking_links"],
   ["POST", "/en/api/super/tracking-links", ah.handleCreateTrackingLink, "tracking_links"],
   ["PUT", "/en/api/super/tracking-links/:id", ah.handleUpdateTrackingLink, "tracking_links"],
+
+  // Postback Configs -- deliberately admin-only, no editor permission
+  // rows on the tenant itself (migration 0033). See handlers-affiliate.js
+  // section header for why this stays on the same trusted-credential
+  // Super API model anyway, gated super-admin-only on the control
+  // plane's own side instead.
+  ["GET", "/en/api/super/postback-configs", ah.handleListPostbackConfigs, "postback_configs"],
+  ["GET", "/en/api/super/postback-configs/:id", ah.handleGetPostbackConfig, "postback_configs"],
+  ["POST", "/en/api/super/postback-configs", ah.handleCreatePostbackConfig, "postback_configs"],
+  ["PUT", "/en/api/super/postback-configs/:id", ah.handleUpdatePostbackConfig, "postback_configs"],
+  ["POST", "/en/api/super/postback-configs/:id/rotate-token", ah.handleRotatePostbackToken, "postback_configs"],
+  ["DELETE", "/en/api/super/postback-configs/:id", ah.handleArchivePostbackConfig, "postback_configs"],
+
+  // Provider Adapter Configs -- same no-editor-rows treatment, see
+  // migration 0035.
+  ["GET", "/en/api/super/provider-adapters", ah.handleListProviderAdapters, "provider_adapter_configs"],
+  ["GET", "/en/api/super/provider-adapters/:id", ah.handleGetProviderAdapter, "provider_adapter_configs"],
+  ["POST", "/en/api/super/provider-adapters", ah.handleCreateProviderAdapter, "provider_adapter_configs"],
+  ["PUT", "/en/api/super/provider-adapters/:id", ah.handleUpdateProviderAdapter, "provider_adapter_configs"],
+  ["DELETE", "/en/api/super/provider-adapters/:id", ah.handleArchiveProviderAdapter, "provider_adapter_configs"],
+
+  // Import Batches -- read-only history, see handlers-affiliate.js
+  // section header for why there's no create route.
+  ["GET", "/en/api/super/import-batches", ah.handleListImportBatches, "import_batches"],
+  ["GET", "/en/api/super/import-batches/:id", ah.handleGetImportBatch, "import_batches"],
 
   // Analytics (v8) -- tenant-wide AGGREGATE data only, see
   // handlers-analytics.js header comment for exactly what is and

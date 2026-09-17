@@ -26,6 +26,10 @@ import * as reviewBlocksDB from "../database/review_blocks.js";
 import * as adRulesDB from "../database/ad-rules.js";
 import * as platformUpdatesDB from "../database/platform-updates.js";
 import * as seoPagesDB from "../database/seo-pages.js";
+import * as paymentMethodsDB from "../database/payment-methods.js";
+import * as seoMetaDB from "../database/seo_meta.js";
+import * as userDashDB from "../database/user_dashboard.js";
+import * as newsletterDB from "../database/newsletter.js";
 import {
   validateFile,
   generateR2Key,
@@ -384,6 +388,89 @@ export async function handleUpdateCategory(request, env, slug, bodyText) {
 
 export async function handleDeleteCategory(request, env, slug) {
   await categoriesDB.deleteCategory(env.DB, slug);
+  return ok();
+}
+
+// =====================================================
+// PAYMENT METHODS (slug-keyed, same shape as categories above)
+//
+// Added for the control plane's payment-methods CRUD screen. Never
+// exposed through this API before now -- en/worker/database/
+// payment-methods.js's own comment ("ready for a future dashboard
+// screen") flagged this as the intended next step. Mirrors
+// handleCreateCategory/handleUpdateCategory/handleDeleteCategory
+// above exactly: same slug-keyed shape, same thin-wrapper convention.
+//
+// The casino_payment_methods join (which casinos accept a given
+// method) is deliberately NOT exposed here -- that's a many-to-many
+// assignment UI of its own (mirroring casino<->category assignment,
+// which the control plane also doesn't expose), out of scope for
+// "manage the payment method records themselves".
+// =====================================================
+
+export async function handleListPaymentMethods(request, env) {
+  const rows = await paymentMethodsDB.getAllPaymentMethods(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleGetPaymentMethod(request, env, slug) {
+  const row = await paymentMethodsDB.getPaymentMethod(env.DB, slug);
+  if (!row) return fail("not_found", 404);
+  return ok({ data: row });
+}
+
+export async function handleCreatePaymentMethod(request, env, _slug, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.slug || !body.name) return fail("slug and name are required");
+  await paymentMethodsDB.createPaymentMethod(env.DB, body);
+  return created({ data: { slug: body.slug } });
+}
+
+export async function handleUpdatePaymentMethod(request, env, slug, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  await paymentMethodsDB.updatePaymentMethod(env.DB, slug, body);
+  return ok();
+}
+
+export async function handleDeletePaymentMethod(request, env, slug) {
+  await paymentMethodsDB.deletePaymentMethod(env.DB, slug);
+  return ok();
+}
+
+// =====================================================
+// SEO META (composite-keyed by page_type + page_slug, not a single
+// id/slug -- mirrors en/worker/api.js's /api/v1/seo/* routes exactly,
+// including upsert-on-save semantics from seo_meta.js's
+// upsertSeoMeta(). Read and write both take page_type/page_slug as
+// query params or body fields; there's no numeric id at all.
+// =====================================================
+
+export async function handleListSeoMeta(request, env) {
+  const rows = await seoMetaDB.getAllSeoMeta(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleGetSeoMeta(request, env) {
+  const url = new URL(request.url);
+  const pageType = url.searchParams.get("page_type");
+  const pageSlug = url.searchParams.get("page_slug");
+  if (!pageType || !pageSlug) return fail("page_type and page_slug are required");
+  const row = await seoMetaDB.getSeoMeta(env.DB, pageType, pageSlug);
+  if (!row) return fail("not_found", 404);
+  return ok({ data: row });
+}
+
+export async function handleSaveSeoMeta(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.page_type || !body.page_slug) return fail("page_type and page_slug are required");
+  await seoMetaDB.upsertSeoMeta(env.DB, body);
+  return ok();
+}
+
+export async function handleDeleteSeoMeta(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.page_type || !body.page_slug) return fail("page_type and page_slug are required");
+  await seoMetaDB.deleteSeoMeta(env.DB, body.page_type, body.page_slug);
   return ok();
 }
 
@@ -1117,4 +1204,95 @@ export async function handleDiscoverCategoryCountryCombos(request, env) {
   });
 
   return ok({ data: merged });
+}
+
+// =====================================================
+// USER INQUIRIES / CASINO SUBMISSIONS / NOTIFICATIONS
+//
+// None of these three has ANY permission gating on the tenant's own
+// dashboard today -- worker/api.js's /api/v1/admin/inquiries and
+// /api/v1/admin/submissions are session-admin-only with no
+// checkPermission() call at all (verified: grepping api.js for
+// "inquiries"/"submissions" turns up no resourceMap entry). So this
+// Super API layer, and the control plane page built on it, are
+// actually introducing MORE granular delegation than the tenant
+// itself currently has, not less -- worth knowing if that's a gap
+// you want closed on the tenant side too, not just bridged here.
+//
+// Notifications: createNotification() targets ONE specific user_id --
+// there is no "getAllNotifications" (no admin-wide feed exists in
+// user_dashboard.js), so the only meaningful admin action exposed
+// here is composing and sending one, not browsing a list.
+// =====================================================
+
+export async function handleListInquiries(request, env) {
+  const rows = await userDashDB.getAllInquiries(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleReplyInquiry(request, env, id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.reply) return fail("reply is required");
+  await userDashDB.replyToInquiry(env.DB, Number(id), body.reply);
+  return ok();
+}
+
+export async function handleListSubmissions(request, env) {
+  const rows = await userDashDB.getAllSubmissions(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleUpdateSubmissionStatus(request, env, id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.status) return fail("status is required");
+  await userDashDB.updateSubmissionStatus(env.DB, Number(id), body.status, body.admin_notes || null);
+  return ok();
+}
+
+export async function handleSendNotification(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.user_id || !body.title || !body.message) {
+    return fail("user_id, title and message are required");
+  }
+  await userDashDB.createNotification(env.DB, Number(body.user_id), body.title, body.message, body.link || null);
+  return created();
+}
+
+// =====================================================
+// NEWSLETTER SUBSCRIBERS
+// Same "no tenant-side RBAC exists yet" situation as above. List and
+// add are exposed; deliberately NOT exposing anything that sends an
+// actual campaign email (see worker/email-campaigns.js's
+// sendCampaign) -- that's a real-world irreversible side effect
+// (real emails, to real subscribers) and belongs in its own,
+// separately-reviewed pass, not folded into a subscriber-list CRUD
+// page.
+// =====================================================
+
+export async function handleListSubscribers(request, env) {
+  const url = new URL(request.url);
+  const rows = await newsletterDB.listSubscribers(env.DB, {
+    status: url.searchParams.get("status") || null,
+    search: url.searchParams.get("search") || null,
+    limit: url.searchParams.get("limit") ? Number(url.searchParams.get("limit")) : 50,
+    offset: url.searchParams.get("offset") ? Number(url.searchParams.get("offset")) : 0,
+  });
+  const counts = await newsletterDB.countSubscribersByStatus(env.DB);
+  return ok({ data: rows, counts });
+}
+
+export async function handleAddSubscriber(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.email) return fail("email is required");
+  try {
+    const result = await newsletterDB.adminAddSubscriber(env.DB, body.email);
+    return created({ data: result });
+  } catch (error) {
+    return fail(error.message || "invalid_input", 422);
+  }
+}
+
+export async function handleUnsubscribeSubscriber(request, env, id) {
+  await newsletterDB.unsubscribeSubscriber(env.DB, Number(id));
+  return ok();
 }

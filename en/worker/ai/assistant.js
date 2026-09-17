@@ -3,7 +3,7 @@
 // =====================================================
 
 import { understand } from './understand.js';
-import { retrieve } from './retrieval.js';
+import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls, createStreamingUrlSanitizer } from './retrieval.js';
 import { buildSystemPrompt, buildMessages } from './prompt.js';
 import { getRecentHistory, appendMessages } from './memory.js';
 import {
@@ -126,6 +126,12 @@ export async function chat(env, message, userContext = {}, request) {
 
   answer = answer.trim();
 
+  // URL fidelity guard: replace any URL the model produced that isn't a
+  // verbatim copy of one we actually put in its context (see
+  // retrieval.js's sanitizeAnswerUrls docstring for why this exists).
+  const allowedUrls = extractContextUrls(buildContextString(context, country, site));
+  answer = sanitizeAnswerUrls(answer, allowedUrls, site.url('/en/'));
+
   // 8. Save to conversation memory
   try { await appendMessages(db, sessionId, sanitized, answer, userId); }
   catch (e) { console.error('Lummet memory save error:', e.message); }
@@ -215,15 +221,28 @@ export async function chatStream(env, message, userContext = {}, request) {
 
   // 7. PASS 3 — Respond (streaming)
   const encoder = new TextEncoder();
+  const allowedUrls = extractContextUrls(buildContextString(context, country, site));
+  const homepageUrl = site.url('/en/');
 
   const stream = new ReadableStream({
     async start(controller) {
       let fullAnswer = '';
+      let sanitizedAnswer = '';
+      const urlSanitizer = createStreamingUrlSanitizer(allowedUrls, homepageUrl);
+
+      function emitDelta(rawToken) {
+        fullAnswer += rawToken;
+        const safe = urlSanitizer.push(rawToken);
+        if (safe) {
+          sanitizedAnswer += safe;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: safe })}\n\n`));
+        }
+      }
 
       try {
         if (!env.AI) {
-          fullAnswer = await generateFallback(sanitized, context, country, request, env);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
+          const text = await generateFallback(sanitized, context, country, request, env);
+          emitDelta(text);
         } else {
           const result = await env.AI.run(MODEL, { messages, temperature: TEMPERATURE, max_tokens: MAX_TOKENS, stream: true });
 
@@ -241,27 +260,32 @@ export async function chatStream(env, message, userContext = {}, request) {
                     const data = JSON.parse(line.slice(6));
                     if (data.response || data.token || data.delta?.text) {
                       const token = data.response || data.token || data.delta?.text || '';
-                      if (token) {
-                        fullAnswer += token;
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: token })}\n\n`));
-                      }
+                      if (token) emitDelta(token);
                     }
                   } catch {}
                 }
               }
             }
           } else {
-            fullAnswer = result?.response || result?.choices?.[0]?.message?.content || await generateFallback(sanitized, context, country, request, env);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
+            const text = result?.response || result?.choices?.[0]?.message?.content || await generateFallback(sanitized, context, country, request, env);
+            emitDelta(text);
           }
         }
       } catch (error) {
         console.error('Lummet stream error:', error.message);
-        fullAnswer = await generateFallback(sanitized, context, country, request, env);
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
+        const text = await generateFallback(sanitized, context, country, request, env);
+        emitDelta(text);
       }
 
-      try { await appendMessages(db, sessionId, sanitized, fullAnswer, userId); }
+      // Flush whatever URL-sanitizer was still holding back (a URL that
+      // never got a trailing space/newline before the stream ended).
+      const tail = urlSanitizer.flush();
+      if (tail) {
+        sanitizedAnswer += tail;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: tail })}\n\n`));
+      }
+
+      try { await appendMessages(db, sessionId, sanitized, sanitizedAnswer.trim() || fullAnswer.trim(), userId); }
       catch (e) { console.error('Lummet memory save error:', e.message); }
 
       let freeMessagesRemaining;

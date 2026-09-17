@@ -19,7 +19,8 @@ const SCHEMA_DESCRIPTION = `Database tables and columns:
 - geo_rules: casino_slug, country_code, status, bonus_override
 - payment_methods: name, slug, method_type (card/ewallet/crypto/bank/other), description — joined to casinos via casino_payment_methods
 - nav_items: label, url, location (header/footer/etc) — the site's menu/navigation structure
-- components / page_components: homepage sections and other reusable public page blocks (type, title)`;
+- components / page_components: homepage sections and other reusable public page blocks (type, title)
+- seo_pages: country-specific guide pages (page_type='country_custom', /en/country/:code/:slug) and category×country hub pages (page_type='category_country', /en/category/:slug/:code)`;
 
 export function buildUnderstandPrompt(site) {
   return `You are a search query analyzer for ${site.siteName},
@@ -118,7 +119,7 @@ export async function understand(env, message, conversationHistory = [], request
 }
 
 function normalizePlan(plan) {
-  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta', 'payment_methods', 'nav_items', 'components'];
+  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta', 'payment_methods', 'nav_items', 'components', 'seo_pages'];
 
   return {
     intent: plan.intent || 'general',

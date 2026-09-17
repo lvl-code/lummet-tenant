@@ -829,6 +829,7 @@ export function buildContextString(results, country, site) {
   parts.push(`Category list: ${site.url('/en/category')}`);
   parts.push(`Payment methods list: ${site.url('/en/payment-methods')}`);
   parts.push(`Contact page: ${site.url('/en/contact')}`);
+  parts.push(`Responsible gambling resources: ${site.url('/en/responsible-gambling')}`);
   parts.push(`Homepage: ${site.url('/en/')}`);
 
   return parts.length > 0 ? parts.join('\n') : `No relevant information found in the ${site.siteName} database.`;

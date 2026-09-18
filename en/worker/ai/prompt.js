@@ -153,7 +153,7 @@ function formatHistory(history) {
 /**
  * Build messages array for the AI model
  */
-export function buildMessages(systemPrompt, userMessage, conversationHistory) {
+export function buildMessages(systemPrompt, userMessage, conversationHistory, intent) {
   const messages = [{ role: 'system', content: systemPrompt }];
 
   if (conversationHistory && conversationHistory.length > 0) {
@@ -161,6 +161,20 @@ export function buildMessages(systemPrompt, userMessage, conversationHistory) {
     for (const msg of recent) {
       messages.push({ role: msg.role, content: msg.content });
     }
+  }
+
+  // Recency matters more than position for smaller/faster models: a rule
+  // stated once, early in a long system prompt, gets outweighed by the
+  // conversation's own momentum (e.g. a prior turn casually naming real
+  // regulators primes the model to keep doing that). Restating the
+  // constraint as the very last thing before this specific question
+  // counteracts that. See CHANGES-lummet-ai-geo-factual-limit.md for
+  // the incident that prompted this.
+  if (intent === 'geo' || intent === 'licensing') {
+    messages.push({
+      role: 'system',
+      content: 'Reminder for this question specifically: do not name a licensing authority, fee, tax rate, or compliance requirement unless it appears verbatim in the CONTEXT above. If you do not have it, say so plainly and point to the country page link instead of describing a general licensing process.'
+    });
   }
 
   messages.push({ role: 'user', content: userMessage });

@@ -52,10 +52,17 @@ export async function retrieve(env, query, country, plan = null, conversationHis
     ...casinoNames.map(n => n.toLowerCase())
   ])].filter(t => t.length > 0);
 
-  const detectedCountry = plan?.country_code || extractCountryFromMessage(query) || country;
+  // Deterministic text extraction takes priority over the model's own
+  // country_code guess: if the message unambiguously names a country
+  // ("...in Kenya?"), a keyword match on that exact text is more
+  // trustworthy than an LLM classification that can (and did, in
+  // testing) return the wrong country entirely. Falls back to the
+  // model's guess only when the text itself has no clear match (e.g.
+  // "can I play from Nairobi" -- no literal country name to match).
+  const detectedCountry = extractCountryFromMessage(query) || plan?.country_code || country;
   const intent = plan?.intent || 'general';
   const isListing = plan?.is_listing || isListingText(text);
-  const isGeo = plan?.intent === 'geo' || isGeoText(text);
+  const isGeo = plan?.intent === 'geo' || plan?.intent === 'licensing' || isGeoText(text);
   const isComparison = plan?.is_comparison || false;
   const tablesToSearch = plan?.tables || [];
 
@@ -70,7 +77,7 @@ export async function retrieve(env, query, country, plan = null, conversationHis
   // ═══════════════════════════════════════════════════
   // CASINOS
   // ═══════════════════════════════════════════════════
-  if (shouldSearchTable('casinos', tablesToSearch, intent, ['casino_search','casino_review','casino_compare','bonuses','crypto','payments','geo','general'])) {
+  if (shouldSearchTable('casinos', tablesToSearch, intent, ['casino_search','casino_review','casino_compare','bonuses','crypto','payments','geo','licensing','general'])) {
     try {
       if (isGeo && detectedCountry) {
         // ── Geo search: find casinos available in a specific country ──
@@ -460,7 +467,7 @@ if (
   // ═══════════════════════════════════════════════════
   // COUNTRIES
   // ═══════════════════════════════════════════════════
-  if (shouldSearchTable('countries', tablesToSearch, intent, ['geo','general']) && detectedCountry) {
+  if (shouldSearchTable('countries', tablesToSearch, intent, ['geo','licensing','general']) && detectedCountry) {
     try {
       const r = await db.prepare(`SELECT code, name, currency, language, legal_status FROM countries WHERE code = ? LIMIT 1`).bind(detectedCountry.toUpperCase()).first();
       if (r) results.countries = [r];
@@ -485,7 +492,7 @@ if (
   // (seo_pages: /en/country/:code/:slug custom guides,
   //  /en/category/:slug/:code hub pages — see migrations/0019)
   // ═══════════════════════════════════════════════════
-  if (shouldSearchTable('seo_pages', tablesToSearch, intent, ['geo','casino_search','navigation','general']) &&
+  if (shouldSearchTable('seo_pages', tablesToSearch, intent, ['geo','licensing','casino_search','navigation','general']) &&
       isGeo && detectedCountry) {
     try {
       const countryCode = detectedCountry.toUpperCase();

@@ -182,15 +182,19 @@ Return as a JSON array of section objects with "title" and "points" (array of bu
  * Improve editorial content (admin tool)
  */
 export async function improveContent(env, content, improvementType = 'readability', siteName = 'this site') {
-  const systemPrompt = `You are an editorial editor for ${siteName}. ${prompts[improvementType] || prompts.readability}
-Return only the improved text. No explanations, no markdown.`;
-
+  // NOTE: `prompts` must be declared before `systemPrompt` references it --
+  // it previously sat below the reference, which threw a TDZ
+  // ReferenceError ("Cannot access 'prompts' before initialization") on
+  // every single call, regardless of improvementType.
   const prompts = {
     readability: 'Improve readability while keeping all facts. Use shorter sentences, simpler words, and better flow.',
     seo: 'Optimize for SEO. Improve headings, keyword density, and meta-friendly structure. Keep all facts.',
     clarity: 'Improve clarity and conciseness. Remove redundancy. Keep all facts.',
     tone: 'Improve editorial tone to be more professional and neutral. Keep all facts.'
   };
+
+  const systemPrompt = `You are an editorial editor for ${siteName}. ${prompts[improvementType] || prompts.readability}
+Return only the improved text. No explanations, no markdown.`;
 
   try {
     if (!env.AI) return content;

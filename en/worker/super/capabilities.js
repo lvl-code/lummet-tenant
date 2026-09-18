@@ -41,7 +41,24 @@
 // runs. Alert-rule create/delete parity with the tenant dashboard's
 // own admin-only gating; Super API's credential is already tenant-
 // wide-admin-equivalent by design (see handlers-analytics.js).
-export const SUPER_API_VERSION = 9;
+//
+// Version 9.1 (no version bump, manifest-only fix): payment_methods,
+// inquiries, submissions, notifications, newsletter, seo,
+// postback_configs, provider_adapter_configs, and import_batches were
+// all already live routes in router.js (some since v1) but never
+// listed here -- this manifest had simply drifted from the route
+// table, it wasn't a deliberate omission. Backfilled below so
+// /handshake and /capabilities report what this deployment actually
+// supports.
+//
+// Version 10: added Editorial AI Tools (generate-review, generate-seo,
+// generate-faqs, generate-schema, generate-outline, improve-content,
+// suggest-links) -- generation-only wrappers around
+// en/worker/ai/admin-tools.js, see handlers-ai.js header for scope.
+// Requires env.AI configured on the tenant Worker; `available` from
+// GET .../ai/availability (or `generated: false` from any generation
+// route) tells the caller when it isn't, rather than a 500.
+export const SUPER_API_VERSION = 10;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -74,7 +91,17 @@ export const CAPABILITIES = {
   analytics: true,
   reports: true,
   campaigns: true,
-  alerts: true
+  alerts: true,
+  payment_methods: true,
+  inquiries: true,
+  submissions: true,
+  notifications: true,
+  newsletter: true,
+  seo: true,
+  postback_configs: true,
+  provider_adapter_configs: true,
+  import_batches: true,
+  ai_tools: true
 };
 
 export function getCapabilities() {

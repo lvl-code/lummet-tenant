@@ -10,6 +10,7 @@ import * as h from "./handlers.js";
 import * as ah from "./handlers-affiliate.js";
 import * as anh from "./handlers-analytics.js";
 import * as rh from "./handlers-reporting.js";
+import * as aih from "./handlers-ai.js";
 
 // Each entry: [METHOD, path-pattern, handler, resource-name]
 // Path patterns use ":param" for a single dynamic segment.
@@ -273,7 +274,19 @@ const ROUTES = [
   ["GET", "/en/api/super/alert-rules", rh.handleListAlertRules, "alerts"],
   ["POST", "/en/api/super/alert-rules", rh.handleCreateAlertRule, "alerts"],
   ["GET", "/en/api/super/alerts", rh.handleListAlerts, "alerts"],
-  ["POST", "/en/api/super/alerts/:id/acknowledge", rh.handleAcknowledgeAlert, "alerts"]
+  ["POST", "/en/api/super/alerts/:id/acknowledge", rh.handleAcknowledgeAlert, "alerts"],
+
+  // Editorial AI Tools (v10) -- generation-only wrappers around
+  // en/worker/ai/admin-tools.js, see handlers-ai.js header for exactly
+  // what is and isn't exposed (no arbitrary ai-command passthrough).
+  ["GET", "/en/api/super/ai/availability", aih.handleAiAvailability, "ai_tools"],
+  ["POST", "/en/api/super/ai/generate-review", aih.handleGenerateReview, "ai_tools"],
+  ["POST", "/en/api/super/ai/generate-seo", aih.handleGenerateSeoCopy, "ai_tools"],
+  ["POST", "/en/api/super/ai/generate-faqs", aih.handleGenerateFaqs, "ai_tools"],
+  ["POST", "/en/api/super/ai/generate-schema", aih.handleGenerateSchema, "ai_tools"],
+  ["POST", "/en/api/super/ai/generate-outline", aih.handleGenerateOutline, "ai_tools"],
+  ["POST", "/en/api/super/ai/improve-content", aih.handleImproveContent, "ai_tools"],
+  ["POST", "/en/api/super/ai/suggest-links", aih.handleSuggestInternalLinks, "ai_tools"]
 ];
 
 function matchRoute(method, path) {

@@ -3,7 +3,7 @@
 // =====================================================
 
 import { understand } from './understand.js';
-import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls, createStreamingUrlSanitizer, guardGeoFacts } from './retrieval.js';
+import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls, createStreamingUrlSanitizer } from './retrieval.js';
 import { buildSystemPrompt, buildMessages } from './prompt.js';
 import { getRecentHistory, appendMessages } from './memory.js';
 import {
@@ -98,7 +98,7 @@ export async function chat(env, message, userContext = {}, request) {
 
   // 6. Build prompt
   const systemPrompt = await buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
-  const messages = buildMessages(systemPrompt, sanitized, conversationHistory, plan?.intent);
+  const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
   // 7. PASS 3 — Respond: AI generates human-like response
   let answer;
@@ -137,19 +137,6 @@ export async function chat(env, message, userContext = {}, request) {
     answer = sanitizeAnswerUrls(answer, allowedUrls, site.url('/en/'));
   } catch (e) {
     console.error('Lummet URL sanitize error:', e.message);
-  }
-
-  // Geo/licensing fact guard: the prompt rule alone doesn't reliably
-  // stop a fast model from naming an unverified regulator or a specific
-  // fee/tax figure it wasn't given (see CHANGES-lummet-ai-geo-factual-limit.md).
-  // This mechanically strips any sentence stating a currency/percentage
-  // or "Authority (ACRONYM)" citation not present in the actual context.
-  if (plan?.intent === 'geo' || plan?.intent === 'licensing') {
-    try {
-      answer = guardGeoFacts(answer, buildContextString(context, country, site), site);
-    } catch (e) {
-      console.error('Lummet geo-fact guard error:', e.message);
-    }
   }
 
   // 8. Save to conversation memory
@@ -237,40 +224,29 @@ export async function chatStream(env, message, userContext = {}, request) {
 
   // 6. Build prompt
   const systemPrompt = await buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
-  const messages = buildMessages(systemPrompt, sanitized, conversationHistory, plan?.intent);
+  const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
   // 7. PASS 3 — Respond (streaming)
   const encoder = new TextEncoder();
   const homepageUrl = site.url('/en/');
-  const contextStrForGuards = (() => {
-    try { return buildContextString(context, country, site); }
-    catch (e) { console.error('Lummet context build error (streaming):', e.message); return ''; }
-  })();
   let allowedUrls = null;
   try {
-    allowedUrls = extractContextUrls(contextStrForGuards);
+    allowedUrls = extractContextUrls(buildContextString(context, country, site));
   } catch (e) {
     console.error('Lummet URL context build error (streaming, guard disabled for this response):', e.message);
   }
-
-  // Geo/licensing answers get the extra fact guard, which needs the
-  // complete answer to evaluate sentence-by-sentence -- it can't run
-  // token-by-token the way the URL guard does. So for this intent only,
-  // we buffer the full response server-side instead of streaming each
-  // token live, run both guards once, then emit the corrected text.
-  // Trade-off: no live streaming feel for this one narrow query type,
-  // in exchange for not showing regulatory misinformation as it's typed.
-  const isGeoIntent = plan?.intent === 'geo' || plan?.intent === 'licensing';
 
   const stream = new ReadableStream({
     async start(controller) {
       let fullAnswer = '';
       let sanitizedAnswer = '';
-      const urlSanitizer = (!isGeoIntent && allowedUrls) ? createStreamingUrlSanitizer(allowedUrls, homepageUrl) : null;
+      // If we couldn't build the allowed-URL set above, skip the guard
+      // for this response rather than either crashing the stream or
+      // aggressively stripping every URL as "not allowed."
+      const urlSanitizer = allowedUrls ? createStreamingUrlSanitizer(allowedUrls, homepageUrl) : null;
 
       function emitDelta(rawToken) {
         fullAnswer += rawToken;
-        if (isGeoIntent) return; // buffered; nothing emitted until generation finishes
         let safe = rawToken;
         if (urlSanitizer) {
           try { safe = urlSanitizer.push(rawToken); }
@@ -318,25 +294,6 @@ export async function chatStream(env, message, userContext = {}, request) {
         console.error('Lummet stream error:', error.message);
         const text = await generateFallback(sanitized, context, country, request, env);
         emitDelta(text);
-      }
-
-      // For geo/licensing intent, nothing has been emitted yet -- run
-      // both guards on the complete buffered answer now, then emit it.
-      if (isGeoIntent) {
-        let safeAnswer = fullAnswer;
-        try {
-          const allowed = allowedUrls || extractContextUrls(contextStrForGuards);
-          safeAnswer = sanitizeAnswerUrls(safeAnswer, allowed, homepageUrl);
-        } catch (e) {
-          console.error('Lummet URL sanitize error (geo buffered):', e.message);
-        }
-        try {
-          safeAnswer = guardGeoFacts(safeAnswer, contextStrForGuards, site);
-        } catch (e) {
-          console.error('Lummet geo-fact guard error (streaming):', e.message);
-        }
-        sanitizedAnswer = safeAnswer;
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: safeAnswer })}\n\n`));
       }
 
       // Flush whatever URL-sanitizer was still holding back (a URL that

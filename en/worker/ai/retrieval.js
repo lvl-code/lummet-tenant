@@ -461,6 +461,29 @@ if (
         `).bind(...params).all();
         results.authors = (r.results || []).map(a => ({ ...a, bio: truncate(a.bio, 200) }));
       }
+
+      // Follow-up attribution questions ("who wrote this?", "who wrote
+      // that review?") don't name an author, so the search above finds
+      // nothing -- the actual name only exists in the model's own prior
+      // natural-language answer, in conversation history. Rather than
+      // let it answer from unverified memory of that turn, try to pull
+      // a name out of that answer text and verify it against the real
+      // authors table so the profile link is genuine (or absent, if the
+      // name doesn't check out).
+      if (results.authors.length === 0 && /\bwho wrote\b|\bwrote (this|that|it)\b|\bauthor of\b/i.test(text) && Array.isArray(conversationHistory)) {
+        const priorAnswers = conversationHistory.slice(-6)
+          .filter(m => m.role === 'assistant')
+          .map(m => m.content || '')
+          .join('\n');
+        const nameMatch = priorAnswers.match(/(?:written|authored|reviewed) by ([A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+){0,3})/i);
+        if (nameMatch) {
+          const authorName = nameMatch[1].trim();
+          const r = await db.prepare(`
+            SELECT slug, name, bio, role FROM authors WHERE published = 1 AND LOWER(name) = LOWER(?) LIMIT 1
+          `).bind(authorName).first();
+          if (r) results.authors = [{ ...r, bio: truncate(r.bio, 200) }];
+        }
+      }
     } catch (e) { console.error('Lummet retrieve authors:', e.message); }
   }
 

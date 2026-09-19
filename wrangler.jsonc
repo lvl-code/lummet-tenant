@@ -84,7 +84,11 @@
           "binding": "MEDIA_BUCKET",
           "bucket_name": "lummet-media"
         }
-      ]
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
     },
 
     // ==========================================================
@@ -114,7 +118,11 @@
           "binding": "MEDIA_BUCKET",
           "bucket_name": "level-casino-media"
         }
-      ]
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
     },
 
     
@@ -145,7 +153,11 @@
           "binding": "MEDIA_BUCKET",
           "bucket_name": "cluster-casino-media"
         }
-      ]
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
     },
 
     // ==========================================================
@@ -175,7 +187,11 @@
           "binding": "MEDIA_BUCKET",
           "bucket_name": "neuroodds-media"
         }
-      ]
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
     },
 
     // ==========================================================
@@ -205,7 +221,11 @@
           "binding": "MEDIA_BUCKET",
           "bucket_name": "legendodds-media"
         }
-      ]
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
     },
 
     // ==========================================================
@@ -235,7 +255,11 @@
           "binding": "MEDIA_BUCKET",
           "bucket_name": "brilliantodds-media"
         }
-      ]
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
     }
   }
 }

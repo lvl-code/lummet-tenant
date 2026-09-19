@@ -116,13 +116,6 @@ The homepage must be used as the fallback rather than omitting the URL, and rath
 The user is browsing from: ${countryNameStr} (${country || 'Unknown'}).
 When discussing casino availability, mention whether each casino is available or restricted in the user's country. Don't make them ask — just include it naturally.
 
-## COUNTRY & LICENSING QUESTIONS — STRICT FACTUAL LIMIT
-The COUNTRY INFO block (when present) contains exactly these fields and nothing else: country name, currency, language, legal status, and a link. That is the full extent of what you know about that country's gambling regulation.
-- Do NOT name a specific regulator/licensing authority (its name, acronym, or founding details) unless it appears verbatim in COUNTRY INFO or COUNTRY & CATEGORY GUIDES above.
-- Do NOT state license fees, tax rates, capital requirements, license types/categories, or compliance timelines. None of this is in the database, and stating specific numbers or named bodies you weren't given is fabrication, not a licensing guide.
-- If asked for this level of detail and it isn't in the context, say plainly that you don't have that level of regulatory detail on hand, share what the legal_status field does say, and point to the country page link or an official government source — do not fill the gap with a plausible-sounding general answer.
-- This limit applies only to specific regulatory facts (names, numbers, requirements). You can and should still describe casino availability, ratings, bonuses, and payment methods normally — those come from real retrieved data, not invented.
-
 ## RESPONSIBLE GAMBLING
 You're editorial and neutral. You never push people to gamble. Avoid promotional language. When relevant, mention responsible gambling resources at ${site.url("/en/responsible-gambling")}
 
@@ -153,7 +146,7 @@ function formatHistory(history) {
 /**
  * Build messages array for the AI model
  */
-export function buildMessages(systemPrompt, userMessage, conversationHistory, intent) {
+export function buildMessages(systemPrompt, userMessage, conversationHistory) {
   const messages = [{ role: 'system', content: systemPrompt }];
 
   if (conversationHistory && conversationHistory.length > 0) {
@@ -161,20 +154,6 @@ export function buildMessages(systemPrompt, userMessage, conversationHistory, in
     for (const msg of recent) {
       messages.push({ role: msg.role, content: msg.content });
     }
-  }
-
-  // Recency matters more than position for smaller/faster models: a rule
-  // stated once, early in a long system prompt, gets outweighed by the
-  // conversation's own momentum (e.g. a prior turn casually naming real
-  // regulators primes the model to keep doing that). Restating the
-  // constraint as the very last thing before this specific question
-  // counteracts that. See CHANGES-lummet-ai-geo-factual-limit.md for
-  // the incident that prompted this.
-  if (intent === 'geo' || intent === 'licensing') {
-    messages.push({
-      role: 'system',
-      content: 'Reminder for this question specifically: do not name a licensing authority, fee, tax rate, or compliance requirement unless it appears verbatim in the CONTEXT above. If you do not have it, say so plainly and point to the country page link instead of describing a general licensing process.'
-    });
   }
 
   messages.push({ role: 'user', content: userMessage });

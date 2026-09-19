@@ -1,0 +1,10 @@
+# Lummet AI — round 8: revert to round 4 state (rounds 5, 6, 7 undone)
+# Format: STATUS<TAB>path (relative to lummet-tenant/ repo root)
+# M = modified existing file, reverted to its content as of commit
+# dd28d51 (round 4). Only these 3 files changed by rounds 5-7 --
+# everything else (rounds 1-4's files, and your own unrelated commits)
+# is untouched.
+
+M	en/worker/ai/assistant.js
+M	en/worker/ai/prompt.js
+M	en/worker/ai/retrieval.js

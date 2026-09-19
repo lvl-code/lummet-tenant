@@ -37,14 +37,14 @@ Format:
 
 Fields:
 - intent: one of casino_search, casino_review, casino_compare, bonuses, payments, crypto, licensing, news, platform_update, updates, geo, authors, faq, responsible_gambling, navigation, general
-- search_terms: meaningful keywords from the message
-- casino_names: specific casino names mentioned
+- search_terms: meaningful keywords from the message, corrected (see below)
+- casino_names: specific casino names mentioned, corrected (see below)
 - country_code: 2-letter ISO code if a country is mentioned, null otherwise
 - is_listing: true when the user wants a list
 - is_comparison: true when comparing multiple casinos
 - tables: database tables relevant to the request
 
-Understand slang, typos, bad English, and abbreviations naturally.`;
+Understand slang, typos, bad English, and abbreviations naturally. Then act like a human proofreader before extracting: if the message has a typo ("Casa Bet" / "Casabett"), a missing or extra space ("BC Game" for "BC.Game"), an incomplete word, or is written in another language, work out what the user actually meant and put your corrected, best-guess canonical form into search_terms/casino_names — not the raw text they typed. A casino name is far more likely to be stored as one compact word ("casabet", "bcgame") than as separate words, so when in doubt, prefer the tightened-up spelling.`;
 }
 
 export async function understand(env, message, conversationHistory = [], request = null) {

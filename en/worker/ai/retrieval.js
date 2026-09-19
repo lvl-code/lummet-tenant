@@ -27,6 +27,64 @@ const COUNTRY_NAME_TO_CODE = {
 
 const VALID_TABLES = ['casinos','reviews','review_blocks','news', 'platform_updates','pages','faqs','authors','countries','categories','geo_rules','seo_meta','payment_methods','nav_items','components','seo_pages'];
 
+// ── Name matching helpers (typo/spacing tolerance for casino lookups) ──
+// "Casa Bet" typed with a space will never LIKE-match a DB value of
+// "casabet" (no space) -- LIKE needs that literal substring to be
+// present, and it isn't. Stripping non-alphanumerics from both sides
+// before comparing closes that specific, very common gap (spacing,
+// hyphens, punctuation) cheaply, in SQL, with no extra round trip.
+function normalizeForMatch(str) {
+  return (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Real typos (an extra/missing/swapped letter) survive normalization
+// but still won't LIKE-match. SQLite has no built-in edit-distance
+// function, so this fallback fetches a bounded candidate list and
+// scores them in JS. Only used when the primary search comes up empty
+// AND the model believes a specific casino name was named -- so a
+// generic query with no name in it never triggers a broad fuzzy scan.
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+async function fuzzyFindCasinoSlug(db, candidateNames) {
+  const candidates = [...new Set(candidateNames.map(normalizeForMatch))].filter(s => s.length >= 3);
+  if (candidates.length === 0) return null;
+
+  let rows;
+  try {
+    const r = await db.prepare(`SELECT slug, name FROM casinos WHERE published = 1 LIMIT 500`).all();
+    rows = r.results || [];
+  } catch { return null; }
+
+  let bestSlug = null, bestDist = Infinity;
+  for (const row of rows) {
+    const normName = normalizeForMatch(row.name);
+    const normSlug = normalizeForMatch(row.slug);
+    for (const cand of candidates) {
+      const dist = Math.min(levenshtein(cand, normName), levenshtein(cand, normSlug));
+      // ~30% of the shorter string's length, minimum 1 -- tight enough
+      // to avoid matching an unrelated casino, loose enough to catch a
+      // couple of typo'd characters.
+      const threshold = Math.max(1, Math.floor(Math.min(cand.length, normName.length) * 0.3));
+      if (dist <= threshold && dist < bestDist) { bestDist = dist; bestSlug = row.slug; }
+    }
+  }
+  return bestSlug;
+}
+
 function truncate(text, max = MAX_CONTENT_LENGTH) {
   if (!text) return '';
   const clean = String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -135,17 +193,42 @@ export async function retrieve(env, query, country, plan = null, conversationHis
         results.casinos = r.results || [];
       } else if (allSearchTerms.length > 0) {
         // ── Keyword search ──
+        // Plain LIKE conditions plus a space/punctuation-normalized
+        // variant of each: "Casa Bet" (typed with a space) would never
+        // LIKE-match a stored "casabet" otherwise, since LIKE needs
+        // that literal substring -- including the space -- present.
         const conditions = allSearchTerms.map(() =>
-          'LOWER(name) LIKE ? OR LOWER(slug) LIKE ? OR LOWER(bonus_title) LIKE ? OR LOWER(features) LIKE ?'
+          'LOWER(name) LIKE ? OR LOWER(slug) LIKE ? OR LOWER(bonus_title) LIKE ? OR LOWER(features) LIKE ? OR ' +
+          "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(name),' ',''),'-',''),'''',''),'.','') LIKE ?"
         ).join(' OR ');
         const params = [];
-        for (const term of allSearchTerms) params.push(`%${term}%`, `%${term}%`, `%${term}%`, `%${term}%`);
+        for (const term of allSearchTerms) {
+          params.push(`%${term}%`, `%${term}%`, `%${term}%`, `%${term}%`, `%${normalizeForMatch(term)}%`);
+        }
         const r = await db.prepare(`
           SELECT slug, name, rating, bonus_title, bonus_value, license, owner,
                  features, supported_countries, restricted_countries, featured
           FROM casinos WHERE published = 1 AND (${conditions}) LIMIT ${MAX_RESULTS}
         `).bind(...params).all();
         results.casinos = r.results || [];
+
+        // Understand.js already tries to correct typos before this point,
+        // and the normalized LIKE above catches spacing/punctuation --
+        // this is the last-resort net for a genuine misspelling (an
+        // extra, missing, or swapped letter) that survives both. Only
+        // fires when the model believed a *specific casino* was named,
+        // so an unrelated broad query never triggers a fuzzy scan.
+        if (results.casinos.length === 0 && casinoNames.length > 0) {
+          const fuzzySlug = await fuzzyFindCasinoSlug(db, casinoNames);
+          if (fuzzySlug) {
+            const fr = await db.prepare(`
+              SELECT slug, name, rating, bonus_title, bonus_value, license, owner,
+                     features, supported_countries, restricted_countries, featured
+              FROM casinos WHERE published = 1 AND slug = ? LIMIT 1
+            `).bind(fuzzySlug).first();
+            if (fr) results.casinos = [fr];
+          }
+        }
       } else if (intent === 'casino_search' || intent === 'general') {
         // ── Fallback: top casinos ──
         const r = await db.prepare(`
@@ -232,10 +315,10 @@ export async function retrieve(env, query, country, plan = null, conversationHis
         results.reviews = (r.results || []).map(rv => ({ ...rv, overview: truncate(rv.overview, 300), verdict: truncate(rv.verdict, 200) }));
       } else if (allSearchTerms.length > 0) {
         const conditions = allSearchTerms.map(() =>
-          'LOWER(title) LIKE ? OR LOWER(casino_slug) LIKE ? OR LOWER(overview) LIKE ?'
+          "LOWER(title) LIKE ? OR LOWER(casino_slug) LIKE ? OR LOWER(overview) LIKE ? OR REPLACE(REPLACE(LOWER(casino_slug),'-',''),'_','') LIKE ?"
         ).join(' OR ');
         const params = [];
-        for (const term of allSearchTerms) params.push(`%${term}%`, `%${term}%`, `%${term}%`);
+        for (const term of allSearchTerms) params.push(`%${term}%`, `%${term}%`, `%${term}%`, `%${normalizeForMatch(term)}%`);
         const r = await db.prepare(`
           SELECT slug, title, casino_slug, country_code, rating, overview, pros, cons,
                  verdict, author, author_title, games, bonuses, payments, licenses
@@ -246,6 +329,25 @@ export async function retrieve(env, query, country, plan = null, conversationHis
           bonuses: truncate(rv.bonuses, 200), payments: truncate(rv.payments, 200),
           licenses: truncate(rv.licenses, 200), verdict: truncate(rv.verdict, 200)
         }));
+
+        // Same typo/spacing last-resort as the CASINOS block above --
+        // resolve the real casino slug fuzzily, then look up its review
+        // by that exact, correct slug.
+        if (results.reviews.length === 0 && casinoNames.length > 0) {
+          const fuzzySlug = await fuzzyFindCasinoSlug(db, casinoNames);
+          if (fuzzySlug) {
+            const fr = await db.prepare(`
+              SELECT slug, title, casino_slug, country_code, rating, overview, pros, cons,
+                     verdict, author, author_title, games, bonuses, payments, licenses
+              FROM reviews WHERE published = 1 AND casino_slug = ? LIMIT 1
+            `).bind(fuzzySlug).first();
+            if (fr) results.reviews = [{
+              ...fr, overview: truncate(fr.overview, 300), games: truncate(fr.games, 200),
+              bonuses: truncate(fr.bonuses, 200), payments: truncate(fr.payments, 200),
+              licenses: truncate(fr.licenses, 200), verdict: truncate(fr.verdict, 200)
+            }];
+          }
+        }
       }
 
       // Get review blocks

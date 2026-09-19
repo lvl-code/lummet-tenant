@@ -1,0 +1,29 @@
+{{components_top}}
+<section class="section research-directory">
+  <div class="container">
+    {{components_content_top}}
+
+    <div class="section-header">
+      <h1>{{heading}}</h1>
+      {{#if intro}}<p>{{intro}}</p>{{/if}}
+    </div>
+
+    {{#if featured_html}}
+    <div class="research-directory__featured">
+      <h2>Featured research</h2>
+      <div class="research-grid">
+        {{featured_html}}
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="research-directory__all">
+      <div class="research-grid">
+        {{items_html}}
+      </div>
+    </div>
+
+    {{components_content_bottom}}
+    {{components_bottom}}
+  </div>
+</section>

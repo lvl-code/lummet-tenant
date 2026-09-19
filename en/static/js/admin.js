@@ -19,6 +19,15 @@ document.addEventListener("DOMContentLoaded", () => {
   initCountryForm();
   loadPaymentMethodsTable();
   initPaymentMethodForm();
+  loadResearchTable();
+  initResearchForm();
+  loadSourcesTable();
+  initSourceForm();
+  initResearchClaimForm();
+  initResearchRelationForm();
+  loadReviewQueueSummary();
+  loadDatasetsTable();
+  initDatasetForm();
 });
 
 // ============================================
@@ -3424,6 +3433,1115 @@ function initCountryForm() {
         seoPageState.country.countryCode = "";
         renderSeoSections("country");
         loadCountriesTable();
+      } else {
+        if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
+      }
+    } catch {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Network error"; alertEl.style.display = "block"; }
+    }
+  });
+}
+
+// ============================================
+// RESEARCH (Phase 1)
+// ============================================
+
+async function loadResearchTable() {
+  const tbody = document.getElementById("researchTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch("/en/api/v1/research/list");
+    const data = await res.json();
+    const items = data.research || [];
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No research items yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items.map(r => {
+      const isPublished = !!r.published && r.status !== "draft";
+      return `
+      <tr>
+        <td>${r.type}</td>
+        <td><strong>${r.title}</strong><br><span class="muted" style="font-size:12px">/en/research/${r.type}/${r.slug}</span></td>
+        <td>${r.country_name || "—"}</td>
+        <td><span class="badge ${isPublished ? "badge-ok" : "badge-dim"}">${r.status}</span></td>
+        <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editResearch(${r.id})">Edit</button>
+          <button class="btn btn--danger btn--sm" onclick="deleteResearch(${r.id}, '${r.title.replace(/'/g, "\\'")}')">Delete</button>
+        </td>
+      </tr>
+    `;
+    }).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function populateResearchDropdowns() {
+  const countrySel = document.getElementById("researchCountrySelect");
+  const authorSel = document.getElementById("researchAuthorSelect");
+
+  if (countrySel && countrySel.dataset.loaded !== "true") {
+    try {
+      const res = await fetch("/en/api/v1/countries/list");
+      const data = await res.json();
+      (data.countries || []).forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.code;
+        opt.textContent = c.name;
+        countrySel.appendChild(opt);
+      });
+      countrySel.dataset.loaded = "true";
+    } catch { /* dropdown stays with just the blank option */ }
+  }
+
+  if (authorSel && authorSel.dataset.loaded !== "true") {
+    try {
+      const res = await fetch("/en/api/v1/authors/list");
+      const data = await res.json();
+      (data.authors || []).forEach(a => {
+        const opt = document.createElement("option");
+        opt.value = a.id;
+        opt.textContent = a.name;
+        authorSel.appendChild(opt);
+      });
+      authorSel.dataset.loaded = "true";
+    } catch { /* dropdown stays with just the blank option */ }
+  }
+}
+
+async function editResearch(id) {
+  try {
+    const res = await fetch(`/en/api/v1/research/get-by-id?id=${id}`);
+    const data = await res.json();
+    if (!data.success) { alert(data.error || "Could not load research item"); return; }
+    const r = data.item;
+
+    await populateResearchDropdowns();
+
+    const form = document.getElementById("researchForm");
+    if (!form) return;
+
+    form.querySelector("[name='id']").value = r.id;
+    form.querySelector("[name='type']").value = r.type;
+    form.querySelector("[name='slug']").value = r.slug;
+    form.querySelector("[name='title']").value = r.title || "";
+    form.querySelector("[name='subtitle']").value = r.subtitle || "";
+    form.querySelector("[name='excerpt']").value = r.excerpt || "";
+    form.querySelector("[name='country_id']").value = r.country_id || "";
+    form.querySelector("[name='author_id']").value = r.author_id || "";
+    form.querySelector("[name='seo_title']").value = r.seo_title || "";
+    form.querySelector("[name='seo_description']").value = r.seo_description || "";
+    form.querySelector("[name='seo_keywords']").value = r.seo_keywords || "";
+    form.querySelector("[name='canonical_url']").value = r.canonical_url || "";
+    form.querySelector("[name='status']").value = r.status || "draft";
+    form.querySelector("[name='published']").value = String(r.published || 0);
+    form.querySelector("[name='robots']").value = r.robots || "index,follow";
+    form.querySelector("[name='featured']").value = String(r.featured || 0);
+    form.querySelector("[name='last_verified_at']").value = (r.last_verified_at || "").split(" ")[0].split("T")[0] || "";
+    form.querySelector("[name='next_review_at']").value = (r.next_review_at || "").split(" ")[0].split("T")[0] || "";
+
+    const contentField = document.getElementById("researchContentJson");
+    if (contentField) {
+      let parsed = r.content_json;
+      try { parsed = typeof r.content_json === "string" ? JSON.parse(r.content_json) : r.content_json; } catch { parsed = r.content_json; }
+      contentField.value = parsed ? JSON.stringify(parsed, null, 2) : "";
+    }
+
+    form.dataset.editMode = "true";
+    document.getElementById("researchSubmitBtn").textContent = "Update Research Item";
+    document.getElementById("researchCancelEdit").style.display = "";
+    form.scrollIntoView({ behavior: "smooth" });
+    showResearchClaimsPanel(r.id, r.title);
+    showResearchRelationsPanel(r.id, r.title);
+    showResearchVersionsPanel(r.id, r.title);
+  } catch {
+    alert("Network error");
+  }
+}
+
+function cancelResearchEdit() {
+  const form = document.getElementById("researchForm");
+  if (!form) return;
+  form.reset();
+  delete form.dataset.editMode;
+  document.getElementById("researchSubmitBtn").textContent = "Create Research Item";
+  document.getElementById("researchCancelEdit").style.display = "none";
+  hideResearchClaimsPanel();
+  hideResearchRelationsPanel();
+  hideResearchVersionsPanel();
+}
+
+async function deleteResearch(id, title) {
+  if (!confirm(`Delete research item "${title}"?`)) return;
+  try {
+    const res = await fetch("/en/api/v1/research/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) loadResearchTable();
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+function initResearchForm() {
+  const form = document.getElementById("researchForm");
+  if (!form) return;
+
+  populateResearchDropdowns();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("researchFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+    const formData = new FormData(form);
+
+    let contentJson = {};
+    const rawContent = (formData.get("content_json_raw") || "").trim();
+    if (rawContent) {
+      try {
+        contentJson = JSON.parse(rawContent);
+      } catch {
+        if (alertEl) {
+          alertEl.className = "alert alert--error";
+          alertEl.textContent = "Content sections JSON is not valid — check the syntax and try again.";
+          alertEl.style.display = "block";
+        }
+        return;
+      }
+    }
+
+    const isEdit = form.dataset.editMode === "true";
+    const endpoint = isEdit ? "/en/api/v1/research/update" : "/en/api/v1/research/create";
+    const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : undefined,
+      type: formData.get("type"),
+      slug: formData.get("slug"),
+      title: formData.get("title"),
+      subtitle: formData.get("subtitle") || null,
+      excerpt: formData.get("excerpt") || null,
+      country_id: formData.get("country_id") || null,
+      author_id: formData.get("author_id") || null,
+      content_json: contentJson,
+      seo_title: formData.get("seo_title") || null,
+      seo_description: formData.get("seo_description") || null,
+      seo_keywords: formData.get("seo_keywords") || null,
+      canonical_url: formData.get("canonical_url") || null,
+      status: formData.get("status") || "draft",
+      published: formData.get("published") === "1" ? 1 : 0,
+      robots: formData.get("robots") || "index,follow",
+      featured: formData.get("featured") === "1" ? 1 : 0,
+      last_verified_at: formData.get("last_verified_at") || null,
+      next_review_at: formData.get("next_review_at") || null,
+    };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (alertEl) {
+          alertEl.className = "alert alert--success";
+          alertEl.textContent = isEdit ? "Research item updated!" : "Research item created!";
+          alertEl.style.display = "block";
+        }
+        cancelResearchEdit();
+        loadResearchTable();
+      } else {
+        if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
+      }
+    } catch {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Network error"; alertEl.style.display = "block"; }
+    }
+  });
+}
+
+// ============================================
+// RESEARCH — SOURCES & CLAIMS (Phase 2)
+// ============================================
+
+let _researchSourcesCache = null;
+
+async function fetchSourcesCached(force = false) {
+  if (_researchSourcesCache && !force) return _researchSourcesCache;
+  try {
+    const res = await fetch("/en/api/v1/research-sources/list");
+    const data = await res.json();
+    _researchSourcesCache = data.sources || [];
+  } catch {
+    _researchSourcesCache = [];
+  }
+  return _researchSourcesCache;
+}
+
+async function loadSourcesTable() {
+  const tbody = document.getElementById("sourcesTableBody");
+  if (!tbody) return;
+  try {
+    const sources = await fetchSourcesCached(true);
+    if (sources.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No sources yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = sources.map(s => `
+      <tr>
+        <td><strong>${s.organisation}</strong>${s.title ? `<br><span class="muted" style="font-size:12px">${s.title}</span>` : ""}</td>
+        <td>${s.source_type}</td>
+        <td>${s.country_name || "—"}</td>
+        <td>${s.is_primary ? '<span class="badge badge-ok">Primary</span>' : "—"}</td>
+        <td>${s.citation_count || 0}</td>
+        <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="editSource(${s.id})">Edit</button>
+          <button class="btn btn--danger btn--sm" onclick="deleteSource(${s.id}, '${(s.organisation || "").replace(/'/g, "\\'")}')">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function populateCountrySelect(selectEl) {
+  if (!selectEl || selectEl.dataset.loaded === "true") return;
+  try {
+    const res = await fetch("/en/api/v1/countries/list");
+    const data = await res.json();
+    (data.countries || []).forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      opt.textContent = c.name;
+      selectEl.appendChild(opt);
+    });
+    selectEl.dataset.loaded = "true";
+  } catch { /* dropdown stays with just the blank option */ }
+}
+
+async function editSource(id) {
+  try {
+    const res = await fetch(`/en/api/v1/research-sources/get?id=${id}`);
+    const data = await res.json();
+    if (!data.success) { alert(data.error || "Could not load source"); return; }
+    const s = data.source;
+
+    await populateCountrySelect(document.getElementById("sourceCountrySelect"));
+
+    const form = document.getElementById("sourceForm");
+    if (!form) return;
+    form.querySelector("[name='id']").value = s.id;
+    form.querySelector("[name='organisation']").value = s.organisation || "";
+    form.querySelector("[name='source_type']").value = s.source_type || "other";
+    form.querySelector("[name='title']").value = s.title || "";
+    form.querySelector("[name='url']").value = s.url || "";
+    form.querySelector("[name='country_id']").value = s.country_id || "";
+    form.querySelector("[name='is_primary']").value = String(s.is_primary || 0);
+    form.querySelector("[name='publication_date']").value = (s.publication_date || "").split(" ")[0].split("T")[0] || "";
+    form.querySelector("[name='accessed_at']").value = (s.accessed_at || "").split(" ")[0].split("T")[0] || "";
+    form.querySelector("[name='notes']").value = s.notes || "";
+
+    form.dataset.editMode = "true";
+    document.getElementById("sourceSubmitBtn").textContent = "Update Source";
+    document.getElementById("sourceCancelEdit").style.display = "";
+    form.scrollIntoView({ behavior: "smooth" });
+  } catch {
+    alert("Network error");
+  }
+}
+
+function cancelSourceEdit() {
+  const form = document.getElementById("sourceForm");
+  if (!form) return;
+  form.reset();
+  delete form.dataset.editMode;
+  document.getElementById("sourceSubmitBtn").textContent = "Add Source";
+  document.getElementById("sourceCancelEdit").style.display = "none";
+}
+
+async function deleteSource(id, organisation) {
+  if (!confirm(`Delete source "${organisation}"? This also removes it from any claims that cite it.`)) return;
+  try {
+    const res = await fetch("/en/api/v1/research-sources/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) { loadSourcesTable(); fetchSourcesCached(true); }
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+function initSourceForm() {
+  const form = document.getElementById("sourceForm");
+  if (!form) return;
+
+  populateCountrySelect(document.getElementById("sourceCountrySelect"));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("sourceFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+    const formData = new FormData(form);
+
+    const isEdit = form.dataset.editMode === "true";
+    const endpoint = isEdit ? "/en/api/v1/research-sources/update" : "/en/api/v1/research-sources/create";
+    const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : undefined,
+      organisation: formData.get("organisation"),
+      source_type: formData.get("source_type") || "other",
+      title: formData.get("title") || null,
+      url: formData.get("url") || null,
+      country_id: formData.get("country_id") || null,
+      is_primary: formData.get("is_primary") === "1" ? 1 : 0,
+      publication_date: formData.get("publication_date") || null,
+      accessed_at: formData.get("accessed_at") || null,
+      notes: formData.get("notes") || null,
+    };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = isEdit ? "Source updated!" : "Source added!"; alertEl.style.display = "block"; }
+        cancelSourceEdit();
+        loadSourcesTable();
+        fetchSourcesCached(true);
+      } else {
+        if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
+      }
+    } catch {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Network error"; alertEl.style.display = "block"; }
+    }
+  });
+}
+
+// ---- Claims (scoped to whichever research item is being edited) ----
+
+async function loadResearchClaimsTable(researchItemId) {
+  const tbody = document.getElementById("researchClaimsTableBody");
+  if (!tbody) return;
+  try {
+    const [claimsRes, sources] = await Promise.all([
+      fetch(`/en/api/v1/research-claims/list-for-item?research_item_id=${researchItemId}`),
+      fetchSourcesCached(),
+    ]);
+    const claimsData = await claimsRes.json();
+    const claims = claimsData.claims || [];
+
+    if (claims.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No claims yet.</td></tr>';
+      return;
+    }
+
+    const sourceOptions = sources.map(s => `<option value="${s.id}">${s.organisation}${s.title ? " — " + s.title : ""}</option>`).join("");
+
+    tbody.innerHTML = claims.map(c => `
+      <tr>
+        <td style="max-width:320px">${c.claim_text}</td>
+        <td><span class="badge ${c.status === "verified" ? "badge-ok" : "badge-dim"}">${c.status}</span></td>
+        <td>
+          ${c.sources.map(s => `
+            <span class="badge badge-dim" style="margin-right:4px">
+              ${s.organisation}
+              <a href="#" onclick="detachClaimSource(${s.id}, ${researchItemId}); return false;" title="Remove" style="margin-left:4px">&times;</a>
+            </span>
+          `).join("") || '<span class="muted">none</span>'}
+          <div style="margin-top:6px;display:flex;gap:4px">
+            <select id="attachSourceSelect-${c.id}" style="max-width:180px">
+              <option value="">Attach source...</option>
+              ${sourceOptions}
+            </select>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="attachClaimSource(${c.id}, ${researchItemId})">Attach</button>
+          </div>
+        </td>
+        <td class="table-actions">
+          <button class="btn btn--danger btn--sm" onclick="deleteClaim(${c.id}, ${researchItemId})">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function attachClaimSource(claimId, researchItemId) {
+  const select = document.getElementById(`attachSourceSelect-${claimId}`);
+  const sourceId = select ? select.value : "";
+  if (!sourceId) return;
+  try {
+    const res = await fetch("/en/api/v1/research-claims/attach-source", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ claim_id: claimId, source_id: parseInt(sourceId) }),
+    });
+    const data = await res.json();
+    if (data.success) loadResearchClaimsTable(researchItemId);
+    else alert(data.error || "Could not attach source");
+  } catch { alert("Network error"); }
+}
+
+async function detachClaimSource(claimSourceId, researchItemId) {
+  try {
+    const res = await fetch("/en/api/v1/research-claims/detach-source", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: claimSourceId }),
+    });
+    const data = await res.json();
+    if (data.success) loadResearchClaimsTable(researchItemId);
+    else alert(data.error || "Could not remove source");
+  } catch { alert("Network error"); }
+}
+
+async function deleteClaim(id, researchItemId) {
+  if (!confirm("Delete this claim?")) return;
+  try {
+    const res = await fetch("/en/api/v1/research-claims/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) loadResearchClaimsTable(researchItemId);
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+function initResearchClaimForm() {
+  const form = document.getElementById("researchClaimForm");
+  if (!form) return;
+
+  populateCountrySelect(document.getElementById("researchClaimJurisdictionSelect"));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const researchItemId = parseInt(formData.get("research_item_id"));
+    if (!researchItemId) { alert("Save the research item first."); return; }
+
+    const payload = {
+      research_item_id: researchItemId,
+      claim_text: formData.get("claim_text"),
+      status: formData.get("status") || "unverified",
+      jurisdiction_id: formData.get("jurisdiction_id") || null,
+      valid_from: formData.get("valid_from") || null,
+      valid_until: formData.get("valid_until") || null,
+    };
+
+    try {
+      const res = await fetch("/en/api/v1/research-claims/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        form.reset();
+        form.querySelector("[name='research_item_id']").value = researchItemId;
+        loadResearchClaimsTable(researchItemId);
+      } else {
+        alert(data.error || "Could not create claim");
+      }
+    } catch { alert("Network error"); }
+  });
+}
+
+// Shows the claims/sources panel for the research item currently
+// loaded into the edit form — called from editResearch() once a
+// research item (which must already have an id) is loaded.
+function showResearchClaimsPanel(researchItemId, title) {
+  const section = document.getElementById("researchClaimsSection");
+  if (!section) return;
+  document.getElementById("researchClaimsItemTitle").textContent = title || "";
+  document.getElementById("researchClaimItemId").value = researchItemId;
+  populateCountrySelect(document.getElementById("researchClaimJurisdictionSelect"));
+  fetchSourcesCached(true);
+  section.style.display = "";
+  loadResearchClaimsTable(researchItemId);
+}
+
+function hideResearchClaimsPanel() {
+  const section = document.getElementById("researchClaimsSection");
+  if (section) section.style.display = "none";
+}
+
+// ============================================
+// RESEARCH RELATIONSHIPS (Phase 3)
+// ============================================
+
+const RESEARCH_RELATION_TYPES = [
+  "covers", "located_in", "operates_in", "regulated_by", "regulates",
+  "licensed_by", "requires", "uses", "related_to", "part_of", "contains",
+  "updates", "supersedes", "superseded_by", "cites", "supports",
+  "contradicts", "derived_from", "mentions", "affects", "affected_by",
+  "applies_to", "available_in", "restricted_in"
+];
+
+function populateRelationTypeSelect() {
+  const select = document.getElementById("researchRelationTypeSelect");
+  if (!select || select.dataset.loaded === "true") return;
+  select.innerHTML = RESEARCH_RELATION_TYPES.map(t => `<option value="${t}">${t.replace(/_/g, " ")}</option>`).join("");
+  select.dataset.loaded = "true";
+}
+
+async function loadResearchRelationsTable(researchItemId) {
+  const tbody = document.getElementById("researchRelationsTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch(`/en/api/v1/research-relations/list-for-entity?type=research_item&id=${researchItemId}`);
+    const data = await res.json();
+    const relations = (data.relations || []).filter(r => r.target && r.target.exists);
+
+    if (relations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="muted">No relationships yet.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = relations.map(r => `
+      <tr>
+        <td>${r.relation_type.replace(/_/g, " ")}</td>
+        <td>${r.target.label || "—"} <span class="muted" style="font-size:12px">(${r.target.type})</span></td>
+        <td class="table-actions">
+          <button class="btn btn--danger btn--sm" onclick="deleteResearchRelation(${r.id}, ${researchItemId})">Remove</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="3" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function deleteResearchRelation(id, researchItemId) {
+  if (!confirm("Remove this relationship?")) return;
+  try {
+    const res = await fetch("/en/api/v1/research-relations/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) loadResearchRelationsTable(researchItemId);
+    else alert(data.error || "Could not remove relationship");
+  } catch { alert("Network error"); }
+}
+
+let _relationEntitySearchTimer = null;
+
+function initResearchRelationEntitySearch() {
+  const input = document.getElementById("researchRelationEntitySearch");
+  const resultsBox = document.getElementById("researchRelationEntityResults");
+  if (!input || !resultsBox || input.dataset.wired === "true") return;
+  input.dataset.wired = "true";
+
+  input.addEventListener("input", () => {
+    clearTimeout(_relationEntitySearchTimer);
+    const q = input.value.trim();
+    document.getElementById("researchRelationSubmitBtn").disabled = true;
+    document.getElementById("researchRelationToType").value = "";
+    document.getElementById("researchRelationToId").value = "";
+    document.getElementById("researchRelationEntitySelected").textContent = "";
+
+    if (q.length < 2) { resultsBox.style.display = "none"; resultsBox.innerHTML = ""; return; }
+
+    _relationEntitySearchTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/en/api/v1/research-relations/search-entities?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const results = data.results || [];
+        if (results.length === 0) {
+          resultsBox.innerHTML = '<div class="admin-autocomplete-empty muted">No matches</div>';
+          resultsBox.style.display = "";
+          return;
+        }
+        resultsBox.innerHTML = results.map((r, i) => `
+          <div class="admin-autocomplete-item" data-idx="${i}" style="cursor:pointer;padding:6px 8px">
+            ${r.label} <span class="muted" style="font-size:12px">(${r.type})</span>
+          </div>
+        `).join("");
+        resultsBox.style.display = "";
+        resultsBox.querySelectorAll("[data-idx]").forEach(el => {
+          el.addEventListener("click", () => {
+            const picked = results[parseInt(el.dataset.idx)];
+            document.getElementById("researchRelationToType").value = picked.type;
+            document.getElementById("researchRelationToId").value = picked.id;
+            document.getElementById("researchRelationEntitySelected").textContent = `Selected: ${picked.label} (${picked.type})`;
+            input.value = picked.label;
+            resultsBox.style.display = "none";
+            document.getElementById("researchRelationSubmitBtn").disabled = false;
+          });
+        });
+      } catch { resultsBox.style.display = "none"; }
+    }, 300);
+  });
+}
+
+function initResearchRelationForm() {
+  const form = document.getElementById("researchRelationForm");
+  if (!form) return;
+
+  populateRelationTypeSelect();
+  initResearchRelationEntitySearch();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fromId = parseInt(document.getElementById("researchRelationFromId").value);
+    const toType = document.getElementById("researchRelationToType").value;
+    const toId = document.getElementById("researchRelationToId").value;
+    const relationType = document.getElementById("researchRelationTypeSelect").value;
+    if (!fromId || !toType || !toId || !relationType) return;
+
+    try {
+      const res = await fetch("/en/api/v1/research-relations/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from_type: "research_item", from_id: fromId, to_type: toType, to_id: toId, relation_type: relationType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("researchRelationEntitySearch").value = "";
+        document.getElementById("researchRelationEntitySelected").textContent = "";
+        document.getElementById("researchRelationToType").value = "";
+        document.getElementById("researchRelationToId").value = "";
+        document.getElementById("researchRelationSubmitBtn").disabled = true;
+        loadResearchRelationsTable(fromId);
+      } else {
+        alert(data.error || "Could not add relationship");
+      }
+    } catch { alert("Network error"); }
+  });
+}
+
+function showResearchRelationsPanel(researchItemId, title) {
+  const section = document.getElementById("researchRelationsSection");
+  if (!section) return;
+  document.getElementById("researchRelationsItemTitle").textContent = title || "";
+  document.getElementById("researchRelationFromId").value = researchItemId;
+  populateRelationTypeSelect();
+  section.style.display = "";
+  loadResearchRelationsTable(researchItemId);
+}
+
+function hideResearchRelationsPanel() {
+  const section = document.getElementById("researchRelationsSection");
+  if (section) section.style.display = "none";
+}
+
+// ============================================
+// RESEARCH VERSION HISTORY (Phase 4)
+// ============================================
+
+const FIELD_LABELS = {
+  type: "Type", slug: "Slug", title: "Title", subtitle: "Subtitle", excerpt: "Excerpt",
+  content_json: "Content sections", country_id: "Country", author_id: "Author",
+  status: "Status", published: "Published", robots: "Robots", seo_title: "SEO title",
+  seo_description: "SEO description", seo_keywords: "SEO keywords",
+  canonical_url: "Canonical URL", og_image: "OG image", featured: "Featured"
+};
+
+function truncateForDiff(value) {
+  const str = value === null || value === undefined ? "(empty)" : String(value);
+  return str.length > 140 ? str.slice(0, 140) + "…" : str;
+}
+
+async function loadResearchVersionsTable(researchItemId) {
+  const tbody = document.getElementById("researchVersionsTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch(`/en/api/v1/research-versions/list-for-item?research_item_id=${researchItemId}`);
+    const data = await res.json();
+    const versions = data.versions || [];
+
+    if (versions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No versions yet — versions are saved once this item is published.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = versions.map(v => `
+      <tr>
+        <td>v${v.version_number}</td>
+        <td>${(v.created_at || "").replace("T", " ").slice(0, 16)}</td>
+        <td>${v.changed_by || "—"}</td>
+        <td>${v.restored_from_version ? `<span class="badge badge-dim">Restored from v${v.restored_from_version}</span>` : (v.change_summary || "—")}</td>
+        <td class="table-actions">
+          <button class="btn btn--ghost btn--sm" onclick="viewResearchVersionDiff(${v.id})">View changes</button>
+          <button class="btn btn--danger btn--sm" onclick="restoreResearchVersion(${v.id}, ${researchItemId}, ${v.version_number})">Restore</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function viewResearchVersionDiff(versionId) {
+  const box = document.getElementById("researchVersionDiffBox");
+  const content = document.getElementById("researchVersionDiffContent");
+  if (!box || !content) return;
+  content.innerHTML = "Loading...";
+  box.style.display = "";
+  try {
+    const res = await fetch(`/en/api/v1/research-versions/diff?id=${versionId}&compare_to=current`);
+    const data = await res.json();
+    const changes = data.changes || [];
+    if (changes.length === 0) {
+      content.innerHTML = '<p class="muted">No differences from the current version.</p>';
+      return;
+    }
+    content.innerHTML = changes.map(c => `
+      <div style="margin-bottom:10px">
+        <strong>${FIELD_LABELS[c.field] || c.field}</strong>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          <div style="flex:1;color:#d97676"><span class="muted" style="font-size:11px">This version</span><br>${truncateForDiff(c.before)}</div>
+          <div style="flex:1;color:#7fbf7f"><span class="muted" style="font-size:11px">Current</span><br>${truncateForDiff(c.after)}</div>
+        </div>
+      </div>
+    `).join("");
+  } catch {
+    content.innerHTML = '<p class="muted">Failed to load diff.</p>';
+  }
+}
+
+async function restoreResearchVersion(versionId, researchItemId, versionNumber) {
+  if (!confirm(`Restore version ${versionNumber}? This overwrites the current content (a new version recording this restore will be saved).`)) return;
+  try {
+    const res = await fetch("/en/api/v1/research-versions/restore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: versionId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("Restored. Reloading the form with the restored content...");
+      await editResearch(researchItemId);
+    } else {
+      alert(data.error || "Could not restore version");
+    }
+  } catch { alert("Network error"); }
+}
+
+function showResearchVersionsPanel(researchItemId, title) {
+  const section = document.getElementById("researchVersionsSection");
+  if (!section) return;
+  document.getElementById("researchVersionsItemTitle").textContent = title || "";
+  document.getElementById("researchVersionDiffBox").style.display = "none";
+  section.style.display = "";
+  loadResearchVersionsTable(researchItemId);
+}
+
+function hideResearchVersionsPanel() {
+  const section = document.getElementById("researchVersionsSection");
+  if (section) section.style.display = "none";
+}
+
+// ============================================
+// RESEARCH REVIEW QUEUE (Phase 5)
+// ============================================
+
+const REVIEW_QUEUE_CATEGORIES = [
+  { key: "overdue_verification", label: "Overdue verification", countKey: "overdueVerification" },
+  { key: "broken_sources", label: "Broken sources", countKey: "brokenSources" },
+  { key: "stale_sources", label: "Stale sources", countKey: "staleSources" },
+  { key: "missing_citations", label: "Missing citations", countKey: "missingCitations" },
+  { key: "missing_seo", label: "Missing SEO", countKey: "missingSeo" },
+  { key: "orphan_relations", label: "Broken relationships", countKey: "orphanRelations" },
+];
+
+async function loadReviewQueueSummary() {
+  const cardsEl = document.getElementById("reviewQueueCards");
+  if (!cardsEl) return;
+  try {
+    const res = await fetch("/en/api/v1/research-review-queue/summary");
+    const data = await res.json();
+    const counts = data.counts || {};
+    cardsEl.innerHTML = REVIEW_QUEUE_CATEGORIES.map(cat => `
+      <div class="admin-card" style="cursor:pointer;padding:16px;border:1px solid var(--border,#333);border-radius:6px" onclick="loadReviewQueueDetail('${cat.key}', '${cat.label}')">
+        <div style="font-size:28px;font-weight:600">${counts[cat.countKey] ?? 0}</div>
+        <div class="muted">${cat.label}</div>
+      </div>
+    `).join("");
+  } catch {
+    cardsEl.innerHTML = '<div class="muted">Failed to load.</div>';
+  }
+}
+
+function reviewQueueItemLink(item) {
+  if (item.type && item.slug) return `/en/research/${item.type}/${item.slug}`;
+  return null;
+}
+
+async function loadReviewQueueDetail(category, label) {
+  const detailEl = document.getElementById("reviewQueueDetail");
+  if (!detailEl) return;
+  detailEl.innerHTML = `<h2>${label}</h2><p class="muted">Loading...</p>`;
+  try {
+    const res = await fetch(`/en/api/v1/research-review-queue/list?category=${category}`);
+    const data = await res.json();
+    const items = data.items || [];
+
+    if (items.length === 0) {
+      detailEl.innerHTML = `<h2>${label}</h2><p class="muted">Nothing here — all clear.</p>`;
+      return;
+    }
+
+    let rows = "";
+    if (category === "broken_sources" || category === "stale_sources") {
+      rows = items.map(s => `
+        <tr>
+          <td><strong>${s.organisation}</strong>${s.title ? `<br><span class="muted" style="font-size:12px">${s.title}</span>` : ""}</td>
+          <td>${s.url ? `<a href="${s.url}" target="_blank" rel="nofollow noopener">${s.url}</a>` : "—"}</td>
+          <td>${(s.accessed_at || "never").toString().replace("T", " ").slice(0, 16)}</td>
+          <td class="table-actions"><button class="btn btn--ghost btn--sm" onclick="checkSourceHealthNow(${s.id}, '${category}', '${label.replace(/'/g, "\\'")}')">Check now</button></td>
+        </tr>
+      `).join("");
+      detailEl.innerHTML = `
+        <h2>${label}</h2>
+        <table class="admin-table">
+          <thead><tr><th>Source</th><th>URL</th><th>Last checked</th><th>Actions</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      return;
+    }
+
+    if (category === "orphan_relations") {
+      rows = items.map(r => `
+        <tr>
+          <td>${r.from_type}:${r.from_id}</td>
+          <td>${r.relation_type.replace(/_/g, " ")}</td>
+          <td>${r.unresolved_target} <span class="muted" style="font-size:12px">(no longer exists)</span></td>
+          <td class="table-actions"><button class="btn btn--danger btn--sm" onclick="deleteOrphanRelation(${r.id})">Remove</button></td>
+        </tr>
+      `).join("");
+      detailEl.innerHTML = `
+        <h2>${label}</h2>
+        <table class="admin-table">
+          <thead><tr><th>From</th><th>Relation</th><th>Missing target</th><th>Actions</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      return;
+    }
+
+    // overdue_verification, missing_citations, missing_seo — all research_items rows
+    rows = items.map(item => {
+      const link = reviewQueueItemLink(item);
+      return `
+        <tr>
+          <td>${link ? `<a href="${link}" target="_blank">${item.title}</a>` : item.title}</td>
+          <td>${item.type || "—"}</td>
+          <td>${(item.next_review_at || "").toString().replace("T", " ").slice(0, 16) || "—"}</td>
+        </tr>
+      `;
+    }).join("");
+    detailEl.innerHTML = `
+      <h2>${label}</h2>
+      <table class="admin-table">
+        <thead><tr><th>Title</th><th>Type</th><th>Next review</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } catch {
+    detailEl.innerHTML = `<h2>${label}</h2><p class="muted">Failed to load.</p>`;
+  }
+}
+
+async function checkSourceHealthNow(sourceId, category, label) {
+  try {
+    const res = await fetch("/en/api/v1/research-sources/check-health", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: sourceId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      loadReviewQueueDetail(category, label);
+      loadReviewQueueSummary();
+    } else {
+      alert(data.error || "Health check failed");
+    }
+  } catch { alert("Network error"); }
+}
+
+async function deleteOrphanRelation(id) {
+  if (!confirm("Remove this broken relationship?")) return;
+  try {
+    const res = await fetch("/en/api/v1/research-relations/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      loadReviewQueueDetail("orphan_relations", "Broken relationships");
+      loadReviewQueueSummary();
+    } else {
+      alert(data.error || "Could not remove");
+    }
+  } catch { alert("Network error"); }
+}
+
+// ============================================
+// RESEARCH DATASETS (Phase 6)
+// ============================================
+
+async function loadDatasetsTable() {
+  const tbody = document.getElementById("datasetsTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch("/en/api/v1/research-datasets/list");
+    const data = await res.json();
+    const datasets = data.datasets || [];
+    if (datasets.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No datasets yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = datasets.map(d => {
+      let rowCount = 0;
+      try { rowCount = JSON.parse(d.rows_json || "[]").length; } catch { /* leave 0 on malformed JSON */ }
+      return `
+        <tr>
+          <td><strong>${d.title}</strong></td>
+          <td><code>${d.slug}</code></td>
+          <td><span class="badge ${d.published ? "badge-ok" : "badge-dim"}">${d.status}</span></td>
+          <td>${rowCount}</td>
+          <td class="table-actions">
+            <button class="btn btn--ghost btn--sm" onclick="editDataset(${d.id})">Edit</button>
+            <button class="btn btn--danger btn--sm" onclick="deleteDataset(${d.id}, '${d.title.replace(/'/g, "\\'")}')">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function editDataset(id) {
+  try {
+    const res = await fetch(`/en/api/v1/research-datasets/get?id=${id}`);
+    const data = await res.json();
+    if (!data.success) { alert(data.error || "Could not load dataset"); return; }
+    const d = data.dataset;
+
+    const form = document.getElementById("datasetForm");
+    if (!form) return;
+    form.querySelector("[name='id']").value = d.id;
+    form.querySelector("[name='title']").value = d.title || "";
+    form.querySelector("[name='slug']").value = d.slug || "";
+    form.querySelector("[name='description']").value = d.description || "";
+    form.querySelector("[name='columns_json']").value = d.columns_json ? JSON.stringify(JSON.parse(d.columns_json), null, 2) : "[]";
+    form.querySelector("[name='rows_json']").value = d.rows_json ? JSON.stringify(JSON.parse(d.rows_json), null, 2) : "[]";
+    form.querySelector("[name='status']").value = d.status || "draft";
+    form.querySelector("[name='published']").value = String(d.published || 0);
+
+    form.dataset.editMode = "true";
+    document.getElementById("datasetSubmitBtn").textContent = "Update Dataset";
+    document.getElementById("datasetCancelEdit").style.display = "";
+    form.scrollIntoView({ behavior: "smooth" });
+
+    loadDatasetVersions(d.id);
+  } catch {
+    alert("Network error");
+  }
+}
+
+function cancelDatasetEdit() {
+  const form = document.getElementById("datasetForm");
+  if (!form) return;
+  form.reset();
+  delete form.dataset.editMode;
+  document.getElementById("datasetSubmitBtn").textContent = "Create Dataset";
+  document.getElementById("datasetCancelEdit").style.display = "none";
+  const versionsSection = document.getElementById("datasetVersionsSection");
+  if (versionsSection) versionsSection.style.display = "none";
+}
+
+async function loadDatasetVersions(datasetId) {
+  const section = document.getElementById("datasetVersionsSection");
+  const tbody = document.getElementById("datasetVersionsTableBody");
+  if (!section || !tbody) return;
+  try {
+    const res = await fetch(`/en/api/v1/research-datasets/versions?dataset_id=${datasetId}`);
+    const data = await res.json();
+    const versions = data.versions || [];
+    if (versions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="muted">No versions yet — saved once this dataset is published.</td></tr>';
+    } else {
+      tbody.innerHTML = versions.map(v => `
+        <tr>
+          <td>v${v.version_number}</td>
+          <td>${(v.created_at || "").replace("T", " ").slice(0, 16)}</td>
+          <td>${v.changed_by || "—"}</td>
+        </tr>
+      `).join("");
+    }
+    section.style.display = "";
+  } catch { /* leave the versions panel hidden on failure */ }
+}
+
+async function deleteDataset(id, title) {
+  if (!confirm(`Delete dataset "${title}"? Any content blocks embedding it will stop rendering.`)) return;
+  try {
+    const res = await fetch("/en/api/v1/research-datasets/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) loadDatasetsTable();
+    else alert(data.error || "Delete failed");
+  } catch { alert("Network error"); }
+}
+
+function initDatasetForm() {
+  const form = document.getElementById("datasetForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("datasetFormAlert");
+    if (alertEl) alertEl.style.display = "none";
+    const formData = new FormData(form);
+
+    let columnsJson, rowsJson;
+    try {
+      columnsJson = JSON.parse(formData.get("columns_json") || "[]");
+      rowsJson = JSON.parse(formData.get("rows_json") || "[]");
+    } catch {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Columns or Rows JSON is not valid — check the syntax and try again."; alertEl.style.display = "block"; }
+      return;
+    }
+
+    const isEdit = form.dataset.editMode === "true";
+    const endpoint = isEdit ? "/en/api/v1/research-datasets/update" : "/en/api/v1/research-datasets/create";
+    const payload = {
+      id: formData.get("id") ? parseInt(formData.get("id")) : undefined,
+      title: formData.get("title"),
+      slug: formData.get("slug"),
+      description: formData.get("description") || null,
+      columns_json: columnsJson,
+      rows_json: rowsJson,
+      status: formData.get("status") || "draft",
+      published: formData.get("published") === "1" ? 1 : 0,
+    };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (alertEl) { alertEl.className = "alert alert--success"; alertEl.textContent = isEdit ? "Dataset updated!" : "Dataset created!"; alertEl.style.display = "block"; }
+        cancelDatasetEdit();
+        loadDatasetsTable();
       } else {
         if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
       }

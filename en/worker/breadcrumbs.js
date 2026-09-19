@@ -148,6 +148,21 @@ export function buildBreadcrumbs(route, data = {}) {
         url: null
       });
       break;
+
+    case "researchTypeList":
+      crumbs.push(
+        { label: "Research", url: "/en/research" },
+        { label: data.label, url: null }
+      );
+      break;
+
+    case "researchItem":
+      crumbs.push(
+        { label: "Research", url: "/en/research" },
+        { label: data.label, url: `/en/research/${data.researchType}` },
+        { label: data.title, url: null }
+      );
+      break;
   }
 
   return crumbs;

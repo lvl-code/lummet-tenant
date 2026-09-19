@@ -155,6 +155,41 @@ export function getRoute(request) {
     return { type: "paymentMethodList" };
   }
 
+  // =====================================================
+  // RESEARCH ENGINE (Phase 1)
+  // /en/research                        (hub)
+  // /en/research/country                (type list)
+  // /en/research/country/netherlands    (item)
+  // Data-first: type + slug determine the route, never an
+  // admin-typed URL. Must be matched before the generic dynamic
+  // page catch-all.
+  // =====================================================
+
+  if (path === "/en/research") {
+    return { type: "researchHub" };
+  }
+
+  const researchTypeListMatch =
+    path.match(/^\/en\/research\/([^\/]+)$/);
+
+  if (researchTypeListMatch) {
+    return {
+      type: "researchTypeList",
+      researchType: researchTypeListMatch[1]
+    };
+  }
+
+  const researchItemMatch =
+    path.match(/^\/en\/research\/([^\/]+)\/([^\/]+)$/);
+
+  if (researchItemMatch) {
+    return {
+      type: "researchItem",
+      researchType: researchItemMatch[1],
+      slug: researchItemMatch[2]
+    };
+  }
+
   const paymentMethodMatch =
     path.match(/^\/en\/payment-methods\/([^\/]+)$/);
 
@@ -244,6 +279,9 @@ export function getRoute(request) {
   if (path === "/en/dashboard/categories") return { type: "dashboardCategories" };
   if (path === "/en/dashboard/payment-methods") return { type: "dashboardPaymentMethods" };
   if (path === "/en/dashboard/countries") return { type: "dashboardCountries" };
+  if (path === "/en/dashboard/research") return { type: "dashboardResearch" };
+  if (path === "/en/dashboard/research/review-queue") return { type: "dashboardResearchReviewQueue" };
+  if (path === "/en/dashboard/research/datasets") return { type: "dashboardResearchDatasets" };
   if (path === "/en/dashboard/authors") return { type: "dashboardAuthors" };
   if (path === "/en/dashboard/media") return { type: "dashboardMedia" };
   if (path === "/en/dashboard/nav") return { type: "dashboardNav" };
@@ -404,6 +442,9 @@ if (path === "/favicon.ico") {
   }
   if (path === "/sitemap-seo-pages.xml" || path === "/en/sitemap-seo-pages.xml") {
       return { type: "sitemap-seo-pages" };
+  }
+  if (path === "/sitemap-research.xml" || path === "/en/sitemap-research.xml") {
+      return { type: "sitemap-research" };
   }
   if (path === "/robots.txt") {
       return { type: "robots" };

@@ -12,6 +12,12 @@ import {
   renderReview,
   renderCountry,
   renderCountryCustomPage,
+  renderResearchHub,
+  renderResearchTypeList,
+  renderResearchItem,
+  renderDashboardResearch,
+  renderDashboardResearchReviewQueue,
+  renderDashboardResearchDatasets,
   renderCategory,
   renderCategoryCountryPage,
   renderAffiliate,
@@ -99,6 +105,7 @@ import {
 from "./auth.js";
 import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync, runWeeklyDigest } from "./cron.js";
 import { runScheduledHealthChecks } from "./tracking/health-check.js";
+import { runScheduledResearchSourceHealthChecks } from "./research/source-health.js";
 
 import { cleanupExpiredConversations } from "./ai/memory.js";
 
@@ -249,6 +256,20 @@ if (
           route.slug
         );
 
+      case "researchHub":
+        return renderResearchHub(request, env);
+
+      case "researchTypeList":
+        return renderResearchTypeList(request, env, route.researchType);
+
+      case "researchItem":
+        return renderResearchItem(
+          request,
+          env,
+          route.researchType,
+          route.slug
+        );
+
       case "category":
         return renderCategory(
           request,
@@ -339,6 +360,12 @@ if (
         return renderDashboardPaymentMethods(request, env);
       case "dashboardCountries":
         return renderDashboardCountries(request, env);
+      case "dashboardResearch":
+        return renderDashboardResearch(request, env);
+      case "dashboardResearchReviewQueue":
+        return renderDashboardResearchReviewQueue(request, env);
+      case "dashboardResearchDatasets":
+        return renderDashboardResearchDatasets(request, env);
       case "authorList":
         return renderAuthorList(request, env);
       case "author":
@@ -527,6 +554,14 @@ case "sitemap-seo-pages":
     "seo-pages"
   );
 
+case "sitemap-research":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "research"
+  );
+
       case "robots":
         return robots(request, env);
 
@@ -564,6 +599,20 @@ case "sitemap-seo-pages":
         ctx.waitUntil(
             runScheduledHealthChecks(env.DB).catch(() => {
                 // Never let a health-check failure affect other scheduled tasks.
+            })
+        );
+
+        // Research source URL health monitoring (Research Engine Phase 5)
+        // -- same feature-flag convention as the tracking-link checks
+        // above ('research_source_health_cron_enabled' in
+        // system_settings, default off — see
+        // migrations/0049_research_review_queue.sql). Reuses the same
+        // generic checkTrackingLinkHealth() classifier from
+        // worker/tracking/health-check.js rather than a second
+        // implementation — see worker/research/source-health.js.
+        ctx.waitUntil(
+            runScheduledResearchSourceHealthChecks(env.DB).catch(() => {
+                // Never let a source health-check failure affect other scheduled tasks.
             })
         );
 

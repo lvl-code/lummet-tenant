@@ -16,6 +16,7 @@ export const sitemapEngine = {
       { loc: "/en/sitemap-pages.xml", lastmod: currentDate },
       { loc: "/en/sitemap-authors.xml", lastmod: currentDate },
       { loc: "/en/sitemap-seo-pages.xml", lastmod: currentDate },
+      { loc: "/en/sitemap-research.xml", lastmod: currentDate },
     ];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
@@ -207,6 +208,23 @@ if (type === "all" || type === "authors") {
           urls.push({ loc, lastmod: lm, changefreq: "weekly", priority: "0.6" });
         }
       } catch (e) { console.error("Sitemap seo-pages query failed:", e.message); }
+    }
+
+    // Research items — same published/status gate as every other
+    // content type here (fixes the exact bug class the README's
+    // "Sitemap draft-leak fix" note describes: never omit this filter).
+    if (type === "all" || type === "research") {
+      try {
+        const r = await db.prepare(
+          `SELECT type, slug, updated_at FROM research_items
+           WHERE published = 1 AND status != 'draft'
+           LIMIT 50000`
+        ).all();
+        for (const item of r.results || []) {
+          const lm = item.updated_at ? item.updated_at.split(" ")[0] : currentDate;
+          urls.push({ loc: `/en/research/${item.type}/${item.slug}`, lastmod: lm, changefreq: "monthly", priority: "0.6" });
+        }
+      } catch (e) { console.error("Sitemap research query failed:", e.message); }
     }
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;

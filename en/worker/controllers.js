@@ -2787,7 +2787,7 @@ async function renderResearchSections(content, citations = null, db = null) {
                 <table class="research-table">
                   ${section.caption ? `<caption>${section.caption}</caption>` : ""}
                   <thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
-                  <tbody>${rows.map((r) => `<tr>${r.map((cell) => `<td>${cell ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
+                  <tbody>${rows.map((r) => `<tr>${cols.map((_, ci) => `<td>${(r[ci] ?? "") === "" ? `<span class="research-table__empty">—</span>` : r[ci]}</td>`).join("")}</tr>`).join("")}</tbody>
                 </table>
               </div>
             </section>`;
@@ -2889,14 +2889,29 @@ async function renderResearchSections(content, citations = null, db = null) {
           if (!db || !section.dataset_id) return "";
           const data = await researchDatasets.resolveDatasetData(db, Number(section.dataset_id), section.version || "latest");
           if (!data || data.columns.length === 0 || data.rows.length === 0) return "";
+
+          // Type-aware cell rendering — columns_json carries an optional
+          // display-type hint (text/number/boolean/date) per the schema
+          // comment in 0050; this is the first renderer to actually act
+          // on it rather than printing every value as raw text.
+          const renderDatasetCell = (col, value) => {
+            if (value === null || value === undefined || value === "") return `<span class="research-table__empty">—</span>`;
+            if (col.type === "boolean") {
+              const isTrue = value === true || value === "true" || value === 1 || value === "1";
+              return `<span class="research-table__bool research-table__bool--${isTrue ? "yes" : "no"}">${isTrue ? "✓" : "✗"}</span>`;
+            }
+            return value;
+          };
+          const cellClass = (col) => col.type === "number" || col.type === "boolean" ? ` class="research-table__cell--${col.type}"` : "";
+
           return `
             <section class="research-section research-section--table research-section--dataset">
               ${heading}
               <div class="research-table-wrap">
                 <table class="research-table">
                   <caption>${section.caption || data.title}<span class="muted"> (${data.versionLabel})</span></caption>
-                  <thead><tr>${data.columns.map((c) => `<th>${c.label || c.key}</th>`).join("")}</tr></thead>
-                  <tbody>${data.rows.map((row) => `<tr>${data.columns.map((c) => `<td>${row[c.key] ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
+                  <thead><tr>${data.columns.map((c) => `<th${cellClass(c)}>${c.label || c.key}</th>`).join("")}</tr></thead>
+                  <tbody>${data.rows.map((row) => `<tr>${data.columns.map((c) => `<td${cellClass(c)}>${renderDatasetCell(c, row[c.key])}</td>`).join("")}</tr>`).join("")}</tbody>
                 </table>
               </div>
             </section>`;

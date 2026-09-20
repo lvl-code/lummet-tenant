@@ -2,7 +2,22 @@
   {{admin_nav}}
   <div class="admin-content">
     <div class="admin-header"><h1>Research Datasets</h1></div>
-    <p class="muted">Reusable data tables — embed one in any research item's content via a <code>{"type":"dataset_table","dataset_id":N}</code> content block. The same dataset can power a report section, a country page, and a comparison page at once; edit it once here and every embed picks up the change.</p>
+    <p class="muted">Reusable data tables — embed one in any research item's content via a Dataset Table section in the Research page builder. The same dataset can power a report section, a country page, and a comparison page at once; edit it once here and every embed picks up the change.</p>
+
+    <style>
+      .dataset-grid-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+      .dataset-grid-wrap { overflow-x: auto; border: 1px solid var(--border-color, #333); border-radius: 8px; }
+      .dataset-grid { border-collapse: collapse; width: 100%; min-width: 480px; }
+      .dataset-grid th, .dataset-grid td { border: 1px solid var(--border-color, #333); padding: 0; }
+      .dataset-grid th { background: rgba(255,255,255,0.04); }
+      .dataset-grid input[type="text"] { width: 100%; min-width: 120px; border: none; background: transparent; padding: 8px 10px; font: inherit; color: inherit; box-sizing: border-box; }
+      .dataset-grid input[type="text"]:focus { outline: 2px solid var(--accent-color, #4a9eff); outline-offset: -2px; background: rgba(255,255,255,0.03); }
+      .dataset-grid th input[type="text"] { font-weight: 600; }
+      .dataset-grid__row-remove, .dataset-grid__col-remove { background: transparent; border: none; color: inherit; opacity: 0.5; cursor: pointer; padding: 4px 8px; }
+      .dataset-grid__row-remove:hover, .dataset-grid__col-remove:hover { opacity: 1; color: #e05555; }
+      .dataset-grid__corner { width: 36px; background: rgba(255,255,255,0.06); }
+      .dataset-grid__empty { padding: 24px; text-align: center; }
+    </style>
 
     <table class="admin-table">
       <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Rows</th><th>Actions</th></tr></thead>
@@ -20,15 +35,18 @@
       <div class="form-group"><label>Description</label><textarea name="description" rows="2"></textarea></div>
 
       <div class="form-group">
-        <label>Columns (JSON) *</label>
-        <textarea name="columns_json" rows="4" required placeholder='[{"key":"country","label":"Country"},{"key":"tax_rate","label":"Tax Rate"},{"key":"licence_required","label":"Licence Required"}]'></textarea>
-        <small class="muted">Array of {key, label}. "key" is what each row below is keyed by.</small>
-      </div>
+        <label>Data</label>
+        <small class="muted">Build the table visually — add columns and rows, type into cells, or copy a table from Excel/Google Sheets and paste it straight in.</small>
 
-      <div class="form-group">
-        <label>Rows (JSON) *</label>
-        <textarea name="rows_json" rows="6" required placeholder='[{"country":"Netherlands","tax_rate":"30.5%","licence_required":"Yes"}]'></textarea>
-        <small class="muted">Array of row objects, one key per column above.</small>
+        <div class="dataset-grid-toolbar">
+          <button type="button" class="btn btn--ghost btn--sm" id="datasetAddColumnBtn">+ Add column</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="datasetAddRowBtn">+ Add row</button>
+          <span class="muted" style="margin-left:auto;font-size:12px">Tip: paste a whole table (headers + rows) directly into any cell.</span>
+        </div>
+
+        <div class="dataset-grid-wrap">
+          <table class="dataset-grid" id="datasetGridTable"></table>
+        </div>
       </div>
 
       <div class="form-row">

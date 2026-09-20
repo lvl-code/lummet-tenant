@@ -5025,6 +5025,205 @@ async function deleteOrphanRelation(id) {
 // RESEARCH DATASETS (Phase 6)
 // ============================================
 
+// ============================================
+// RESEARCH DATASETS — visual spreadsheet-style grid
+// Replaces raw columns_json/rows_json textareas. Internally this
+// editor works purely positionally (columns = ordered label list,
+// rows = ordered arrays of cell values) — exactly like a real
+// spreadsheet, so reordering/renaming a column never has to worry
+// about a "key" concept. Column keys (what research_datasets
+// actually stores, and what dataset_table content blocks bind
+// against) are derived fresh from the current labels only at
+// save time — see buildDatasetPayloadFromGrid().
+// ============================================
+
+const datasetGridState = { columns: [], rows: [] };
+
+function slugifyDatasetColumnKey(label, usedKeys) {
+  let base = String(label || "column").toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (!base) base = "column";
+  let key = base;
+  let i = 2;
+  while (usedKeys.has(key)) { key = base + "_" + i; i++; }
+  usedKeys.add(key);
+  return key;
+}
+
+function datasetGridSeedBlank() {
+  datasetGridState.columns = ["Column 1", "Column 2", "Column 3"];
+  datasetGridState.rows = [["", "", ""], ["", "", ""]];
+}
+
+function datasetGridLoadFrom(columnsJsonRaw, rowsJsonRaw) {
+  let columns = [];
+  let rows = [];
+  try { columns = typeof columnsJsonRaw === "string" ? JSON.parse(columnsJsonRaw || "[]") : (columnsJsonRaw || []); } catch { columns = []; }
+  try { rows = typeof rowsJsonRaw === "string" ? JSON.parse(rowsJsonRaw || "[]") : (rowsJsonRaw || []); } catch { rows = []; }
+  datasetGridState.columns = columns.map((c) => c.label || c.key || "");
+  datasetGridState.rows = rows.map((r) => columns.map((c) => (r && r[c.key] !== undefined) ? r[c.key] : ""));
+  if (datasetGridState.columns.length === 0) datasetGridSeedBlank();
+}
+
+function buildDatasetPayloadFromGrid() {
+  const usedKeys = new Set();
+  const columnsJson = datasetGridState.columns.map((label) => ({ key: slugifyDatasetColumnKey(label, usedKeys), label }));
+  const rowsJson = datasetGridState.rows
+    // drop fully-empty rows (e.g. a blank starter row the editor never filled in)
+    .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
+    .map((row) => {
+      const obj = {};
+      columnsJson.forEach((c, i) => { obj[c.key] = row[i] ?? ""; });
+      return obj;
+    });
+  return { columnsJson, rowsJson };
+}
+
+function renderDatasetGrid() {
+  const table = document.getElementById("datasetGridTable");
+  if (!table) return;
+  const cols = datasetGridState.columns;
+  const rows = datasetGridState.rows;
+
+  const headerCells = cols.map((label, ci) => `
+    <th>
+      <div style="display:flex;align-items:center">
+        <input type="text" data-grid-header-cell="${ci}" value="${escapeHtml(label)}" placeholder="Column ${ci + 1}">
+        <button type="button" class="dataset-grid__col-remove" data-remove-column="${ci}" title="Remove column">✕</button>
+      </div>
+    </th>`).join("");
+
+  const bodyRows = rows.map((row, ri) => {
+    const cells = cols.map((_, ci) => `
+      <td><input type="text" data-grid-cell="${ri}:${ci}" value="${escapeHtml(row[ci] ?? "")}"></td>`).join("");
+    return `<tr>${cells}<td class="dataset-grid__corner"><button type="button" class="dataset-grid__row-remove" data-remove-row="${ri}" title="Remove row">✕</button></td></tr>`;
+  }).join("");
+
+  if (cols.length === 0) {
+    table.innerHTML = `<tr><td class="dataset-grid__empty muted">No columns yet — click "+ Add column" to start.</td></tr>`;
+    return;
+  }
+
+  table.innerHTML = `
+    <thead><tr>${headerCells}<th class="dataset-grid__corner"></th></tr></thead>
+    <tbody>${bodyRows || `<tr><td colspan="${cols.length + 1}" class="dataset-grid__empty muted">No rows yet — click "+ Add row" to start.</td></tr>`}</tbody>`;
+}
+
+function parseTsvClipboard(text) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .filter((line, i, arr) => !(i === arr.length - 1 && line === "")) // drop a single trailing blank line from copy
+    .map((line) => line.split("\t"));
+}
+
+function wireDatasetGrid() {
+  const table = document.getElementById("datasetGridTable");
+  const addColBtn = document.getElementById("datasetAddColumnBtn");
+  const addRowBtn = document.getElementById("datasetAddRowBtn");
+  if (!table || table.dataset.wired === "true") return;
+  table.dataset.wired = "true";
+
+  if (addColBtn) {
+    addColBtn.addEventListener("click", () => {
+      datasetGridState.columns.push("Column " + (datasetGridState.columns.length + 1));
+      datasetGridState.rows.forEach((r) => r.push(""));
+      renderDatasetGrid();
+    });
+  }
+  if (addRowBtn) {
+    addRowBtn.addEventListener("click", () => {
+      datasetGridState.rows.push(new Array(datasetGridState.columns.length).fill(""));
+      renderDatasetGrid();
+    });
+  }
+
+  table.addEventListener("input", (e) => {
+    const headerCell = e.target.closest("[data-grid-header-cell]");
+    if (headerCell) {
+      datasetGridState.columns[Number(headerCell.dataset.gridHeaderCell)] = headerCell.value;
+      return;
+    }
+    const cell = e.target.closest("[data-grid-cell]");
+    if (cell) {
+      const [ri, ci] = cell.dataset.gridCell.split(":").map(Number);
+      datasetGridState.rows[ri][ci] = cell.value;
+    }
+  });
+
+  table.addEventListener("click", (e) => {
+    const removeCol = e.target.closest("[data-remove-column]");
+    if (removeCol) {
+      const ci = Number(removeCol.dataset.removeColumn);
+      datasetGridState.columns.splice(ci, 1);
+      datasetGridState.rows.forEach((r) => r.splice(ci, 1));
+      renderDatasetGrid();
+      return;
+    }
+    const removeRow = e.target.closest("[data-remove-row]");
+    if (removeRow) {
+      datasetGridState.rows.splice(Number(removeRow.dataset.removeRow), 1);
+      renderDatasetGrid();
+    }
+  });
+
+  // Paste a whole table copied from Excel/Google Sheets/anywhere else
+  // that exports tab-separated text — starts filling from whichever
+  // cell the paste lands on, growing the grid to fit if the pasted
+  // block is bigger than the current columns/rows.
+  table.addEventListener("paste", (e) => {
+    const text = (e.clipboardData || window.clipboardData).getData("text");
+    if (!text || (!text.includes("\t") && !text.includes("\n"))) return; // single-cell paste: let the browser handle it normally
+    e.preventDefault();
+    const matrix = parseTsvClipboard(text);
+    if (matrix.length === 0) return;
+
+    const headerCell = e.target.closest("[data-grid-header-cell]");
+    const bodyCell = e.target.closest("[data-grid-cell]");
+
+    let startRow, startCol;
+    let firstRowIsHeader = false;
+    if (headerCell) {
+      startCol = Number(headerCell.dataset.gridHeaderCell);
+      startRow = 0;
+      firstRowIsHeader = true;
+    } else if (bodyCell) {
+      const [ri, ci] = bodyCell.dataset.gridCell.split(":").map(Number);
+      startRow = ri;
+      startCol = ci;
+    } else {
+      return;
+    }
+
+    let matrixRows = matrix;
+    if (firstRowIsHeader) {
+      const headerRow = matrix[0];
+      headerRow.forEach((label, offset) => {
+        const ci = startCol + offset;
+        while (datasetGridState.columns.length <= ci) datasetGridState.columns.push("Column " + (datasetGridState.columns.length + 1));
+        datasetGridState.columns[ci] = label;
+        datasetGridState.rows.forEach((r) => { while (r.length <= ci) r.push(""); });
+      });
+      matrixRows = matrix.slice(1);
+    }
+
+    matrixRows.forEach((rowValues, rOffset) => {
+      const ri = startRow + rOffset;
+      while (datasetGridState.rows.length <= ri) datasetGridState.rows.push(new Array(datasetGridState.columns.length).fill(""));
+      rowValues.forEach((val, cOffset) => {
+        const ci = startCol + cOffset;
+        while (datasetGridState.columns.length <= ci) {
+          datasetGridState.columns.push("Column " + (datasetGridState.columns.length + 1));
+          datasetGridState.rows.forEach((r) => { while (r.length <= ci) r.push(""); });
+        }
+        datasetGridState.rows[ri][ci] = val;
+      });
+    });
+
+    renderDatasetGrid();
+  });
+}
+
+
 async function loadDatasetsTable() {
   const tbody = document.getElementById("datasetsTableBody");
   if (!tbody) return;
@@ -5070,8 +5269,8 @@ async function editDataset(id) {
     form.querySelector("[name='title']").value = d.title || "";
     form.querySelector("[name='slug']").value = d.slug || "";
     form.querySelector("[name='description']").value = d.description || "";
-    form.querySelector("[name='columns_json']").value = d.columns_json ? JSON.stringify(JSON.parse(d.columns_json), null, 2) : "[]";
-    form.querySelector("[name='rows_json']").value = d.rows_json ? JSON.stringify(JSON.parse(d.rows_json), null, 2) : "[]";
+    datasetGridLoadFrom(d.columns_json, d.rows_json);
+    renderDatasetGrid();
     form.querySelector("[name='status']").value = d.status || "draft";
     form.querySelector("[name='published']").value = String(d.published || 0);
 
@@ -5095,6 +5294,8 @@ function cancelDatasetEdit() {
   document.getElementById("datasetCancelEdit").style.display = "none";
   const versionsSection = document.getElementById("datasetVersionsSection");
   if (versionsSection) versionsSection.style.display = "none";
+  datasetGridSeedBlank();
+  renderDatasetGrid();
 }
 
 async function loadDatasetVersions(datasetId) {
@@ -5138,18 +5339,19 @@ function initDatasetForm() {
   const form = document.getElementById("datasetForm");
   if (!form) return;
 
+  wireDatasetGrid();
+  datasetGridSeedBlank();
+  renderDatasetGrid();
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("datasetFormAlert");
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
 
-    let columnsJson, rowsJson;
-    try {
-      columnsJson = JSON.parse(formData.get("columns_json") || "[]");
-      rowsJson = JSON.parse(formData.get("rows_json") || "[]");
-    } catch {
-      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Columns or Rows JSON is not valid — check the syntax and try again."; alertEl.style.display = "block"; }
+    const { columnsJson, rowsJson } = buildDatasetPayloadFromGrid();
+    if (columnsJson.length === 0) {
+      if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Add at least one column before saving."; alertEl.style.display = "block"; }
       return;
     }
 

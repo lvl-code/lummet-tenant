@@ -58,7 +58,18 @@
 // Requires env.AI configured on the tenant Worker; `available` from
 // GET .../ai/availability (or `generated: false` from any generation
 // route) tells the caller when it isn't, rather than a 500.
-export const SUPER_API_VERSION = 10;
+// Version 11: added Research Zone (research_items) -- full CRUD
+// (list/get/create/update/delete) over worker/database/research.js.
+// The 'research' role-permission rows have existed since migration
+// 0045_research_core.sql (editor: read/create/update/delete) but no
+// Super API route or control-plane screen ever surfaced them --
+// this fills that gap. Same thin-wrapper convention as
+// categories/countries above. Not registered in item-access.js's
+// RESOURCE_REGISTRY: research_items has no created_by/owner column
+// (verified against migrations/0045_research_core.sql), so 'own'
+// scope has nothing to key off; role-level permissions plus
+// 'all'/'none' default scope are what govern it for now.
+export const SUPER_API_VERSION = 11;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -101,7 +112,8 @@ export const CAPABILITIES = {
   postback_configs: true,
   provider_adapter_configs: true,
   import_batches: true,
-  ai_tools: true
+  ai_tools: true,
+  research: true
 };
 
 export function getCapabilities() {

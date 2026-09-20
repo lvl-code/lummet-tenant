@@ -11,6 +11,7 @@ import * as reviewsDB from "../database/reviews.js";
 import * as newsDB from "../database/news.js";
 import * as pagesDB from "../database/pages.js";
 import * as categoriesDB from "../database/categories.js";
+import * as researchDB from "../database/research.js";
 import * as countriesDB from "../database/countries.js";
 import * as authorsDB from "../database/authors.js";
 import * as mediaDB from "../database/media_library.js";
@@ -168,13 +169,15 @@ export async function handleGetCasino(request, env, slug) {
   if (!row) return fail("not_found", 404);
 
   // Enrich with the casino's category assignments (casino_categories
-  // join table) and per-country geo rules (geo_rules table) — these
+  // join table), payment method assignments (casino_payment_methods
+  // join table), and per-country geo rules (geo_rules table) — these
   // aren't columns on `casinos` itself, but the control plane's form
-  // needs them alongside the record to let admins choose categories
-  // and countries, matching what the tenant's own /api/v1/casino/get
-  // and /api/v1/geo/list already expose.
+  // needs them alongside the record to let admins choose categories,
+  // payment methods, and countries, matching what the tenant's own
+  // /api/v1/casino/get and /api/v1/geo/list already expose.
   row.category_ids = await casinosDB.getCasinoCategories(env.DB, row.id);
   row.geo_rules = await geoDB.getGeoRulesForCasino(env.DB, row.slug);
+  row.payment_method_ids = await paymentMethodsDB.getPaymentMethodIdsForCasino(env.DB, row.id);
 
   return ok({ data: row });
 }
@@ -186,6 +189,9 @@ export async function handleCreateCasino(request, env, _slug, bodyText) {
     const id = await casinosDB.createCasino(env.DB, body);
     if (Array.isArray(body.category_ids)) {
       await casinosDB.setCasinoCategories(env.DB, id, body.category_ids);
+    }
+    if (Array.isArray(body.payment_method_ids)) {
+      await paymentMethodsDB.setCasinoPaymentMethods(env.DB, id, body.payment_method_ids);
     }
     if (Array.isArray(body.geo_rules)) {
       await geoDB.setCasinoGeoRules(env.DB, body.slug, body.geo_rules);
@@ -213,6 +219,9 @@ export async function handleUpdateCasino(request, env, slug, bodyText) {
 
     if (casinoId && Array.isArray(body.category_ids)) {
       await casinosDB.setCasinoCategories(env.DB, casinoId, body.category_ids);
+    }
+    if (casinoId && Array.isArray(body.payment_method_ids)) {
+      await paymentMethodsDB.setCasinoPaymentMethods(env.DB, casinoId, body.payment_method_ids);
     }
     if (Array.isArray(body.geo_rules)) {
       // Geo rules are keyed by casino_slug, not id — if the slug
@@ -388,6 +397,51 @@ export async function handleUpdateCategory(request, env, slug, bodyText) {
 
 export async function handleDeleteCategory(request, env, slug) {
   await categoriesDB.deleteCategory(env.DB, slug);
+  return ok();
+}
+
+// =====================================================
+// RESEARCH ZONE (research_items) -- id-keyed, same thin-wrapper
+// shape as categories/updates above. Wraps worker/database/
+// research.js exactly (no duplicated validation): createResearchItem/
+// updateResearchItem already throw on an invalid `type`, which
+// readJsonBody's caller (router.js) surfaces as a plain 400 the
+// same way every other resource's DB-level validation does.
+// =====================================================
+
+export async function handleListResearch(request, env) {
+  const rows = await researchDB.getAllResearchItems(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleGetResearch(request, env, id) {
+  const row = await researchDB.getResearchItemById(env.DB, id);
+  if (!row) return fail("not_found", 404);
+  return ok({ data: row });
+}
+
+export async function handleCreateResearch(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  try {
+    const result = await researchDB.createResearchItem(env.DB, body);
+    return created({ data: { id: result.meta.last_row_id } });
+  } catch (error) {
+    return fail(error.message || "create_failed", 422);
+  }
+}
+
+export async function handleUpdateResearch(request, env, id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  try {
+    await researchDB.updateResearchItem(env.DB, id, body);
+    return ok();
+  } catch (error) {
+    return fail(error.message || "update_failed", 422);
+  }
+}
+
+export async function handleDeleteResearch(request, env, id) {
+  await researchDB.deleteResearchItem(env.DB, id);
   return ok();
 }
 

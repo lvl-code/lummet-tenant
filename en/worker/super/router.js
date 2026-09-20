@@ -49,6 +49,14 @@ const ROUTES = [
   ["PUT", "/en/api/super/categories/:id", h.handleUpdateCategory, "categories"],
   ["DELETE", "/en/api/super/categories/:id", h.handleDeleteCategory, "categories"],
 
+  // Research Zone (research_items) -- see handlers.js section header
+  // for why this is id-keyed and not registered in item-access.js.
+  ["GET", "/en/api/super/research", h.handleListResearch, "research"],
+  ["GET", "/en/api/super/research/:id", h.handleGetResearch, "research"],
+  ["POST", "/en/api/super/research", h.handleCreateResearch, "research"],
+  ["PUT", "/en/api/super/research/:id", h.handleUpdateResearch, "research"],
+  ["DELETE", "/en/api/super/research/:id", h.handleDeleteResearch, "research"],
+
   ["GET", "/en/api/super/payment-methods", h.handleListPaymentMethods, "payment_methods"],
   ["GET", "/en/api/super/payment-methods/:id", h.handleGetPaymentMethod, "payment_methods"],
   ["POST", "/en/api/super/payment-methods", h.handleCreatePaymentMethod, "payment_methods"],

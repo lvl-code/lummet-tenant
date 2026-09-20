@@ -7,6 +7,14 @@
       .admin-autocomplete-results { position: relative; border: 1px solid var(--border, #333); border-radius: 4px; max-height: 220px; overflow-y: auto; }
       .admin-autocomplete-item:hover { background: rgba(255,255,255,0.06); }
       .admin-autocomplete-empty { padding: 6px 8px; }
+      .research-section-card { border: 1px solid var(--border-color, #333); border-radius: 8px; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.02); }
+      .research-section-card__head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+      .research-section-card__head select[data-section-type] { flex: 1; min-width: 160px; }
+      .research-section-card__badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.08); white-space: nowrap; }
+      .research-subrow { border: 1px dashed var(--border-color, #333); border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+      .research-subrow__head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+      .research-template-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 18px; }
+      .research-add-bar { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
     </style>
 
     <table class="admin-table">
@@ -56,15 +64,36 @@
       </div>
 
       <div class="form-group">
-        <label>Content sections (JSON)</label>
-        <textarea name="content_json_raw" id="researchContentJson" rows="10" placeholder='{"sections":[{"id":"1","type":"rich_text","title":"Overview","body":"<p>...</p>"}]}'></textarea>
-        <small class="muted">
-          Supported section types: rich_text, heading, image, statistic ({value,unit,label,context}),
-          timeline ({events:[{date,title,description}]}), table ({columns,rows,caption}),
-          source_citation ({body,source_label,source_url}), fact_card, faq ({items:[{q,a}]}), internal_links ({links:[{url,label}]}),
-          research_reference ({research_item_id,mode:'live'} or {mode:'snapshot',snapshot_title,snapshot_excerpt,snapshot_at} — for composing a report from other research items, see the Research Datasets page for report/dataset composition notes),
-          dataset_table ({dataset_id,version:'latest'|N,caption} — embeds a dataset from the Research Datasets page).
-        </small>
+        <label>Content</label>
+        <small class="muted">Build the page visually — add a section, pick a type, fill in its fields. Nothing here requires writing code.</small>
+
+        <div class="research-template-bar">
+          <span class="muted" style="align-self:center">Quick start:</span>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="insertResearchTemplate('country_report')">+ Country Report</button>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="insertResearchTemplate('regulator_profile')">+ Regulator Profile</button>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="insertResearchTemplate('sourced_claim')">+ Sourced Claim</button>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="insertResearchTemplate('report_composition')">+ Report Composition</button>
+        </div>
+
+        <div id="researchFormSections"></div>
+
+        <div class="research-add-bar">
+          <select id="researchAddSectionType">
+            <option value="heading">Heading</option>
+            <option value="rich_text" selected>Rich Text</option>
+            <option value="statistic">Statistic</option>
+            <option value="timeline">Timeline</option>
+            <option value="table">Table</option>
+            <option value="source_citation">Source Citation</option>
+            <option value="fact_card">Fact Card</option>
+            <option value="faq">FAQ</option>
+            <option value="internal_links">Internal Links</option>
+            <option value="research_reference">Research Reference</option>
+            <option value="dataset_table">Dataset Table</option>
+            <option value="image">Image</option>
+          </select>
+          <button type="button" class="btn btn--primary btn--sm" id="researchAddSectionBtn">+ Add Section</button>
+        </div>
       </div>
 
       <div class="form-row">

@@ -58,13 +58,20 @@ outside `reviews`):
 | `comparisons`, `comparison_items` | persistent, SEO-indexable comparison pages |
 | `review_criteria_templates`, `review_criteria_scores` | weighted review scoring, computed centrally (never in frontend JS) |
 
-One non-additive change: `reviews.casino_slug` became nullable (SQLite requires a
-table rebuild for that, not a plain `ALTER TABLE`), and two new nullable columns were
-added: `reviewed_content_type`, `reviewed_content_id`. Every existing review was
-backfilled to `reviewed_content_type = 'casino'`. Every column, index, and row ID
-from the original table is preserved exactly — see the migration file's header
-comment for the full reconstructed-schema paper trail, and `rollback_0052_*.sql` for
-the safe-rollback procedure.
+One non-additive change: `reviews.casino_slug` needed to become nullable in the
+original design, and two new nullable columns were needed:
+`reviewed_content_type`, `reviewed_content_id`. **Deployed as an `ALTER TABLE ADD
+COLUMN` + backfill `UPDATE`, not a table rebuild** — see
+`POST-DEPLOYMENT-FIX-0052.md` in this folder for why: the Cloudflare D1 web console
+rejects `BEGIN TRANSACTION`/`COMMIT`, and while fixing that, live schema inspection
+found production `reviews` tables carry columns (`author`, `author_title`,
+`reviewed_at`) never captured in this repo's migration history — a table-rebuild
+approach would have silently dropped them. `casino_slug` is therefore **not**
+nullable in the deployed schema (it still has its original `NOT NULL`); that's fine
+since nothing yet creates a review for a non-casino content type. Every existing
+review was backfilled to `reviewed_content_type = 'casino'`, pointing at that
+review's casino — verified with zero data loss on the first deployed environment.
+See `rollback_0052_reviews_generic_rebuild.sql` for the (also console-safe) rollback.
 
 ## Routes
 

@@ -4,6 +4,11 @@ import * as authors from "./database/authors.js";
 import * as categories from "./database/categories.js";
 import * as paymentMethods from "./database/payment-methods.js";
 import * as casinos from "./database/casinos.js";
+import * as contentItems from "./database/content-items.js";
+import * as customTypes from "./database/custom-types.js";
+import * as reviewCriteria from "./database/review-criteria.js";
+import * as comparisonsDb from "./database/comparisons.js";
+import { resolveAffiliateLink, resolveContentItemById } from "./content-resolver.js";import { renderCustomFieldsHtml } from "./custom-field-render.js";
 import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
 import * as countries from "./database/countries.js";
@@ -3719,6 +3724,821 @@ export async function renderCasinoList(request, env) {
   return new Response(html, { headers: cacheHeaders() });
 }
 
+// =====================================================
+// SPORTSBOOK (Phase 3 — generic content engine)
+// Storage: content_items (content_type = 'sportsbook'), migration
+// 0051/0052. Mirrors renderCasino/renderCasinoList's structure and
+// conventions, reusing category.html for the listing (same pattern
+// renderCasinoList itself already uses) and the new, generic
+// content-item.html for the detail page. SEO and components are
+// fully generic already (loadDynamicSeo/renderAllComponents are
+// keyed by pageType/pageSlug against seo_meta and the component
+// engine, both already type-agnostic — see the Phase 0/1 audit).
+//
+// Enablement (content_types_enabled) is checked by the caller in
+// index.js before this function is reached, per the Phase 2 report
+// §8 design — this function assumes it has already been called only
+// because sportsbook is enabled for this environment.
+//
+// Simplified relative to renderCasino() for this first pass: no KV
+// caching of related items, no per-country GEO badge on the card
+// grid, no analytics event logging yet. Noted in the Phase 3 report
+// as follow-up work, not silently dropped.
+// =====================================================
+
+function buildContentItemCards(itemList, contentType, linkPrefix) {
+  return itemList.map((item) => {
+    const rating = item.rating || 0;
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    const ratingDisplay =
+      "★".repeat(fullStars) +
+      (hasHalf ? "½" : "") +
+      "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
+
+    return `
+      <div class="casino-card">
+        <div class="casino-card__header">
+          <img src="${item.logo || '/static/images/default.png'}" alt="${item.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'">
+          <div>
+            <h3 class="casino-card__name">${item.name}</h3>
+            <div class="rating-stars">${ratingDisplay}</div>
+          </div>
+        </div>
+        <div class="casino-card__body">
+          <p class="casino-card__description">${item.description || item.seo_description || ""}</p>
+        </div>
+        <div class="casino-card__footer">
+          <a href="${linkPrefix}/${item.slug}" class="btn btn--primary">View ${item.name}</a>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+export async function renderSportsbookList(request, env) {
+  const renderer = new Renderer(env, request);
+
+  const [site, itemList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    contentItems.getPublishedContentItems(env.DB, "sportsbook", { limit: 200 }),
+    renderer.renderAllComponents("sportsbook_list", "sportsbook_list"),
+    renderer.loadDynamicSeo("sportsbook_list", "sportsbook_list"),
+  ]);
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Sportsbook Directory",
+    "itemListElement": itemList.map((item, idx) => ({
+      "@type": "ListItem", "position": idx + 1,
+      "url": site.url(`/en/sportsbook/${item.slug}`)
+    }))
+  };
+
+  const html = await renderer.render("category.html", {
+    canonical: dynamicSeo.canonical || site.url("/en/sportsbook"),
+    category: "All Sportsbooks",
+    description: "Browse our directory of reviewed sportsbooks.",
+    casino_cards: buildContentItemCards(itemList, "sportsbook", "/en/sportsbook"),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || `All Sportsbooks — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || "Complete directory of reviewed sportsbooks with ratings and features.",
+    seo_keywords: dynamicSeo.seo_keywords || ""
+  }, listSchema, buildBreadcrumbs("sportsbookList"));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderSportsbook(request, env, slug, ctx = null) {
+  const item = await contentItems.getContentItem(env.DB, "sportsbook", slug);
+  if (!item) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+
+  const [site, allComponents, dynamicSeo, sports, paymentMethods] = await Promise.all([
+    getSiteContext(request, env),
+    renderer.renderAllComponents("sportsbook", slug, ctx),
+    renderer.loadDynamicSeo("sportsbook", slug),
+    contentItems.getContentItemSports(env.DB, "sportsbook", item.id),
+    contentItems.getContentItemPaymentMethods(env.DB, "sportsbook", item.id),
+  ]);
+
+  const rating = item.rating || 0;
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  const ratingDisplay =
+    "★".repeat(fullStars) +
+    (hasHalf ? "½" : "") +
+    "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
+
+  const featureFlags = [
+    item.live_betting ? "Live Betting" : null,
+    item.pre_match ? "Pre-Match" : null,
+    item.cashout ? "Cashout" : null,
+    item.mobile_app ? "Mobile App" : null,
+  ].filter(Boolean);
+  const featuresHtml = featureFlags.map(f => `<span class="feature-tag">${f}</span>`).join("");
+  const sportsHtml = sports.map(s => `<span class="feature-tag">${s.name}</span>`).join("");
+  const paymentMethodsHtml = paymentMethods.map(p => `<span class="feature-tag">${p.name}</span>`).join("");
+
+  const itemSchema = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": {
+      "@type": "Product",
+      "name": item.name,
+      "image": item.logo || site.logoUrl,
+      "url": site.url(`/en/sportsbook/${slug}`)
+    },
+    "reviewRating": { "@type": "Rating", "ratingValue": rating, "bestRating": 5, "worstRating": 1 },
+    "author": { "@type": "Organization", "name": `${site.siteName} Expert Team` },
+    "publisher": {
+      "@type": "Organization", "name": site.siteName, "url": site.origin,
+      "logo": { "@type": "ImageObject", "url": site.logoUrl }
+    },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": site.url(`/en/sportsbook/${slug}`) },
+    "datePublished": item.created_at ? new Date(item.created_at).toISOString() : undefined,
+    "dateModified": (item.updated_at || item.created_at) ? new Date(item.updated_at || item.created_at).toISOString() : undefined,
+  };
+
+  const html = await renderer.render("content-item.html", {
+    ...item,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || item.seo_title || item.name,
+    seo_description: dynamicSeo.seo_description || item.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || item.seo_keywords || "",
+    og_image: item.logo ? site.url(item.logo) : site.ogImageUrl,
+    og_image_alt: item.name,
+    canonical: dynamicSeo.canonical || site.url(`/en/sportsbook/${slug}`),
+    rating_display: ratingDisplay,
+    features_html: featuresHtml,
+    sports_html: sportsHtml,
+    payment_methods_html: paymentMethodsHtml,
+    commercial_html: "", // no commercial-link concept for sportsbook yet -- template renders nothing for this key
+    custom_fields_html: "",
+    highlight_label: null,   // no commercial offer system wired for sportsbook yet — see Phase 3 report
+    highlight_value: null,
+    website_url: item.website || "",
+    status: item.status || "published",
+  }, itemSchema, buildBreadcrumbs("sportsbook", { name: item.name }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+// =====================================================
+// AFFILIATE PARTNER (Phase 4 — generic content engine)
+// Storage: content_items (content_type = 'affiliate_partner').
+// Route namespace: /en/affiliate-partner/... -- deliberately separate
+// from the existing /en/affiliate/{slug} marketing page (untouched,
+// see the "affiliate" case in index.js) and from the existing
+// commercial affiliate_partners table (migration 0023, untouched --
+// see resolveAffiliateLink() in content-resolver.js, which is the
+// ONE place this editorial page reads from that table, using a
+// deliberately narrow public-safe column list, not `SELECT *`).
+//
+// An affiliate-partner content item may or may not have a
+// linked_affiliate_partner_id set. Per Phase 28 of the original
+// spec ("a review must not break if commercial configuration is
+// missing"), the commercial info block below is entirely optional --
+// commercialHtml is just "" when there's no link, and the template
+// renders nothing for that section.
+// =====================================================
+
+function buildCommercialInfoHtml(commercial) {
+  if (!commercial) return "";
+  return `
+    <div class="info-card">
+      <h4>Program Info</h4>
+      <dl>
+        <dt>Partner</dt><dd>${commercial.partner_name}</dd>
+        ${commercial.partner_type ? `<dt>Type</dt><dd>${commercial.partner_type}</dd>` : ""}
+        ${commercial.partner_website ? `<dt>Website</dt><dd><a href="${commercial.partner_website}" target="_blank" rel="noopener">${commercial.partner_website}</a></dd>` : ""}
+      </dl>
+    </div>`;
+}
+
+export async function renderAffiliatePartnerList(request, env) {
+  const renderer = new Renderer(env, request);
+
+  const [site, itemList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    contentItems.getPublishedContentItems(env.DB, "affiliate_partner", { limit: 200 }),
+    renderer.renderAllComponents("affiliate_partner_list", "affiliate_partner_list"),
+    renderer.loadDynamicSeo("affiliate_partner_list", "affiliate_partner_list"),
+  ]);
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Affiliate Partner Directory",
+    "itemListElement": itemList.map((item, idx) => ({
+      "@type": "ListItem", "position": idx + 1,
+      "url": site.url(`/en/affiliate-partner/${item.slug}`)
+    }))
+  };
+
+  const html = await renderer.render("category.html", {
+    canonical: dynamicSeo.canonical || site.url("/en/affiliate-partner"),
+    category: "Affiliate Partners",
+    description: "Browse our directory of reviewed affiliate partners and programs.",
+    casino_cards: buildContentItemCards(itemList, "affiliate_partner", "/en/affiliate-partner"),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || `Affiliate Partners — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || "Directory of reviewed affiliate partners and programs.",
+    seo_keywords: dynamicSeo.seo_keywords || ""
+  }, listSchema, buildBreadcrumbs("affiliatePartnerList"));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderAffiliatePartner(request, env, slug, ctx = null) {
+  const item = await contentItems.getContentItem(env.DB, "affiliate_partner", slug);
+  if (!item) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+
+  const [site, allComponents, dynamicSeo, commercial] = await Promise.all([
+    getSiteContext(request, env),
+    renderer.renderAllComponents("affiliate_partner", slug, ctx),
+    renderer.loadDynamicSeo("affiliate_partner", slug),
+    resolveAffiliateLink(env.DB, {
+      contentType: "affiliate_partner",
+      id: item.id,
+      linkedAffiliatePartnerId: item.linked_affiliate_partner_id,
+    }),
+  ]);
+
+  const rating = item.rating || 0;
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  const ratingDisplay =
+    "★".repeat(fullStars) +
+    (hasHalf ? "½" : "") +
+    "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
+
+  const itemSchema = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": {
+      "@type": "Organization",
+      "name": item.name,
+      "image": item.logo || site.logoUrl,
+      "url": site.url(`/en/affiliate-partner/${slug}`)
+    },
+    "reviewRating": { "@type": "Rating", "ratingValue": rating, "bestRating": 5, "worstRating": 1 },
+    "author": { "@type": "Organization", "name": `${site.siteName} Expert Team` },
+    "publisher": {
+      "@type": "Organization", "name": site.siteName, "url": site.origin,
+      "logo": { "@type": "ImageObject", "url": site.logoUrl }
+    },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": site.url(`/en/affiliate-partner/${slug}`) },
+    "datePublished": item.created_at ? new Date(item.created_at).toISOString() : undefined,
+    "dateModified": (item.updated_at || item.created_at) ? new Date(item.updated_at || item.created_at).toISOString() : undefined,
+  };
+
+  const html = await renderer.render("content-item.html", {
+    ...item,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || item.seo_title || item.name,
+    seo_description: dynamicSeo.seo_description || item.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || item.seo_keywords || "",
+    og_image: item.logo ? site.url(item.logo) : site.ogImageUrl,
+    og_image_alt: item.name,
+    canonical: dynamicSeo.canonical || site.url(`/en/affiliate-partner/${slug}`),
+    rating_display: ratingDisplay,
+    features_html: "",
+    sports_html: "",
+    payment_methods_html: "",
+    commercial_html: buildCommercialInfoHtml(commercial),
+    custom_fields_html: "",
+    highlight_label: null,
+    highlight_value: null,
+    website_url: item.website || "",
+    status: item.status || "published",
+  }, itemSchema, buildBreadcrumbs("affiliatePartner", { name: item.name }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+// =====================================================
+// CUSTOM CONTENT TYPES (Phase 5 — generic content engine)
+// Storage: content_items (content_type = 'custom', custom_type_slug
+// = the admin-defined type), custom_content_types,
+// custom_field_definitions, custom_field_values (migration 0051).
+//
+// Route shape: /en/custom/{typeSlug} (listing) and
+// /en/custom/{typeSlug}/{slug} (detail). Both 404 if either the
+// 'custom' content type is disabled for this environment OR the
+// requested typeSlug doesn't match a defined custom_content_types
+// row -- the latter check happens here (not just in routes.js/
+// index.js) since typeSlug is admin-defined data, not a fixed prefix
+// like "sportsbook".
+//
+// Field rendering goes through custom-field-render.js exclusively --
+// see that file for the Phase 36 security rationale (never render a
+// custom field as raw HTML).
+// =====================================================
+
+export async function renderCustomList(request, env, typeSlug) {
+  const customType = await customTypes.getCustomContentType(env.DB, typeSlug);
+  if (!customType) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+
+  const [site, itemList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    contentItems.getPublishedContentItems(env.DB, "custom", { limit: 200 })
+      .then(rows => rows.filter(r => r.custom_type_slug === typeSlug)),
+    renderer.renderAllComponents(`custom_${typeSlug}_list`, `custom_${typeSlug}_list`),
+    renderer.loadDynamicSeo(`custom_${typeSlug}_list`, `custom_${typeSlug}_list`),
+  ]);
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": customType.plural_label,
+    "itemListElement": itemList.map((item, idx) => ({
+      "@type": "ListItem", "position": idx + 1,
+      "url": site.url(`/en/custom/${typeSlug}/${item.slug}`)
+    }))
+  };
+
+  const html = await renderer.render("category.html", {
+    canonical: dynamicSeo.canonical || site.url(`/en/custom/${typeSlug}`),
+    category: customType.plural_label,
+    description: `Browse our directory of ${customType.plural_label.toLowerCase()}.`,
+    casino_cards: buildContentItemCards(itemList, "custom", `/en/custom/${typeSlug}`),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || `${customType.plural_label} — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || `Directory of ${customType.plural_label.toLowerCase()}.`,
+    seo_keywords: dynamicSeo.seo_keywords || ""
+  }, listSchema, buildBreadcrumbs("customList", { typeSlug, typeLabel: customType.plural_label }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderCustom(request, env, typeSlug, slug, ctx = null) {
+  const customType = await customTypes.getCustomContentType(env.DB, typeSlug);
+  if (!customType) return render404(request, env);
+
+  const item = await contentItems.getContentItem(env.DB, "custom", slug);
+  if (!item || item.custom_type_slug !== typeSlug) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+
+  const [site, allComponents, dynamicSeo, fieldDefs, fieldValues] = await Promise.all([
+    getSiteContext(request, env),
+    renderer.renderAllComponents(`custom_${typeSlug}`, slug, ctx),
+    renderer.loadDynamicSeo(`custom_${typeSlug}`, slug),
+    customTypes.getCustomFieldDefinitions(env.DB, typeSlug),
+    customTypes.getCustomFieldValues(env.DB, item.id),
+  ]);
+
+  const customFieldsHtml = renderCustomFieldsHtml(fieldDefs, fieldValues);
+
+  const rating = item.rating || 0;
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  const ratingDisplay =
+    "★".repeat(fullStars) +
+    (hasHalf ? "½" : "") +
+    "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
+
+  const itemSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": item.name,
+    "image": item.logo || site.logoUrl,
+    "url": site.url(`/en/custom/${typeSlug}/${slug}`),
+    "aggregateRating": rating ? { "@type": "AggregateRating", "ratingValue": rating, "bestRating": 5, "worstRating": 1, "ratingCount": 1 } : undefined,
+  };
+
+  const html = await renderer.render("content-item.html", {
+    ...item,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || item.seo_title || item.name,
+    seo_description: dynamicSeo.seo_description || item.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || item.seo_keywords || "",
+    og_image: item.logo ? site.url(item.logo) : site.ogImageUrl,
+    og_image_alt: item.name,
+    canonical: dynamicSeo.canonical || site.url(`/en/custom/${typeSlug}/${slug}`),
+    rating_display: ratingDisplay,
+    features_html: "",
+    sports_html: "",
+    payment_methods_html: "",
+    commercial_html: "",
+    custom_fields_html: customFieldsHtml,
+    highlight_label: null,
+    highlight_value: null,
+    website_url: item.website || "",
+    status: item.status || "published",
+  }, itemSchema, buildBreadcrumbs("custom", { typeSlug, typeLabel: customType.label, name: item.name }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+// =====================================================
+// GENERIC REVIEW ENGINE (Phase 6 — generic content engine)
+// Serves reviews for sportsbook, affiliate_partner, and custom
+// content -- i.e. any review whose reviewed_content_type is NOT
+// 'casino'. Casino reviews keep using the existing renderReview()
+// and review.html completely unchanged; this is a deliberately
+// separate, leaner controller and template (generic-review.html),
+// same pattern as every other new content type in this project.
+//
+// reviews.getReview(db, slug) is already generic (keyed by the
+// globally-unique reviews.slug, no casino_slug filter) -- confirmed
+// in the Phase 0 audit and unchanged since. The only new logic here
+// is: (1) verifying the fetched review's reviewed_content_type
+// actually matches what the route expected, so
+// /en/sportsbook/review/{slug} can't accidentally render a review
+// that belongs to a casino or a different sportsbook-adjacent type,
+// and (2) resolving the reviewed item generically via
+// resolveContentItemById() instead of a type-specific join.
+// =====================================================
+
+function buildProsConsHtml(jsonText) {
+  let items = [];
+  try {
+    const parsed = JSON.parse(jsonText || "[]");
+    items = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    items = [];
+  }
+  return items.length
+    ? `<ul>${items.map(i => `<li>${escapeReviewText(i)}</li>`).join("")}</ul>`
+    : "<p class='muted'>None listed.</p>";
+}
+
+// Reuses the same escaping discipline as custom-field-render.js --
+// pros/cons entries are plain text, never raw HTML, regardless of
+// what an editor typed into the JSON array.
+function escapeReviewText(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function buildCriteriaScoresHtml(breakdown) {
+  if (!breakdown.length) return "";
+  const totalWeight = breakdown.reduce((sum, r) => sum + r.weight, 0) || 1;
+  return `<div class="criteria-breakdown">${breakdown.map(r => `
+    <div class="criteria-row">
+      <span class="criteria-label">${escapeReviewText(r.label)}</span>
+      <span class="criteria-score">${r.score.toFixed(1)} / 5</span>
+      <span class="criteria-weight">(${Math.round((r.weight / totalWeight) * 100)}% weight)</span>
+    </div>`).join("")}</div>`;
+}
+
+function buildReviewedItemCardHtml(item, linkUrl) {
+  if (!item) return "";
+  return `
+    <div class="casino-card" style="margin-bottom:24px">
+      <div class="casino-card__header">
+        <img src="${item.logo || '/static/images/default.png'}" alt="${item.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'">
+        <div><h3 class="casino-card__name">${item.name}</h3></div>
+      </div>
+      <div class="casino-card__footer">
+        <a href="${linkUrl}" class="btn btn--primary">View ${item.name}</a>
+      </div>
+    </div>`;
+}
+
+const REVIEWABLE_TYPE_ROUTES = {
+  sportsbook: (slug) => `/en/sportsbook/${slug}`,
+  affiliate_partner: (slug) => `/en/affiliate-partner/${slug}`,
+  // custom's link needs the item's own custom_type_slug, resolved per-item below
+};
+
+export async function renderGenericReview(request, env, expectedReviewedContentType, slug, ctx = null, expectedCustomTypeSlug = null) {
+  const review = await reviews.getReview(env.DB, slug);
+  if (!review) return render404(request, env);
+
+  // Defense-in-depth: the review this slug resolves to must actually
+  // belong to the content type (and, for custom, the specific custom
+  // type) the route claims -- prevents e.g. a sportsbook review slug
+  // being reachable under /en/custom/payment-provider/review/{slug}
+  // if slugs were ever to collide across types (they can't today,
+  // since reviews.slug is globally UNIQUE, but this check makes the
+  // route's own contract explicit rather than relying solely on that).
+  if (review.reviewed_content_type !== expectedReviewedContentType) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+
+  const reviewedItem = review.reviewed_content_id
+    ? await resolveContentItemById(env.DB, expectedReviewedContentType, review.reviewed_content_id)
+    : null;
+  if (!reviewedItem) return render404(request, env);
+
+  if (expectedReviewedContentType === "custom" && reviewedItem.customTypeSlug !== expectedCustomTypeSlug) {
+    return render404(request, env);
+  }
+
+  const customTypeRow = expectedReviewedContentType === "custom"
+    ? await customTypes.getCustomContentType(env.DB, expectedCustomTypeSlug)
+    : null;
+
+  const linkUrl = expectedReviewedContentType === "custom"
+    ? `/en/custom/${expectedCustomTypeSlug}/${reviewedItem.slug}`
+    : REVIEWABLE_TYPE_ROUTES[expectedReviewedContentType](reviewedItem.slug);
+
+  const reviewUrl = expectedReviewedContentType === "custom"
+    ? `/en/custom/${expectedCustomTypeSlug}/review/${slug}`
+    : `/en/${expectedReviewedContentType === "affiliate_partner" ? "affiliate-partner" : "sportsbook"}/review/${slug}`;
+
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: "REVIEW_VIEW",
+        reviewId: review.id,
+        countryCode: request.cf?.country || null,
+        city: request.cf?.city || null,
+        referrer: request.headers.get("referer") || null,
+        landingPage: reviewUrl,
+      }).catch(() => {})
+    );
+  }
+
+  const criteriaContentType = expectedReviewedContentType === "custom"
+    ? `custom:${expectedCustomTypeSlug}`
+    : expectedReviewedContentType;
+
+  const [site, author, allComponents, dynamicSeo, templates, scores] = await Promise.all([
+    getSiteContext(request, env),
+    review.author_id ? authors.getAuthorById(env.DB, review.author_id) : Promise.resolve(null),
+    renderer.renderAllComponents("generic_review", slug, ctx),
+    renderer.loadDynamicSeo("generic_review", slug),
+    reviewCriteria.getCriteriaTemplates(env.DB, criteriaContentType),
+    reviewCriteria.getCriteriaScores(env.DB, review.id),
+  ]);
+
+  const breakdown = reviewCriteria.buildScoreBreakdown(templates, scores);
+  const computedRating = reviewCriteria.computeWeightedRating(templates, scores);
+  const displayRating = computedRating !== null ? computedRating : (review.rating || 0);
+
+  const fullStars = Math.floor(displayRating);
+  const hasHalf = displayRating % 1 >= 0.5;
+  const ratingDisplay =
+    "★".repeat(fullStars) +
+    (hasHalf ? "½" : "") +
+    "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0)) +
+    ` (${displayRating.toFixed(1)} / 5)`;
+
+  const itemSchema = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": { "@type": "Product", "name": reviewedItem.name, "url": site.url(linkUrl) },
+    "reviewRating": { "@type": "Rating", "ratingValue": displayRating, "bestRating": 5, "worstRating": 1 },
+    "author": author ? { "@type": "Person", "name": author.name } : { "@type": "Organization", "name": `${site.siteName} Expert Team` },
+    "publisher": {
+      "@type": "Organization", "name": site.siteName, "url": site.origin,
+      "logo": { "@type": "ImageObject", "url": site.logoUrl }
+    },
+    "datePublished": review.created_at ? new Date(review.created_at).toISOString() : undefined,
+    "dateModified": (review.updated_at || review.created_at) ? new Date(review.updated_at || review.created_at).toISOString() : undefined,
+  };
+
+  const breadcrumbType = expectedReviewedContentType === "sportsbook" ? "sportsbookReview"
+    : expectedReviewedContentType === "affiliate_partner" ? "affiliatePartnerReview"
+    : "customReview";
+
+  const html = await renderer.render("generic-review.html", {
+    title: review.title,
+    content: review.content || "",
+    verdict: review.verdict || "",
+    reviewed_at: review.created_at ? new Date(review.created_at).toLocaleDateString() : "",
+    updated_at: review.updated_at ? new Date(review.updated_at).toLocaleDateString() : "",
+    rating_display: ratingDisplay,
+    reviewed_item_label: expectedReviewedContentType === "custom" ? "Product" : "Item",
+    reviewed_item_name: reviewedItem.name,
+    reviewed_item_card_html: buildReviewedItemCardHtml(reviewedItem, site.url(linkUrl)),
+    pros_html: buildProsConsHtml(review.pros),
+    cons_html: buildProsConsHtml(review.cons),
+    criteria_scores_html: buildCriteriaScoresHtml(breakdown),
+    author_name: author?.name || "",
+    author_avatar: author?.avatar_url || "",
+    author_slug: author?.slug || "",
+    author_role: author?.role || "",
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
+    seo_description: dynamicSeo.seo_description || review.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || review.seo_keywords || "",
+    canonical: dynamicSeo.canonical || site.url(reviewUrl),
+  }, itemSchema, buildBreadcrumbs(breadcrumbType, {
+    name: review.title,
+    typeSlug: expectedCustomTypeSlug,
+    typeLabel: customTypeRow?.plural_label || expectedCustomTypeSlug,
+  }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+// =====================================================
+// COMPARISON ENGINE (Phase 7 — generic content engine)
+// Storage: comparisons / comparison_items (migration 0051). This is
+// the persistent, SEO-indexable comparison-PAGE engine -- separate
+// from the existing database-driven `comparison_table` COMPONENT
+// (component-engine.js), which is an admin-authored embeddable
+// widget with its own JSON content shape, used to drop a small
+// comparison into the middle of some other page. Both can coexist;
+// this project does not force them into one system, since their data
+// shapes and lifecycles are genuinely different (a full page with its
+// own URL/SEO/publish workflow vs. an inline widget). See the Phase
+// 6 report for the fuller reasoning.
+//
+// Route shape: /en/compare/{type}/{slug} and /en/compare/{type}.
+// {type} IS the comparison's content_type (casino included -- a
+// casino comparison is exactly as valid as a sportsbook one; this
+// engine was never casino-exclusive to begin with).
+// =====================================================
+
+/** Best-effort per-item field lookup for a comparison criterion: checks the item's own raw row first, then (for custom items) its typed custom-field values. Returns null, not a guess, when nothing matches -- callers render "—" rather than fabricating a value. */
+function resolveCriterionValue(item, criterionKey, customFieldValuesByItemKey) {
+  if (item.raw && Object.prototype.hasOwnProperty.call(item.raw, criterionKey)) {
+    return item.raw[criterionKey];
+  }
+  if (item.contentType === "custom") {
+    const values = customFieldValuesByItemKey[`${item.contentType}:${item.id}`];
+    if (values && Object.prototype.hasOwnProperty.call(values, criterionKey)) {
+      return values[criterionKey];
+    }
+  }
+  return null;
+}
+
+function formatCriterionCellValue(rawValue) {
+  if (rawValue === null || rawValue === undefined || rawValue === "") return "—";
+  if (rawValue === 1 || rawValue === true || rawValue === "1" || rawValue === "true") return "✓";
+  if (rawValue === 0 || rawValue === false || rawValue === "0" || rawValue === "false") return "✗";
+  return escapeReviewText(rawValue);
+}
+
+async function loadComparisonRowItems(db, comparisonItemRows) {
+  const items = [];
+  const customFieldValuesByItemKey = {};
+  for (const row of comparisonItemRows) {
+    const item = await resolveContentItemById(db, row.item_content_type, row.item_id);
+    if (!item) continue; // an item that's since been deleted/unpublished -- skip rather than break the whole page (Phase 66 of the original spec: optional/missing data degrades gracefully)
+    items.push(item);
+    if (item.contentType === "custom") {
+      customFieldValuesByItemKey[`${item.contentType}:${item.id}`] = await customTypes.getCustomFieldValues(db, item.id);
+    }
+  }
+  return { items, customFieldValuesByItemKey };
+}
+
+function buildComparisonTableHtml(items, criteria, customFieldValuesByItemKey, linkPrefixFor) {
+  const headerCells = items.map(i => `<th>${escapeReviewText(i.name)}</th>`).join("");
+  const logoCells = items.map(i => `<td data-label="${escapeReviewText(i.name)}"><img src="${i.logo || '/static/images/default.png'}" alt="${escapeReviewText(i.name)}" style="max-height:40px" onerror="this.src='/static/images/default.png'"></td>`).join("");
+  const ratingCells = items.map(i => `<td data-label="${escapeReviewText(i.name)}">${i.rating ? i.rating.toFixed(1) + " / 5" : "—"}</td>`).join("");
+  const ctaCells = items.map(i => `<td data-label="${escapeReviewText(i.name)}"><a href="${linkPrefixFor(i)}/${i.slug}" class="btn btn--primary">View</a></td>`).join("");
+
+  const criteriaRows = criteria.map(c => {
+    const valueCells = items.map(i => {
+      const raw = resolveCriterionValue(i, c.key, customFieldValuesByItemKey);
+      return `<td data-label="${escapeReviewText(i.name)}">${formatCriterionCellValue(raw)}</td>`;
+    }).join("");
+    return `<tr><td>${escapeReviewText(c.label)}</td>${valueCells}</tr>`;
+  }).join("");
+
+  return { headerCells, logoCells, ratingCells, ctaCells, criteriaRows };
+}
+
+function linkPrefixForItem(item) {
+  switch (item.contentType) {
+    case "casino": return "/en/casino";
+    case "sportsbook": return "/en/sportsbook";
+    case "affiliate_partner": return "/en/affiliate-partner";
+    case "custom": return `/en/custom/${item.customTypeSlug}`;
+    default: return "/en";
+  }
+}
+
+export async function renderComparisonList(request, env, compareType) {
+  const renderer = new Renderer(env, request);
+
+  const [site, comparisonList, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    comparisonsDb.getPublishedComparisons(env.DB, compareType, { limit: 200 }),
+    renderer.renderAllComponents(`compare_${compareType}_list`, `compare_${compareType}_list`),
+    renderer.loadDynamicSeo(`compare_${compareType}_list`, `compare_${compareType}_list`),
+  ]);
+
+  const cardsHtml = comparisonList.map(c => `
+    <div class="casino-card">
+      <div class="casino-card__body"><h3 class="casino-card__name">${escapeReviewText(c.title)}</h3><p>${escapeReviewText(c.description || "")}</p></div>
+      <div class="casino-card__footer"><a href="/en/compare/${compareType}/${c.slug}" class="btn btn--primary">View Comparison</a></div>
+    </div>`).join("");
+
+  const html = await renderer.render("category.html", {
+    canonical: dynamicSeo.canonical || site.url(`/en/compare/${compareType}`),
+    category: `${compareType.charAt(0).toUpperCase() + compareType.slice(1)} Comparisons`,
+    description: `Head-to-head comparisons.`,
+    casino_cards: cardsHtml,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || `${compareType} Comparisons — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || "Head-to-head comparisons.",
+    seo_keywords: dynamicSeo.seo_keywords || ""
+  }, {
+    "@context": "https://schema.org", "@type": "ItemList",
+    "itemListElement": comparisonList.map((c, idx) => ({ "@type": "ListItem", "position": idx + 1, "url": site.url(`/en/compare/${compareType}/${c.slug}`) }))
+  }, buildBreadcrumbs("comparisonList", { compareType }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderComparison(request, env, compareType, slug, ctx = null) {
+  const comparison = await comparisonsDb.getComparison(env.DB, compareType, slug);
+  if (!comparison) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+  const comparisonItemRows = await comparisonsDb.getComparisonItems(env.DB, comparison.id);
+  const { items, customFieldValuesByItemKey } = await loadComparisonRowItems(env.DB, comparisonItemRows);
+
+  let criteria = [];
+  try {
+    const parsed = JSON.parse(comparison.criteria_json || "[]");
+    criteria = Array.isArray(parsed) ? parsed : [];
+  } catch { criteria = []; }
+
+  const [site, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    renderer.renderAllComponents(`compare_${compareType}`, slug, ctx),
+    renderer.loadDynamicSeo(`compare_${compareType}`, slug),
+  ]);
+
+  const { headerCells, logoCells, ratingCells, ctaCells, criteriaRows } =
+    buildComparisonTableHtml(items, criteria, customFieldValuesByItemKey, (i) => linkPrefixForItem(i));
+
+  let editorialPickHtml = "";
+  if (comparison.editorial_selection_item_type && comparison.editorial_selection_item_id) {
+    const pick = await resolveContentItemById(env.DB, comparison.editorial_selection_item_type, comparison.editorial_selection_item_id);
+    if (pick) {
+      editorialPickHtml = `<p><strong>${escapeReviewText(pick.name)}</strong> is our top pick. <a href="${linkPrefixForItem(pick)}/${pick.slug}">View ${escapeReviewText(pick.name)}</a></p>`;
+    }
+  }
+
+  const itemSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": comparison.title,
+    "itemListElement": items.map((item, idx) => ({
+      "@type": "ListItem", "position": idx + 1,
+      "url": site.url(`${linkPrefixForItem(item)}/${item.slug}`)
+    })),
+  };
+
+  const html = await renderer.render("comparison.html", {
+    title: comparison.title,
+    description: comparison.description || "",
+    item_header_cells_html: headerCells,
+    item_logo_cells_html: logoCells,
+    item_rating_cells_html: ratingCells,
+    item_cta_cells_html: ctaCells,
+    criteria_rows_html: criteriaRows,
+    editorial_pick_html: editorialPickHtml,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || comparison.seo_title || comparison.title,
+    seo_description: dynamicSeo.seo_description || comparison.seo_description || "",
+    seo_keywords: dynamicSeo.seo_keywords || comparison.seo_keywords || "",
+    canonical: dynamicSeo.canonical || site.url(`/en/compare/${compareType}/${slug}`),
+  }, itemSchema, buildBreadcrumbs("comparison", { compareType, title: comparison.title }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
 
 export async function renderReviewList(request, env) {
   const renderer = new Renderer(env, request);
@@ -4549,6 +5369,24 @@ export async function renderDashboardCasinos(request, env) {
 }
 export async function renderDashboardCasinoCreate(request, env) {
   return renderAdminPage(request, env, "admin/casino-create.html");
+}
+export async function renderDashboardContentItems(request, env) {
+  return renderAdminPage(request, env, "admin/content-items.html");
+}
+export async function renderDashboardContentItemCreate(request, env) {
+  return renderAdminPage(request, env, "admin/content-item-create.html");
+}
+export async function renderDashboardCustomTypes(request, env) {
+  return renderAdminPage(request, env, "admin/custom-types.html");
+}
+export async function renderDashboardCustomTypeCreate(request, env) {
+  return renderAdminPage(request, env, "admin/custom-type-create.html");
+}
+export async function renderDashboardComparisons(request, env) {
+  return renderAdminPage(request, env, "admin/comparisons.html");
+}
+export async function renderDashboardComparisonCreate(request, env) {
+  return renderAdminPage(request, env, "admin/comparison-create.html");
 }
 export async function renderDashboardReviews(request, env) {
   return renderAdminPage(request, env, "admin/reviews.html");

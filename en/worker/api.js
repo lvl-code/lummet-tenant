@@ -40,6 +40,10 @@ import * as providerAdaptersDB from "./database/provider-adapters.js";
 import { syncProviderConfig } from "./adapters/sync.js";
 import { listProviderKeys } from "./adapters/registry.js";
 import * as cronHealthDB from "./database/cron-health.js";
+import * as contentItemsDB from "./database/content-items.js";
+import * as customTypesDB from "./database/custom-types.js";
+import * as comparisonsDB from "./database/comparisons.js";
+import { isReservedSlug } from "./reserved-slugs.js";
 
 
 
@@ -712,6 +716,13 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/reports": "reports",
       "/api/v1/analytics/alert": "analytics_alerts",
       "/api/v1/analytics/alert-rule": "analytics_alerts",
+      // Generic content engine (Phase 8 — admin UI)
+      "/api/v1/content-item": "content_items",
+      "/api/v1/content-items": "content_items",
+      "/api/v1/custom-type": "custom_content_types",
+      "/api/v1/custom-types": "custom_content_types",
+      "/api/v1/comparison": "comparisons",
+      "/api/v1/comparisons": "comparisons",
     };
 
     let resource = null;
@@ -844,6 +855,140 @@ if (path === "/api/v1/casino/get") {
     success: true,
     casino
   });
+}
+
+// =====================================================
+// GENERIC CONTENT ENGINE (Phase 8 — admin UI)
+// Covers content_items (sportsbook/affiliate_partner/custom),
+// custom_content_types, and comparisons. List/Get/Create/Delete only
+// in this pass -- Update is deliberately deferred (see the Phase 8
+// report) to keep this addition reviewable; nothing here touches
+// casinos, reviews, or any existing endpoint above.
+//
+// Unlike casinos, these do not yet have item-level (user_item_access)
+// scoping wired in -- access is role-based only (via the
+// resourceMap + permDB.checkPermission check already run above every
+// request), same bar as e.g. comparisons/custom types conceptually
+// need, but explicitly weaker than casino's per-item assignment
+// system. Flagged as a follow-up, not silently matched to casino's
+// bar without actually implementing it.
+// =====================================================
+
+if (path === "/api/v1/content-items/list" && request.method === "GET") {
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type");
+  if (!contentType) return failure("content_type is required");
+  const items = await contentItemsDB.getAllContentItems(env.DB, contentType);
+  return json({ success: true, items });
+}
+
+if (path === "/api/v1/content-item/get" && request.method === "GET") {
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type");
+  const slug = url.searchParams.get("slug");
+  if (!contentType || !slug) return failure("content_type and slug are required");
+  const item = await contentItemsDB.getContentItem(env.DB, contentType, slug);
+  if (!item) return failure("Content item not found", 404);
+  return json({ success: true, item });
+}
+
+if (path === "/api/v1/content-item/create" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug", "name"]);
+  if (!["sportsbook", "affiliate_partner", "custom"].includes(body.content_type)) {
+    return failure("content_type must be sportsbook, affiliate_partner, or custom");
+  }
+  if (body.content_type === "custom" && !body.custom_type_slug) {
+    return failure("custom_type_slug is required when content_type is custom");
+  }
+  const item = await contentItemsDB.createContentItem(env.DB, body.content_type, {
+    slug: body.slug, name: body.name, title: body.title || null, description: body.description || null,
+    website: body.website || null, rating: parseFloat(body.rating) || 0,
+    license: body.license || null, licenseCountry: body.license_country || null,
+    liveBetting: !!body.live_betting, preMatch: !!body.pre_match, cashout: !!body.cashout, mobileApp: !!body.mobile_app,
+    linkedAffiliatePartnerId: body.linked_affiliate_partner_id || null,
+    featured: !!body.featured, sortOrder: parseInt(body.sort_order) || 0,
+    status: body.status || "draft", published: !!body.published,
+    seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
+    authorId: body.author_id || null, createdBy: user.user_id, customTypeSlug: body.custom_type_slug || null,
+  });
+  await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "content_item", entityId: item.id, metadata: { content_type: body.content_type, slug: body.slug, name: body.name } });
+  return success({ item });
+}
+
+if (path === "/api/v1/content-item/delete" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug"]);
+  const existing = await contentItemsDB.getContentItem(env.DB, body.content_type, body.slug);
+  if (!existing) return failure("Content item not found", 404);
+  await env.DB.prepare(`DELETE FROM content_items WHERE content_type = ? AND slug = ?`).bind(body.content_type, body.slug).run();
+  await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "content_item", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug, name: existing.name } });
+  return success();
+}
+
+if (path === "/api/v1/custom-types/list" && request.method === "GET") {
+  const types = await customTypesDB.getAllCustomContentTypes(env.DB);
+  return json({ success: true, types });
+}
+
+if (path === "/api/v1/custom-type/create" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["slug", "label", "plural_label"]);
+  try {
+    const type = await customTypesDB.createCustomContentType(env.DB, {
+      slug: body.slug, label: body.label, pluralLabel: body.plural_label, icon: body.icon || null,
+      reviewEnabled: body.review_enabled !== false, comparisonEnabled: body.comparison_enabled !== false,
+    }, isReservedSlug);
+    if (Array.isArray(body.fields)) {
+      for (let i = 0; i < body.fields.length; i++) {
+        const f = body.fields[i];
+        await env.DB.prepare(`
+          INSERT INTO custom_field_definitions (custom_type_slug, field_key, label, field_type, options_json, required, display_order)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(type.slug, f.field_key, f.label, f.field_type, f.options_json || null, f.required ? 1 : 0, i * 10).run();
+      }
+    }
+    await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "custom_content_type", entityId: type.id, metadata: { slug: body.slug, label: body.label } });
+    return success({ type });
+  } catch (e) {
+    return failure(e.message, 400);
+  }
+}
+
+if (path === "/api/v1/custom-type/fields" && request.method === "GET") {
+  const url = new URL(request.url);
+  const typeSlug = url.searchParams.get("type_slug");
+  if (!typeSlug) return failure("type_slug is required");
+  const fields = await customTypesDB.getCustomFieldDefinitions(env.DB, typeSlug);
+  return json({ success: true, fields });
+}
+
+if (path === "/api/v1/comparisons/list" && request.method === "GET") {
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type");
+  if (!contentType) return failure("content_type is required");
+  const items = await comparisonsDB.getPublishedComparisons(env.DB, contentType, { limit: 200 });
+  return json({ success: true, comparisons: items });
+}
+
+if (path === "/api/v1/comparison/create" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug", "title"]);
+  if (!Array.isArray(body.items) || body.items.length < 2) {
+    return failure("At least 2 items are required to create a comparison");
+  }
+  const comparison = await comparisonsDB.createComparison(env.DB, {
+    contentType: body.content_type, slug: body.slug, title: body.title, description: body.description || null,
+    criteria: Array.isArray(body.criteria) ? body.criteria : [],
+    editorialSelectionItemType: body.editorial_selection_item_type || null,
+    editorialSelectionItemId: body.editorial_selection_item_id || null,
+    status: body.status || "draft",
+    seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
+    authorId: body.author_id || null, createdBy: user.user_id,
+    items: body.items.map((it, idx) => ({ itemContentType: it.item_content_type, itemId: it.item_id, position: it.position ?? idx })),
+  });
+  await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "comparison", entityId: comparison.id, metadata: { content_type: body.content_type, slug: body.slug, title: body.title } });
+  return success({ comparison });
 }
 
 // ==================================

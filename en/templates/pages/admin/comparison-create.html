@@ -1,0 +1,87 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Add Comparison</h1>
+      <a href="/en/dashboard/comparisons" class="btn btn--ghost">Back to List</a>
+    </div>
+
+    <div id="comparisonFormAlert" class="alert" style="display:none"></div>
+
+    <form id="comparisonForm" class="admin-form">
+      <label>Content Type
+        <select name="content_type" required>
+          <option value="casino">Casino</option>
+          <option value="sportsbook">Sportsbook</option>
+          <option value="affiliate_partner">Affiliate Partner</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <label>Title <input type="text" name="title" required></label>
+      <label>Slug <input type="text" name="slug" required pattern="[a-z0-9-]+"></label>
+      <label>Description <textarea name="description" rows="3"></textarea></label>
+      <label>Status
+        <select name="status">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
+      </label>
+
+      <fieldset>
+        <legend>Items to Compare (need each item's content_type and numeric ID — find IDs from the relevant listing page)</legend>
+        <div id="itemRows"></div>
+        <button type="button" id="addItemRowBtn" class="btn btn--ghost btn--sm">+ Add Item</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Criteria (rows shown on the comparison page)</legend>
+        <div id="criterionRows"></div>
+        <button type="button" id="addCriterionRowBtn" class="btn btn--ghost btn--sm">+ Add Criterion</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Editorial Pick (optional)</legend>
+        <label>Item Content Type
+          <select name="editorial_selection_item_type">
+            <option value="">None</option>
+            <option value="casino">Casino</option>
+            <option value="sportsbook">Sportsbook</option>
+            <option value="affiliate_partner">Affiliate Partner</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <label>Item ID <input type="number" name="editorial_selection_item_id"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>SEO</legend>
+        <label>SEO Title <input type="text" name="seo_title"></label>
+        <label>SEO Description <textarea name="seo_description" rows="2"></textarea></label>
+      </fieldset>
+
+      <button type="submit" class="btn btn--primary">Create Comparison</button>
+    </form>
+  </div>
+</div>
+
+<template id="itemRowTemplate">
+  <div class="item-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+    <select class="item-content-type" style="flex:1">
+      <option value="casino">Casino</option>
+      <option value="sportsbook">Sportsbook</option>
+      <option value="affiliate_partner">Affiliate Partner</option>
+      <option value="custom">Custom</option>
+    </select>
+    <input type="number" class="item-id" placeholder="Item ID" style="flex:1">
+    <button type="button" class="btn btn--ghost btn--sm remove-item-row">✕</button>
+  </div>
+</template>
+
+<template id="criterionRowTemplate">
+  <div class="criterion-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+    <input type="text" class="criterion-key" placeholder="key (e.g. license)" style="flex:1">
+    <input type="text" class="criterion-label" placeholder="Label (e.g. License)" style="flex:1">
+    <button type="button" class="btn btn--ghost btn--sm remove-criterion-row">✕</button>
+  </div>
+</template>

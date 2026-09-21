@@ -38,6 +38,14 @@ const ROUTES = {
     { label: "Payment Methods", url: "/en/payment-methods" }
   ],
 
+  sportsbookList: [
+    { label: "All Sportsbooks", url: "/en/sportsbook" }
+  ],
+
+  affiliatePartnerList: [
+    { label: "Affiliate Partners", url: "/en/affiliate-partner" }
+  ],
+
   dashboard: [
     { label: "Dashboard", url: null }
   ]
@@ -73,6 +81,69 @@ export function buildBreadcrumbs(route, data = {}) {
       crumbs.push(
         { label: "All Reviews", url: "/en/review" },
         { label: data.title, url: null }
+      );
+      break;
+
+    case "sportsbook":
+      crumbs.push(
+        { label: "All Sportsbooks", url: "/en/sportsbook" },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "affiliatePartner":
+      crumbs.push(
+        { label: "Affiliate Partners", url: "/en/affiliate-partner" },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "custom":
+      crumbs.push(
+        { label: data.typeLabel || "Custom", url: `/en/custom/${data.typeSlug}` },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "sportsbookReview":
+      crumbs.push(
+        { label: "All Sportsbooks", url: "/en/sportsbook" },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "affiliatePartnerReview":
+      crumbs.push(
+        { label: "Affiliate Partners", url: "/en/affiliate-partner" },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "customReview":
+      crumbs.push(
+        { label: data.typeLabel || "Custom", url: `/en/custom/${data.typeSlug}` },
+        { label: data.name || data.title, url: null }
+      );
+      break;
+
+    case "comparisonList":
+      crumbs.push(
+        { label: "Compare", url: null },
+        { label: (data.compareType || "").charAt(0).toUpperCase() + (data.compareType || "").slice(1), url: null }
+      );
+      break;
+
+    case "comparison":
+      crumbs.push(
+        { label: "Compare", url: "/en/compare" },
+        { label: (data.compareType || "").charAt(0).toUpperCase() + (data.compareType || "").slice(1), url: `/en/compare/${data.compareType}` },
+        { label: data.title, url: null }
+      );
+      break;
+
+    case "customList":
+      crumbs.push(
+        { label: data.typeLabel || "Custom", url: null }
       );
       break;
 

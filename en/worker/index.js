@@ -1,6 +1,7 @@
 import { getRoute }
 from "./routes.js";
 import { serveMedia } from './media-upload.js';
+import { isContentTypeEnabled } from './content-types.js';
 import { handleSuperApi } from "./super/router.js";
 import {
   renderHome,
@@ -9,6 +10,15 @@ import {
   renderDashboardAuthors,
   renderNews,
   renderCasino,
+  renderSportsbook,
+  renderSportsbookList,
+  renderAffiliatePartner,
+  renderAffiliatePartnerList,
+  renderCustom,
+  renderCustomList,
+  renderGenericReview,
+  renderComparison,
+  renderComparisonList,
   renderReview,
   renderCountry,
   renderCountryCustomPage,
@@ -54,6 +64,12 @@ import {
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
+  renderDashboardContentItems,
+  renderDashboardContentItemCreate,
+  renderDashboardCustomTypes,
+  renderDashboardCustomTypeCreate,
+  renderDashboardComparisons,
+  renderDashboardComparisonCreate,
   renderDashboardReviews,
   renderDashboardNews,
   renderDashboardUpdates,
@@ -226,6 +242,101 @@ if (
           ctx
         );
 
+      case "sportsbook":
+        // Content-type enablement check (Phase 2 report §8) — a
+        // single gate here, before the controller is ever reached,
+        // rather than duplicated inside renderSportsbook itself.
+        if (!(await isContentTypeEnabled(env, "sportsbook"))) {
+          return render404(request, env);
+        }
+        return renderSportsbook(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+
+      case "sportsbookList":
+        if (!(await isContentTypeEnabled(env, "sportsbook"))) {
+          return render404(request, env);
+        }
+        return renderSportsbookList(request, env);
+
+      case "affiliatePartner":
+        if (!(await isContentTypeEnabled(env, "affiliate_partner"))) {
+          return render404(request, env);
+        }
+        return renderAffiliatePartner(
+          request,
+          env,
+          route.slug,
+          ctx
+        );
+
+      case "affiliatePartnerList":
+        if (!(await isContentTypeEnabled(env, "affiliate_partner"))) {
+          return render404(request, env);
+        }
+        return renderAffiliatePartnerList(request, env);
+
+      case "custom":
+        // Two-level gate: the 'custom' content type must be enabled
+        // for this environment AND the requested typeSlug must
+        // resolve to a real custom_content_types row -- the second
+        // check happens inside renderCustom() itself since typeSlug
+        // is admin-defined data, not something this switch can
+        // validate cheaply.
+        if (!(await isContentTypeEnabled(env, "custom"))) {
+          return render404(request, env);
+        }
+        return renderCustom(
+          request,
+          env,
+          route.typeSlug,
+          route.slug,
+          ctx
+        );
+
+      case "customList":
+        if (!(await isContentTypeEnabled(env, "custom"))) {
+          return render404(request, env);
+        }
+        return renderCustomList(request, env, route.typeSlug);
+
+      case "sportsbookReview":
+        if (!(await isContentTypeEnabled(env, "sportsbook"))) {
+          return render404(request, env);
+        }
+        return renderGenericReview(request, env, "sportsbook", route.slug, ctx);
+
+      case "affiliatePartnerReview":
+        if (!(await isContentTypeEnabled(env, "affiliate_partner"))) {
+          return render404(request, env);
+        }
+        return renderGenericReview(request, env, "affiliate_partner", route.slug, ctx);
+
+      case "customReview":
+        if (!(await isContentTypeEnabled(env, "custom"))) {
+          return render404(request, env);
+        }
+        return renderGenericReview(request, env, "custom", route.slug, ctx, route.typeSlug);
+
+      case "comparison": {
+        const knownCompareTypes = new Set(["casino", "sportsbook", "affiliate_partner", "custom"]);
+        if (!knownCompareTypes.has(route.compareType) || !(await isContentTypeEnabled(env, route.compareType))) {
+          return render404(request, env);
+        }
+        return renderComparison(request, env, route.compareType, route.slug, ctx);
+      }
+
+      case "comparisonList": {
+        const knownCompareTypes = new Set(["casino", "sportsbook", "affiliate_partner", "custom"]);
+        if (!knownCompareTypes.has(route.compareType) || !(await isContentTypeEnabled(env, route.compareType))) {
+          return render404(request, env);
+        }
+        return renderComparisonList(request, env, route.compareType);
+      }
+
       case "review":
         return renderReview(
           request,
@@ -336,6 +447,18 @@ if (
         return renderDashboardCasinos(request, env);
       case "dashboardCasinoCreate":
         return renderDashboardCasinoCreate(request, env);
+      case "dashboardContentItems":
+        return renderDashboardContentItems(request, env);
+      case "dashboardContentItemCreate":
+        return renderDashboardContentItemCreate(request, env);
+      case "dashboardCustomTypes":
+        return renderDashboardCustomTypes(request, env);
+      case "dashboardCustomTypeCreate":
+        return renderDashboardCustomTypeCreate(request, env);
+      case "dashboardComparisons":
+        return renderDashboardComparisons(request, env);
+      case "dashboardComparisonCreate":
+        return renderDashboardComparisonCreate(request, env);
       case "dashboardReviews":
         return renderDashboardReviews(request, env);
       case "dashboardNews":
@@ -488,6 +611,38 @@ case "sitemap-casinos":
     env,
     env.DB,
     "casinos"
+  );
+
+case "sitemap-sportsbook":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "sportsbook"
+  );
+
+case "sitemap-affiliate-partner":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "affiliate-partner"
+  );
+
+case "sitemap-custom":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "custom"
+  );
+
+case "sitemap-comparisons":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "comparisons"
   );
 
 case "sitemap-reviews":

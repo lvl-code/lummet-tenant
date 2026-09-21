@@ -1,0 +1,36 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Content Items</h1>
+      <a href="/en/dashboard/content-item/create" class="btn btn--primary">+ Add Content Item</a>
+    </div>
+
+    <div class="admin-filters" style="margin-bottom:16px">
+      <label>Type:
+        <select id="contentItemTypeFilter">
+          <option value="sportsbook">Sportsbook</option>
+          <option value="affiliate_partner">Affiliate Partner</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+    </div>
+
+    <table class="admin-table" id="contentItemsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Slug</th>
+          <th>Type</th>
+          <th>Rating</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="contentItemsTableBody">
+        <tr><td colspan="6" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

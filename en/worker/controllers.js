@@ -18,6 +18,13 @@ import * as researchClaims from "./database/research-claims.js";
 import * as researchRelations from "./database/research-relations.js";
 import * as researchDatasets from "./database/research-datasets.js";
 import * as news from "./database/news.js";
+import * as newsroom from "./database/newsroom.js";
+import * as nrRender from "./newsroom-render.js";
+import * as nrTrust from "./newsroom-trust.js";
+import * as nrHome from "./newsroom-home.js";
+import * as nrAnalytics from "./newsroom-analytics.js";
+import * as nrSearch from "./newsroom-search.js";
+import { sanitizeHtml } from "./sanitize.js";
 import * as platformUpdates from "./database/platform-updates.js";
 import * as seoPages from "./database/seo-pages.js";
 import { logClick }
@@ -720,6 +727,8 @@ export async function renderCasino(request, env, slug, ctx = null) {
   const __renderStart = Date.now();
   const html = await renderer.render("casino.html", {
     ...casino,
+    // {{vars}} are not HTML-escaped by the template engine; casino.name is editable content.
+    name: escapeHtml(casino.name),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -850,6 +859,7 @@ function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}, payme
   return casinoList.map((casino, index) => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+    const safeCasinoName = escapeHtml(casino.name);
     const bonusDisplay = bonusOverrides[casino.id] || {
       bonus_title: casino.bonus_title || "Welcome Bonus",
       bonus_value: casino.bonus_value || "",
@@ -932,18 +942,18 @@ function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}, payme
           type="button"
           class="casino-card__bookmark"
           data-bookmark-slug="${casino.slug}"
-          aria-label="Save ${casino.name} to bookmarks"
+          aria-label="Save ${safeCasinoName} to bookmarks"
           aria-pressed="false"
-          title="Save ${casino.name}"
+          title="Save ${safeCasinoName}"
        >
           <span class="bookmark-icon" aria-hidden="true">♡</span>
        </button>
 <div class="casino-card__header">
   <div class="casino-card__logo-wrap">
-    <img src="${casino.logo || '/static/images/default.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
+    <img src="${casino.logo || '/static/images/default.png'}" alt="${safeCasinoName}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
   </div>
   <div class="casino-card__title-group">
-    <h3 class="casino-card__name">${casino.name}</h3>
+    <h3 class="casino-card__name">${safeCasinoName}</h3>
     <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
   </div>
 </div>
@@ -966,6 +976,7 @@ function buildReviewCasinoCards(casinoList, geoData = null, bonusOverrides = {})
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+    const safeCasinoName = escapeHtml(casino.name);
     const bonusDisplay = bonusOverrides[casino.id] || {
       bonus_title: casino.bonus_title || "Welcome Bonus",
       bonus_value: casino.bonus_value || "",
@@ -1020,18 +1031,18 @@ function buildReviewCasinoCards(casinoList, geoData = null, bonusOverrides = {})
         type="button"
         class="casino-card__bookmark"
         data-bookmark-slug="${casino.slug}"
-        aria-label="Save ${casino.name} to bookmarks"
+        aria-label="Save ${safeCasinoName} to bookmarks"
         aria-pressed="false"
-        title="Save ${casino.name}"
+        title="Save ${safeCasinoName}"
       >
         <span class="bookmark-icon" aria-hidden="true">♡</span>
       </button>
 <div class="casino-card__header">
   <div class="casino-card__logo-wrap">
-    <img src="${casino.logo || '/static/images/default.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
+    <img src="${casino.logo || '/static/images/default.png'}" alt="${safeCasinoName}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
   </div>
   <div class="casino-card__title-group">
-    <h3 class="casino-card__name">${casino.name} Review</h3>
+    <h3 class="casino-card__name">${safeCasinoName} Review</h3>
     <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
   </div>
 </div>
@@ -1241,8 +1252,10 @@ export async function renderReview(request, env, slug, ctx = null) {
 
   const html = await renderer.render("review.html", {
     ...review,
+    // {{vars}} are not HTML-escaped by the template engine.
+    title: escapeHtml(review.title),
     content: reviewDisplayContent,
-    casino_name: casinoName,
+    casino_name: escapeHtml(casinoName),
     author_name: author?.name || "",
     author_bio: author?.bio || "",
     author_avatar: author?.avatar_url || "",
@@ -1279,20 +1292,217 @@ export async function renderReview(request, env, slug, ctx = null) {
   });
 }
 
+// ── Newsroom: landing pages under /en/news/... (sections, regions, countries,
+//    topics, entities, series) plus slug redirects ──
+// Resolution for /en/news/<slug> when no LIVE article has that slug:
+//   1. 301 to the article's current slug if it was renamed (always on: only ever
+//      fires for URLs that would otherwise 404),
+//   2. section, region, country pages (flag news_new_taxonomy),
+//   3. 404.
+// A live article ALWAYS wins over any of these (its URL is already indexed).
+async function renderNewsSectionOr404(request, env, slug, { allowRedirect = false } = {}) {
+  try {
+    if (allowRedirect) {
+      const target = await newsroom.getRedirectTarget(env.DB, slug);
+      if (target) return new Response(null, { status: 301, headers: { Location: `/en/news/${encodeURIComponent(target)}`, "Cache-Control": "public, max-age=3600" } });
+    }
+    const flags = await newsroom.getNewsFlags(env.DB);
+    if (flags.news_new_taxonomy) {
+      const res = await renderNewsSection(request, env, slug)
+        || await renderNewsRegion(request, env, slug)
+        || await renderNewsCountry(request, env, slug);
+      if (res) return res;
+    }
+  } catch (e) {
+    console.error("News landing fallback failed:", e.message);
+  }
+  return render404(request, env);
+}
+
+// Generic listing page. `spec.load({limit, offset})` returns { articles, total }.
+async function renderNewsCollection(request, env, spec) {
+  const url = new URL(request.url);
+  const rawPage = url.searchParams.get("page");
+  const page = rawPage === null ? 1 : Number(rawPage);
+  if (!Number.isInteger(page) || page < 1 || page > 500) return render404(request, env);
+  const PAGE_SIZE = 12;
+
+  const renderer = new Renderer(env, request);
+  const [site, listing] = await Promise.all([
+    getSiteContext(request, env),
+    spec.load({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(listing.total / PAGE_SIZE));
+  if (page > totalPages) return render404(request, env);   // no thin/duplicate out-of-range pages
+
+  const canonical = spec.canonicalPath ? site.url(spec.canonicalPath)
+    : site.url(page === 1 ? spec.basePath : `${spec.basePath}?page=${page}`);  // query noise never changes the canonical
+  const description = spec.seoDescription || spec.description || `${spec.name} news from ${site.siteName}.`;
+  const offset = (page - 1) * PAGE_SIZE;
+  const cards = listing.articles.map((a, i) => spec.renderCard ? spec.renderCard(a, offset + i + 1) : nrRender.renderArticleCard(a, formatDate)).join("");
+  const empty = listing.articles.length ? "" :
+    `<p style="padding:40px 0;color:var(--gray)">${spec.emptyMessage || "No articles here yet."} <a href="/en/news">Browse all news</a>.</p>`;
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": spec.schemaType || "CollectionPage",
+    "@id": `${canonical}#webpage`,
+    "url": canonical,
+    "name": spec.name,
+    "description": description,
+    "isPartOf": { "@type": "WebSite", "@id": `${site.origin}#website`, "name": site.siteName, "url": site.origin },
+    ...(spec.schemaExtra || {}),
+    ...(listing.articles.length ? {
+      "mainEntity": {
+        "@type": "ItemList",
+        "itemListElement": listing.articles.map((a, i) => ({
+          "@type": "ListItem", "position": offset + i + 1,
+          "url": site.url(`/en/news/${a.slug}`), "name": a.title
+        }))
+      }
+    } : {})
+  };
+
+  const noindex = listing.total === 0 || /noindex/i.test(spec.robots || "");
+  const html = await renderer.render("news-section.html", {
+    canonical,
+    page_title: nrRender.esc(spec.name),
+    page_description: nrRender.esc(spec.description || description),
+    header_extra_html: spec.headerHtml || "",
+    news_cards: cards,
+    empty_state_html: empty,
+    pagination_html: (spec.resultCountHtml || "") + nrRender.renderPagination(spec.basePath, page, totalPages, spec.queryString || ""),
+    seo_title: spec.seoTitle || `${spec.name} | ${site.siteName}`,
+    seo_description: description,
+    robots: noindex ? "noindex, follow" : "index, follow"
+  }, schema, [
+    { label: "Home", url: "/en" },
+    { label: "News", url: "/en/news" },
+    ...(spec.crumbs || []),
+    { label: spec.crumbLabel || spec.name, url: null }
+  ]);
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+// News search v2 (flag news_search_v2): keyword + section / author / country / entity / type / date filters.
+// Returns null when it cannot answer well (index not built yet) so the caller uses the existing page.
+async function renderNewsSearch(request, env, flags, sp) {
+  if (sp.q && !(await env.DB.prepare(`SELECT 1 AS x FROM news_search_docs LIMIT 1`).first())) return null;
+  const url = new URL(request.url);
+  const facets = await nrSearch.getSearchFacets(env.DB, env, { entityPages: !!flags.news_entity_pages });
+  const qsParams = new URLSearchParams();
+  for (const k of ["q", "section", "author", "country", "entity", "type", "from", "to"]) if (sp[k]) qsParams.set(k, sp[k]);
+  const queryString = qsParams.toString();
+  let shown = 0;
+  return renderNewsCollection(request, env, {
+    basePath: "/en/news", canonicalPath: "/en/news", queryString,
+    name: sp.q ? `Search: ${sp.q}` : "Filtered news", crumbLabel: "Search",
+    description: "", seoTitle: null, seoDescription: "Search the news archive.",
+    robots: "noindex, follow", schemaType: "SearchResultsPage",   // result pages are never indexed
+    emptyMessage: "No articles match your search.",
+    headerHtml: nrRender.renderSearchForm({ params: sp, facets }),
+    load: async ({ limit, offset }) => {
+      const r = await nrSearch.searchNews(env.DB, { ...sp, page: Math.floor(offset / limit) + 1 }, { mode: "public", pageSize: limit });
+      shown = r.total;
+      return r.ok ? { articles: r.articles, total: r.total } : { articles: [], total: 0 };
+    },
+    get resultCountHtml() { return `<p class="nr-search__count" role="status">${shown} ${shown === 1 ? "result" : "results"}</p>`; }
+  });
+}
+
+async function renderNewsSection(request, env, slug) {
+  const section = await newsroom.getSectionBySlug(env.DB, slug);
+  if (!section) return null;
+  const ids = await newsroom.getSectionIds(env.DB, section.id);
+  return renderNewsCollection(request, env, {
+    basePath: `/en/news/${section.slug}`, name: section.name, description: section.description,
+    seoTitle: section.seo_title, seoDescription: section.seo_description,
+    load: (p) => newsroom.getSectionArticles(env.DB, ids, p)
+  });
+}
+
+async function renderNewsRegion(request, env, slug) {
+  const region = await newsroom.getRegionBySlug(env.DB, slug);
+  if (!region) return null;
+  return renderNewsCollection(request, env, {
+    basePath: `/en/news/${region.slug}`, name: region.name,
+    description: `${region.name} iGaming news and regulation.`,
+    load: (p) => newsroom.getRegionArticles(env.DB, region.slug, p)
+  });
+}
+
+async function renderNewsCountry(request, env, slug) {
+  const country = await newsroom.getCountryBySlug(env.DB, slug);
+  if (!country) return null;
+  if (country.isAlias) {   // one indexable URL per country
+    return new Response(null, { status: 301, headers: { Location: `/en/news/${country.canonical}`, "Cache-Control": "public, max-age=3600" } });
+  }
+  return renderNewsCollection(request, env, {
+    basePath: `/en/news/${country.canonical}`, name: country.name,
+    description: `Gambling industry news from ${country.name}.`,
+    seoTitle: country.seo_title || null, seoDescription: null, robots: country.robots || "",
+    load: (p) => newsroom.getCountryArticles(env.DB, country.code, p)
+  });
+}
+
+// Two-segment pages: /en/news/topic/<slug>, /en/news/entity/<slug>, /en/news/series/<slug>
+export async function renderNewsTaxonomyPage(request, env, kind, slug) {
+  try {
+    const flags = await newsroom.getNewsFlags(env.DB);
+    if (kind === "entity" ? !flags.news_entity_pages : !flags.news_new_taxonomy) return render404(request, env);
+
+    if (kind === "topic") {
+      const t = await newsroom.getTopicBySlug(env.DB, slug);
+      if (!t) return render404(request, env);
+      return renderNewsCollection(request, env, {
+        basePath: `/en/news/topic/${t.slug}`, name: t.name, description: t.description,
+        seoTitle: t.seo_title, seoDescription: t.seo_description,
+        load: (p) => newsroom.getTopicArticles(env.DB, t.id, p)
+      });
+    }
+    if (kind === "series") {
+      const s = await newsroom.getSeriesBySlug(env.DB, slug);
+      if (!s) return render404(request, env);
+      return renderNewsCollection(request, env, {
+        basePath: `/en/news/series/${s.slug}`, name: s.name, description: s.description,
+        seoTitle: s.seo_title, seoDescription: s.seo_description,
+        load: (p) => newsroom.getSeriesArticles(env.DB, s.id, p),
+        renderCard: (a, n) => `<div class="nr-series-part"><p class="nr-part">Part ${n}</p>${nrRender.renderArticleCard(a, formatDate)}</div>`
+      });
+    }
+    if (kind === "entity") {
+      const e = await newsroom.getEntityBySlug(env.DB, slug);
+      if (!e) return render404(request, env);
+      return renderNewsCollection(request, env, {
+        basePath: `/en/news/entity/${e.slug}`, name: e.name, description: e.description,
+        seoTitle: e.seo_title, seoDescription: e.seo_description,
+        headerHtml: nrRender.renderEntityAbout(e),
+        schemaExtra: { about: nrRender.entitySchema(e) },
+        load: (p) => newsroom.getEntityArticles(env.DB, e.id, p)
+      });
+    }
+  } catch (err) {
+    console.error("News taxonomy page failed:", kind, err.message);
+  }
+  return render404(request, env);
+}
+
 export async function renderNews(request, env, slug, ctx = null) {
   const article = await news.getNews(env.DB, slug);
-  if (!article) return render404(request, env);
+  if (!article) return renderNewsSectionOr404(request, env, slug, { allowRedirect: true });
 
   // Security: only render published, currently-live articles publicly
   if (!article.published || Number(article.published) !== 1) {
-    return render404(request, env);
+    return renderNewsSectionOr404(request, env, slug);
   }
 
   // Security: respect scheduled publishing — hide articles whose published_at is in the future
   if (article.published_at) {
     const pubDate = new Date(article.published_at);
     if (!Number.isNaN(pubDate.getTime()) && pubDate > new Date()) {
-      return render404(request, env);
+      return renderNewsSectionOr404(request, env, slug);
     }
   }
 
@@ -1305,6 +1515,13 @@ export async function renderNews(request, env, slug, ctx = null) {
   // edge-provided country/city directly instead of adding a computation
   // to the render path purely to feed analytics.
   if (ctx && typeof ctx.waitUntil === 'function') {
+    // Optional enrichment (flag news_analytics_enrichment, off by default): bot flag,
+    // device class and UTM parameters, so crawlers stop counting as readers.
+    // The flag read is cached (30 s) and shared with the newsroom loaders below.
+    let enrich = {};
+    try {
+      if ((await newsroom.getNewsFlags(env.DB)).news_analytics_enrichment) enrich = nrAnalytics.enrichNewsView(request);
+    } catch { /* recording extra fields is best-effort */ }
     ctx.waitUntil(
       logAnalyticsEvent(env.DB, {
         eventType: 'CONTENT_VIEW',
@@ -1312,7 +1529,8 @@ export async function renderNews(request, env, slug, ctx = null) {
         countryCode: request.cf?.country || null,
         city: request.cf?.city || null,
         referrer: request.headers.get('referer') || null,
-        landingPage: `/en/news/${slug}`
+        landingPage: `/en/news/${slug}`,
+        ...enrich
       }).catch(() => {})
     );
   }
@@ -1351,7 +1569,7 @@ export async function renderNews(request, env, slug, ctx = null) {
   })();
 
   // These are all independent of each other, so run them concurrently.
-  const [site, author, allComponents, dynamicSeo, relatedNewsHtml, displayContent] = await Promise.all([
+  const [site, author, allComponents, dynamicSeo, relatedNewsHtml, displayContent, newsroomData] = await Promise.all([
     getSiteContext(request, env),
     article.author_id ? authors.getAuthorById(env.DB, article.author_id) : Promise.resolve(null),
     renderer.renderAllComponents("news", slug, ctx),
@@ -1361,6 +1579,10 @@ export async function renderNews(request, env, slug, ctx = null) {
       console.error("Inline ad injection error:", e.message);
       return article.content || "";
     }),
+    // Newsroom layer: null (and zero extra queries beyond a cached flag read)
+    // unless a newsroom feature flag is on. Never fails the page.
+    nrTrust.loadNewsroomForArticle(env.DB, article)
+      .catch(e => { console.error("Newsroom load failed:", e.message); return null; }),
   ]);
 
   const canonical = dynamicSeo.canonical || site.url(`/en/news/${article.slug}`);
@@ -1403,8 +1625,10 @@ export async function renderNews(request, env, slug, ctx = null) {
     const nameHtml = (author?.slug || article.author_slug)
       ? `<a href="/en/author/${escapeHtml(author?.slug || article.author_slug)}" style="font-weight:700;text-decoration:none">${escapeHtml(articleAuthorName)}</a>`
       : `<strong>${escapeHtml(articleAuthorName)}</strong>`;
-    const roleHtml = (author?.role || article.author_role)
-      ? `<span style="color:var(--gray);font-size:12px;display:block">${escapeHtml(author?.role || article.author_role)}</span>`
+    // With the newsroom taxonomy flag on, prefer the author's job title (Senior Editor, Correspondent, ...).
+    const displayRole = (newsroomData?.flags?.news_new_taxonomy && author?.job_title) || author?.role || article.author_role;
+    const roleHtml = displayRole
+      ? `<span style="color:var(--gray);font-size:12px;display:block">${escapeHtml(displayRole)}</span>`
       : "";
     authorHtml = `
       <div style="display:flex;align-items:center;gap:10px">
@@ -1465,8 +1689,40 @@ export async function renderNews(request, env, slug, ctx = null) {
     ...(article.tags ? { "keywords": article.tags } : {})
   };
 
+  let nrBlocks = { kicker_html: "", notice_html: "", timeline_html: "", after_html: "", related_html: "", schema: {} };
+  try {
+    if (newsroomData?.extras) {
+      nrBlocks = nrRender.buildNewsroomBlocks({
+        article, extras: newsroomData.extras, flags: newsroomData.flags,
+        siteName: site.siteName, formatDate, policyLinks: newsroomData.policyLinks
+      });
+    }
+  } catch (e) {
+    console.error("Newsroom blocks failed (page renders without them):", e.message);
+  }
+  Object.assign(articleSchema, nrBlocks.schema);
+
+  let articleCrumbs = buildBreadcrumbs("news", { title: article.title });
+  const nrSection = newsroomData?.flags?.news_new_taxonomy ? newsroomData.extras?.section : null;
+  if (nrSection && articleCrumbs.length > 1) {
+    articleCrumbs = [
+      ...articleCrumbs.slice(0, -1),
+      { label: nrSection.name, url: `/en/news/${nrSection.slug}` },
+      articleCrumbs[articleCrumbs.length - 1]
+    ];
+  }
+
   const html = await renderer.render("news.html", {
     ...article,
+    // The template engine does not HTML-escape {{vars}}; escape the ones the
+    // article template puts in text/attribute positions.
+    title: escapeHtml(article.title),
+    newsroom_kicker_html: nrBlocks.kicker_html,
+    newsroom_notice_html: nrBlocks.notice_html,
+    newsroom_timeline_html: nrBlocks.timeline_html,
+    newsroom_after_html: nrBlocks.after_html,
+    newsroom_discovery_html: nrBlocks.discovery_html,
+    newsroom_related_html: nrBlocks.related_html,
     canonical,
     seo_title: dynamicSeo.seo_title || article.seo_title || article.title,
     seo_description: description,
@@ -1481,9 +1737,9 @@ export async function renderNews(request, env, slug, ctx = null) {
     author_role: author?.role || "",
     author_slug: author?.slug || "",
     author_html: authorHtml,
-    featured_image_url: featuredImage,
-    featured_image_alt: featuredImageAlt,
-    featured_image_caption: article.featured_image_caption || "",
+    featured_image_url: escapeHtml(featuredImage),
+    featured_image_alt: escapeHtml(featuredImageAlt),
+    featured_image_caption: escapeHtml(article.featured_image_caption || ""),
     published_at: publishedDisplay,
     updated_at: modifiedDisplay,
     tags_html: tagsHtml,
@@ -1494,7 +1750,7 @@ export async function renderNews(request, env, slug, ctx = null) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar
-  }, articleSchema, buildBreadcrumbs("news", { title: article.title }));
+  }, articleSchema, articleCrumbs);
 
   return new Response(html, { headers: cacheHeaders() });
 }
@@ -2355,6 +2611,11 @@ export async function dashboardStatsAPI(request, env) {
 
 export async function robots(request, env) {
   const site = await getSiteContext(request, env);
+  // Advertised only once the Google News sitemap is switched on.
+  const googleNewsLine = (await newsroom.isNewsFlagEnabled(env.DB, "news_google_sitemap"))
+    ? `\nSitemap: ${site.url("/en/news-sitemap.xml")}` : "";
+  const landingLine = (await newsroom.isNewsFlagEnabled(env.DB, "news_new_taxonomy"))
+    ? `\nSitemap: ${site.url("/en/sitemap-news-sections.xml")}` : "";
 
   return new Response(
     `User-agent: *
@@ -2367,7 +2628,7 @@ Sitemap: ${site.url("/en/sitemap-reviews.xml")}
 Sitemap: ${site.url("/en/sitemap-news.xml")}
 Sitemap: ${site.url("/en/sitemap-categories.xml")}
 Sitemap: ${site.url("/en/sitemap-countries.xml")}
-Sitemap: ${site.url("/en/sitemap-pages.xml")}`,
+Sitemap: ${site.url("/en/sitemap-pages.xml")}${googleNewsLine}${landingLine}`,
     {
       headers: {
         "Content-Type": "text/plain"
@@ -2434,6 +2695,7 @@ export async function renderCountry(request, env, slug) {
   const faqSchema = seoPageFaqSchema(countryContent);
   const html = await renderer.render("country.html", {
     ...countryData,
+    name: escapeHtml(countryData.name),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -3152,6 +3414,7 @@ export async function renderResearchItem(request, env, researchType, slug) {
 
   const html = await renderer.render("research.html", {
     ...item,
+    title: escapeHtml(item.title),
     type_label: researchTypeLabel(item.type),
     seo_title: item.seo_title || item.title,
     seo_description: item.seo_description || item.excerpt || "",
@@ -3274,14 +3537,14 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
   const faqSchema = seoPageFaqSchema(content);
 
   const html = await renderer.render("seo-landing.html", {
-    title: page.title,
-    intro: content.intro || "",
+    title: escapeHtml(page.title),
+    intro: content.intro ? sanitizeHtml(String(content.intro)) : "",
     sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides),
     casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides, paymentMethodsByCasino),
     has_casinos: mainList.length > 0,
-    country_name: country.name,
+    country_name: escapeHtml(country.name),
     country_code: code,
-    parent_label: country.name,
+    parent_label: escapeHtml(country.name),
     parent_url: site.url(`/en/country/${code}`),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
@@ -3295,7 +3558,7 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
     og_image: (page.og_image || page.featured_image) ? site.url(page.og_image || page.featured_image) : site.ogImageUrl,
     og_image_alt: page.title,
     robots: page.robots || "index,follow",
-    author_name: author?.name || "",
+    author_name: escapeHtml(author?.name || ""),
     author_id: page.author_id || null
   }, [itemListSchema, faqSchema].filter(Boolean),
     buildBreadcrumbs("countryCustomPage", { title: page.title, countryName: country.name, countryCode: code }));
@@ -3385,14 +3648,14 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
   const faqSchema = seoPageFaqSchema(content);
 
   const html = await renderer.render("seo-landing.html", {
-    title: effectivePage.title,
-    intro: content.intro || category.description || "",
+    title: escapeHtml(effectivePage.title),
+    intro: sanitizeHtml(String(content.intro || category.description || "")),
     sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides),
     casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides, paymentMethodsByCasino),
     has_casinos: mainList.length > 0,
-    country_name: country.name,
+    country_name: escapeHtml(country.name),
     country_code: code,
-    parent_label: category.name,
+    parent_label: escapeHtml(category.name),
     parent_url: site.url(`/en/category/${categorySlug}`),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
@@ -3406,7 +3669,7 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
     og_image: (effectivePage.og_image || effectivePage.featured_image) ? site.url(effectivePage.og_image || effectivePage.featured_image) : site.ogImageUrl,
     og_image_alt: effectivePage.title,
     robots: effectivePage.robots || "index,follow",
-    author_name: author?.name || "",
+    author_name: escapeHtml(author?.name || ""),
     author_id: effectivePage.author_id || null
   }, [itemListSchema, faqSchema].filter(Boolean),
     buildBreadcrumbs("categoryCountryPage", { categorySlug, categoryName: category.name, countryName: country.name }));
@@ -3485,16 +3748,28 @@ export async function renderDynamicPage(request, env, slug, ctx = null) {
     "dateModified": page.updated_at || page.created_at
   };
 
+  // Editorial trust hub: append links to whichever policy pages are live.
+  let hubIndex = "";
+  if (slug === "editorial") {
+    try {
+      const live = await nrTrust.getPublishedTrustPages(env.DB);
+      hubIndex = nrTrust.renderTrustIndex(live.map(p => p.slug), Object.fromEntries(live.map(p => [p.slug, p.title])));
+    }
+    catch (e) { console.error("Trust index failed:", e.message); }
+  }
+
   const html = await renderer.render("page.html", {
     ...page,
+    // {{vars}} are not HTML-escaped by the template engine.
+    title: escapeHtml(page.title),
     canonical: dynamicSeo.canonical || site.url(`/en/${slug}`),
-    author_name: author?.name || "",
-    author_avatar: author?.avatar_url || "",
-    author_role: author?.role || "",
-    author_slug: author?.slug || "",
+    author_name: escapeHtml(author?.name || ""),
+    author_avatar: escapeHtml(author?.avatar_url || ""),
+    author_role: escapeHtml(author?.role || ""),
+    author_slug: encodeURIComponent(author?.slug || ""),
     datePublished: formatDate(page.created_at),
     dateModified: formatDate(page.updated_at || page.created_at),
-    content_json: pageDisplayContent,
+    content_json: pageDisplayContent + hubIndex,
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -3527,6 +3802,7 @@ export async function renderAffiliate(request, env, slug) {
   };
   const html = await renderer.render("affiliate.html", {
     ...page,
+    title: escapeHtml(page.title),
     content_json: parseContentJson(page.content_json)
   }, pageSchema, buildBreadcrumbs("affiliate", { title: page.title }));
 
@@ -3867,6 +4143,7 @@ export async function renderSportsbook(request, env, slug, ctx = null) {
 
   const html = await renderer.render("content-item.html", {
     ...item,
+    name: escapeHtml(item.name),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -4010,6 +4287,7 @@ export async function renderAffiliatePartner(request, env, slug, ctx = null) {
 
   const html = await renderer.render("content-item.html", {
     ...item,
+    name: escapeHtml(item.name),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -4135,6 +4413,7 @@ export async function renderCustom(request, env, typeSlug, slug, ctx = null) {
 
   const html = await renderer.render("content-item.html", {
     ...item,
+    name: escapeHtml(item.name),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -4327,7 +4606,7 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
     : "customReview";
 
   const html = await renderer.render("generic-review.html", {
-    title: review.title,
+    title: escapeHtml(review.title),
     content: review.content || "",
     verdict: review.verdict || "",
     reviewed_at: review.created_at ? new Date(review.created_at).toLocaleDateString() : "",
@@ -4519,7 +4798,7 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
   };
 
   const html = await renderer.render("comparison.html", {
-    title: comparison.title,
+    title: escapeHtml(comparison.title),
     description: comparison.description || "",
     item_header_cells_html: headerCells,
     item_logo_cells_html: logoCells,
@@ -4658,12 +4937,85 @@ export async function renderReviewList(request, env) {
   return new Response(html, { headers: cacheHeaders() });
 }
 
+// News homepage v2 (flag news_v2_homepage). Only for the plain /en/news view;
+// search and tag views keep the existing page. Returns null on any failure so
+// the caller falls back to the existing page.
+async function renderNewsHome(request, env, flags, renderer) {
+  const [site, data, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    nrHome.loadHomepage(env.DB, env, flags),
+    renderer.renderAllComponents("news_list", "news_list"),
+    renderer.loadDynamicSeo("news_list", "news_list"),
+  ]);
+
+  const pageTitle = "News";
+  const pageDescription = `Latest iGaming industry news and updates from ${site.siteName}.`;
+  const canonical = dynamicSeo.canonical || site.url("/en/news");
+  const items = [data.lead, ...data.latest].filter(Boolean);
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${canonical}#webpage`,
+    "url": canonical,
+    "name": pageTitle,
+    "description": pageDescription,
+    "isPartOf": { "@type": "WebSite", "@id": `${site.origin}#website`, "name": site.siteName, "url": site.origin },
+    ...(items.length ? {
+      "mainEntity": {
+        "@type": "ItemList",
+        "itemListElement": items.map((a, i) => ({
+          "@type": "ListItem", "position": i + 1, "url": site.url(`/en/news/${a.slug}`), "name": a.title
+        }))
+      }
+    } : {})
+  };
+
+  const html = await renderer.render("news-home.html", {
+    canonical,
+    page_title: escapeHtml(pageTitle),
+    page_description: escapeHtml(pageDescription),
+    home_html: nrHome.renderHomepage(data, formatDate),
+    components_top: allComponents.top,
+    components_bottom: allComponents.bottom,
+    seo_title: dynamicSeo.seo_title || `${pageTitle} | ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || pageDescription,
+    seo_keywords: dynamicSeo.seo_keywords || "",
+    robots: items.length ? "index, follow" : "noindex, follow"
+  }, listSchema, buildBreadcrumbs("newsList"));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
 export async function renderNewsList(request, env) {
   const renderer = new Renderer(env, request);
 
   const url = new URL(request.url);
   const searchQuery = (url.searchParams.get("q") || "").trim();
   const tagFilter = (url.searchParams.get("tag") || "").trim();
+
+  // Search v2 (flag news_search_v2): any of q / section / author / country / entity / type / from / to.
+  const searchParams = nrSearch.parseSearchParams(url.searchParams);
+  if (!tagFilter && nrSearch.hasSearchFilters(searchParams)) {
+    try {
+      const flags = await newsroom.getNewsFlags(env.DB);
+      if (flags.news_search_v2) {
+        const res = await renderNewsSearch(request, env, flags, searchParams);
+        if (res) return res;
+      }
+    } catch (e) {
+      console.error("News search v2 failed, using the existing search:", e.message);
+    }
+  }
+
+  if (!searchQuery && !tagFilter && !nrSearch.hasSearchFilters(searchParams)) {
+    try {
+      const flags = await newsroom.getNewsFlags(env.DB);
+      if (flags.news_v2_homepage) return await renderNewsHome(request, env, flags, renderer);
+    } catch (e) {
+      console.error("News homepage v2 failed, using the existing page:", e.message);
+    }
+  }
 
   const newsListPromise = searchQuery
     ? news.searchNews(env.DB, searchQuery, 50)
@@ -4767,8 +5119,10 @@ export async function renderNewsList(request, env) {
 
   const html = await renderer.render("news-list.html", {
     canonical: newsListUrl,
-    page_title: pageTitle,
-    page_description: pageDescription,
+    // {{vars}} are not escaped by the template engine and pageTitle/pageDescription
+    // embed the ?q= / ?tag= query values (reflected XSS otherwise).
+    page_title: escapeHtml(pageTitle),
+    page_description: escapeHtml(pageDescription),
     news_cards: newsCards,
     empty_state_html: emptyStateHtml,
     search_query: escapeHtml(searchQuery),
@@ -5250,6 +5604,7 @@ export async function renderUpdate(request, env, slug) {
     "update.html",
     {
       ...update,
+      title: escapeHtml(update.title),
 
       canonical:
         dynamicSeo.canonical ||
@@ -5393,6 +5748,9 @@ export async function renderDashboardReviews(request, env) {
 }
 export async function renderDashboardNews(request, env) {
   return renderAdminPage(request, env, "admin/news.html");
+}
+export async function renderDashboardNewsroom(request, env) {
+  return renderAdminPage(request, env, "admin/newsroom.html");
 }
 export async function renderDashboardUpdates(request, env) {
   return renderAdminPage(request, env, "admin/updates.html");
@@ -5731,16 +6089,19 @@ export async function renderDashboardSeo(request, env) {
 export async function renderAuthor(request, env, slug) {
   const author = await authors.getAuthor(env.DB, slug);
   if (!author) return render404(request, env);
+  // The author list hides unpublished authors; their direct URL must not expose the profile either.
+  if (Number(author.published) === 0) return render404(request, env);
 
   const renderer = new Renderer(env, request);
 
   // Independent of each other — fetch concurrently.
-  const [site, content, stats, allComponents, dynamicSeo] = await Promise.all([
+  const [site, content, stats, allComponents, dynamicSeo, nrFlags] = await Promise.all([
     getSiteContext(request, env),
     authors.getAuthorContent(env.DB, author.id),
     authors.getAuthorStats(env.DB, author.id),
     renderer.renderAllComponents("author", slug),
     renderer.loadDynamicSeo("author", slug),
+    newsroom.getNewsFlags(env.DB).catch(() => ({})),
   ]);
 
   // Build review cards
@@ -5760,8 +6121,8 @@ export async function renderAuthor(request, env, slug) {
   // Build review cards
   const reviewCards = content.reviews.map(r => {
     const casino = r.casino_slug ? authorCasinoMeta[r.casino_slug] : null;
-    const casinoImage = casino?.logo || '/static/images/default.png';
-    const casinoImageAlt = casino?.name || r.title;
+    const casinoImage = escapeHtml(casino?.logo || '/static/images/default.png');
+    const casinoImageAlt = escapeHtml(casino?.name || r.title);
 
     return `
     <div class="casino-card">
@@ -5769,12 +6130,12 @@ export async function renderAuthor(request, env, slug) {
         <img src="${casinoImage}" alt="${casinoImageAlt}" loading="lazy" onerror="this.src='/static/images/default.png'">
       </div>
       <div class="casino-card__body">
-        <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
+        <h3><a href="/en/review/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a></h3>
         <div class="casino-card__rating">★ ${r.rating ? r.rating + "/5" : "N/A"}</div>
         <p class="muted">Updated: ${new Date(r.updated_at).toLocaleDateString()}</p>
       </div>
       <div class="casino-card__actions">
-        <a href="/en/review/${r.slug}" class="btn btn--primary">Read Review</a>
+        <a href="/en/review/${encodeURIComponent(r.slug)}" class="btn btn--primary">Read Review</a>
       </div>
     </div>
   `;
@@ -5789,7 +6150,7 @@ export async function renderAuthor(request, env, slug) {
 
     return `
     <article style="overflow:hidden;border:1px solid var(--light-gray);border-radius:12px;background:var(--white);transition:transform 0.2s,box-shadow 0.2s">
-      <a href="/en/news/${n.slug}" style="display:block;color:inherit;text-decoration:none">
+      <a href="/en/news/${encodeURIComponent(n.slug)}" style="display:block;color:inherit;text-decoration:none">
         ${imageHtml}
         <div style="padding:20px">
           <h3 style="margin:0 0 8px;font-size:18px;line-height:1.3;color:var(--dark)">${escapeHtml(n.title)}</h3>
@@ -5804,25 +6165,33 @@ export async function renderAuthor(request, env, slug) {
 
   // Build page list
   const pageList = content.pages.map(p => `
-    <li><a href="/en/${p.slug}">${p.title}</a> <span class="muted">— ${new Date(p.created_at).toLocaleDateString()}</span></li>
+    <li><a href="/en/${p.slug}">${escapeHtml(p.title)}</a> <span class="muted">— ${new Date(p.created_at).toLocaleDateString()}</span></li>
   `).join("");
 
-  const authorSchema = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": author.name,
-    "description": author.bio || "",
-    "image": author.avatar_url || "",
-    "jobTitle": author.role || "Editor"
-  };
+  const nrTax = !!nrFlags.news_new_taxonomy;
+  const authorCanonical = dynamicSeo.canonical || site.url(`/en/author/${slug}`);
+  const authorSchema = nrTax
+    ? nrRender.authorPersonSchema({ author, canonical: authorCanonical, siteName: site.siteName || site.hostname, origin: site.origin, articleCount: stats.news })
+    : {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": author.name,
+        "description": author.bio || "",
+        "image": author.avatar_url || "",
+        "jobTitle": author.role || "Editor"
+      };
 
   const html = await renderer.render("author.html", {
     ...author,
-    author_name: author.name,
-    author_bio: author.bio || "",
-    author_avatar: author.avatar_url || site.logoUrl,
-    author_role: author.role || "Editor",
-    author_social: author.social_links || "",
+    // {{vars}} are not escaped by the template engine; these come from an editable profile.
+    author_name: escapeHtml(author.name),
+    author_bio: escapeHtml(author.bio || ""),
+    author_avatar: escapeHtml(author.avatar_url || site.logoUrl),
+    author_role: escapeHtml((nrTax && author.job_title) || author.role || "Editor"),
+    author_social: sanitizeHtml(author.social_links || ""),
+    author_facts_html: nrTax
+      ? `<link rel="stylesheet" href="/static/css/newsroom.css">${nrRender.renderAuthorFacts(author, stats.news)}`
+      : "",
     review_cards: reviewCards,
     news_cards: newsCards || '<p class="muted">No articles yet.</p>',
     page_list: pageList || '<li class="muted">No pages yet.</li>',
@@ -5837,7 +6206,7 @@ export async function renderAuthor(request, env, slug) {
     seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
     og_image: author.avatar_url ? site.url(author.avatar_url) : site.ogImageUrl,
     og_image_alt: author.name,
-    canonical: dynamicSeo.canonical || site.url(`/en/author/${slug}`)
+    canonical: authorCanonical
   }, authorSchema, buildBreadcrumbs("author", {author_name: author.name }));
   return new Response(html, { headers: cacheHeaders() });
 }

@@ -72,6 +72,8 @@ import {
   renderDashboardComparisonCreate,
   renderDashboardReviews,
   renderDashboardNews,
+  renderDashboardNewsroom,
+  renderNewsTaxonomyPage,
   renderDashboardUpdates,
   renderDashboardCountryPages,
   renderDashboardCategoryCountries,
@@ -463,6 +465,14 @@ if (
         return renderDashboardReviews(request, env);
       case "dashboardNews":
         return renderDashboardNews(request, env);
+      case "dashboardNewsroom":
+        return renderDashboardNewsroom(request, env);
+      case "newsTaxonomy":
+        {
+        let taxSlug = route.slug;
+        try { taxSlug = decodeURIComponent(route.slug); } catch { /* malformed escape: use the raw slug (will simply not match) */ }
+        return renderNewsTaxonomyPage(request, env, route.kind, taxSlug);
+      }
       case "dashboardUpdates":
         return renderDashboardUpdates(request, env);
 
@@ -660,6 +670,17 @@ case "sitemap-news":
     env.DB,
     "news"
   );
+
+case "sitemap-news-landing":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "news-landing"
+  );
+
+case "sitemap-google-news":
+  return sitemapEngine.generateGoogleNews(request, env, env.DB);
 
 case "sitemap-updates":
   return sitemapEngine.generate(

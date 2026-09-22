@@ -2,6 +2,7 @@
   <div class="container">
     {{components_top}}
     <header class="news-header">
+      {{{newsroom_kicker_html}}}
       <h1>{{title}}</h1>
 
       {{#if excerpt}}
@@ -17,6 +18,8 @@
         </div>
       </div>
     </header>
+    {{{newsroom_notice_html}}}
+    {{{newsroom_timeline_html}}}
 
     {{#if featured_image_url}}
     <figure class="news-featured" style="margin:0 0 30px">
@@ -30,6 +33,8 @@
       {{components_content_top}}
       {{components_content_bottom}}
     </div>
+    {{{newsroom_after_html}}}
+    {{{newsroom_discovery_html}}}
 
     {{#if tags_html}}
     <div class="news-tags-section" style="margin-top:35px;padding-top:25px;border-top:1px solid var(--light-gray)">
@@ -37,6 +42,8 @@
       <div class="news-tags-list">{{{tags_html}}}</div>
     </div>
     {{/if}}
+
+    {{{newsroom_related_html}}}
 
     {{#if related_news_html}}
     <section class="news-related" style="margin-top:40px;padding-top:30px;border-top:2px solid var(--light-gray)">

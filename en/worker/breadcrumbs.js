@@ -243,6 +243,10 @@ export function buildBreadcrumbs(route, data = {}) {
 // HTML Breadcrumbs
 // =====================================================
 
+const escBc = (s) => String(s ?? "")
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 export function renderBreadcrumbs(crumbs = []) {
 
   crumbs = Array.isArray(crumbs) ? crumbs : [];
@@ -253,10 +257,10 @@ export function renderBreadcrumbs(crumbs = []) {
   const items = crumbs.map(c => {
 
     if (c.url) {
-      return `<li><a href="${c.url}">${c.label}</a></li>`;
+      return `<li><a href="${escBc(c.url)}">${escBc(c.label)}</a></li>`;
     }
 
-    return `<li aria-current="page">${c.label}</li>`;
+    return `<li aria-current="page">${escBc(c.label)}</li>`;
 
   }).join("");
 

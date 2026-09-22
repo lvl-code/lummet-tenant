@@ -9,6 +9,29 @@ const RESOURCES = [
 ];
 
 const ACTIONS = ["create", "read", "update", "delete"];
+
+// Newsroom editorial actions (resource "news"). Stored in the same
+// permissions table; shown as extra rows so they can be granted per role.
+const NEWSROOM_ACTIONS = [
+  ["review", "Review / approve"], ["factcheck", "Fact-check"], ["publish", "Publish / unpublish workflow articles"],
+  ["schedule", "Schedule"], ["correct", "Corrections & clarifications"], ["retract", "Retract"],
+  ["manage_authors", "Manage author profiles"], ["manage_taxonomy", "Manage sections, topics, entities, series"],
+  ["manage_sources", "Manage sources"], ["manage_settings", "Newsroom settings"], ["view_analytics", "View newsroom analytics"]
+];
+
+function newsroomPermissionRows(rolePerms) {
+  const newsPerms = (rolePerms && rolePerms.news) || {};
+  const head = '<tr><td colspan="5" style="background:#f6f7f9"><strong>Newsroom editorial permissions</strong> <span class="muted">(admin-only by default)</span></td></tr>';
+  const rows = NEWSROOM_ACTIONS.map(([action, label]) => `
+        <tr>
+          <td>${label}</td>
+          <td colspan="4" style="text-align:center">
+            <input type="checkbox" data-resource="news" data-action="${action}" ${newsPerms[action] === true ? "checked" : ""}
+              style="width:20px;height:20px;cursor:pointer">
+          </td>
+        </tr>`).join("");
+  return head + rows;
+}
 const RESOURCE_LABELS = {
   casinos: "Casinos", reviews: "Reviews", news: "News",   "platform-updates": "Platform Updates", pages: "Pages",
   categories: "Categories", countries: "Countries", authors: "Authors",
@@ -58,7 +81,7 @@ async function loadPermissionMatrix() {
           <td><strong>${RESOURCE_LABELS[resource] || resource}</strong></td>
           ${cells}
         </tr>`;
-    }).join("");
+    }).join("") + newsroomPermissionRows(rolePerms);
   } catch {
     tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
   }

@@ -204,6 +204,12 @@ export function getRoute(request) {
   // /en/news/new-license
   // =====================================================
 
+  // Newsroom landing pages: /en/news/{topic|entity|series}/<slug>
+  const newsTaxMatch = path.match(/^\/en\/news\/(topic|entity|series)\/([^/]+)$/);
+  if (newsTaxMatch) {
+    return { type: "newsTaxonomy", kind: newsTaxMatch[1], slug: newsTaxMatch[2] };
+  }
+
   const newsMatch =
     path.match(/^\/en\/news\/([^/]+)$/);
 
@@ -408,6 +414,7 @@ export function getRoute(request) {
   if (path === "/en/dashboard/comparison/create") return { type: "dashboardComparisonCreate" };
   if (path === "/en/dashboard/reviews") return { type: "dashboardReviews" };
   if (path === "/en/dashboard/news") return { type: "dashboardNews" };
+  if (path === "/en/dashboard/newsroom") return { type: "dashboardNewsroom" };
   if (path === "/en/dashboard/updates")  return { type: "dashboardUpdates" };
   if (path === "/en/dashboard/country-pages") return { type: "dashboardCountryPages" };
   if (path === "/en/dashboard/category-countries") return { type: "dashboardCategoryCountries" };
@@ -574,6 +581,12 @@ if (path === "/favicon.ico") {
   }
   if (path === "/sitemap-news.xml" || path === "/en/sitemap-news.xml") {
       return { type: "sitemap-news" };
+  }
+  if (path === "/sitemap-news-sections.xml" || path === "/en/sitemap-news-sections.xml") {
+      return { type: "sitemap-news-landing" };
+  }
+  if (path === "/news-sitemap.xml" || path === "/en/news-sitemap.xml") {
+      return { type: "sitemap-google-news" };
   }
   if (path === "/sitemap-updates.xml" || path === "/en/sitemap-updates.xml") {
       return { type: "sitemap-updates" };

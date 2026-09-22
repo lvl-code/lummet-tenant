@@ -73,7 +73,8 @@ async function accessibleArticle(env, user, id, action) {
 // ── Main dispatcher ──────────────────────────────────────────
 export async function handleNewsroomApi(request, env, user) {
   const url = new URL(request.url);
-  const path = url.pathname;
+//  const path = url.pathname;
+  const path = url.pathname.replace(/^\/en(?=\/)/, '');    // normalize, same as routes.js
   if (!path.startsWith('/api/v1/newsroom/')) return null;
   if (!user) return fail('Unauthorized', 401);
 

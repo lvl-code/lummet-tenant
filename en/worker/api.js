@@ -48,6 +48,8 @@ import { isReservedSlug } from "./reserved-slugs.js";
 
 
 import * as itemAccess from "./database/item-access.js";
+import { handleNewsroomApi, beforeNewsUpdate, afterNewsUpdate, slugRedirectHook, searchReindexHook } from "./newsroom-api.js";
+import { sanitizePublicNewsList } from "./newsroom-render.js";
 import {
   handleGetUserItemAccess,
   handleSetUserItemAccess,
@@ -290,7 +292,8 @@ if (path === "/api/v1/public/news/list") {
     );
   }
 
-  return json({ news: newsList });
+  // Allow-list the public payload (drops created_by, ad_mode, ad_override_rules and any future private column).
+  return json({ news: sanitizePublicNewsList(newsList) });
 }
 if (path === "/api/v1/public/newsbackup/list") {
   let news = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
@@ -303,7 +306,7 @@ if (path === "/api/v1/public/newsbackup/list") {
     news = result.results || [];
     await setCached(env, CACHE_KEYS.PUBLIC_NEWS, news);
   }
-  return json({ news });
+  return json({ news: sanitizePublicNewsList(news) });
 }
 
 if (path === "/api/v1/public/casinos/geo") {
@@ -1137,6 +1140,15 @@ if (path === "/api/v1/stats/top-casinos") {
     `).all();
     return json({ countries: result.results });
   }
+
+    // ==================================
+// NEWSROOM (editorial workflow, taxonomy, sources, corrections)
+// Self-contained: performs its own permission + item-access checks.
+// ==================================
+if (path.startsWith("/api/v1/newsroom/")) {
+  const newsroomResponse = await handleNewsroomApi(request, env, user);
+  if (newsroomResponse) return newsroomResponse;
+}
 
     // ==================================
 // NEWS
@@ -4888,6 +4900,7 @@ async function createNews(request, env, user) {
   ]);
   body.created_by = user.user_id;
   await news.createNews(env.DB, body);
+  await searchReindexHook(env, body.slug);   // keep the news search index current (never throws)
   await invalidateNews(env);
 
   if (body.published !== 0) {
@@ -4913,11 +4926,19 @@ async function updateNews(request, env, user) {
   const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'news', 'update', existing);
   if (!canUpdate) return failure("News article not found", 404);
 
+  // Newsroom hooks: no-ops unless the news_editorial_workflow flag is on.
+  const newsroomCtx = await beforeNewsUpdate(env, user, body);
+  if (newsroomCtx.denied) return failure(newsroomCtx.denied.error, newsroomCtx.denied.status);
+
   await news.updateNews(
     env.DB,
     body.old_slug,
     body
   );
+
+  await slugRedirectHook(env, body);   // old URL 301s to the new one if the slug changed (never throws)
+  await searchReindexHook(env, body.slug);
+  await afterNewsUpdate(env, user, body, newsroomCtx);
 
   await invalidateNews(env);
   return success();

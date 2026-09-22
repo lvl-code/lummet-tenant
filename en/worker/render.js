@@ -581,7 +581,7 @@ async buildSEO(data = {}) {
     : "";
 
   return `
-<title>${title}</title>
+<title>${this.escapeHtml(title)}</title>
 <meta name="description" content="${description}">
 ${keywordsTag}<meta name="robots" content="${robots}">
 <link rel="canonical" href="${canonical}">
@@ -611,7 +611,7 @@ ${ogImageWidthTag}${ogImageHeightTag}${ogImageAltTag}<meta name="twitter:card" c
     .filter(Boolean)
     .map(schema => `
 <script type="application/ld+json">
-${JSON.stringify(schema)}
+${JSON.stringify(schema).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")}
 </script>
 `)
     .join("\n");

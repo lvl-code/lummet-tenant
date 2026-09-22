@@ -80,6 +80,7 @@ export async function getAuthorContent(db, authorId) {
     FROM news n
     LEFT JOIN media_library m ON m.id = n.featured_image
     WHERE n.author_id = ? AND n.published = 1
+      AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))   -- scheduled articles are not public yet
     ORDER BY n.created_at DESC
   `).bind(authorId).all();
 
@@ -120,7 +121,8 @@ export async function getAuthorContentbackup(db, authorId) {
 
 export async function getAuthorStats(db, authorId) {
   const reviews = await db.prepare(`SELECT COUNT(*) c FROM reviews WHERE author_id = ?`).bind(authorId).first();
-  const news = await db.prepare(`SELECT COUNT(*) c FROM news WHERE author_id = ?`).bind(authorId).first();
+  // live, published articles only (was: every row, drafts and scheduled included)
+  const news = await db.prepare(`SELECT COUNT(*) c FROM news WHERE author_id = ? AND published = 1 AND (published_at IS NULL OR datetime(published_at) <= datetime('now'))`).bind(authorId).first();
   const pages = await db.prepare(`SELECT COUNT(*) c FROM pages WHERE author_id = ?`).bind(authorId).first();
   return {
     reviews: reviews.c,

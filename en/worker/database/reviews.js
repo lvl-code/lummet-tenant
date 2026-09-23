@@ -186,10 +186,21 @@ export async function getLatestReviews(db, limit = 6) {
 
 
 export async function deleteReview(db, slug) {
-  return db.prepare(`
-    DELETE FROM reviews
-    WHERE slug = ?
-  `)
+  // analytics_events.review_id -> reviews(id) has no ON DELETE action,
+  // so a review with logged events fails the delete with a foreign key
+  // constraint error. Detach those rows first (in the same batch) rather
+  // than cascading them away, since analytics history is worth keeping.
+  const review = await db
+    .prepare(`SELECT id FROM reviews WHERE slug = ? LIMIT 1`)
     .bind(slug)
-    .run();
+    .first();
+
+  if (!review) {
+    return { success: true, meta: { changes: 0 } };
+  }
+
+  return db.batch([
+    db.prepare(`UPDATE analytics_events SET review_id = NULL WHERE review_id = ?`).bind(review.id),
+    db.prepare(`DELETE FROM reviews WHERE slug = ?`).bind(slug),
+  ]);
 }

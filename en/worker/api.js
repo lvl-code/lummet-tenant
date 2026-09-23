@@ -1022,10 +1022,13 @@ if (path === "/api/v1/news/list") {
 
   const result = await env.DB.prepare(
     `SELECT n.*, m.url AS featured_image_url, m.thumbnail_url AS featured_image_thumbnail,
-            m.alt_text AS featured_image_alt, a.name AS author_name, a.slug AS author_slug,
+            m.alt_text AS featured_image_alt, og.url AS og_image_url,
+            og.thumbnail_url AS og_image_thumbnail, og.alt_text AS og_image_alt,
+            a.name AS author_name, a.slug AS author_slug,
             a.avatar_url AS author_avatar, a.role AS author_role
      FROM news n
      LEFT JOIN media_library m ON m.id = n.featured_image
+     LEFT JOIN media_library og ON og.id = n.og_image
      LEFT JOIN authors a ON a.id = n.author_id
      ${whereClause}
      ORDER BY COALESCE(n.published_at, n.created_at) DESC`

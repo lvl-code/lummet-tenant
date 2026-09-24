@@ -130,6 +130,36 @@ export async function getRelationsFrom(db, fromType, fromId) {
   return rows.map((r, i) => ({ ...r, target: resolvedTargets[i] }));
 }
 
+/**
+ * Batched version of getRelationsFrom for many source entities of the
+ * SAME from_type at once (one query + one batched resolveEntities
+ * call, instead of N+1) — built for listing pages like the research
+ * hub, which need "what is each of these 20 items related to" without
+ * running 20 separate relation lookups. Returns a Map keyed by
+ * fromId (string) -> array of { ...relationRow, target }.
+ */
+export async function getRelationsFromMany(db, fromType, fromIds) {
+  const ids = [...new Set((fromIds || []).map(String))];
+  if (ids.length === 0) return new Map();
+
+  const placeholders = ids.map(() => "?").join(",");
+  const result = await db.prepare(`
+    SELECT * FROM research_relations
+    WHERE from_type = ? AND from_id IN (${placeholders})
+    ORDER BY from_id, sort_order ASC, id ASC
+  `).bind(fromType, ...ids).all();
+  const rows = result.results || [];
+
+  const byFromId = new Map(ids.map((id) => [id, []]));
+  if (rows.length === 0) return byFromId;
+
+  const resolvedTargets = await resolveEntities(db, rows.map((r) => ({ type: r.to_type, id: r.to_id })));
+  rows.forEach((r, i) => {
+    byFromId.get(r.from_id).push({ ...r, target: resolvedTargets[i] });
+  });
+  return byFromId;
+}
+
 /** All relations where the given entity is the "to" side, with the "from" side resolved — lets a country page show "Casinos regulated in this country" even though the row was stored from the casino's side. */
 export async function getRelationsTo(db, toType, toId) {
   const result = await db.prepare(`

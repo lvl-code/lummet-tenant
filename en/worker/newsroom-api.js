@@ -25,6 +25,7 @@ import * as itemAccess from './database/item-access.js';
 import { logAudit } from './database/audit.js';
 import { invalidateNews } from './cache.js';
 import * as nr from './database/newsroom.js';
+import { resetNewsFlagCache } from './database/newsroom.js';
 import * as tx from './database/newsroom-taxonomy.js';
 import * as trust from './newsroom-trust.js';
 import * as stats from './newsroom-stats.js';
@@ -33,6 +34,24 @@ import * as search from './newsroom-search.js';
 
 export const NEWSROOM_ROLES = ['Reporter', 'Senior Reporter', 'Editor', 'Senior Editor', 'Managing Editor',
   'Researcher', 'Data Editor', 'Correspondent', 'Contributor'];
+
+// ── Feature flags (system_settings, key LIKE 'news_%') ────────
+// Descriptions shown in the admin UI. A flag not listed here still shows up
+// (labelled with its raw key) if it exists in the database -- this list is
+// documentation, not an allow-list for reads. Writes ARE allow-listed below.
+const FLAG_INFO = {
+  news_editorial_workflow: { label: 'Editorial workflow', help: 'Draft -> review -> fact-check -> approve -> publish, with revision history. Off: legacy simple publishing.' },
+  news_new_taxonomy: { label: 'Sections, regions, countries & topics', help: 'Section/region/country/topic/series pages, article badges & notices, discovery links. Needs sections/topics set up first.' },
+  news_sources_display: { label: 'Public sources & methodology', help: 'Shows the Sources list and Reporting & Methodology on published articles.' },
+  news_corrections_display: { label: 'Public corrections banner', help: 'Shows corrections, clarifications, updates and retractions on articles.' },
+  news_entity_pages: { label: 'Entity pages', help: '/en/news/entity/<slug> pages and company/person chips on articles.' },
+  news_v2_homepage: { label: 'News homepage v2', help: 'Replaces /en/news with the lead story, latest, most read, trending and section blocks.' },
+  news_trending: { label: 'Trending block', help: 'Needs page-view data; shows a trending list on the homepage and in Most Read.' },
+  news_analytics_enrichment: { label: 'Analytics enrichment', help: 'Records a bot flag, device type and UTM parameters on news page views from the moment this is turned on (not retroactive).' },
+  news_google_sitemap: { label: 'Google News sitemap', help: 'Publishes /en/news-sitemap.xml. Only useful once the publication is accepted in Google Publisher Center.' },
+  news_search_v2: { label: 'News search v2', help: 'Replaces /en/news?q= search. Rebuild the search index (Search tab) before turning this on.' },
+};
+
 const QUEUE_VIEWS = ['drafts', 'assigned_to_me', 'review', 'factcheck', 'approved', 'scheduled', 'published', 'corrections'];
 const MAX_BODY = 512 * 1024;
 
@@ -73,7 +92,6 @@ async function accessibleArticle(env, user, id, action) {
 // ── Main dispatcher ──────────────────────────────────────────
 export async function handleNewsroomApi(request, env, user) {
   const url = new URL(request.url);
-//  const path = url.pathname;
   const path = url.pathname.replace(/^\/en(?=\/)/, '');    // normalize, same as routes.js
   if (!path.startsWith('/api/v1/newsroom/')) return null;
   if (!user) return fail('Unauthorized', 401);
@@ -163,6 +181,11 @@ export async function handleNewsroomApi(request, env, user) {
         const list = await tx.listTaxonomy(env.DB, url.searchParams.get('kind'), { includeInactive: url.searchParams.get('all') === '1' && can('manage_taxonomy') });
         return list ? ok({ items: list }) : fail('Unknown taxonomy kind', 404);
       }
+      if (route === 'flags') {
+        if (!can('manage_settings')) return fail('Forbidden', 403);
+        const rows = (await env.DB.prepare(`SELECT key, value FROM system_settings WHERE key LIKE 'news_%' ORDER BY key`).all()).results || [];
+        return ok({ flags: rows.map((r) => ({ key: r.key, value: String(r.value).toLowerCase() === 'true', ...(FLAG_INFO[r.key] || { label: r.key, help: '' }) })) });
+      }
       if (route === 'meta') return ok({
         article_types: nr.ARTICLE_TYPES, content_classes: nr.CONTENT_CLASSES, labels: nr.LABELS, source_types: nr.SOURCE_TYPES,
         correction_types: nr.CORRECTION_TYPES, relation_types: nr.RELATION_TYPES, workflow_statuses: nr.WORKFLOW_STATUSES,
@@ -182,6 +205,22 @@ export async function handleNewsroomApi(request, env, user) {
     if (parsed.error) return parsed.error;
     const body = parsed.body;
 
+    if (route === 'flags/save') {
+      if (!can('manage_settings')) return fail('Forbidden', 403);
+      const updates = body && typeof body === 'object' && body.flags && typeof body.flags === 'object' ? body.flags : { [body?.key]: body?.value };
+      const entries = Object.entries(updates).filter(([, v]) => v !== undefined);
+      if (!entries.length) return fail('No flags given');
+      // Allow-list: only keys that already exist as news_* rows can be written -- this can never
+      // create a new arbitrary system_settings row or touch a non-newsroom setting.
+      const existing = new Set(((await env.DB.prepare(`SELECT key FROM system_settings WHERE key LIKE 'news_%'`).all()).results || []).map((r) => r.key));
+      for (const [key] of entries) if (!existing.has(key)) return fail(`Unknown flag: ${key}`, 400);
+      for (const [key, value] of entries) {
+        await env.DB.prepare(`UPDATE system_settings SET value = ? WHERE key = ?`).bind(value ? 'true' : 'false', key).run();
+      }
+      resetNewsFlagCache();   // takes effect immediately instead of waiting out the 30s cache
+      await logAudit(env.DB, { userId: user.user_id, action: 'taxonomy_changed', entityType: 'news_flag', entityId: null, metadata: { updated: Object.fromEntries(entries.map(([k, v]) => [k, !!v])) } });
+      return ok({ updated: entries.length });
+    }
     if (route === 'taxonomy/save') {
       const r = await tx.saveTaxonomyItem(env.DB, body.kind, body, { actor, perms });
       if (r.ok) await invalidateNews(env);

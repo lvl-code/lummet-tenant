@@ -1,5 +1,5 @@
 -- =====================================================
--- 0050_news_search.sql
+-- 0058_news_search.sql
 -- Additive. Fast news search without scanning article bodies.
 --
 -- The existing search does `LIKE '%q%'` on title, excerpt, content and tags

@@ -339,6 +339,59 @@ describe('save-path hooks on the EXISTING update endpoint', () => {
   });
 });
 
+describe('flags admin API', () => {
+  test('GET flags: needs news.manage_settings; lists every news_* row with its saved value and a label', async () => {
+    const env = await setup();
+    assert.equal((await call(env, 'GET', 'flags', { user: EDITOR })).status, 403);
+    const r = await call(env, 'GET', 'flags');
+    assert.equal(r.status, 200);
+    assert.ok(r.json.flags.length >= 9, `expected at least 9 flags, got ${r.json.flags.length}`);
+    const bySlug = Object.fromEntries(r.json.flags.map((f) => [f.key, f]));
+    assert.ok(bySlug.news_search_v2); assert.equal(bySlug.news_search_v2.value, false);
+    assert.ok(bySlug.news_search_v2.label && bySlug.news_search_v2.label !== 'news_search_v2', 'known flags get a human label');
+    // an unlisted-but-real flag still shows up, just labelled by its key (documentation list is not a read allow-list)
+    await env.DB.prepare(`INSERT INTO system_settings (key, value) VALUES ('news_made_up_future_flag', 'false')`).run();
+    const r2 = await call(env, 'GET', 'flags');
+    const madeUp = r2.json.flags.find((f) => f.key === 'news_made_up_future_flag');
+    assert.ok(madeUp); assert.equal(madeUp.label, 'news_made_up_future_flag');
+  });
+
+  test('POST flags/save: needs news.manage_settings; flips one or many; is audited; unknown request shapes fail cleanly', async () => {
+    const env = await setup();
+    assert.equal((await call(env, 'POST', 'flags/save', { user: EDITOR, body: { flags: { news_search_v2: true } } })).status, 403);
+    assert.equal((await call(env, 'POST', 'flags/save', { body: {} })).status, 400);
+    const r = await call(env, 'POST', 'flags/save', { body: { flags: { news_search_v2: true, news_trending: true } } });
+    assert.equal(r.status, 200); assert.equal(r.json.updated, 2);
+    const row = await env.DB.prepare(`SELECT value FROM system_settings WHERE key='news_search_v2'`).first();
+    assert.equal(row.value, 'true');
+    const audit = await env.DB.prepare(`SELECT metadata FROM audit_logs WHERE entity_type='news_flag' ORDER BY id DESC LIMIT 1`).first();
+    assert.match(audit.metadata, /news_search_v2/);
+    // single-flag shorthand also works
+    const r2 = await call(env, 'POST', 'flags/save', { body: { key: 'news_trending', value: false } });
+    assert.equal(r2.status, 200);
+    assert.equal((await env.DB.prepare(`SELECT value FROM system_settings WHERE key='news_trending'`).first()).value, 'false');
+  });
+
+  test('POST flags/save: allow-listed to existing news_* rows only -- cannot create or touch an arbitrary system_settings key', async () => {
+    const env = await setup();
+    const before = await env.DB.prepare(`SELECT COUNT(*) c FROM system_settings`).first();
+    const r = await call(env, 'POST', 'flags/save', { body: { flags: { site_maintenance_mode: true } } });
+    assert.equal(r.status, 400);
+    assert.match(r.json.error, /Unknown flag/);
+    const after = await env.DB.prepare(`SELECT COUNT(*) c FROM system_settings`).first();
+    assert.equal(after.c, before.c, 'no new row was created');
+    assert.equal(await env.DB.prepare(`SELECT value FROM system_settings WHERE key='site_maintenance_mode'`).first(), null, 'non-news setting was never touched');
+  });
+
+  test('a flag flip takes effect immediately for public rendering, not after the 30s cache window', async () => {
+    const env = await setup();
+    const { getNewsFlags } = nr;
+    assert.equal((await getNewsFlags(env.DB)).news_trending, false);
+    await call(env, 'POST', 'flags/save', { body: { flags: { news_trending: true } } });
+    assert.equal((await getNewsFlags(env.DB)).news_trending, true, 'cache was reset by the save, not left stale for 30s');
+  });
+});
+
 describe('wiring (source inspection of api.js)', () => {
   const src = readFileSync(new URL('../worker/api.js', import.meta.url), 'utf-8');
   test('api.js imports and mounts the newsroom handler after the auth gate', () => {

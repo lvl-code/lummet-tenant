@@ -1,5 +1,5 @@
 -- =====================================================
--- 0045_news_published_at_parity.sql
+-- 0053_news_published_at_parity.sql
 --
 -- REPO-PARITY MIGRATION. Read before running.
 --

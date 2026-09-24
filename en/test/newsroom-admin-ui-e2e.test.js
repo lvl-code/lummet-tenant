@@ -54,7 +54,7 @@ async function boot(user = ADMIN, { workflow = false } = {}) {
   await db.prepare(`INSERT INTO news (id, slug, title, content, published, author_id, created_by) VALUES (10,'live-one','Live One','<p>x</p>',1,1,1)`).run();
 
   const panel = new El('div'), alert = new El('div');
-  const tabs = ['queues', 'article', 'taxonomy', 'policies', 'authors', 'analytics', 'search', 'homepage'].map((t) => { const b = new El('button'); b.setAttribute('data-nr-tab', t); return b; });
+  const tabs = ['queues', 'article', 'taxonomy', 'policies', 'authors', 'analytics', 'search', 'homepage', 'flags'].map((t) => { const b = new El('button'); b.setAttribute('data-nr-tab', t); return b; });
   let ready; const listeners = {};
   const document = {
     getElementById: (id) => ({ nrPanel: panel, nrAlert: alert }[id] || null),
@@ -152,7 +152,7 @@ describe('newsroom admin page, end to end', () => {
 
   test('no panel ever renders the literal text "null" / "undefined" (real DOM append() stringifies null children)', async () => {
     // no \b in the regex: text nodes are concatenated ("...clicksnull")
-    for (const tab of [0, 1, 2, 3, 4, 5, 6, 7]) { await click(t.tabs[tab]); const txt = ALLTEXT(t.panel); assert.ok(!/null|undefined/.test(txt), `tab ${tab} shows a stray null/undefined`); }
+    for (const tab of [0, 1, 2, 3, 4, 5, 6, 7, 8]) { await click(t.tabs[tab]); const txt = ALLTEXT(t.panel); assert.ok(!/null|undefined/.test(txt), `tab ${tab} shows a stray null/undefined`); }
     await click(t.tabs[0]); await click(btn(t.panel, 'Open'));
     assert.ok(!/null|undefined/.test(ALLTEXT(t.panel)), 'article panel shows a stray null/undefined');
   });
@@ -258,6 +258,23 @@ describe('newsroom admin page, end to end', () => {
     assert.deepEqual((await t.db.prepare(`SELECT country_code c FROM news_region_countries WHERE region_slug='europe' ORDER BY c`).all()).results.map((r) => r.c), ['DE', 'FR']);
     await click(t.tabs[2]);
     assert.equal(all(t.panel, (e) => e.tagName === 'TEXTAREA' && e.attrs['aria-label'] === 'Country codes')[0].value, 'DE, FR');
+  });
+
+  test('flags tab: lists real flags, toggling and saving actually flips them in the DB and takes effect immediately', async () => {
+    await click(t.tabs[8]);
+    assert.match(ALLTEXT(t.panel), /News search v2/);
+    assert.match(ALLTEXT(t.panel), /Rebuild the search index/);
+    const before = await t.db.prepare(`SELECT value FROM system_settings WHERE key='news_trending'`).first();
+    assert.equal(before.value, 'false');
+    const trendingRow = all(t.panel, (e) => e.tagName === 'TR').find((r) => r.textContent.includes('news_trending'));
+    const toggle = all(trendingRow, (e) => e.tagName === 'INPUT' && e.attrs.type === 'checkbox')[0];
+    toggle.checked = true;
+    await click(btn(t.panel, 'Save changes'));
+    assert.match(ALLTEXT(t.alert), /Saved \d+ flags?/);
+    const after = await t.db.prepare(`SELECT value FROM system_settings WHERE key='news_trending'`).first();
+    assert.equal(after.value, 'true');
+    const { getNewsFlags } = await import('../worker/database/newsroom.js');
+    assert.equal((await getNewsFlags(t.db)).news_trending, true);
   });
 
   test('an illegal transition surfaces the server error in the alert (no silent failure)', async () => {

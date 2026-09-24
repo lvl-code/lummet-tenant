@@ -1,5 +1,5 @@
 -- =====================================================
--- 0049_news_analytics.sql
+-- 0057_news_analytics.sql
 -- Additive. Supports the newsroom analytics dashboards.
 --
 -- 1. analytics_events had no index on news_id, so a per-article performance

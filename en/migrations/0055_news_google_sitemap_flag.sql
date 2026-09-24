@@ -1,5 +1,5 @@
 -- =====================================================
--- 0047_news_google_sitemap_flag.sql
+-- 0055_news_google_sitemap_flag.sql
 -- Additive: registers the feature flag for the Google News sitemap
 -- (/en/news-sitemap.xml). Ships OFF. Re-runnable (INSERT OR IGNORE).
 -- =====================================================

@@ -1,5 +1,5 @@
 -- =====================================================
--- 0048_news_redirects.sql
+-- 0056_news_redirects.sql
 -- Additive. When an editor changes an article's slug, its old URL used to
 -- return 404 (losing indexed URLs and inbound links). This table remembers
 -- old slugs so the public route can answer 301 -> the article's CURRENT slug.

@@ -1,5 +1,5 @@
 -- =====================================================
--- 0046_newsroom_foundation.sql
+-- 0054_newsroom_foundation.sql
 -- Stage A of the newsroom upgrade: database additions ONLY.
 --
 -- GUARANTEES

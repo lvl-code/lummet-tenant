@@ -62,6 +62,7 @@
     if (tab === "queues") renderQueues(panel);
     else if (tab === "article") renderArticle(panel);
     else if (tab === "policies") renderPolicies(panel);
+    else if (tab === "flags") renderFlags(panel);
     else if (tab === "authors") renderAuthors(panel);
     else if (tab === "analytics") renderAnalytics(panel);
     else if (tab === "search") renderSearch(panel);
@@ -441,6 +442,33 @@
         if (role.value) body.role = role.value;
         const r = await api("authors/profile/save", { body }); if (r) { notify("Author saved"); setTab("authors"); } } }, "Save"), " ",
       h("button", { type: "button", class: "btn btn--sm", onclick: () => setTab("authors") }, "Back"));
+  }
+
+  // ── Flags (news_* feature flags) ────────────────────────────
+  async function renderFlags(panel) {
+    const P = (state.meta && state.meta.permissions) || {};
+    if (!P.manage_settings) { panel.append(h("p", { class: "muted" }, "You do not have permission to change newsroom feature flags.")); return; }
+    const d = await api("flags"); if (!d) return;
+    put(panel, h("p", { class: "muted" }, "Each flag takes effect within about 30 seconds everywhere, plus whatever is left of the page cache (up to a few minutes on public pages). Nothing here changes data -- only what is shown."));
+    const rows = [];
+    for (const f of d.flags) {
+      const toggle = h("input", { type: "checkbox", checked: f.value, "aria-label": f.label });
+      toggle._flagKey = f.key;
+      rows.push(h("tr", {},
+        h("td", {}, h("strong", {}, f.label), h("br"), h("span", { class: "muted" }, f.key)),
+        h("td", {}, f.help || ""),
+        h("td", {}, h("label", { class: "nr-flag-switch" }, toggle, " ", f.value ? "On" : "Off"))));
+      rows[rows.length - 1]._toggle = toggle;
+    }
+    const table = h("table", { class: "admin-table" },
+      h("thead", {}, h("tr", {}, ["Flag", "What it does", "Status"].map((t) => h("th", {}, t)))),
+      h("tbody", {}, rows));
+    const saveAll = h("button", { type: "button", class: "btn btn--primary", style: "margin-top:12px", onclick: async () => {
+      const flags = {}; for (const r of rows) flags[r._toggle._flagKey] = r._toggle.checked;
+      const res = await api("flags/save", { body: { flags } });
+      if (res) { notify("Saved " + res.updated + " flag" + (res.updated === 1 ? "" : "s")); setTab("flags"); }
+    } }, "Save changes");
+    put(panel, h("div", { style: "overflow-x:auto" }, table), saveAll);
   }
 
   // ── Policies (editorial trust center) ──────────────────────

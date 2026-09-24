@@ -3298,6 +3298,49 @@ function researchTypeLabel(type) {
 // RESEARCH ENGINE — public controllers (Phase 1)
 // =====================================================
 
+// Card markup shared by the hub and type-list pages. data-* attributes
+// carry everything the client-side filter/search script
+// (research-directory-filter.js) needs — country and related-entity
+// filtering, and a searchable text blob — so filtering never has to
+// re-fetch anything; it just shows/hides these already-rendered cards.
+function researchItemCardHtml(item, relations, showType) {
+  const relatedLabels = (relations || [])
+    .filter((r) => r.target?.exists)
+    .map((r) => r.target.label);
+  const searchBlob = [item.title, item.excerpt, item.country_name, ...relatedLabels]
+    .filter(Boolean).join(" ").toLowerCase().replace(/"/g, "&quot;");
+
+  return `
+    <a class="research-card" href="/en/research/${item.type}/${item.slug}"
+       data-type="${item.type}"
+       data-country="${item.country_name || ""}"
+       data-related="${relatedLabels.join("|").replace(/"/g, "&quot;")}"
+       data-search="${searchBlob}">
+      ${showType ? `<span class="research-card__type">${researchTypeLabel(item.type)}</span>` : ""}
+      <h3 class="research-card__title">${item.title}</h3>
+      ${item.excerpt ? `<p class="research-card__excerpt">${item.excerpt}</p>` : ""}
+      ${relatedLabels.length > 0 ? `<p class="research-card__related">${relatedLabels.slice(0, 3).map((l) => `<span>${l}</span>`).join("")}</p>` : ""}
+    </a>`;
+}
+
+// Distinct country/relation values across a set of items, for
+// populating the filter dropdowns — computed from data already in
+// hand, no extra queries.
+function researchDirectoryFilterOptions(items, relationsByItemId) {
+  const countries = new Set();
+  const related = new Set();
+  for (const item of items) {
+    if (item.country_name) countries.add(item.country_name);
+    for (const r of relationsByItemId.get(String(item.id)) || []) {
+      if (r.target?.exists) related.add(r.target.label);
+    }
+  }
+  return {
+    countries: [...countries].sort(),
+    related: [...related].sort()
+  };
+}
+
 export async function renderResearchHub(request, env) {
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
@@ -3305,12 +3348,14 @@ export async function renderResearchHub(request, env) {
   const featured = await research.getFeaturedResearchItems(env.DB, 6);
   const latest = await research.getPublishedResearchItems(env.DB, { limit: 12 });
 
-  const itemCard = (item) => `
-    <a class="research-card" href="/en/research/${item.type}/${item.slug}">
-      <span class="research-card__type">${researchTypeLabel(item.type)}</span>
-      <h3 class="research-card__title">${item.title}</h3>
-      ${item.excerpt ? `<p class="research-card__excerpt">${item.excerpt}</p>` : ""}
-    </a>`;
+  const allShown = [...featured, ...latest];
+  const relationsByItemId = await researchRelations.getRelationsFromMany(
+    env.DB, "research_item", allShown.map((i) => i.id)
+  );
+
+  const filterOptions = researchDirectoryFilterOptions(allShown, relationsByItemId);
+
+  const itemCard = (item) => researchItemCardHtml(item, relationsByItemId.get(String(item.id)), true);
 
   const html = await renderer.render("research-list.html", {
     heading: "Research",
@@ -3321,6 +3366,10 @@ export async function renderResearchHub(request, env) {
     robots: "index,follow",
     featured_html: featured.map(itemCard).join(""),
     items_html: latest.map(itemCard).join(""),
+    show_type_filter: true,
+    type_filter_options_html: research.RESEARCH_TYPES.map((t) => `<option value="${t}">${researchTypeLabel(t)}</option>`).join(""),
+    country_filter_options_html: filterOptions.countries.map((c) => `<option value="${c.replace(/"/g, "&quot;")}">${c}</option>`).join(""),
+    related_filter_options_html: filterOptions.related.map((r) => `<option value="${r.replace(/"/g, "&quot;")}">${r}</option>`).join(""),
   }, [], buildBreadcrumbs("researchHub"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -3334,11 +3383,12 @@ export async function renderResearchTypeList(request, env, researchType) {
   const items = await research.getPublishedResearchItems(env.DB, { type: researchType, limit: 500 });
   const label = researchTypeLabel(researchType);
 
-  const itemCard = (item) => `
-    <a class="research-card" href="/en/research/${item.type}/${item.slug}">
-      <h3 class="research-card__title">${item.title}</h3>
-      ${item.excerpt ? `<p class="research-card__excerpt">${item.excerpt}</p>` : ""}
-    </a>`;
+  const relationsByItemId = await researchRelations.getRelationsFromMany(
+    env.DB, "research_item", items.map((i) => i.id)
+  );
+  const filterOptions = researchDirectoryFilterOptions(items, relationsByItemId);
+
+  const itemCard = (item) => researchItemCardHtml(item, relationsByItemId.get(String(item.id)), false);
 
   const html = await renderer.render("research-list.html", {
     heading: label,
@@ -3349,6 +3399,10 @@ export async function renderResearchTypeList(request, env, researchType) {
     robots: "index,follow",
     featured_html: "",
     items_html: items.map(itemCard).join("") || `<p class="muted">No published research yet.</p>`,
+    show_type_filter: false,
+    type_filter_options_html: "",
+    country_filter_options_html: filterOptions.countries.map((c) => `<option value="${c.replace(/"/g, "&quot;")}">${c}</option>`).join(""),
+    related_filter_options_html: filterOptions.related.map((r) => `<option value="${r.replace(/"/g, "&quot;")}">${r}</option>`).join(""),
   }, [], buildBreadcrumbs("researchTypeList", { researchType, label }));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -3400,6 +3454,33 @@ export async function renderResearchItem(request, env, researchType, slug) {
   const relations = await researchRelations.getAllRelationsForEntity(env.DB, "research_item", item.id);
   const relatedHtml = renderResearchRelated(relations);
 
+  // Everything a client-side PDF export needs, already computed above
+  // for the HTML render — embedded as JSON in the page so
+  // research-pdf-export.js can build a branded PDF without a second
+  // network round-trip, and so "merge related research" can fetch
+  // another item's OWN page and read this same block back out of it.
+  const pdfData = {
+    type: item.type,
+    slug: item.slug,
+    title: item.title,
+    subtitle: item.subtitle || "",
+    excerpt: item.excerpt || "",
+    country_name: item.country_name || "",
+    author_name: item.author_name || "",
+    last_verified_at: item.last_verified_at || "",
+    canonical_url: item.canonical_url || site.url(`/en/research/${item.type}/${item.slug}`),
+    sections: Array.isArray(contentData?.sections) ? contentData.sections : [],
+    claims: claimsList.map((c) => ({
+      claim_text: c.claim_text,
+      status: c.status,
+      sources: (c.sources || []).map((s) => ({ organisation: s.organisation, url: s.source_url || null }))
+    })),
+    sources: citations.list.map((s) => ({ organisation: s.organisation, title: s.title || null, url: s.url || null, is_primary: !!s.is_primary })),
+    related: relations.filter((r) => r.target?.exists).map((r) => ({
+      label: r.target.label, url: r.target.url, type: r.target.type, relation_type: r.relation_type
+    }))
+  };
+
   const faqSchema = seoPageFaqSchema(contentData);
 
   const articleSchema = {
@@ -3428,6 +3509,7 @@ export async function renderResearchItem(request, env, researchType, slug) {
     sources_html: sourcesHtml,
     related_html: relatedHtml,
     last_verified_display: item.last_verified_at ? item.last_verified_at.split(" ")[0].split("T")[0] : "",
+    research_pdf_data_json: JSON.stringify(pdfData).replace(/</g, "\\u003c"),
   }, [articleSchema, faqSchema].filter(Boolean), buildBreadcrumbs("researchItem", {
     researchType: item.type,
     label: researchTypeLabel(item.type),

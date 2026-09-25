@@ -346,3 +346,45 @@ a.research-reference-card:hover { box-shadow: var(--shadow); text-decoration: no
 }
 .research-filter-bar__count { font-size: 13px; margin: 0; }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#researchDownloadPdfBtn,
+#researchShareBtn {
+  background: #EE9F28;
+  border-color: #EE9F28;
+  color: #000;
+}
+
+#researchDownloadPdfBtn:hover,
+#researchShareBtn:hover {
+  background: #D4AF37;
+  border-color: #D4AF37;
+  color: #000;
+}
+
+#researchDownloadPdfBtn:focus-visible,
+#researchShareBtn:focus-visible {
+  outline: 2px solid #EE9F28;
+  outline-offset: 2px;
+}
+
+#researchDownloadPdfBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

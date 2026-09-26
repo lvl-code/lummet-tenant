@@ -70,6 +70,12 @@ import {
   renderDashboardCustomTypeCreate,
   renderDashboardComparisons,
   renderDashboardComparisonCreate,
+  renderDashboardContentItemEdit,
+  renderDashboardCustomTypeEdit,
+  renderDashboardComparisonEdit,
+  renderDashboardContentTypeSettings,
+  renderDashboardGenericReviews,
+  renderDashboardGenericReviewCreate,
   renderDashboardReviews,
   renderDashboardNews,
   renderDashboardNewsroom,
@@ -461,6 +467,18 @@ if (
         return renderDashboardComparisons(request, env);
       case "dashboardComparisonCreate":
         return renderDashboardComparisonCreate(request, env);
+      case "dashboardContentItemEdit":
+        return renderDashboardContentItemEdit(request, env, route.contentType, route.slug);
+      case "dashboardCustomTypeEdit":
+        return renderDashboardCustomTypeEdit(request, env, route.typeSlug);
+      case "dashboardComparisonEdit":
+        return renderDashboardComparisonEdit(request, env, route.compareType, route.slug);
+      case "dashboardContentTypeSettings":
+        return renderDashboardContentTypeSettings(request, env);
+      case "dashboardGenericReviews":
+        return renderDashboardGenericReviews(request, env);
+      case "dashboardGenericReviewCreate":
+        return renderDashboardGenericReviewCreate(request, env);
       case "dashboardReviews":
         return renderDashboardReviews(request, env);
       case "dashboardNews":

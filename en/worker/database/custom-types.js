@@ -36,6 +36,40 @@ export async function getCustomFieldValues(db, contentItemId) {
  * here, not just left to the UNIQUE constraint, so the caller gets a
  * clear reason rather than a raw SQLite error.
  */
+export async function updateCustomContentType(db, slug, fields) {
+  const columnMap = { label: "label", pluralLabel: "plural_label", icon: "icon", reviewEnabled: "review_enabled", comparisonEnabled: "comparison_enabled" };
+  const booleanFields = new Set(["reviewEnabled", "comparisonEnabled"]);
+  const sets = [];
+  const values = [];
+  for (const [key, column] of Object.entries(columnMap)) {
+    if (Object.prototype.hasOwnProperty.call(fields, key)) {
+      sets.push(`${column} = ?`);
+      values.push(booleanFields.has(key) ? (fields[key] ? 1 : 0) : fields[key]);
+    }
+  }
+  if (!sets.length) return getCustomContentType(db, slug);
+  values.push(slug);
+  return db.prepare(`UPDATE custom_content_types SET ${sets.join(", ")} WHERE slug = ? RETURNING *`).bind(...values).first();
+}
+
+/** Adds new field definitions (appended after existing ones by display_order); does not remove or reorder existing fields -- keeps this additive and safe against orphaning stored values for a field that gets removed mid-use. */
+export async function addCustomFieldDefinitions(db, typeSlug, newFields) {
+  const existing = await getCustomFieldDefinitions(db, typeSlug);
+  const existingKeys = new Set(existing.map(f => f.field_key));
+  let nextOrder = existing.length ? Math.max(...existing.map(f => f.display_order)) + 10 : 0;
+  const created = [];
+  for (const f of newFields) {
+    if (!f.field_key || existingKeys.has(f.field_key)) continue; // skip blanks and dupes silently -- the form always resubmits existing rows too
+    const row = await db.prepare(`
+      INSERT INTO custom_field_definitions (custom_type_slug, field_key, label, field_type, options_json, required, display_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *
+    `).bind(typeSlug, f.field_key, f.label, f.field_type, f.options_json || null, f.required ? 1 : 0, nextOrder).first();
+    created.push(row);
+    nextOrder += 10;
+  }
+  return created;
+}
+
 export async function createCustomContentType(db, { slug, label, pluralLabel, icon = null, reviewEnabled = true, comparisonEnabled = true }, isReservedSlugFn) {
   if (isReservedSlugFn && isReservedSlugFn(slug)) {
     throw new Error(`"${slug}" is a reserved route segment and cannot be used as a custom content type slug.`);

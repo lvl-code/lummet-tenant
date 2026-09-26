@@ -412,6 +412,9 @@ export function getRoute(request) {
   if (path === "/en/dashboard/custom-type/create") return { type: "dashboardCustomTypeCreate" };
   if (path === "/en/dashboard/comparisons") return { type: "dashboardComparisons" };
   if (path === "/en/dashboard/comparison/create") return { type: "dashboardComparisonCreate" };
+  if (path === "/en/dashboard/settings/content-types") return { type: "dashboardContentTypeSettings" };
+  if (path === "/en/dashboard/reviews/generic") return { type: "dashboardGenericReviews" };
+  if (path === "/en/dashboard/review/generic/create") return { type: "dashboardGenericReviewCreate" };
   if (path === "/en/dashboard/reviews") return { type: "dashboardReviews" };
   if (path === "/en/dashboard/news") return { type: "dashboardNews" };
   if (path === "/en/dashboard/newsroom") return { type: "dashboardNewsroom" };
@@ -456,6 +459,15 @@ export function getRoute(request) {
 
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };
+
+  const contentItemEditMatch = path.match(/^\/en\/dashboard\/content-item\/edit\/([^/]+)\/([^/]+)$/);
+  if (contentItemEditMatch) return { type: "dashboardContentItemEdit", contentType: contentItemEditMatch[1], slug: contentItemEditMatch[2] };
+
+  const customTypeEditMatch = path.match(/^\/en\/dashboard\/custom-type\/edit\/([^/]+)$/);
+  if (customTypeEditMatch) return { type: "dashboardCustomTypeEdit", typeSlug: customTypeEditMatch[1] };
+
+  const comparisonEditMatch = path.match(/^\/en\/dashboard\/comparison\/edit\/([^/]+)\/([^/]+)$/);
+  if (comparisonEditMatch) return { type: "dashboardComparisonEdit", compareType: comparisonEditMatch[1], slug: comparisonEditMatch[2] };
 
   if (path === "/en/dashboard/components") return { type: "dashboardComponents" };
   if (path === "/en/dashboard/seo") return { type: "dashboardSeo" };

@@ -50,7 +50,21 @@ const RESOURCE_REGISTRY = {
   // treating raw events as an item-access resource themselves.
   'campaigns':           { table: 'campaigns',           idColumn: 'id', slugColumn: null, ownerColumn: 'created_by' },
   'analytics_conversions': { table: 'analytics_conversions', idColumn: 'id', slugColumn: null, ownerColumn: 'created_by' },
-  'report_definitions':  { table: 'report_definitions',  idColumn: 'id', slugColumn: null, ownerColumn: 'owner_id' }
+  'report_definitions':  { table: 'report_definitions',  idColumn: 'id', slugColumn: null, ownerColumn: 'owner_id' },
+  // Generic content engine (content_items/comparisons only --
+  // custom_content_types has no owner column and is admin-only to
+  // create/update per migration 0051's permission rows anyway, so
+  // admins already bypass item-level checks entirely; registering it
+  // here would add nothing). slugColumn is deliberately null for
+  // both: content_items/comparisons slugs are unique per
+  // (content_type, slug), not globally, so a bare `WHERE slug = ?`
+  // lookup (what getItemBySlug does) could match the wrong row across
+  // types -- id-based lookup (getItemById, or the item this project's
+  // own controllers already fetch via content-items.js/comparisons.js)
+  // is the only safe path here, so slug-based access checks are
+  // intentionally left unavailable rather than silently wrong.
+  'content_items': { table: 'content_items', idColumn: 'id', slugColumn: null, ownerColumn: 'created_by' },
+  'comparisons':   { table: 'comparisons',   idColumn: 'id', slugColumn: null, ownerColumn: 'created_by' }
 };
 
 const VALID_SCOPES = ['none', 'own', 'all', 'assigned'];

@@ -45,6 +45,47 @@ export async function getPublishedComparisons(db, contentType, { limit = 100, of
  * only, rather than silently leaving an inconsistent comparison with
  * items missing.
  */
+export async function updateComparison(db, id, { title, description, criteria, editorialSelectionItemType, editorialSelectionItemId, status, seoTitle, seoDescription, items }) {
+  const sets = [];
+  const values = [];
+  if (title !== undefined) { sets.push("title = ?"); values.push(title); }
+  if (description !== undefined) { sets.push("description = ?"); values.push(description); }
+  if (criteria !== undefined) { sets.push("criteria_json = ?"); values.push(JSON.stringify(criteria)); }
+  if (editorialSelectionItemType !== undefined) { sets.push("editorial_selection_item_type = ?"); values.push(editorialSelectionItemType); }
+  if (editorialSelectionItemId !== undefined) { sets.push("editorial_selection_item_id = ?"); values.push(editorialSelectionItemId); }
+  if (status !== undefined) {
+    sets.push("status = ?"); values.push(status);
+    sets.push("published_at = CASE WHEN ? = 'published' THEN COALESCE(published_at, CURRENT_TIMESTAMP) ELSE published_at END");
+    values.push(status);
+  }
+  if (seoTitle !== undefined) { sets.push("seo_title = ?"); values.push(seoTitle); }
+  if (seoDescription !== undefined) { sets.push("seo_description = ?"); values.push(seoDescription); }
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  values.push(id);
+
+  const comparison = await db.prepare(`UPDATE comparisons SET ${sets.join(", ")} WHERE id = ? RETURNING *`).bind(...values).first();
+
+  if (Array.isArray(items)) {
+    // Full replace of items -- simplest safe approach for a form that
+    // always resubmits its whole item list, same posture as
+    // setContentItemCustomFieldValues(). Not a transaction (D1's
+    // console-safety constraints, see POST-DEPLOYMENT-FIX-0052.md),
+    // so a failure between delete and re-insert could leave the
+    // comparison briefly without items -- acceptable for an
+    // admin-only write path with no concurrent readers expected at
+    // that exact moment, but worth knowing if this is ever exposed
+    // more broadly.
+    await db.prepare(`DELETE FROM comparison_items WHERE comparison_id = ?`).bind(id).run();
+    for (const item of items) {
+      await db.prepare(`
+        INSERT INTO comparison_items (comparison_id, item_content_type, item_id, position) VALUES (?, ?, ?, ?)
+      `).bind(id, item.itemContentType, item.itemId, item.position ?? 0).run();
+    }
+  }
+
+  return comparison;
+}
+
 export async function createComparison(db, {
   contentType, slug, title, description = null, criteria = [],
   editorialSelectionItemType = null, editorialSelectionItemId = null,

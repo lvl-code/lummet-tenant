@@ -46,6 +46,25 @@ export async function isContentTypeEnabled(env, contentType) {
   return !!map[contentType];
 }
 
+/**
+ * Admin-facing write path for the settings UI (Phase 9). Merges
+ * `updates` into the current map -- casino is always forced back to
+ * true even if a caller tries to disable it, since it predates this
+ * system and must never be toggleable off. Clears the in-isolate
+ * cache so the change is visible on the very next request in this
+ * isolate, not just after a cold start.
+ */
+export async function updateContentTypeEnablement(env, updates) {
+  const current = await getContentTypeEnablement(env);
+  const merged = { ...current, ...updates, casino: true };
+  await env.DB.prepare(`
+    INSERT INTO settings (key, value) VALUES ('content_types_enabled', ?)
+    ON CONFLICT (key) DO UPDATE SET value = excluded.value
+  `).bind(JSON.stringify(merged)).run();
+  clearContentTypeEnablementCache();
+  return merged;
+}
+
 /** Call after an admin write to content_types_enabled so this isolate picks up the change immediately. */
 export function clearContentTypeEnablementCache() {
   _cache = null;

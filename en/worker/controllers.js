@@ -5825,6 +5825,24 @@ export async function renderDashboardComparisons(request, env) {
 export async function renderDashboardComparisonCreate(request, env) {
   return renderAdminPage(request, env, "admin/comparison-create.html");
 }
+export async function renderDashboardContentItemEdit(request, env, contentType, slug) {
+  return renderAdminPage(request, env, "admin/content-item-edit.html", { content_type: contentType, slug });
+}
+export async function renderDashboardCustomTypeEdit(request, env, typeSlug) {
+  return renderAdminPage(request, env, "admin/custom-type-edit.html", { type_slug: typeSlug });
+}
+export async function renderDashboardComparisonEdit(request, env, compareType, slug) {
+  return renderAdminPage(request, env, "admin/comparison-edit.html", { compare_type: compareType, slug });
+}
+export async function renderDashboardContentTypeSettings(request, env) {
+  return renderAdminPage(request, env, "admin/content-type-settings.html");
+}
+export async function renderDashboardGenericReviews(request, env) {
+  return renderAdminPage(request, env, "admin/generic-reviews.html");
+}
+export async function renderDashboardGenericReviewCreate(request, env) {
+  return renderAdminPage(request, env, "admin/generic-review-create.html");
+}
 export async function renderDashboardReviews(request, env) {
   return renderAdminPage(request, env, "admin/reviews.html");
 }

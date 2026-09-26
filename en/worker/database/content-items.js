@@ -99,6 +99,60 @@ export async function getContentItemCurrencies(db, contentType, contentId) {
  * from migration 0051 -- this will throw if it collides, same as
  * casinos.createCasino()'s behavior on a duplicate slug.
  */
+/**
+ * Partial update. Only the fields present in `fields` are changed --
+ * omit a key to leave that column untouched (this is the "PATCH"
+ * shape, not a full-row replace). Identified by (content_type, slug)
+ * since the UNIQUE constraint is on that pair, same as every other
+ * lookup in this module.
+ */
+export async function updateContentItem(db, contentType, slug, fields) {
+  const columnMap = {
+    name: "name", title: "title", description: "description", website: "website",
+    rating: "rating", license: "license", licenseCountry: "license_country",
+    liveBetting: "live_betting", preMatch: "pre_match", cashout: "cashout", mobileApp: "mobile_app",
+    linkedAffiliatePartnerId: "linked_affiliate_partner_id", metadataJson: "metadata_json",
+    featured: "featured", sortOrder: "sort_order", status: "status", published: "published",
+    seoTitle: "seo_title", seoDescription: "seo_description", seoKeywords: "seo_keywords",
+  };
+  const booleanFields = new Set(["liveBetting", "preMatch", "cashout", "mobileApp", "featured", "published"]);
+
+  const sets = [];
+  const values = [];
+  for (const [key, column] of Object.entries(columnMap)) {
+    if (Object.prototype.hasOwnProperty.call(fields, key)) {
+      sets.push(`${column} = ?`);
+      values.push(booleanFields.has(key) ? (fields[key] ? 1 : 0) : fields[key]);
+    }
+  }
+  if (!sets.length) return getContentItem(db, contentType, slug);
+
+  sets.push(`updated_at = CURRENT_TIMESTAMP`);
+  if (fields.published && !fields.publishedAtAlreadySet) {
+    sets.push(`published_at = COALESCE(published_at, CURRENT_TIMESTAMP)`);
+  }
+  values.push(contentType, slug);
+
+  return db.prepare(`
+    UPDATE content_items SET ${sets.join(", ")} WHERE content_type = ? AND slug = ? RETURNING *
+  `).bind(...values).first();
+}
+
+export async function deleteContentItemCustomFieldValues(db, contentItemId) {
+  return db.prepare(`DELETE FROM custom_field_values WHERE content_item_id = ?`).bind(contentItemId).run();
+}
+
+/** Bulk-set custom field values: replaces every value for this item with exactly what's passed (a full replace, not a patch -- simpler and safer for a form that always submits every field it knows about). values: { field_key: value, ... } */
+export async function setContentItemCustomFieldValues(db, contentItemId, values) {
+  await deleteContentItemCustomFieldValues(db, contentItemId);
+  for (const [fieldKey, value] of Object.entries(values)) {
+    if (value === null || value === undefined || value === "") continue; // don't store empty rows
+    await db.prepare(`
+      INSERT INTO custom_field_values (content_item_id, field_key, value) VALUES (?, ?, ?)
+    `).bind(contentItemId, fieldKey, String(value)).run();
+  }
+}
+
 export async function createContentItem(db, contentType, fields) {
   const {
     slug, name, title = null, description = null, excerpt = null,

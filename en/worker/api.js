@@ -43,7 +43,9 @@ import * as cronHealthDB from "./database/cron-health.js";
 import * as contentItemsDB from "./database/content-items.js";
 import * as customTypesDB from "./database/custom-types.js";
 import * as comparisonsDB from "./database/comparisons.js";
+import * as genericReviewsDB from "./database/generic-reviews.js";
 import { isReservedSlug } from "./reserved-slugs.js";
+import { getContentTypeEnablement, updateContentTypeEnablement } from "./content-types.js";
 
 
 
@@ -726,6 +728,8 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/custom-types": "custom_content_types",
       "/api/v1/comparison": "comparisons",
       "/api/v1/comparisons": "comparisons",
+      "/api/v1/generic-review": "reviews",
+      "/api/v1/generic-reviews": "reviews",
     };
 
     let resource = null;
@@ -892,6 +896,8 @@ if (path === "/api/v1/content-item/get" && request.method === "GET") {
   if (!contentType || !slug) return failure("content_type and slug are required");
   const item = await contentItemsDB.getContentItem(env.DB, contentType, slug);
   if (!item) return failure("Content item not found", 404);
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, "content_items", "read", item);
+  if (!canAccess) return failure("Content item not found", 404);
   return json({ success: true, item });
 }
 
@@ -924,9 +930,69 @@ if (path === "/api/v1/content-item/delete" && request.method === "POST") {
   validate(body, ["content_type", "slug"]);
   const existing = await contentItemsDB.getContentItem(env.DB, body.content_type, body.slug);
   if (!existing) return failure("Content item not found", 404);
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, "content_items", "delete", existing);
+  if (!canAccess) return failure("Content item not found", 404);
   await env.DB.prepare(`DELETE FROM content_items WHERE content_type = ? AND slug = ?`).bind(body.content_type, body.slug).run();
   await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "content_item", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug, name: existing.name } });
   return success();
+}
+
+if (path === "/api/v1/content-item/update" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug"]);
+  const existing = await contentItemsDB.getContentItem(env.DB, body.content_type, body.slug);
+  if (!existing) return failure("Content item not found", 404);
+  // Item-level access check (independent of, and additional to, the
+  // role/resource permission gate already run above) -- prevents an
+  // editor with scope 'own'/'assigned'/'none' from editing an item
+  // outside what they're allowed to touch. No-op (always allowed) for
+  // admins and for any editor still on the system default 'all'
+  // scope, so this is backward-compatible until an admin explicitly
+  // narrows a specific editor's scope for this resource.
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, "content_items", "update", existing);
+  if (!canAccess) return failure("Content item not found", 404); // 404, not 403 -- same IDOR-safe convention the existing casino endpoints use
+  if (body.slug_new && body.slug_new !== body.slug) {
+    return failure("Changing the slug is not supported yet -- create a new item instead.");
+  }
+  // Build the update payload with ONLY the keys the client actually
+  // sent -- updateContentItem() uses hasOwnProperty to decide what to
+  // touch, and an explicit `key: undefined` still satisfies
+  // hasOwnProperty, so keys must be genuinely OMITTED here, not set
+  // to undefined, or an unsent field would get wiped to NULL/0.
+  const fields = {};
+  const strFields = { name: "name", title: "title", description: "description", website: "website",
+    license: "license", license_country: "licenseCountry", status: "status",
+    seo_title: "seoTitle", seo_description: "seoDescription", seo_keywords: "seoKeywords" };
+  for (const [bodyKey, fieldKey] of Object.entries(strFields)) {
+    if (body[bodyKey] !== undefined) fields[fieldKey] = body[bodyKey];
+  }
+  if (body.rating !== undefined) fields.rating = parseFloat(body.rating) || 0;
+  if (body.sort_order !== undefined) fields.sortOrder = parseInt(body.sort_order) || 0;
+  if (body.linked_affiliate_partner_id !== undefined) fields.linkedAffiliatePartnerId = body.linked_affiliate_partner_id || null;
+  for (const [bodyKey, fieldKey] of Object.entries({ live_betting: "liveBetting", pre_match: "preMatch", cashout: "cashout", mobile_app: "mobileApp", featured: "featured", published: "published" })) {
+    if (body[bodyKey] !== undefined) fields[fieldKey] = !!body[bodyKey];
+  }
+
+  const item = await contentItemsDB.updateContentItem(env.DB, body.content_type, body.slug, fields);
+  if (body.content_type === "custom" && body.custom_field_values && typeof body.custom_field_values === "object") {
+    await contentItemsDB.setContentItemCustomFieldValues(env.DB, item.id, body.custom_field_values);
+  }
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "content_item", entityId: item.id, metadata: { content_type: body.content_type, slug: body.slug } });
+  return success({ item });
+}
+
+if (path === "/api/v1/content-item/custom-field-values" && request.method === "GET") {
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type");
+  const slug = url.searchParams.get("slug");
+  if (!contentType || !slug) return failure("content_type and slug are required");
+  const item = await contentItemsDB.getContentItem(env.DB, contentType, slug);
+  if (!item) return failure("Content item not found", 404);
+  const [definitions, values] = await Promise.all([
+    item.custom_type_slug ? customTypesDB.getCustomFieldDefinitions(env.DB, item.custom_type_slug) : Promise.resolve([]),
+    customTypesDB.getCustomFieldValues(env.DB, item.id),
+  ]);
+  return json({ success: true, definitions, values });
 }
 
 if (path === "/api/v1/custom-types/list" && request.method === "GET") {
@@ -966,6 +1032,26 @@ if (path === "/api/v1/custom-type/fields" && request.method === "GET") {
   return json({ success: true, fields });
 }
 
+if (path === "/api/v1/custom-type/update" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["slug"]);
+  const existing = await customTypesDB.getCustomContentType(env.DB, body.slug);
+  if (!existing) return failure("Custom content type not found", 404);
+  const fields = {};
+  if (body.label !== undefined) fields.label = body.label;
+  if (body.plural_label !== undefined) fields.pluralLabel = body.plural_label;
+  if (body.icon !== undefined) fields.icon = body.icon;
+  if (body.review_enabled !== undefined) fields.reviewEnabled = !!body.review_enabled;
+  if (body.comparison_enabled !== undefined) fields.comparisonEnabled = !!body.comparison_enabled;
+  const type = await customTypesDB.updateCustomContentType(env.DB, body.slug, fields);
+  let addedFields = [];
+  if (Array.isArray(body.new_fields) && body.new_fields.length) {
+    addedFields = await customTypesDB.addCustomFieldDefinitions(env.DB, body.slug, body.new_fields);
+  }
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "custom_content_type", entityId: type.id, metadata: { slug: body.slug, fields_added: addedFields.length } });
+  return success({ type, addedFields });
+}
+
 if (path === "/api/v1/comparisons/list" && request.method === "GET") {
   const url = new URL(request.url);
   const contentType = url.searchParams.get("content_type");
@@ -992,6 +1078,107 @@ if (path === "/api/v1/comparison/create" && request.method === "POST") {
   });
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "comparison", entityId: comparison.id, metadata: { content_type: body.content_type, slug: body.slug, title: body.title } });
   return success({ comparison });
+}
+
+if (path === "/api/v1/comparison/get" && request.method === "GET") {
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type");
+  const slug = url.searchParams.get("slug");
+  if (!contentType || !slug) return failure("content_type and slug are required");
+  const comparison = await comparisonsDB.getComparison(env.DB, contentType, slug);
+  if (!comparison) return failure("Comparison not found", 404);
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, "comparisons", "read", comparison);
+  if (!canAccess) return failure("Comparison not found", 404);
+  const items = await comparisonsDB.getComparisonItems(env.DB, comparison.id);
+  return json({ success: true, comparison, items });
+}
+
+if (path === "/api/v1/comparison/update" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug"]);
+  const existing = await comparisonsDB.getComparison(env.DB, body.content_type, body.slug);
+  if (!existing) return failure("Comparison not found", 404);
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, "comparisons", "update", existing);
+  if (!canAccess) return failure("Comparison not found", 404);
+  if (body.items && (!Array.isArray(body.items) || body.items.length < 2)) {
+    return failure("At least 2 items are required for a comparison");
+  }
+  const comparison = await comparisonsDB.updateComparison(env.DB, existing.id, {
+    title: body.title, description: body.description,
+    criteria: Array.isArray(body.criteria) ? body.criteria : undefined,
+    editorialSelectionItemType: body.editorial_selection_item_type !== undefined ? (body.editorial_selection_item_type || null) : undefined,
+    editorialSelectionItemId: body.editorial_selection_item_id !== undefined ? (body.editorial_selection_item_id || null) : undefined,
+    status: body.status, seoTitle: body.seo_title, seoDescription: body.seo_description,
+    items: Array.isArray(body.items) ? body.items.map((it, idx) => ({ itemContentType: it.item_content_type, itemId: it.item_id, position: it.position ?? idx })) : undefined,
+  });
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "comparison", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug } });
+  return success({ comparison });
+}
+
+if (path === "/api/v1/generic-review/create" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["reviewed_content_type", "reviewed_content_id", "slug", "title", "content"]);
+  if (!["sportsbook", "affiliate_partner", "custom"].includes(body.reviewed_content_type)) {
+    return failure("reviewed_content_type must be sportsbook, affiliate_partner, or custom");
+  }
+  const reviewedItem = await contentItemsDB.getContentItemById(env.DB, body.reviewed_content_type, body.reviewed_content_id);
+  if (!reviewedItem) return failure("The item you're reviewing was not found -- check reviewed_content_id", 404);
+  const review = await genericReviewsDB.createGenericReview(env.DB, {
+    reviewedContentType: body.reviewed_content_type, reviewedContentId: body.reviewed_content_id,
+    slug: body.slug, title: body.title, content: body.content,
+    pros: body.pros || null, cons: body.cons || null,
+    rating: body.rating !== undefined ? parseFloat(body.rating) || null : null,
+    verdict: body.verdict || null,
+    seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
+    authorId: body.author_id || null, createdBy: user.user_id, published: !!body.published,
+  });
+  await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "review", entityId: review.id, metadata: { reviewed_content_type: body.reviewed_content_type, slug: body.slug } });
+  return success({ review });
+}
+
+if (path === "/api/v1/generic-reviews/list" && request.method === "GET") {
+  const url = new URL(request.url);
+  const reviewedContentType = url.searchParams.get("reviewed_content_type");
+  if (!reviewedContentType) return failure("reviewed_content_type is required");
+  const reviews = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType);
+  return json({ success: true, reviews });
+}
+
+if (path === "/api/v1/generic-review/update" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["id"]);
+  const fields = {};
+  for (const key of ["title", "content", "pros", "cons", "verdict", "seo_title", "seo_description", "seo_keywords"]) {
+    if (body[key] !== undefined) fields[key] = body[key];
+  }
+  if (body.rating !== undefined) fields.rating = parseFloat(body.rating) || null;
+  if (body.published !== undefined) fields.published = body.published ? 1 : 0;
+  const review = await genericReviewsDB.updateGenericReview(env.DB, body.id, fields);
+  if (!review) return failure("Review not found or no fields to update", 404);
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "review", entityId: review.id, metadata: {} });
+  return success({ review });
+}
+
+if (path === "/api/v1/content-types-enabled" && request.method === "GET") {
+  const enablement = await getContentTypeEnablement(env);
+  return json({ success: true, enablement });
+}
+
+if (path === "/api/v1/content-types-enabled/update" && request.method === "POST") {
+  // Admin-only: this is a site-wide toggle, not a content-management
+  // action, so it's gated separately from the content_items/
+  // comparisons/custom_content_types permission rows -- an editor
+  // with content-create rights should not also be able to flip what's
+  // publicly visible on the whole site.
+  if (user.role !== "admin") return failure("Only admins can change content type enablement", 403);
+  const body = await request.json();
+  const updates = {};
+  for (const key of ["sportsbook", "affiliate_partner", "custom"]) {
+    if (body[key] !== undefined) updates[key] = !!body[key];
+  }
+  const enablement = await updateContentTypeEnablement(env, updates);
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "settings", entityId: 0, metadata: { key: "content_types_enabled", value: enablement } });
+  return success({ enablement });
 }
 
 // ==================================

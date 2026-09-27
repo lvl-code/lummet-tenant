@@ -101,3 +101,46 @@ export async function setCustomFieldValue(db, contentItemId, fieldKey, value) {
     ON CONFLICT (content_item_id, field_key) DO UPDATE SET value = excluded.value
   `).bind(contentItemId, fieldKey, value).run();
 }
+
+/** Count of content_items currently using this custom type -- the delete-dependency guard, same pattern deleteCasino() uses for its offer/tracking-link checks. */
+export async function countContentItemsOfCustomType(db, typeSlug) {
+  const row = await db.prepare(`SELECT COUNT(*) AS n FROM content_items WHERE content_type = 'custom' AND custom_type_slug = ?`).bind(typeSlug).first();
+  return row?.n || 0;
+}
+
+/**
+ * Delete a custom content type. custom_field_definitions cascades via
+ * the ON DELETE CASCADE FK from migration 0051. custom_field_values
+ * cascades from content_items(id), not from custom_field_definitions,
+ * but that's moot here: the caller (api.js) is required to refuse this
+ * delete when countContentItemsOfCustomType() > 0, so by the time this
+ * runs there are no content_items of this type left, and therefore no
+ * custom_field_values rows tied to them either.
+ */
+export async function deleteCustomContentType(db, typeSlug) {
+  return db.prepare(`DELETE FROM custom_content_types WHERE slug = ?`).bind(typeSlug).run();
+}
+
+/**
+ * Full replace-and-reorder of a custom type's field set -- the
+ * counterpart to addCustomFieldDefinitions() above, which is
+ * deliberately append-only and can't remove or reorder a field. This
+ * function is for the edit screen, where an admin needs to actually
+ * remove a field or change its order, not just add more.
+ *
+ * Existing custom_field_values rows are keyed by field_key (not by the
+ * definition's row id), so a value survives this replace untouched as
+ * long as its field_key is still present in `fields` -- only dropped
+ * keys leave orphaned (harmless, never read back) value rows behind.
+ */
+export async function updateCustomFieldDefinitions(db, typeSlug, fields) {
+  await db.prepare(`DELETE FROM custom_field_definitions WHERE custom_type_slug = ?`).bind(typeSlug).run();
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
+    await db.prepare(`
+      INSERT INTO custom_field_definitions (custom_type_slug, field_key, label, field_type, options_json, required, display_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(typeSlug, f.field_key, f.label, f.field_type, f.options_json || null, f.required ? 1 : 0, f.display_order ?? (i * 10)).run();
+  }
+  return getCustomFieldDefinitions(db, typeSlug);
+}

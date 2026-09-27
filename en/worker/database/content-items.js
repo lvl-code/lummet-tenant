@@ -24,6 +24,37 @@ export async function getContentItemById(db, contentType, id) {
 }
 
 /**
+ * Public-safe single-item lookups, gated the same way casinos.getCasino()
+ * gates its query (WHERE published = 1 AND status = 'published'). Added
+ * because renderSportsbook/renderAffiliatePartner/renderCustom in
+ * controllers.js, and content-resolver.js's resolveContentItem/
+ * resolveContentItemById, were all calling getContentItem()/
+ * getContentItemById() above directly -- which have no gate at all -- so
+ * a draft/unpublished item was reachable at its direct public URL, and a
+ * draft item referenced by a published comparison's row/editorial-pick
+ * would render publicly through the comparison page too. getContentItem()/
+ * getContentItemById() stay unfiltered on purpose (admin edit screens,
+ * /content-item/get, etc. need to see drafts); these are the public-only
+ * counterparts.
+ */
+export async function getPublishedContentItem(db, contentType, slug) {
+  return db.prepare(`
+    SELECT ci.*, m.url AS logo, h.url AS hero_image
+    FROM content_items ci
+    LEFT JOIN media_library m ON m.id = ci.logo_media_id
+    LEFT JOIN media_library h ON h.id = ci.featured_image_media_id
+    WHERE ci.content_type = ? AND ci.slug = ? AND ci.published = 1 AND ci.status = 'published'
+    LIMIT 1
+  `).bind(contentType, slug).first();
+}
+
+export async function getPublishedContentItemById(db, contentType, id) {
+  return db.prepare(`
+    SELECT * FROM content_items WHERE content_type = ? AND id = ? AND published = 1 AND status = 'published' LIMIT 1
+  `).bind(contentType, id).first();
+}
+
+/**
  * Published items of a type, for listing pages. Mirrors
  * casinos.getAllCasinos()'s ordering convention
  * (featured DESC, sort_order ASC, name ASC).
@@ -41,10 +72,37 @@ export async function getPublishedContentItems(db, contentType, { limit = 100, o
 }
 
 /** All items of a type, published or not -- for admin listings (Phase 3 exposes the query; the admin UI itself is later work). */
-export async function getAllContentItems(db, contentType) {
+/**
+ * All items of a type, published or not -- for admin listings.
+ * `search` (optional) matches name/slug/title (case-insensitive,
+ * substring); `status` (optional) restricts to one lifecycle status.
+ * `extraCondition`/`extraParams` (optional) let the caller AND in an
+ * item-level access scoping clause (see item-access.js's
+ * getAccessibleWhereClause()) without duplicating this query-building
+ * logic at the call site. All are additive on top of the original
+ * query -- calling with no options reproduces the original
+ * unfiltered-by-search/status/scope behavior exactly, so existing
+ * callers are unaffected.
+ */
+export async function getAllContentItems(db, contentType, { search = null, status = null, extraCondition = null, extraParams = [] } = {}) {
+  const clauses = ["content_type = ?"];
+  const params = [contentType];
+  if (search) {
+    clauses.push("(LOWER(name) LIKE ? OR LOWER(slug) LIKE ? OR LOWER(title) LIKE ?)");
+    const like = `%${search.toLowerCase()}%`;
+    params.push(like, like, like);
+  }
+  if (status) {
+    clauses.push("status = ?");
+    params.push(status);
+  }
+  if (extraCondition) {
+    clauses.push(extraCondition);
+    params.push(...extraParams);
+  }
   const result = await db.prepare(`
-    SELECT * FROM content_items WHERE content_type = ? ORDER BY featured DESC, sort_order ASC, name ASC
-  `).bind(contentType).all();
+    SELECT * FROM content_items WHERE ${clauses.join(" AND ")} ORDER BY featured DESC, sort_order ASC, name ASC
+  `).bind(...params).all();
   return result.results || [];
 }
 
@@ -183,4 +241,62 @@ export async function createContentItem(db, contentType, fields) {
   ).first();
 
   return result;
+}
+
+/**
+ * Replace-all setters for the normalized sportsbook relationship tables
+ * (migration 0051: content_sports / content_currencies /
+ * content_payment_methods). These tables and their getters
+ * (getContentItemSports/Currencies/PaymentMethods, above) already
+ * existed; only the write side was missing, so nothing could ever be
+ * assigned through the admin UI. Same delete-then-insert shape as
+ * setContentItemCustomFieldValues() above -- passing an empty array
+ * clears all assignments for the item.
+ */
+export async function setContentItemSports(db, contentType, contentId, sportIds) {
+  await db.prepare(`DELETE FROM content_sports WHERE content_type = ? AND content_id = ?`).bind(contentType, contentId).run();
+  for (const sportId of sportIds) {
+    await db.prepare(`INSERT OR IGNORE INTO content_sports (content_type, content_id, sport_id) VALUES (?, ?, ?)`).bind(contentType, contentId, sportId).run();
+  }
+}
+
+export async function setContentItemCurrencies(db, contentType, contentId, currencyIds) {
+  await db.prepare(`DELETE FROM content_currencies WHERE content_type = ? AND content_id = ?`).bind(contentType, contentId).run();
+  for (const currencyId of currencyIds) {
+    await db.prepare(`INSERT OR IGNORE INTO content_currencies (content_type, content_id, currency_id) VALUES (?, ?, ?)`).bind(contentType, contentId, currencyId).run();
+  }
+}
+
+export async function setContentItemPaymentMethods(db, contentType, contentId, paymentMethodIds) {
+  await db.prepare(`DELETE FROM content_payment_methods WHERE content_type = ? AND content_id = ?`).bind(contentType, contentId).run();
+  for (const paymentMethodId of paymentMethodIds) {
+    await db.prepare(`INSERT OR IGNORE INTO content_payment_methods (content_type, content_id, payment_method_id) VALUES (?, ?, ?)`).bind(contentType, contentId, paymentMethodId).run();
+  }
+}
+
+/**
+ * Search content_items across the generic types for the comparison
+ * builder's item picker (replaces raw numeric ID entry). Casino search
+ * is handled separately by the caller (casinos table lives outside this
+ * module). Matches name/slug, case-insensitive substring.
+ */
+export async function searchContentItems(db, { contentType = null, search = "", limit = 20 } = {}) {
+  const clauses = [];
+  const params = [];
+  if (contentType) {
+    clauses.push("content_type = ?");
+    params.push(contentType);
+  }
+  if (search) {
+    clauses.push("(LOWER(name) LIKE ? OR LOWER(slug) LIKE ?)");
+    const like = `%${search.toLowerCase()}%`;
+    params.push(like, like);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const result = await db.prepare(`
+    SELECT id, content_type, slug, name, status, published
+    FROM content_items ${where}
+    ORDER BY name ASC LIMIT ?
+  `).bind(...params, limit).all();
+  return result.results || [];
 }

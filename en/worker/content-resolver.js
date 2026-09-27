@@ -60,16 +60,30 @@ export async function resolveContentItem(db, contentType, slug) {
     const row = await casinos.getCasino(db, slug);
     return row ? normalizeCasino(row) : null;
   }
-  const row = await contentItems.getContentItem(db, contentType, slug);
+  // Gated the same way the casino branch is (getCasino() filters
+  // published/status in-query) -- see getPublishedContentItem()'s doc
+  // comment in content-items.js. This resolver is the shared
+  // public-facing normalization path (used by listContentItems() below,
+  // and meant for renderSportsbook/renderAffiliatePartner/renderCustom),
+  // so it must never expose a draft/unpublished item either.
+  const row = await contentItems.getPublishedContentItem(db, contentType, slug);
   return row ? normalizeContentItem(row) : null;
 }
 
 export async function resolveContentItemById(db, contentType, id) {
   if (contentType === "casino") {
-    const row = await db.prepare(`SELECT * FROM casinos WHERE id = ? LIMIT 1`).bind(id).first();
+    // Gated inline (no existing gated by-id casino getter in
+    // database/casinos.js to reuse) -- same published/status filter
+    // getCasino() applies by slug. This function backs
+    // resolvePolymorphicRef(), which comparison_items/reviews use to
+    // resolve an (item_type, item_id) pointer; without this gate, a
+    // draft/unpublished casino referenced by a published comparison
+    // would leak its name/rating/logo into that public comparison
+    // page even though its own detail page correctly 404s.
+    const row = await db.prepare(`SELECT * FROM casinos WHERE id = ? AND published = 1 AND status = 'published' LIMIT 1`).bind(id).first();
     return row ? normalizeCasino(row) : null;
   }
-  const row = await contentItems.getContentItemById(db, contentType, id);
+  const row = await contentItems.getPublishedContentItemById(db, contentType, id);
   return row ? normalizeContentItem(row) : null;
 }
 

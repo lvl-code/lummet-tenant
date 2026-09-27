@@ -19,13 +19,9 @@
       <label><input type="checkbox" name="comparison_enabled"> Comparisons enabled for this type</label>
 
       <fieldset>
-        <legend>Existing Fields (read-only here — remove/reorder not supported yet)</legend>
-        <div id="existingFieldsList" class="muted">Loading...</div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Add New Fields</legend>
-        <div id="newFieldRows"></div>
+        <legend>Fields</legend>
+        <p class="muted">Editing and saving this list replaces the full field set for this type. A value already saved for a field is kept as long as its field_key doesn't change.</p>
+        <div id="fieldRows"></div>
         <button type="button" id="addFieldRowBtn" class="btn btn--ghost btn--sm">+ Add Field</button>
       </fieldset>
 

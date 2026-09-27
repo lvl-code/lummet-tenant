@@ -638,6 +638,31 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/report/column-options": "reports",
       "/api/v1/analytics/alerts/list": "analytics_alerts",
       "/api/v1/analytics/alert-rules/list": "analytics_alerts",
+      // Generic content engine (Phase 8 hardening) -- these paths simply
+      // weren't in this map before, so any authenticated user of any
+      // role could list/read/search generic content regardless of the
+      // RBAC rows migration 0051 already defines for it. Adding them
+      // here closes that gap using the exact same read-gate mechanism
+      // every other resource above uses -- no new authorization system,
+      // just filling in missing rows. This is a *role*-level gate,
+      // separate from (and layered under) the item-level
+      // itemAccess.canAccessItem() checks already present on the
+      // single-item get/update/delete endpoints.
+      "/api/v1/content-items/list": "content_items",
+      "/api/v1/content-item/get": "content_items",
+      "/api/v1/content-item/search": "content_items",
+      "/api/v1/content-item/custom-field-values": "content_items",
+      "/api/v1/custom-types/list": "custom_content_types",
+      "/api/v1/custom-type/fields": "custom_content_types",
+      "/api/v1/comparisons/list": "comparisons",
+      "/api/v1/comparison/get": "comparisons",
+      // Sports/currencies are read-only reference/taxonomy lookups used
+      // only to populate the sportsbook edit form's checkboxes -- same
+      // supporting-reference-data posture as payment_methods above.
+      // Gated under content_items since that's the resource an editor
+      // is actually managing when they need this list.
+      "/api/v1/sports/list": "content_items",
+      "/api/v1/currencies/list": "content_items",
     };
 
     for (const [readPath, res] of Object.entries(readResourceMap)) {
@@ -865,27 +890,31 @@ if (path === "/api/v1/casino/get") {
 }
 
 // =====================================================
-// GENERIC CONTENT ENGINE (Phase 8 — admin UI)
+// GENERIC CONTENT ENGINE (Phase 8 — admin UI, + this pass's gap
+// completion/hardening)
 // Covers content_items (sportsbook/affiliate_partner/custom),
-// custom_content_types, and comparisons. List/Get/Create/Delete only
-// in this pass -- Update is deliberately deferred (see the Phase 8
-// report) to keep this addition reviewable; nothing here touches
-// casinos, reviews, or any existing endpoint above.
+// custom_content_types, and comparisons.
 //
-// Unlike casinos, these do not yet have item-level (user_item_access)
-// scoping wired in -- access is role-based only (via the
-// resourceMap + permDB.checkPermission check already run above every
-// request), same bar as e.g. comparisons/custom types conceptually
-// need, but explicitly weaker than casino's per-item assignment
-// system. Flagged as a follow-up, not silently matched to casino's
-// bar without actually implementing it.
+// Item-level (user_item_access) scoping IS wired in for content_items
+// and comparisons on the single-item get/update/delete endpoints (via
+// itemAccess.canAccessItem, see item-access.js) -- but the *list*
+// endpoints below were still unscoped (every item of a type, regardless
+// of who owns/is-assigned it), so an editor on 'own'/'assigned'/'none'
+// scope could still see items in the list they couldn't open. Now
+// filtered the same way reviews/list, news/list etc. do it elsewhere in
+// this file, via itemAccess.getAccessibleWhereClause(). custom_types has
+// no item-level scoping by design (see item-access.js's comment: it's a
+// type *definition*, admin-only, not per-item content).
 // =====================================================
 
 if (path === "/api/v1/content-items/list" && request.method === "GET") {
   const url = new URL(request.url);
   const contentType = url.searchParams.get("content_type");
   if (!contentType) return failure("content_type is required");
-  const items = await contentItemsDB.getAllContentItems(env.DB, contentType);
+  const search = url.searchParams.get("search") || null;
+  const status = url.searchParams.get("status") || null;
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(env.DB, user, "content_items", "read");
+  const items = await contentItemsDB.getAllContentItems(env.DB, contentType, { search, status, extraCondition: condition || null, extraParams: params });
   return json({ success: true, items });
 }
 
@@ -898,7 +927,64 @@ if (path === "/api/v1/content-item/get" && request.method === "GET") {
   if (!item) return failure("Content item not found", 404);
   const canAccess = await itemAccess.canAccessItem(env.DB, user, "content_items", "read", item);
   if (!canAccess) return failure("Content item not found", 404);
-  return json({ success: true, item });
+  const [sportIds, currencyIds, paymentMethodIds] = contentType === "sportsbook"
+    ? await Promise.all([
+        contentItemsDB.getContentItemSports(env.DB, contentType, item.id),
+        contentItemsDB.getContentItemCurrencies(env.DB, contentType, item.id),
+        contentItemsDB.getContentItemPaymentMethods(env.DB, contentType, item.id),
+      ])
+    : [[], [], []];
+  return json({
+    success: true, item,
+    sport_ids: sportIds.map(s => s.id), currency_ids: currencyIds.map(c => c.id), payment_method_ids: paymentMethodIds.map(p => p.id),
+  });
+}
+
+if (path === "/api/v1/content-item/search" && request.method === "GET") {
+  // Backs the comparison builder's item picker (replaces raw numeric ID
+  // entry). Casino is included here too, even though it lives in a
+  // separate table, so callers get one search endpoint regardless of
+  // content_type rather than needing to know which table backs which type.
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type");
+  const q = (url.searchParams.get("q") || "").trim();
+  // `id` (optional): exact-id lookup instead of a text search -- used
+  // by the comparison edit screen to resolve a human-readable label
+  // for an already-selected item (comparison_items only stores
+  // item_content_type/item_id, no name), rather than making the admin
+  // re-search for something they already picked.
+  const idParam = url.searchParams.get("id");
+  const id = idParam ? parseInt(idParam) : null;
+  if (!contentType) return failure("content_type is required");
+  if (contentType === "casino") {
+    let result;
+    if (id) {
+      result = await env.DB.prepare(`SELECT id, 'casino' AS content_type, slug, name, status, published FROM casinos WHERE id = ? LIMIT 1`).bind(id).all();
+    } else if (q) {
+      const like = `%${q.toLowerCase()}%`;
+      result = await env.DB.prepare(`SELECT id, 'casino' AS content_type, slug, name, status, published FROM casinos WHERE LOWER(name) LIKE ? OR LOWER(slug) LIKE ? ORDER BY name ASC LIMIT 20`).bind(like, like).all();
+    } else {
+      result = await env.DB.prepare(`SELECT id, 'casino' AS content_type, slug, name, status, published FROM casinos ORDER BY name ASC LIMIT 20`).all();
+    }
+    return json({ success: true, items: result.results || [] });
+  }
+  if (!["sportsbook", "affiliate_partner", "custom"].includes(contentType)) {
+    return failure("content_type must be casino, sportsbook, affiliate_partner, or custom");
+  }
+  const items = id
+    ? [await contentItemsDB.getContentItemById(env.DB, contentType, id)].filter(Boolean)
+    : await contentItemsDB.searchContentItems(env.DB, { contentType, search: q, limit: 20 });
+  return json({ success: true, items });
+}
+
+if (path === "/api/v1/sports/list" && request.method === "GET") {
+  const result = await env.DB.prepare(`SELECT * FROM sports ORDER BY sort_order ASC, name ASC`).all();
+  return json({ success: true, sports: result.results || [] });
+}
+
+if (path === "/api/v1/currencies/list" && request.method === "GET") {
+  const result = await env.DB.prepare(`SELECT * FROM currencies ORDER BY name ASC`).all();
+  return json({ success: true, currencies: result.results || [] });
 }
 
 if (path === "/api/v1/content-item/create" && request.method === "POST") {
@@ -921,6 +1007,14 @@ if (path === "/api/v1/content-item/create" && request.method === "POST") {
     seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
     authorId: body.author_id || null, createdBy: user.user_id, customTypeSlug: body.custom_type_slug || null,
   });
+  if (body.content_type === "sportsbook") {
+    if (Array.isArray(body.sport_ids)) await contentItemsDB.setContentItemSports(env.DB, body.content_type, item.id, body.sport_ids);
+    if (Array.isArray(body.currency_ids)) await contentItemsDB.setContentItemCurrencies(env.DB, body.content_type, item.id, body.currency_ids);
+    if (Array.isArray(body.payment_method_ids)) await contentItemsDB.setContentItemPaymentMethods(env.DB, body.content_type, item.id, body.payment_method_ids);
+  }
+  if (body.content_type === "custom" && body.custom_field_values && typeof body.custom_field_values === "object") {
+    await contentItemsDB.setContentItemCustomFieldValues(env.DB, item.id, body.custom_field_values);
+  }
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "content_item", entityId: item.id, metadata: { content_type: body.content_type, slug: body.slug, name: body.name } });
   return success({ item });
 }
@@ -974,6 +1068,11 @@ if (path === "/api/v1/content-item/update" && request.method === "POST") {
   }
 
   const item = await contentItemsDB.updateContentItem(env.DB, body.content_type, body.slug, fields);
+  if (body.content_type === "sportsbook") {
+    if (Array.isArray(body.sport_ids)) await contentItemsDB.setContentItemSports(env.DB, body.content_type, item.id, body.sport_ids);
+    if (Array.isArray(body.currency_ids)) await contentItemsDB.setContentItemCurrencies(env.DB, body.content_type, item.id, body.currency_ids);
+    if (Array.isArray(body.payment_method_ids)) await contentItemsDB.setContentItemPaymentMethods(env.DB, body.content_type, item.id, body.payment_method_ids);
+  }
   if (body.content_type === "custom" && body.custom_field_values && typeof body.custom_field_values === "object") {
     await contentItemsDB.setContentItemCustomFieldValues(env.DB, item.id, body.custom_field_values);
   }
@@ -1048,15 +1147,52 @@ if (path === "/api/v1/custom-type/update" && request.method === "POST") {
   if (Array.isArray(body.new_fields) && body.new_fields.length) {
     addedFields = await customTypesDB.addCustomFieldDefinitions(env.DB, body.slug, body.new_fields);
   }
-  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "custom_content_type", entityId: type.id, metadata: { slug: body.slug, fields_added: addedFields.length } });
-  return success({ type, addedFields });
+  // `fields` (the full array, as opposed to `new_fields` above) does a
+  // full replace-and-reorder -- lets the edit screen actually remove or
+  // reorder an existing field, which addCustomFieldDefinitions() can't
+  // do (it's append-only by design). Mutually exclusive with
+  // `new_fields` in one call; a client sends one or the other.
+  let replacedFields = null;
+  if (Array.isArray(body.fields)) {
+    replacedFields = await customTypesDB.updateCustomFieldDefinitions(env.DB, body.slug, body.fields.map((f, i) => ({
+      field_key: f.field_key, label: f.label, field_type: f.field_type,
+      options_json: f.options_json || null, required: !!f.required, display_order: f.display_order ?? (i * 10),
+    })));
+  }
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "custom_content_type", entityId: type.id, metadata: { slug: body.slug, fields_added: addedFields.length, fields_replaced: replacedFields ? replacedFields.length : undefined } });
+  return success({ type, addedFields, fields: replacedFields });
+}
+
+if (path === "/api/v1/custom-type/delete" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["slug"]);
+  const existing = await customTypesDB.getCustomContentType(env.DB, body.slug);
+  if (!existing) return failure("Custom content type not found", 404);
+  const dependentCount = await customTypesDB.countContentItemsOfCustomType(env.DB, body.slug);
+  if (dependentCount > 0) {
+    return failure(
+      `Cannot delete: ${dependentCount} content item(s) still use the "${existing.label}" type. Delete or reassign them first.`,
+      409
+    );
+  }
+  await customTypesDB.deleteCustomContentType(env.DB, body.slug);
+  await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "custom_content_type", entityId: existing.id, metadata: { slug: body.slug, label: existing.label } });
+  return success();
 }
 
 if (path === "/api/v1/comparisons/list" && request.method === "GET") {
   const url = new URL(request.url);
   const contentType = url.searchParams.get("content_type");
   if (!contentType) return failure("content_type is required");
-  const items = await comparisonsDB.getPublishedComparisons(env.DB, contentType, { limit: 200 });
+  // Admin listing must see drafts too, not just published ones -- the
+  // previous version of this endpoint always called
+  // getPublishedComparisons(), so the admin table could never show (or
+  // let an admin open/edit) a draft comparison. An explicit
+  // status=published query param still gets the published-only list
+  // for anywhere that specifically wants that.
+  const statusFilter = url.searchParams.get("status");
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(env.DB, user, "comparisons", "read");
+  const items = await comparisonsDB.getAllComparisons(env.DB, contentType, { status: statusFilter || null, extraCondition: condition || null, extraParams: params });
   return json({ success: true, comparisons: items });
 }
 
@@ -1115,6 +1251,18 @@ if (path === "/api/v1/comparison/update" && request.method === "POST") {
   return success({ comparison });
 }
 
+if (path === "/api/v1/comparison/delete" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug"]);
+  const existing = await comparisonsDB.getComparison(env.DB, body.content_type, body.slug);
+  if (!existing) return failure("Comparison not found", 404);
+  const canAccess = await itemAccess.canAccessItem(env.DB, user, "comparisons", "delete", existing);
+  if (!canAccess) return failure("Comparison not found", 404);
+  await comparisonsDB.deleteComparison(env.DB, body.content_type, body.slug);
+  await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "comparison", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug, title: existing.title } });
+  return success();
+}
+
 if (path === "/api/v1/generic-review/create" && request.method === "POST") {
   const body = await request.json();
   validate(body, ["reviewed_content_type", "reviewed_content_id", "slug", "title", "content"]);
@@ -1160,6 +1308,11 @@ if (path === "/api/v1/generic-review/update" && request.method === "POST") {
 }
 
 if (path === "/api/v1/content-types-enabled" && request.method === "GET") {
+  // Same admin-only bar as the /update endpoint below -- this had no
+  // role check at all before, so any authenticated user could read
+  // which content types are enabled site-wide even though only an
+  // admin can change it.
+  if (user.role !== "admin") return failure("Only admins can view content type enablement", 403);
   const enablement = await getContentTypeEnablement(env);
   return json({ success: true, enablement });
 }

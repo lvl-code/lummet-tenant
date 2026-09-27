@@ -34,6 +34,62 @@ export async function getPublishedComparisons(db, contentType, { limit = 100, of
 }
 
 /**
+ * All comparisons of a type, any status -- for admin listings. Added
+ * because the admin comparisons list was calling
+ * getPublishedComparisons() (published-only), so an admin could never
+ * see or open a draft comparison to edit it from that list. `status`
+ * (optional) restricts to one lifecycle status; `extraCondition`/
+ * `extraParams` let the caller AND in an item-level access scoping
+ * clause the same way content-items.js's getAllContentItems() does.
+ */
+export async function getAllComparisons(db, contentType, { status = null, extraCondition = null, extraParams = [], limit = 200 } = {}) {
+  const clauses = ["content_type = ?"];
+  const params = [contentType];
+  if (status) {
+    clauses.push("status = ?");
+    params.push(status);
+  }
+  if (extraCondition) {
+    clauses.push(extraCondition);
+    params.push(...extraParams);
+  }
+  const result = await db.prepare(`
+    SELECT * FROM comparisons WHERE ${clauses.join(" AND ")} ORDER BY updated_at DESC LIMIT ?
+  `).bind(...params, limit).all();
+  return result.results || [];
+}
+
+/**
+ * Public-safe singular lookup, gated on status = 'published' -- added
+ * because renderComparison() in controllers.js was calling
+ * getComparison() (unfiltered) directly with no status check at all,
+ * so a draft comparison was fully reachable at its own public URL.
+ * comparisons has no separate boolean "published" column (unlike
+ * content_items); status is the only gate.
+ */
+export async function getPublishedComparison(db, contentType, slug) {
+  return db.prepare(`
+    SELECT * FROM comparisons WHERE content_type = ? AND slug = ? AND status = 'published' LIMIT 1
+  `).bind(contentType, slug).first();
+}
+
+/**
+ * Delete a comparison and its items. comparison_items has an
+ * ON DELETE CASCADE FK to comparisons(id) (migration 0051), but this
+ * deletes explicitly rather than relying on it -- the D1 shim/test
+ * environment and some SQLite configurations don't enforce FKs unless
+ * PRAGMA foreign_keys=ON is set per-connection, so this stays correct
+ * either way. Returns the deleted row, or null if nothing matched.
+ */
+export async function deleteComparison(db, contentType, slug) {
+  const existing = await getComparison(db, contentType, slug);
+  if (!existing) return null;
+  await db.prepare(`DELETE FROM comparison_items WHERE comparison_id = ?`).bind(existing.id).run();
+  await db.prepare(`DELETE FROM comparisons WHERE id = ?`).bind(existing.id).run();
+  return existing;
+}
+
+/**
  * Create a comparison plus its items in one call. items is an array
  * of { itemContentType, itemId, position }. Write path for a future
  * admin form -- not wired to a UI yet, same posture as every other

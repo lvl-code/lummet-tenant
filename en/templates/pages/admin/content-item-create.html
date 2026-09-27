@@ -38,6 +38,19 @@
         <label><input type="checkbox" name="pre_match"> Pre-Match</label>
         <label><input type="checkbox" name="cashout"> Cashout</label>
         <label><input type="checkbox" name="mobile_app"> Mobile App</label>
+
+        <div class="form-group">
+          <label>Sports Covered</label>
+          <div id="sportsCheckboxes" style="max-height:180px;overflow-y:auto;border:1px solid var(--light-gray);border-radius:8px;padding:10px">Loading...</div>
+        </div>
+        <div class="form-group">
+          <label>Currencies Supported</label>
+          <div id="currenciesCheckboxes" style="max-height:180px;overflow-y:auto;border:1px solid var(--light-gray);border-radius:8px;padding:10px">Loading...</div>
+        </div>
+        <div class="form-group">
+          <label>Payment Methods</label>
+          <div id="paymentMethodsCheckboxes" style="max-height:180px;overflow-y:auto;border:1px solid var(--light-gray);border-radius:8px;padding:10px">Loading...</div>
+        </div>
       </div>
 
       <div id="affiliatePartnerFields" style="display:none">
@@ -47,15 +60,27 @@
         <p class="muted">Leave blank for editorial-only coverage with no commercial relationship.</p>
       </div>
 
+      <div id="customFieldsContainer" style="display:none">
+        <fieldset>
+          <legend>Custom Fields</legend>
+          <div id="customFieldRows">Select a custom type above to see its fields.</div>
+        </fieldset>
+      </div>
+
       <label>Featured <input type="checkbox" name="featured"></label>
       <label>Sort Order <input type="number" name="sort_order" value="0"></label>
       <label>Status
         <select name="status">
           <option value="draft">Draft</option>
-          <option value="published">Published</option>
+          <option value="pending_review">Pending Review</option>
+          <option value="approved">Approved</option>
+          <option value="published">Published / Active</option>
+          <option value="rejected">Rejected</option>
+          <option value="archived">Archived</option>
         </select>
       </label>
-      <label>Published <input type="checkbox" name="published"></label>
+      <label><input type="checkbox" name="published"> Publicly Active (published)</label>
+      <p class="muted">Both "Status = Published" and "Publicly Active" must be set for this item to appear on the public site.</p>
 
       <fieldset>
         <legend>SEO</legend>

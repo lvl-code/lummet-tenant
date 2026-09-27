@@ -11,6 +11,8 @@ import * as ah from "./handlers-affiliate.js";
 import * as anh from "./handlers-analytics.js";
 import * as rh from "./handlers-reporting.js";
 import * as aih from "./handlers-ai.js";
+import * as nh from "./handlers-newsroom.js";
+import * as rsh from "./handlers-research.js";
 
 // Each entry: [METHOD, path-pattern, handler, resource-name]
 // Path patterns use ":param" for a single dynamic segment.
@@ -294,7 +296,76 @@ const ROUTES = [
   ["POST", "/en/api/super/ai/generate-schema", aih.handleGenerateSchema, "ai_tools"],
   ["POST", "/en/api/super/ai/generate-outline", aih.handleGenerateOutline, "ai_tools"],
   ["POST", "/en/api/super/ai/improve-content", aih.handleImproveContent, "ai_tools"],
-  ["POST", "/en/api/super/ai/suggest-links", aih.handleSuggestInternalLinks, "ai_tools"]
+  ["POST", "/en/api/super/ai/suggest-links", aih.handleSuggestInternalLinks, "ai_tools"],
+
+  // Newsroom Taxonomy (v12) -- sections, topics, entities, series.
+  // Thin wrapper around worker/database/newsroom-taxonomy.js's
+  // existing generic listTaxonomy/saveTaxonomyItem/archiveTaxonomyItem
+  // (added with migration 0054_newsroom_foundation.sql; the tenant's
+  // own admin UI already manages these). DELETE always archives
+  // (active = 0) -- these tables never hard-delete rows, matching
+  // the tenant's own design (article <-> taxonomy links and public
+  // URLs must never dangle). Article-level assignment of topics/
+  // entities/series/countries to a specific article
+  // (setArticleRelations) is NOT exposed yet -- this phase covers
+  // managing the taxonomy terms themselves, not per-article tagging.
+  ["GET", "/en/api/super/newsroom-sections", nh.handleListSections, "newsroom-sections"],
+  ["GET", "/en/api/super/newsroom-sections/:id", nh.handleGetSection, "newsroom-sections"],
+  ["POST", "/en/api/super/newsroom-sections", nh.handleCreateSection, "newsroom-sections"],
+  ["PUT", "/en/api/super/newsroom-sections/:id", nh.handleUpdateSection, "newsroom-sections"],
+  ["DELETE", "/en/api/super/newsroom-sections/:id", nh.handleArchiveSection, "newsroom-sections"],
+
+  ["GET", "/en/api/super/newsroom-topics", nh.handleListTopics, "newsroom-topics"],
+  ["GET", "/en/api/super/newsroom-topics/:id", nh.handleGetTopic, "newsroom-topics"],
+  ["POST", "/en/api/super/newsroom-topics", nh.handleCreateTopic, "newsroom-topics"],
+  ["PUT", "/en/api/super/newsroom-topics/:id", nh.handleUpdateTopic, "newsroom-topics"],
+  ["DELETE", "/en/api/super/newsroom-topics/:id", nh.handleArchiveTopic, "newsroom-topics"],
+
+  ["GET", "/en/api/super/newsroom-entities", nh.handleListEntities, "newsroom-entities"],
+  ["GET", "/en/api/super/newsroom-entities/:id", nh.handleGetEntity, "newsroom-entities"],
+  ["POST", "/en/api/super/newsroom-entities", nh.handleCreateEntity, "newsroom-entities"],
+  ["PUT", "/en/api/super/newsroom-entities/:id", nh.handleUpdateEntity, "newsroom-entities"],
+  ["DELETE", "/en/api/super/newsroom-entities/:id", nh.handleArchiveEntity, "newsroom-entities"],
+
+  ["GET", "/en/api/super/newsroom-series", nh.handleListSeries, "newsroom-series"],
+  ["GET", "/en/api/super/newsroom-series/:id", nh.handleGetSeries, "newsroom-series"],
+  ["POST", "/en/api/super/newsroom-series", nh.handleCreateSeries, "newsroom-series"],
+  ["PUT", "/en/api/super/newsroom-series/:id", nh.handleUpdateSeries, "newsroom-series"],
+  ["DELETE", "/en/api/super/newsroom-series/:id", nh.handleArchiveSeries, "newsroom-series"],
+
+  // Article-level newsroom metadata + relations (v13) -- operates on
+  // an EXISTING article by its numeric news.id (see handlers-newsroom.js
+  // header for why this differs from handleUpdateNews's slug-based id).
+  ["GET", "/en/api/super/news/:id/newsroom-relations", nh.handleGetArticleRelations, "news"],
+  ["PUT", "/en/api/super/news/:id/newsroom-meta", nh.handleSetArticleMeta, "news"],
+  ["PUT", "/en/api/super/news/:id/newsroom-relations", nh.handleSetArticleRelations, "news"],
+
+  // Research Engine Phase 2 (v14) -- sources (global) + claims
+  // (scoped to a research_item_id) + the claim<->source evidence
+  // links. Thin wrapper around worker/database/research-sources.js
+  // and worker/database/research-claims.js (added with migration
+  // 0046_research_sources_claims.sql; the tenant's own
+  // /api/v1/research-sources/* and /api/v1/research-claims/* admin
+  // routes already use these unmodified). DELETE on a source is a
+  // real hard delete (global table, no citation-count guard on the
+  // tenant's own admin route either); claims/claim-sources cascade
+  // via their own foreign keys. Relations/versions/review-queue/
+  // datasets (the other four research sub-systems) are NOT exposed
+  // yet -- deferred to a later phase.
+  ["GET", "/en/api/super/research-sources", rsh.handleListResearchSources, "research_sources"],
+  ["GET", "/en/api/super/research-sources/:id", rsh.handleGetResearchSource, "research_sources"],
+  ["POST", "/en/api/super/research-sources", rsh.handleCreateResearchSource, "research_sources"],
+  ["PUT", "/en/api/super/research-sources/:id", rsh.handleUpdateResearchSource, "research_sources"],
+  ["DELETE", "/en/api/super/research-sources/:id", rsh.handleDeleteResearchSource, "research_sources"],
+
+  ["GET", "/en/api/super/research-claims", rsh.handleListResearchClaims, "research_claims"],
+  ["GET", "/en/api/super/research-claims/:id", rsh.handleGetResearchClaim, "research_claims"],
+  ["POST", "/en/api/super/research-claims", rsh.handleCreateResearchClaim, "research_claims"],
+  ["PUT", "/en/api/super/research-claims/:id", rsh.handleUpdateResearchClaim, "research_claims"],
+  ["DELETE", "/en/api/super/research-claims/:id", rsh.handleDeleteResearchClaim, "research_claims"],
+
+  ["POST", "/en/api/super/research-claim-sources", rsh.handleAttachResearchClaimSource, "research_claims"],
+  ["DELETE", "/en/api/super/research-claim-sources/:id", rsh.handleDetachResearchClaimSource, "research_claims"]
 ];
 
 function matchRoute(method, path) {

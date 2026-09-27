@@ -69,7 +69,41 @@
 // (verified against migrations/0045_research_core.sql), so 'own'
 // scope has nothing to key off; role-level permissions plus
 // 'all'/'none' default scope are what govern it for now.
-export const SUPER_API_VERSION = 11;
+// Version 12: added Newsroom Taxonomy -- sections, topics, entities,
+// series (full CRUD; DELETE archives, never hard-deletes, matching
+// worker/database/newsroom-taxonomy.js's own design). Thin wrapper
+// around that module's existing generic listTaxonomy/
+// saveTaxonomyItem/archiveTaxonomyItem (added with migration
+// 0054_newsroom_foundation.sql). Article-level tagging of an
+// individual article with these terms (setArticleRelations) is NOT
+// exposed yet -- deferred to a later phase; this covers managing the
+// taxonomy terms themselves. Four separate flags (one per route
+// segment: newsroom-sections/-topics/-entities/-series) rather than
+// one combined flag, so the control plane's per-resource capability
+// check (which matches on the exact resource/route name) can gate
+// each one independently.
+// Version 13: added article-level Newsroom metadata + relations --
+// PUT news/:id/newsroom-meta (article_type, section_id,
+// primary_country, region_slug, content_class, labels, methodology,
+// pr_* fields, disclosure_json -- the columns migration 0054 added
+// directly to `news`, not reachable through the ordinary news update
+// endpoint) and GET/PUT news/:id/newsroom-relations (topic_ids,
+// series_ids, entities, countries, related -- the many-to-many join
+// tables from the same migration). No new capability flag: both
+// operate on the existing 'news' resource, same as
+// alerts/:id/acknowledge didn't get its own flag under 'alerts'.
+// Version 14: added Research Engine Phase 2 -- research-sources
+// (global) and research-claims (scoped to a research_item_id) plus
+// research-claim-sources (the evidence links). Thin wrapper around
+// worker/database/research-sources.js and
+// worker/database/research-claims.js (added with migration
+// 0046_research_sources_claims.sql). DELETE on a source is a real
+// hard delete, matching the tenant's own admin route. Two flags
+// (not one) so the two resources can be gated independently, same
+// reasoning as the four newsroom-taxonomy flags in v12. Relations/
+// versions/review-queue/datasets (research's other four
+// sub-systems, from migrations 0047-0050) are NOT exposed yet.
+export const SUPER_API_VERSION = 14;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -113,7 +147,13 @@ export const CAPABILITIES = {
   provider_adapter_configs: true,
   import_batches: true,
   ai_tools: true,
-  research: true
+  research: true,
+  "newsroom-sections": true,
+  "newsroom-topics": true,
+  "newsroom-entities": true,
+  "newsroom-series": true,
+  "research-sources": true,
+  "research-claims": true
 };
 
 export function getCapabilities() {

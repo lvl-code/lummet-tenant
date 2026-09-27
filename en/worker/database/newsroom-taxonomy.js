@@ -66,6 +66,16 @@ export async function listTaxonomy(db, kind, { includeInactive = false } = {}) {
   return r.results || [];
 }
 
+// Single-row counterpart to listTaxonomy, added alongside the Super API's
+// newsroom taxonomy endpoints (GET .../:id) — table name still comes only
+// from the fixed KINDS map above, id is always a bound parameter.
+export async function getTaxonomyItem(db, kind, id) {
+  const k = KINDS[kind]; if (!k) return null;
+  const numId = Number(id);
+  if (!Number.isInteger(numId)) return undefined; // caller treats undefined as "not found", null as "unknown kind"
+  return (await db.prepare(`SELECT * FROM ${k.table} WHERE id = ?`).bind(numId).first()) || undefined;
+}
+
 // Create (no id) or update (id) one taxonomy item. Partial updates: only
 // keys present in `input` change.
 export async function saveTaxonomyItem(db, kind, input, { actor, perms }) {
@@ -241,6 +251,27 @@ const uniqInts = (a, max = 50) => {
   const n = a.map(Number);
   return n.every(Number.isInteger) ? [...new Set(n)] : null;
 };
+
+// Read-side counterpart to setArticleRelations, added alongside the
+// Super API's GET .../:id/newsroom-relations endpoint. Table/column
+// names here are hardcoded literals (not derived from input), same
+// SQL-safety posture as the rest of this file.
+export async function getArticleRelations(db, newsId) {
+  const [topics, series, entities, countries, related] = await Promise.all([
+    db.prepare(`SELECT topic_id FROM news_article_topics WHERE news_id = ?`).bind(newsId).all(),
+    db.prepare(`SELECT series_id, position FROM news_series_articles WHERE news_id = ? ORDER BY position`).bind(newsId).all(),
+    db.prepare(`SELECT entity_id, role, display_order FROM news_article_entities WHERE news_id = ? ORDER BY display_order`).bind(newsId).all(),
+    db.prepare(`SELECT country_code, is_primary FROM news_article_countries WHERE news_id = ?`).bind(newsId).all(),
+    db.prepare(`SELECT related_news_id, relation_type, display_order FROM news_related WHERE news_id = ? ORDER BY display_order`).bind(newsId).all()
+  ]);
+  return {
+    topic_ids: (topics.results || []).map(r => r.topic_id),
+    series_ids: (series.results || []).map(r => r.series_id),
+    entities: (entities.results || []).map(r => ({ id: r.entity_id, role: r.role })),
+    countries: (countries.results || []).map(r => ({ code: r.country_code, is_primary: !!r.is_primary })),
+    related: (related.results || []).map(r => ({ news_id: r.related_news_id, relation_type: r.relation_type }))
+  };
+}
 
 export async function setArticleRelations(db, newsId, input, { actor, perms }) {
   if (!checkPermission(perms, 'news', 'update')) return { ok: false, status: 403, error: 'forbidden' };

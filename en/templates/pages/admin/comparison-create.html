@@ -24,14 +24,29 @@
       <label>Status
         <select name="status">
           <option value="draft">Draft</option>
-          <option value="published">Published</option>
+          <option value="pending_review">Pending Review</option>
+          <option value="approved">Approved</option>
+          <option value="published">Published / Active</option>
+          <option value="archived">Archived</option>
         </select>
       </label>
 
       <fieldset>
-        <legend>Items to Compare (need each item's content_type and numeric ID — find IDs from the relevant listing page)</legend>
-        <div id="itemRows"></div>
-        <button type="button" id="addItemRowBtn" class="btn btn--ghost btn--sm">+ Add Item</button>
+        <legend>Items to Compare</legend>
+        <p class="muted">Search by name instead of entering a numeric ID.</p>
+        <label>Search within
+          <select id="itemSearchContentType">
+            <option value="casino">Casino</option>
+            <option value="sportsbook">Sportsbook</option>
+            <option value="affiliate_partner">Affiliate Partner</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <div style="display:flex;gap:8px;margin:8px 0">
+          <input type="text" id="itemSearchInput" placeholder="Search items to add..." style="flex:1">
+        </div>
+        <div id="itemSearchResults" style="margin-bottom:12px"></div>
+        <div id="selectedItemRows"></div>
       </fieldset>
 
       <fieldset>
@@ -65,16 +80,10 @@
   </div>
 </div>
 
-<template id="itemRowTemplate">
-  <div class="item-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-    <select class="item-content-type" style="flex:1">
-      <option value="casino">Casino</option>
-      <option value="sportsbook">Sportsbook</option>
-      <option value="affiliate_partner">Affiliate Partner</option>
-      <option value="custom">Custom</option>
-    </select>
-    <input type="number" class="item-id" placeholder="Item ID" style="flex:1">
-    <button type="button" class="btn btn--ghost btn--sm remove-item-row">✕</button>
+<template id="selectedItemRowTemplate">
+  <div class="item-row" style="display:flex;gap:8px;margin-bottom:6px;align-items:center;padding:6px 10px;background:var(--bg,#f5f5f5);border-radius:6px">
+    <span class="item-row-label" style="flex:1"></span>
+    <button type="button" class="btn btn--ghost btn--sm remove-selected-item">✕</button>
   </div>
 </template>
 

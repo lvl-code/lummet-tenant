@@ -172,6 +172,16 @@ describe('comparisons.js — the persistent comparison-page engine', () => {
   test('createComparison writes the comparison + items together; a cross-item comparison resolves generically', async () => {
     await db.prepare(`INSERT INTO content_items (content_type, slug, name, status, published) VALUES ('sportsbook', 'bet365-sport', 'Bet365 Sportsbook', 'published', 1)`).run();
     const sportsbookId = (await db.prepare(`SELECT id FROM content_items WHERE slug='bet365-sport'`).first()).id;
+    // seedBaseFixtures() leaves casinos at their column default of
+    // status='draft' (only published=1 is set) since that default isn't
+    // relevant to the item-access scoping those fixtures exist for --
+    // but resolveContentItemById() is now correctly gated on BOTH
+    // published=1 AND status='published' (see its doc comment: a
+    // draft/unpublished item must not leak into a public comparison
+    // page). This test is about type-resolution across
+    // casinos/content_items, not about gating, so mark the fixture
+    // casino published here to match what it's meant to represent.
+    await db.prepare(`UPDATE casinos SET status = 'published' WHERE id = ?`).bind(fx.casinoA).run();
 
     const created = await comparisonsDb.createComparison(db, {
       contentType: 'casino', // comparisons.content_type can mix -- but items themselves carry their own type
@@ -195,6 +205,10 @@ describe('comparisons.js — the persistent comparison-page engine', () => {
   });
 
   test('editorial selection resolves via the explicit (type, id) pair', async () => {
+    // See the previous test's comment: mark published so the new
+    // resolveContentItemById() gate doesn't hide it -- this test is
+    // about the (type, id) pair being honored, not about gating.
+    await db.prepare(`UPDATE casinos SET status = 'published' WHERE id = ?`).bind(fx.casinoA).run();
     const created = await comparisonsDb.createComparison(db, {
       contentType: 'casino', slug: 'a-vs-b', title: 'A vs B',
       editorialSelectionItemType: 'casino', editorialSelectionItemId: fx.casinoA,

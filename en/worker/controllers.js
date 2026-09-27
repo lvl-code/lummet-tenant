@@ -4172,7 +4172,12 @@ export async function renderSportsbookList(request, env) {
 }
 
 export async function renderSportsbook(request, env, slug, ctx = null) {
-  const item = await contentItems.getContentItem(env.DB, "sportsbook", slug);
+  // Public-gated lookup -- a draft/unpublished sportsbook must not be
+  // reachable at its direct URL just because an admin record exists
+  // (see getPublishedContentItem()'s doc comment in
+  // database/content-items.js; getContentItem() is the unfiltered
+  // admin-only variant and must not be used on this path).
+  const item = await contentItems.getPublishedContentItem(env.DB, "sportsbook", slug);
   if (!item) return render404(request, env);
 
   const renderer = new Renderer(env, request);
@@ -4323,7 +4328,8 @@ export async function renderAffiliatePartnerList(request, env) {
 }
 
 export async function renderAffiliatePartner(request, env, slug, ctx = null) {
-  const item = await contentItems.getContentItem(env.DB, "affiliate_partner", slug);
+  // Public-gated lookup -- see the matching comment in renderSportsbook().
+  const item = await contentItems.getPublishedContentItem(env.DB, "affiliate_partner", slug);
   if (!item) return render404(request, env);
 
   const renderer = new Renderer(env, request);
@@ -4461,7 +4467,8 @@ export async function renderCustom(request, env, typeSlug, slug, ctx = null) {
   const customType = await customTypes.getCustomContentType(env.DB, typeSlug);
   if (!customType) return render404(request, env);
 
-  const item = await contentItems.getContentItem(env.DB, "custom", slug);
+  // Public-gated lookup -- see the matching comment in renderSportsbook().
+  const item = await contentItems.getPublishedContentItem(env.DB, "custom", slug);
   if (!item || item.custom_type_slug !== typeSlug) return render404(request, env);
 
   const renderer = new Renderer(env, request);
@@ -4839,7 +4846,11 @@ export async function renderComparisonList(request, env, compareType) {
 }
 
 export async function renderComparison(request, env, compareType, slug, ctx = null) {
-  const comparison = await comparisonsDb.getComparison(env.DB, compareType, slug);
+  // Public-gated lookup -- comparisons had no status check at all here
+  // before (getComparison() is unfiltered), so a draft comparison was
+  // fully reachable at its own public URL. See getPublishedComparison()'s
+  // doc comment in database/comparisons.js.
+  const comparison = await comparisonsDb.getPublishedComparison(env.DB, compareType, slug);
   if (!comparison) return render404(request, env);
 
   const renderer = new Renderer(env, request);
@@ -5835,6 +5846,17 @@ export async function renderDashboardComparisonEdit(request, env, compareType, s
   return renderAdminPage(request, env, "admin/comparison-edit.html", { compare_type: compareType, slug });
 }
 export async function renderDashboardContentTypeSettings(request, env) {
+  // This page's own copy says "Admin-only: not visible to editors", and
+  // its write endpoint (/api/v1/content-types-enabled/update) really is
+  // admin-only -- but renderAdminPage()'s default allowedRoles is
+  // ["admin", "editor"], so an editor could actually open this page
+  // before this check was added (they just couldn't save from it).
+  // Enforced here rather than changing renderAdminPage()'s default,
+  // which every other admin page in this file also relies on.
+  const user = await getCurrentUser(request, env);
+  if (!user || user.role !== "admin") {
+    return new Response("Forbidden", { status: 403 });
+  }
   return renderAdminPage(request, env, "admin/content-type-settings.html");
 }
 export async function renderDashboardGenericReviews(request, env) {

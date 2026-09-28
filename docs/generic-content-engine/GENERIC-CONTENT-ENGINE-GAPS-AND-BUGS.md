@@ -1,5 +1,36 @@
 # Generic Content Engine — Gaps & Bugs Audit
 
+## STATUS UPDATE (pass 2 integration)
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Delete custom types | ✅ fixed (409 while items depend on it) |
+| 2 | Delete comparisons | ✅ fixed |
+| 3 | Delete generic reviews / empty Actions column | ✅ delete + publish/unpublish + View; ⏳ full edit page not built |
+| 4 | View link on content items | ✅ fixed (live items only) |
+| 5 | Logo media picker | ⏳ open |
+| 6 | Hero image media picker | ⏳ open |
+| 7 | Tracking/affiliate URL for sportsbook | ⏳ open — needs a design decision (touches tracked links) |
+| 8 | Raw-ID pickers | ◐ comparison **items** now searchable; **Editorial Pick** still a number input |
+| 9 | Categories | ✅ fixed (read/write, admin checkboxes, used by related items) |
+| 10 | GEO targeting | ✅ fixed (rules editor, list badges, detail status, related filter) |
+| 11 | Sports / currencies / payment methods | ✅ fixed (write side + admin checkboxes) |
+| 12 | Author on generic reviews | ✅ fixed (create form + update endpoint) |
+| 13 | Review↔item linkage | n/a (pre-existing note) |
+| 14 | Structured reviews | ⏳ open |
+| 15 | Admin pagination | ⏳ open |
+| 16 | License on public sportsbook page | ✅ fixed |
+| — | Related items + caching, CONTENT_VIEW analytics (README "not built yet") | ✅ built |
+
+Additional bugs found and fixed while doing the above: draft items/comparisons publicly
+reachable, draft items leaking into published comparisons/reviews, unescaped names in
+list cards, missing RBAC read gates, list endpoints ignoring item-level scoping,
+`/generic-review/update` able to edit a **casino** review, orphaned relationship rows on
+delete. See `CHANGES-pass2.md`.
+
+---
+
+
 **Scope:** `content_items` (sportsbook / affiliate_partner / custom), `custom_content_types`, `comparisons`, and generic `reviews` (`reviewed_content_type != casino`), as they stand after commit `70b622e` on `lummet-tenant`.
 
 **Method:** every finding below was confirmed by reading the actual schema (`migrations/0051_generic_content_engine.sql`), the actual admin templates, the actual `worker/database/*.js` query code, and the actual `worker/controllers.js` render/route code — then cross-checked against the equivalent casino/casino-review code, which is the mature reference implementation in this codebase. Nothing here is inferred from documentation or test names; each item names the file(s) that prove it.

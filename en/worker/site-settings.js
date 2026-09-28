@@ -431,6 +431,10 @@ if (db) {
   values.site_name ||
   "",
 
+title:
+  values.site_title ||
+  "",
+
 description:
   values.site_description ||
   "",

@@ -302,7 +302,7 @@ async function renderHomeHtml(request, env) {
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("home.html", {
     seo_title: dynamicSeo.seo_title || `${site.siteName} — Expert Casino Reviews & Bonuses`,
-    seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
+    seo_description: dynamicSeo.seo_description || site.description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
     seo_keywords: dynamicSeo.seo_keywords || "",
     canonical: dynamicSeo.canonical || site.url("/en"),
     og_image: dynamicSeo.og_image || "",

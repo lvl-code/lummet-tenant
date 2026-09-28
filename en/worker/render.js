@@ -541,9 +541,7 @@ async buildSEO(data = {}) {
 
   const description =
     this.escapeHtml(
-      data.seo_description ||
-      site.description ||
-      "Expert casino reviews, rankings and iGaming insights."
+      data.seo_description || ""
     );
 
   const canonical =

@@ -41,10 +41,27 @@ export async function createGenericReview(db, {
   ).first();
 }
 
+// Every write below is restricted to GENERIC reviews only (the
+// casino_slug = '' sentinel described above + a non-casino
+// reviewed_content_type). Before this guard, updateGenericReview() ran
+// `UPDATE reviews ... WHERE id = ?`, so posting a CASINO review's id to
+// /api/v1/generic-review/update edited that casino review through the
+// wrong endpoint -- bypassing the casino review path. Casino reviews
+// are never reachable from anything in this file.
+const GENERIC_ONLY = `casino_slug = '' AND reviewed_content_type IN ('sportsbook', 'affiliate_partner', 'custom')`;
+
+export async function getGenericReview(db, id) {
+  return db.prepare(`SELECT * FROM reviews WHERE id = ? AND ${GENERIC_ONLY} LIMIT 1`).bind(id).first();
+}
+
+export async function deleteGenericReview(db, id) {
+  return db.prepare(`DELETE FROM reviews WHERE id = ? AND ${GENERIC_ONLY}`).bind(id).run();
+}
+
 export async function updateGenericReview(db, id, fields) {
   const sets = [];
   const values = [];
-  const allowed = ["title", "content", "pros", "cons", "rating", "verdict", "seo_title", "seo_description", "seo_keywords", "published"];
+  const allowed = ["title", "content", "pros", "cons", "rating", "verdict", "seo_title", "seo_description", "seo_keywords", "published", "author_id"];
   for (const key of allowed) {
     if (Object.prototype.hasOwnProperty.call(fields, key)) {
       sets.push(`${key} = ?`);
@@ -54,13 +71,13 @@ export async function updateGenericReview(db, id, fields) {
   if (!sets.length) return null;
   sets.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(id);
-  return db.prepare(`UPDATE reviews SET ${sets.join(", ")} WHERE id = ? RETURNING *`).bind(...values).first();
+  return db.prepare(`UPDATE reviews SET ${sets.join(", ")} WHERE id = ? AND ${GENERIC_ONLY} RETURNING *`).bind(...values).first();
 }
 
 /** All generic (non-casino) reviews for a given reviewed content type, admin listing. */
 export async function getGenericReviewsForType(db, reviewedContentType) {
   const result = await db.prepare(`
-    SELECT * FROM reviews WHERE reviewed_content_type = ? ORDER BY created_at DESC
+    SELECT * FROM reviews WHERE reviewed_content_type = ? AND ${GENERIC_ONLY} ORDER BY created_at DESC
   `).bind(reviewedContentType).all();
   return result.results || [];
 }

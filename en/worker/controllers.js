@@ -4102,9 +4102,38 @@ export async function renderCasinoList(request, env) {
 // caching of related items, no per-country GEO badge on the card
 // grid, no analytics event logging yet. Noted in the Phase 3 report
 // as follow-up work, not silently dropped.
+//
+// UPDATE (this pass): all three are now implemented --
+// getContentGeoStatuses()/buildContentItemGeoBadge() below (content_geo,
+// migration 0051, was schema-ready but unused), getRelatedContentItems()
+// + KV caching in the three detail renderers below (mirrors
+// renderCasino()'s relatedCasinosPromise exactly), and a CONTENT_VIEW
+// analytics event per detail-page view (migration 0059 added the
+// content_item_id column analytics_events needed for this).
 // =====================================================
 
-function buildContentItemCards(itemList, contentType, linkPrefix) {
+/**
+ * Generic-content counterpart to prepareGeoData() above, for
+ * content_items instead of casinos -- same country-detection (request.cf,
+ * geoEngine.process), same return shape ({country, statuses}), just
+ * delegating the actual rule lookup/inference to
+ * content-items.js's getContentGeoStatuses() (keyed by numeric id,
+ * since content_items has no equivalent of casinos.slug being the geo
+ * rules' join key -- content_geo uses content_type+content_id instead).
+ */
+async function prepareContentGeoData(env, request, contentType, itemList) {
+  const edgeGeo = {
+    country: request.cf?.country || null,
+    city: request.cf?.city || "Unknown"
+  };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+  const ids = itemList.map(i => i.id);
+  if (ids.length === 0) return { country: geoInfo.country, statuses: {} };
+  const statuses = await contentItems.getContentGeoStatuses(env.DB, contentType, ids, geoInfo.country);
+  return { country: geoInfo.country, statuses };
+}
+
+function buildContentItemCards(itemList, contentType, linkPrefix, geoData = null) {
   return itemList.map((item) => {
     const rating = item.rating || 0;
     const fullStars = Math.floor(rating);
@@ -4113,24 +4142,68 @@ function buildContentItemCards(itemList, contentType, linkPrefix) {
       "★".repeat(fullStars) +
       (hasHalf ? "½" : "") +
       "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
+    // item.name/description are admin-entered content, same untrusted-
+    // input posture as every other field this codebase escapes on
+    // write-out (see the XSS regression suite for the detail-page
+    // renderers below, which already escape item.name -- this card
+    // grid builder for the LIST pages had been missed).
+    const safeName = escapeHtml(item.name);
+    const safeDescription = escapeHtml(item.description || item.seo_description || "");
+
+    const geoBadge = buildContentItemGeoBadge(geoData, item.id);
 
     return `
       <div class="casino-card">
+        ${geoBadge}
         <div class="casino-card__header">
-          <img src="${item.logo || '/static/images/default.png'}" alt="${item.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'">
+          <img src="${item.logo || '/static/images/default.png'}" alt="${safeName}" class="casino-card__logo" onerror="this.src='/static/images/default.png'">
           <div>
-            <h3 class="casino-card__name">${item.name}</h3>
+            <h3 class="casino-card__name">${safeName}</h3>
             <div class="rating-stars">${ratingDisplay}</div>
           </div>
         </div>
         <div class="casino-card__body">
-          <p class="casino-card__description">${item.description || item.seo_description || ""}</p>
+          <p class="casino-card__description">${safeDescription}</p>
         </div>
         <div class="casino-card__footer">
-          <a href="${linkPrefix}/${item.slug}" class="btn btn--primary">View ${item.name}</a>
+          <a href="${linkPrefix}/${item.slug}" class="btn btn--primary">View ${safeName}</a>
         </div>
       </div>`;
   }).join("");
+}
+
+/**
+ * Small GEO badge for a content-item card, reusing the exact same
+ * CSS classes buildCasinoCards() uses (geo-badge / geo-badge--allowed
+ * / geo-badge--blocked / geo-badge--unknown) so the visual language is
+ * identical across casino and generic-content cards -- no new design
+ * system, per the "reuse existing CSS/design tokens" instruction.
+ * geoData is { country, statuses: {itemId: status} } or null (when
+ * the caller couldn't detect a country, e.g. no CF-IPCountry header);
+ * null renders no badge at all, same as buildCasinoCards().
+ */
+function buildContentItemGeoBadge(geoData, itemId) {
+  if (!geoData) return "";
+  const geoStatus = geoData.statuses[itemId] || "unknown";
+  const flag = countryToFlag(geoData.country);
+  let geoIcon, geoClass, geoLabel;
+  if (geoStatus === "allowed") { geoIcon = "✓"; geoClass = "geo-badge--allowed"; geoLabel = "Available"; }
+  else if (geoStatus === "blocked") { geoIcon = "✕"; geoClass = "geo-badge--blocked"; geoLabel = "Not Available"; }
+  else { geoIcon = "?"; geoClass = "geo-badge--unknown"; geoLabel = "Unknown"; }
+  return `
+    <div class="geo-badge ${geoClass}" title="${geoLabel} in ${countryFullName(geoData.country)}">
+      <span class="geo-badge__flag">${flag}</span>
+      <span class="geo-badge__icon">${geoIcon}</span>
+    </div>`;
+}
+
+/** Full-sentence GEO status line for a content-item detail page sidebar, same wording convention as buildCasinoCards()'s geoStatusText. */
+function buildContentItemGeoStatusHtml(geoData, itemId) {
+  if (!geoData) return "";
+  const geoStatus = geoData.statuses[itemId] || "unknown";
+  const flag = countryToFlag(geoData.country);
+  const geoLabel = geoStatus === "allowed" ? "Available" : geoStatus === "blocked" ? "Not Available" : "Unknown";
+  return `<div class="casino-card__geo-status geo-${geoStatus}">${flag} ${geoLabel} for players from ${countryFullName(geoData.country)}</div>`;
 }
 
 export async function renderSportsbookList(request, env) {
@@ -4142,6 +4215,7 @@ export async function renderSportsbookList(request, env) {
     renderer.renderAllComponents("sportsbook_list", "sportsbook_list"),
     renderer.loadDynamicSeo("sportsbook_list", "sportsbook_list"),
   ]);
+  const geoData = await prepareContentGeoData(env, request, "sportsbook", itemList);
 
   const listSchema = {
     "@context": "https://schema.org",
@@ -4157,7 +4231,7 @@ export async function renderSportsbookList(request, env) {
     canonical: dynamicSeo.canonical || site.url("/en/sportsbook"),
     category: "All Sportsbooks",
     description: "Browse our directory of reviewed sportsbooks.",
-    casino_cards: buildContentItemCards(itemList, "sportsbook", "/en/sportsbook"),
+    casino_cards: buildContentItemCards(itemList, "sportsbook", "/en/sportsbook", geoData),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -4182,13 +4256,65 @@ export async function renderSportsbook(request, env, slug, ctx = null) {
 
   const renderer = new Renderer(env, request);
 
-  const [site, allComponents, dynamicSeo, sports, paymentMethods] = await Promise.all([
+  // Same country-detection as prepareGeoData()/prepareContentGeoData()
+  // above -- computed once here and reused for both the GEO status
+  // sidebar and the CASINO_VIEW-equivalent analytics event below, same
+  // "no extra cost beyond what's already computed" note renderCasino() makes.
+  const edgeGeo = { country: request.cf?.country || null, city: request.cf?.city || "Unknown" };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+
+  // Analytics (CONTENT_VIEW). Fire-and-forget via ctx.waitUntil, same
+  // convention as renderCasino()'s CASINO_VIEW logging -- never delays
+  // this render. metadata.content_type lets a query distinguish
+  // sportsbook/affiliate_partner/custom views without a join, even
+  // though content_item_id (migration 0059) already makes them joinable.
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: "CONTENT_VIEW",
+        contentItemId: item.id,
+        countryCode: geoInfo.country,
+        city: geoInfo.city,
+        referrer: request.headers.get("referer") || null,
+        landingPage: `/en/sportsbook/${slug}`,
+        metadata: { content_type: "sportsbook" },
+      }).catch(() => {})
+    );
+  }
+
+  // ── Related Sportsbooks ({{{related_items_html}}}) ──────────
+  // Same KV-caching shape as renderCasino()'s relatedCasinosPromise:
+  // kicked off unawaited so it runs alongside the Promise.all() below,
+  // result only depends on which item this is + the visitor's country.
+  const relatedItemsPromise = (async () => {
+    const cacheKey = `related_content:sportsbook:${item.id}:${geoInfo.country || "none"}`;
+    try {
+      const cached = await getCached(env, cacheKey);
+      if (cached !== null) return cached;
+    } catch { /* fall through to compute fresh */ }
+    try {
+      const related = await contentItems.getRelatedContentItems(env.DB, item, "sportsbook", geoInfo.country, 6);
+      if (related.length === 0) { await setCached(env, cacheKey, "", 300); return ""; }
+      const relatedGeoData = { country: geoInfo.country, statuses: Object.fromEntries(related.map(r => [r.id, "allowed"])) };
+      const html = buildContentItemCards(related, "sportsbook", "/en/sportsbook", relatedGeoData);
+      await setCached(env, cacheKey, html, 300);
+      return html;
+    } catch (e) {
+      console.error("Related sportsbooks failed to load:", e.message);
+      return "";
+    }
+  })();
+
+  const [site, allComponents, dynamicSeo, sports, paymentMethods, itemGeoStatuses, relatedItemsHtml] = await Promise.all([
     getSiteContext(request, env),
     renderer.renderAllComponents("sportsbook", slug, ctx),
     renderer.loadDynamicSeo("sportsbook", slug),
     contentItems.getContentItemSports(env.DB, "sportsbook", item.id),
     contentItems.getContentItemPaymentMethods(env.DB, "sportsbook", item.id),
+    contentItems.getContentGeoStatuses(env.DB, "sportsbook", [item.id], geoInfo.country),
+    relatedItemsPromise,
   ]);
+  const itemGeoData = { country: geoInfo.country, statuses: itemGeoStatuses };
 
   const rating = item.rating || 0;
   const fullStars = Math.floor(rating);
@@ -4247,11 +4373,19 @@ export async function renderSportsbook(request, env, slug, ctx = null) {
     sports_html: sportsHtml,
     payment_methods_html: paymentMethodsHtml,
     commercial_html: "", // no commercial-link concept for sportsbook yet -- template renders nothing for this key
+    // License is a primary trust signal; it was collected in the admin form
+    // and then dropped on the public page (content-item.html already has a
+    // {{#if license}} row that never received a value). Escaped here because
+    // {{...}} in this renderer does not auto-escape.
+    license: item.license ? escapeHtml(item.license_country ? `${item.license} (${item.license_country})` : item.license) : "",
     custom_fields_html: "",
     highlight_label: null,   // no commercial offer system wired for sportsbook yet — see Phase 3 report
     highlight_value: null,
     website_url: item.website || "",
     status: item.status || "published",
+    geo_status_html: buildContentItemGeoStatusHtml(itemGeoData, item.id),
+    related_items_html: relatedItemsHtml,
+    content_type_label: "Sportsbooks",
   }, itemSchema, buildBreadcrumbs("sportsbook", { name: item.name }));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -4298,6 +4432,7 @@ export async function renderAffiliatePartnerList(request, env) {
     renderer.renderAllComponents("affiliate_partner_list", "affiliate_partner_list"),
     renderer.loadDynamicSeo("affiliate_partner_list", "affiliate_partner_list"),
   ]);
+  const geoData = await prepareContentGeoData(env, request, "affiliate_partner", itemList);
 
   const listSchema = {
     "@context": "https://schema.org",
@@ -4313,7 +4448,7 @@ export async function renderAffiliatePartnerList(request, env) {
     canonical: dynamicSeo.canonical || site.url("/en/affiliate-partner"),
     category: "Affiliate Partners",
     description: "Browse our directory of reviewed affiliate partners and programs.",
-    casino_cards: buildContentItemCards(itemList, "affiliate_partner", "/en/affiliate-partner"),
+    casino_cards: buildContentItemCards(itemList, "affiliate_partner", "/en/affiliate-partner", geoData),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -4334,7 +4469,43 @@ export async function renderAffiliatePartner(request, env, slug, ctx = null) {
 
   const renderer = new Renderer(env, request);
 
-  const [site, allComponents, dynamicSeo, commercial] = await Promise.all([
+  const edgeGeo = { country: request.cf?.country || null, city: request.cf?.city || "Unknown" };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: "CONTENT_VIEW",
+        contentItemId: item.id,
+        countryCode: geoInfo.country,
+        city: geoInfo.city,
+        referrer: request.headers.get("referer") || null,
+        landingPage: `/en/affiliate-partner/${slug}`,
+        metadata: { content_type: "affiliate_partner" },
+      }).catch(() => {})
+    );
+  }
+
+  const relatedItemsPromise = (async () => {
+    const cacheKey = `related_content:affiliate_partner:${item.id}:${geoInfo.country || "none"}`;
+    try {
+      const cached = await getCached(env, cacheKey);
+      if (cached !== null) return cached;
+    } catch { /* fall through to compute fresh */ }
+    try {
+      const related = await contentItems.getRelatedContentItems(env.DB, item, "affiliate_partner", geoInfo.country, 6);
+      if (related.length === 0) { await setCached(env, cacheKey, "", 300); return ""; }
+      const relatedGeoData = { country: geoInfo.country, statuses: Object.fromEntries(related.map(r => [r.id, "allowed"])) };
+      const html = buildContentItemCards(related, "affiliate_partner", "/en/affiliate-partner", relatedGeoData);
+      await setCached(env, cacheKey, html, 300);
+      return html;
+    } catch (e) {
+      console.error("Related affiliate partners failed to load:", e.message);
+      return "";
+    }
+  })();
+
+  const [site, allComponents, dynamicSeo, commercial, itemGeoStatuses, relatedItemsHtml] = await Promise.all([
     getSiteContext(request, env),
     renderer.renderAllComponents("affiliate_partner", slug, ctx),
     renderer.loadDynamicSeo("affiliate_partner", slug),
@@ -4343,7 +4514,10 @@ export async function renderAffiliatePartner(request, env, slug, ctx = null) {
       id: item.id,
       linkedAffiliatePartnerId: item.linked_affiliate_partner_id,
     }),
+    contentItems.getContentGeoStatuses(env.DB, "affiliate_partner", [item.id], geoInfo.country),
+    relatedItemsPromise,
   ]);
+  const itemGeoData = { country: geoInfo.country, statuses: itemGeoStatuses };
 
   const rating = item.rating || 0;
   const fullStars = Math.floor(rating);
@@ -4397,6 +4571,9 @@ export async function renderAffiliatePartner(request, env, slug, ctx = null) {
     highlight_value: null,
     website_url: item.website || "",
     status: item.status || "published",
+    geo_status_html: buildContentItemGeoStatusHtml(itemGeoData, item.id),
+    related_items_html: relatedItemsHtml,
+    content_type_label: "Affiliate Partners",
   }, itemSchema, buildBreadcrumbs("affiliatePartner", { name: item.name }));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -4434,6 +4611,7 @@ export async function renderCustomList(request, env, typeSlug) {
     renderer.renderAllComponents(`custom_${typeSlug}_list`, `custom_${typeSlug}_list`),
     renderer.loadDynamicSeo(`custom_${typeSlug}_list`, `custom_${typeSlug}_list`),
   ]);
+  const geoData = await prepareContentGeoData(env, request, "custom", itemList);
 
   const listSchema = {
     "@context": "https://schema.org",
@@ -4449,7 +4627,7 @@ export async function renderCustomList(request, env, typeSlug) {
     canonical: dynamicSeo.canonical || site.url(`/en/custom/${typeSlug}`),
     category: customType.plural_label,
     description: `Browse our directory of ${customType.plural_label.toLowerCase()}.`,
-    casino_cards: buildContentItemCards(itemList, "custom", `/en/custom/${typeSlug}`),
+    casino_cards: buildContentItemCards(itemList, "custom", `/en/custom/${typeSlug}`, geoData),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -4473,13 +4651,58 @@ export async function renderCustom(request, env, typeSlug, slug, ctx = null) {
 
   const renderer = new Renderer(env, request);
 
-  const [site, allComponents, dynamicSeo, fieldDefs, fieldValues] = await Promise.all([
+  const edgeGeo = { country: request.cf?.country || null, city: request.cf?.city || "Unknown" };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: "CONTENT_VIEW",
+        contentItemId: item.id,
+        countryCode: geoInfo.country,
+        city: geoInfo.city,
+        referrer: request.headers.get("referer") || null,
+        landingPage: `/en/custom/${typeSlug}/${slug}`,
+        metadata: { content_type: "custom", custom_type_slug: typeSlug },
+      }).catch(() => {})
+    );
+  }
+
+  const relatedItemsPromise = (async () => {
+    const cacheKey = `related_content:custom:${item.id}:${geoInfo.country || "none"}`;
+    try {
+      const cached = await getCached(env, cacheKey);
+      if (cached !== null) return cached;
+    } catch { /* fall through to compute fresh */ }
+    try {
+      // Related pool is scoped to "custom" content_type overall by
+      // getRelatedContentItems() (categories aren't type-specific), then
+      // narrowed to the SAME custom_type_slug here -- a "Payment
+      // Provider" shouldn't recommend a "Casino Software" custom item
+      // just because both are content_type='custom'.
+      const relatedRaw = await contentItems.getRelatedContentItems(env.DB, item, "custom", geoInfo.country, 18);
+      const related = relatedRaw.filter(r => r.custom_type_slug === typeSlug).slice(0, 6);
+      if (related.length === 0) { await setCached(env, cacheKey, "", 300); return ""; }
+      const relatedGeoData = { country: geoInfo.country, statuses: Object.fromEntries(related.map(r => [r.id, "allowed"])) };
+      const html = buildContentItemCards(related, "custom", `/en/custom/${typeSlug}`, relatedGeoData);
+      await setCached(env, cacheKey, html, 300);
+      return html;
+    } catch (e) {
+      console.error("Related custom items failed to load:", e.message);
+      return "";
+    }
+  })();
+
+  const [site, allComponents, dynamicSeo, fieldDefs, fieldValues, itemGeoStatuses, relatedItemsHtml] = await Promise.all([
     getSiteContext(request, env),
     renderer.renderAllComponents(`custom_${typeSlug}`, slug, ctx),
     renderer.loadDynamicSeo(`custom_${typeSlug}`, slug),
     customTypes.getCustomFieldDefinitions(env.DB, typeSlug),
     customTypes.getCustomFieldValues(env.DB, item.id),
+    contentItems.getContentGeoStatuses(env.DB, "custom", [item.id], geoInfo.country),
+    relatedItemsPromise,
   ]);
+  const itemGeoData = { country: geoInfo.country, statuses: itemGeoStatuses };
 
   const customFieldsHtml = renderCustomFieldsHtml(fieldDefs, fieldValues);
 
@@ -4524,6 +4747,9 @@ export async function renderCustom(request, env, typeSlug, slug, ctx = null) {
     highlight_value: null,
     website_url: item.website || "",
     status: item.status || "published",
+    geo_status_html: buildContentItemGeoStatusHtml(itemGeoData, item.id),
+    related_items_html: relatedItemsHtml,
+    content_type_label: customType.plural_label,
   }, itemSchema, buildBreadcrumbs("custom", { typeSlug, typeLabel: customType.label, name: item.name }));
 
   return new Response(html, { headers: cacheHeaders() });

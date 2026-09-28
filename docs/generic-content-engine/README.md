@@ -106,10 +106,13 @@ not only route resolution.
 (+ their `/create` forms), wired through the existing `renderAdminPage()` auth
 pattern (role check, no new auth code) and the existing `permissions` table (new
 resource strings: `content_items`, `custom_content_types`, `comparisons` — role-based
-only, not yet item-level scoped like casino's admin is). API endpoints under
-`/api/v1/content-item*`, `/api/v1/custom-type*`, `/api/v1/comparison*` in the shared
-`worker/api.js` router. List/Get/Create/Delete only — Update was scoped out to keep
-the addition reviewable; it's the natural next increment.
+with item-level (`user_item_access`) scoping on content items and comparisons).
+API endpoints under `/api/v1/content-item*`, `/api/v1/custom-type*`,
+`/api/v1/comparison*`, `/api/v1/generic-review*` in the shared `worker/api.js` router.
+Full CRUD (create / read / update / delete) exists for content items, custom types
+(incl. full field replace/reorder), comparisons and generic reviews. See
+`CHANGES-pass2.md` for the latest additions (GEO, categories, related items,
+CONTENT_VIEW analytics).
 
 ## Testing
 
@@ -132,10 +135,18 @@ confirmed by actually running `npm test` against the merged repository.
 
 ## What's NOT built yet
 
-- Update/Edit for content items, custom types, or comparisons (Create/Delete only)
-- Item-level (`user_item_access`) scoping for the new admin resources
-- Custom-field-**value** entry UI (field *definitions* have a form; values don't)
-- A proper item-search widget for the comparison builder (raw numeric ID entry today)
-- Related-items caching, GEO-badge display, and analytics view-logging for the new
-  content types (casino's detail controller has all three; the new ones don't yet)
-- SEO landing-page generation (country+category combinations) for the new types
+Verified against the code on the pass-2 integration (see `GENERIC-CONTENT-ENGINE-GAPS-AND-BUGS.md`
+for the per-item audit and its status table):
+
+- **SEO landing-page generation** (country+category combinations) for the new types.
+  The existing system (migration 0019, `seo-landing.html`, `casino_grid` /
+  `casino_editorial` / `casino_spotlights` sections, `casino_mode`) is casino-specific
+  end to end; extending it is its own feature.
+- **Affiliate/tracking URL for sportsbook items** (audit #7) — needs a design decision
+  (new column vs. reusing `linked_affiliate_partner_id`) because it touches tracked
+  monetization links.
+- **Media picker** for `logo_media_id` / `featured_image_media_id` (audit #5, #6).
+- **Editorial-pick item picker** in the comparison forms (audit #8; the *items* list
+  uses a searchable picker, the single "Editorial Pick" ID is still a number input).
+- Structured review content (audit #14), admin-list pagination (audit #15),
+  a full edit page for generic reviews (publish/unpublish/delete/author exist).

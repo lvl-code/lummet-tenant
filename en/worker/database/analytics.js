@@ -45,16 +45,15 @@ export async function logEvent(db, event) {
   }
 
   try {
-    return await db.prepare(`
-      INSERT INTO analytics_events (
-        event_type, casino_id, review_id, page_id, news_id,
-        offer_id, offer_version_id, tracking_link_id, partner_id, program_id,
-        account_id, campaign_id, country_code, region, city, device_type,
-        browser, os, referrer, landing_page, utm_source, utm_medium,
-        utm_campaign, utm_term, utm_content, session_id, visitor_hash,
-        click_id, user_id, value, currency, metadata, is_bot, is_duplicate
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
+    const columns = [
+      "event_type", "casino_id", "review_id", "page_id", "news_id",
+      "offer_id", "offer_version_id", "tracking_link_id", "partner_id", "program_id",
+      "account_id", "campaign_id", "country_code", "region", "city", "device_type",
+      "browser", "os", "referrer", "landing_page", "utm_source", "utm_medium",
+      "utm_campaign", "utm_term", "utm_content", "session_id", "visitor_hash",
+      "click_id", "user_id", "value", "currency", "metadata", "is_bot", "is_duplicate",
+    ];
+    const values = [
       event.eventType,
       event.casinoId ?? null, event.reviewId ?? null, event.pageId ?? null, event.newsId ?? null,
       event.offerId ?? null, event.offerVersionId ?? null, event.trackingLinkId ?? null,
@@ -65,8 +64,23 @@ export async function logEvent(db, event) {
       event.utmTerm ?? null, event.utmContent ?? null, event.sessionId ?? null, event.visitorHash ?? null,
       event.clickId ?? null, event.userId ?? null, event.value ?? null, event.currency ?? null,
       event.metadata ? JSON.stringify(event.metadata) : null,
-      event.isBot ? 1 : 0, event.isDuplicate ? 1 : 0
-    ).run();
+      event.isBot ? 1 : 0, event.isDuplicate ? 1 : 0,
+    ];
+    // content_item_id (migration 0059) is only named in the INSERT when
+    // the event actually carries one. Every pre-existing event type
+    // (casino/review/news views, clicks, conversions...) therefore runs
+    // the exact same statement it always did and does NOT depend on
+    // migration 0059 having been applied to this tenant's D1 yet -- so
+    // deploying the code before/without the migration can never make
+    // existing analytics silently drop (logEvent swallows insert errors).
+    if (event.contentItemId != null) {
+      columns.push("content_item_id");
+      values.push(event.contentItemId);
+    }
+    return await db.prepare(`
+      INSERT INTO analytics_events (${columns.join(", ")})
+      VALUES (${columns.map(() => "?").join(", ")})
+    `).bind(...values).run();
   } catch (e) {
     console.error('analytics.logEvent failed:', e.message);
     return null;

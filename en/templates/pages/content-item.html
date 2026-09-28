@@ -84,9 +84,22 @@
               <dt>Status</dt><dd>{{status}}</dd>
             </dl>
           </div>
+          {{#if geo_status_html}}
+          <div class="info-card">
+            {{{geo_status_html}}}
+          </div>
+          {{/if}}
           {{{commercial_html}}}
         </div>
       </div>
+      {{#if related_items_html}}
+      <div class="info-block related-casinos">
+        <h3>Related {{content_type_label}}</h3>
+        <div class="casino-grid">
+          {{{related_items_html}}}
+        </div>
+      </div>
+      {{/if}}
       {{components_bottom}}
     </div>
   </div>

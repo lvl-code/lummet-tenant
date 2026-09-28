@@ -300,3 +300,182 @@ export async function searchContentItems(db, { contentType = null, search = "", 
   `).bind(...params, limit).all();
   return result.results || [];
 }
+
+// =====================================================
+// GENERIC CATEGORIES (content_categories, migration 0051) -- was
+// schema-ready but had no DB functions/API/UI wired to it at all.
+// Mirrors casinos.js's setCasinoCategories/getCasinoCategories
+// exactly (same delete-then-insert shape), just keyed by
+// (content_type, content_id) instead of a dedicated casino_id column,
+// since one join table now covers every content type.
+// =====================================================
+
+export async function getContentItemCategories(db, contentType, contentId) {
+  const result = await db.prepare(`
+    SELECT category_id FROM content_categories WHERE content_type = ? AND content_id = ?
+  `).bind(contentType, contentId).all();
+  return (result.results || []).map(r => r.category_id);
+}
+
+export async function setContentItemCategories(db, contentType, contentId, categoryIds) {
+  await db.prepare(`DELETE FROM content_categories WHERE content_type = ? AND content_id = ?`).bind(contentType, contentId).run();
+  for (const categoryId of categoryIds) {
+    await db.prepare(`INSERT OR IGNORE INTO content_categories (content_type, content_id, category_id) VALUES (?, ?, ?)`).bind(contentType, contentId, categoryId).run();
+  }
+}
+
+// =====================================================
+// GENERIC GEO (content_geo, migration 0051) -- same story: the table
+// existed, nothing read or wrote it. Mirrors the existing casino GEO
+// model exactly (same status vocabulary, same "no rules at all ->
+// blocked everywhere" default, same allowlist/blocklist inference
+// documented in controllers.js's prepareGeoData()/evaluateCasinoGeo())
+// so admins and visitors see identical GEO semantics regardless of
+// content type -- this reuses the existing model, it does not invent
+// a second one (see related-casinos.js's design-note precedent for
+// why that matters).
+// =====================================================
+
+export async function getContentItemGeoRules(db, contentType, contentId) {
+  const result = await db.prepare(`
+    SELECT id, country_code, status, bonus_override, priority, redirect_url
+    FROM content_geo WHERE content_type = ? AND content_id = ? ORDER BY country_code ASC
+  `).bind(contentType, contentId).all();
+  return result.results || [];
+}
+
+/** Replace-all setter, same shape as every other content_* relationship setter in this file. */
+export async function setContentItemGeoRules(db, contentType, contentId, rules) {
+  await db.prepare(`DELETE FROM content_geo WHERE content_type = ? AND content_id = ?`).bind(contentType, contentId).run();
+  for (const rule of rules) {
+    await db.prepare(`
+      INSERT INTO content_geo (content_type, content_id, country_code, status, bonus_override, priority, redirect_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(contentType, contentId, rule.country_code, rule.status, rule.bonus_override || null, rule.priority || 0, rule.redirect_url || null).run();
+  }
+}
+
+/**
+ * Batch GEO-status resolution for a list of content items, one visitor
+ * country. Same inference rules as controllers.js's prepareGeoData()
+ * for casinos (no rule at all -> "blocked"; a rule for this exact
+ * country wins; otherwise infer allowlist-vs-blocklist mode from
+ * whatever rules DO exist) -- deliberately reimplemented here rather
+ * than shared, since prepareGeoData() is casino/geo_rules-specific
+ * (different table, different slug-based key) and this project's
+ * existing convention (see related-casinos.js) is to reuse each
+ * GEO MODEL exactly, not force both call sites through one shared
+ * function across two different tables.
+ */
+export async function getContentGeoStatuses(db, contentType, contentIds, countryCode) {
+  if (!contentIds.length) return {};
+  const placeholders = contentIds.map(() => "?").join(",");
+  const result = await db.prepare(`
+    SELECT content_id, country_code, status FROM content_geo
+    WHERE content_type = ? AND content_id IN (${placeholders})
+  `).bind(contentType, ...contentIds).all();
+
+  const rulesById = {};
+  for (const row of (result.results || [])) {
+    (rulesById[row.content_id] ||= []).push(row);
+  }
+
+  const statuses = {};
+  for (const id of contentIds) {
+    const rules = rulesById[id] || [];
+    if (rules.length === 0) {
+      statuses[id] = "blocked";
+      continue;
+    }
+    const countryRule = rules.find(r => r.country_code === countryCode);
+    if (countryRule) {
+      statuses[id] = countryRule.status;
+      continue;
+    }
+    const hasAllowed = rules.some(r => r.status === "allowed");
+    const hasBlocked = rules.some(r => r.status === "blocked");
+    if (hasAllowed && !hasBlocked) statuses[id] = "blocked";
+    else if (hasBlocked && !hasAllowed) statuses[id] = "allowed";
+    else statuses[id] = "blocked";
+  }
+  return statuses;
+}
+
+// =====================================================
+// RELATED ITEMS (Phase 3 report's documented follow-up: "no KV
+// caching of related items"). A deliberately simpler scoring model
+// than related-casinos.js's category+feature engine -- content_items
+// has no per-type "features" JSON column to text-match against, so
+// this only scores on shared categories (content_categories), with
+// the same quality tiebreak (rating + featured bonus) and the same
+// GEO-eligibility pre-filter (using getContentGeoStatuses() above)
+// related-casinos.js documents and uses. Caching itself (KV,
+// getCached/setCached, 300s TTL) is done by the caller in
+// controllers.js, mirroring renderCasino()'s relatedCasinosPromise
+// exactly -- this function is the pure "compute" half.
+// =====================================================
+
+export async function getRelatedContentItems(db, currentItem, contentType, countryCode, limit = 6) {
+  if (!currentItem || !currentItem.id) return [];
+
+  const currentCategoryIds = await getContentItemCategories(db, contentType, currentItem.id);
+
+  let seedPool;
+  if (currentCategoryIds.length) {
+    const placeholders = currentCategoryIds.map(() => "?").join(",");
+    const result = await db.prepare(`
+      SELECT DISTINCT ci.* FROM content_items ci
+      JOIN content_categories cc ON cc.content_type = ci.content_type AND cc.content_id = ci.id
+      WHERE ci.content_type = ? AND ci.id != ? AND ci.published = 1 AND ci.status = 'published'
+        AND cc.category_id IN (${placeholders})
+      LIMIT 50
+    `).bind(contentType, currentItem.id, ...currentCategoryIds).all();
+    seedPool = result.results || [];
+  } else {
+    seedPool = [];
+  }
+
+  // Fallback tier: if category matching didn't fill the pool, top up
+  // with the platform's existing quality tie-breaker convention
+  // (featured DESC, sort_order ASC, rating DESC) -- same fallback
+  // related-casinos.js documents and uses.
+  if (seedPool.length < limit) {
+    const excludeIds = new Set([currentItem.id, ...seedPool.map(c => c.id)]);
+    const fallback = await getAllContentItems(db, contentType, { status: "published" });
+    for (const candidate of fallback) {
+      if (seedPool.length >= limit * 3) break; // bounded pool before GEO filtering, same spirit as related-casinos.js's "never scan the whole table" note
+      if (excludeIds.has(candidate.id) || !candidate.published) continue;
+      seedPool.push(candidate);
+      excludeIds.add(candidate.id);
+    }
+  }
+
+  if (seedPool.length === 0) return [];
+
+  const seedIds = seedPool.map(c => c.id);
+  const [categoriesByItemId, geoStatuses] = await Promise.all([
+    (async () => {
+      const placeholders = seedIds.map(() => "?").join(",");
+      const rows = (await db.prepare(`
+        SELECT content_id, category_id FROM content_categories
+        WHERE content_type = ? AND content_id IN (${placeholders})
+      `).bind(contentType, ...seedIds).all()).results || [];
+      const map = {};
+      for (const row of rows) (map[row.content_id] ||= []).push(row.category_id);
+      return map;
+    })(),
+    getContentGeoStatuses(db, contentType, seedIds, countryCode),
+  ]);
+
+  const currentCategorySet = new Set(currentCategoryIds);
+  const scored = seedPool
+    .filter(c => geoStatuses[c.id] === "allowed") // GEO eligibility as a pre-filter, not a score term -- see related-casinos.js's design note
+    .map(c => {
+      const sharedCategories = (categoriesByItemId[c.id] || []).filter(id => currentCategorySet.has(id)).length;
+      const qualityTiebreak = (c.rating || 0) + (c.featured ? 0.5 : 0);
+      return { ...c, _relatedScore: sharedCategories * 40 + qualityTiebreak, _sharedCategories: sharedCategories };
+    });
+
+  scored.sort((a, b) => b._relatedScore - a._relatedScore);
+  return scored.slice(0, limit);
+}

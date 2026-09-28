@@ -53,6 +53,19 @@
         </fieldset>
       </div>
 
+
+      <fieldset>
+        <legend>Categories</legend>
+        <div id="categoryCheckboxes" style="max-height:160px;overflow-y:auto;padding:6px">Loading...</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>GEO Availability</legend>
+        <p class="muted">Per-country rules. With no rules at all, the item shows as "Not Available" everywhere (same default as casinos). If you add only "allowed" countries, every other country is treated as blocked; if you add only "blocked" countries, every other country is allowed.</p>
+        <div id="geoRuleRows"></div>
+        <button type="button" id="addGeoRuleBtn" class="btn btn--ghost btn--sm">+ Add Country Rule</button>
+      </fieldset>
+
       <label>Featured <input type="checkbox" name="featured"></label>
       <label>Sort Order <input type="number" name="sort_order"></label>
       <label>Status

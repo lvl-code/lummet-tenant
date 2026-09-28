@@ -320,6 +320,7 @@ async function loadContentItemsTable(contentType) {
         <td>★ ${i.rating || "N/A"}</td>
         <td><span class="status-badge ${i.status === "published" ? "status-published" : "status-draft"}">${escapeHtmlClient(i.status || "draft")}</span> ${isLive ? "" : '<span class="muted" style="font-size:11px">(not public)</span>'}</td>
         <td class="table-actions">
+          ${isLive ? `<a href="${contentItemPublicUrl(i)}" class="btn btn--ghost btn--sm" target="_blank">View</a>` : ""}
           <a href="/en/dashboard/content-item/edit/${encodeURIComponent(i.content_type)}/${encodeURIComponent(i.slug)}" class="btn btn--ghost btn--sm">Edit</a>
           <button class="btn btn--ghost btn--sm" onclick="togglePublishContentItem('${i.content_type}', '${i.slug}', ${isLive})">${isLive ? "Unpublish" : "Publish now"}</button>
           <button class="btn btn--danger btn--sm" onclick="deleteContentItem('${i.content_type}', '${i.slug}')">Delete</button>
@@ -330,6 +331,15 @@ async function loadContentItemsTable(contentType) {
   } catch {
     tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
   }
+}
+
+// Public URL per content_type (matches routes.js). View is only offered
+// for live items, since a draft's public URL is a 404 by design.
+function contentItemPublicUrl(i) {
+  const slug = encodeURIComponent(i.slug);
+  if (i.content_type === "sportsbook") return `/en/sportsbook/${slug}`;
+  if (i.content_type === "affiliate_partner") return `/en/affiliate-partner/${slug}`;
+  return `/en/custom/${encodeURIComponent(i.custom_type_slug || "")}/${slug}`;
 }
 
 // Minimal client-side HTML escaper for admin table rows -- admin-entered
@@ -463,6 +473,8 @@ async function initContentItemForm() {
 
   typeSelect.addEventListener("change", updateVisibleFields);
   updateVisibleFields();
+  loadCategoryCheckboxes();
+  initGeoRuleEditor();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -495,6 +507,9 @@ async function initContentItemForm() {
       seo_description: formData.get("seo_description") || null,
       seo_keywords: formData.get("seo_keywords") || null,
     };
+    if (document.getElementById("categoryCheckboxes")?.dataset.loaded === "1") payload.category_ids = readCheckedIds("categoryCheckboxes");
+    const geoRulesToSend = readGeoRules();
+    if (geoRulesToSend !== null) payload.geo_rules = geoRulesToSend;
     if (contentType === "sportsbook") {
       payload.sport_ids = readCheckedIds("sportsCheckboxes");
       payload.currency_ids = readCheckedIds("currenciesCheckboxes");
@@ -566,6 +581,82 @@ async function loadRelationshipCheckboxes(selected = {}) {
     fill("currenciesCheckboxes", "/en/api/v1/currencies/list", "currencies", currencyIds),
     fill("paymentMethodsCheckboxes", "/en/api/v1/payment-methods/list", "payment_methods", paymentMethodIds),
   ]);
+}
+
+
+// ---- Shared: categories checkboxes + GEO rule rows (content_categories / content_geo) ----
+async function loadCategoryCheckboxes(selectedIds = []) {
+  const container = document.getElementById("categoryCheckboxes");
+  if (!container) return;
+  try {
+    const res = await fetch("/en/api/v1/categories/list");
+    const data = await res.json();
+    const rows = data.categories || [];
+    container.dataset.loaded = "1"; // only then is an empty selection meaningful (vs. "failed to load")
+    container.innerHTML = rows.length ? rows.map((c) => `
+      <label style="display:block;font-weight:normal">
+        <input type="checkbox" value="${c.id}" ${selectedIds.includes(c.id) ? "checked" : ""}> ${escapeHtmlClient(c.name)}
+      </label>`).join("") : '<span class="muted">No categories configured yet.</span>';
+  } catch {
+    container.innerHTML = '<span class="muted">Failed to load categories.</span>';
+  }
+}
+
+let geoCountryOptionsHtml = null;
+async function getGeoCountryOptionsHtml() {
+  if (geoCountryOptionsHtml !== null) return geoCountryOptionsHtml;
+  try {
+    const res = await fetch("/en/api/v1/countries/list");
+    const data = await res.json();
+    geoCountryOptionsHtml = (data.countries || []).map((c) => `<option value="${escapeHtmlClient(c.code)}">${escapeHtmlClient(c.name)} (${escapeHtmlClient(c.code)})</option>`).join("");
+  } catch {
+    geoCountryOptionsHtml = null; // failed: don't cache, and readGeoRules() will refuse to send anything
+    return "";
+  }
+  return geoCountryOptionsHtml;
+}
+
+async function addGeoRuleRow(rule = { country_code: "", status: "allowed" }) {
+  const container = document.getElementById("geoRuleRows");
+  if (!container) return;
+  const row = document.createElement("div");
+  row.className = "geo-rule-row";
+  row.style.cssText = "display:flex;gap:8px;margin-bottom:6px;align-items:center";
+  row.innerHTML = `
+    <select class="geo-rule-country" style="flex:2">${await getGeoCountryOptionsHtml()}</select>
+    <select class="geo-rule-status" style="flex:1">
+      <option value="allowed">Allowed</option>
+      <option value="blocked">Blocked</option>
+    </select>
+    <button type="button" class="btn btn--ghost btn--sm remove-geo-rule">✕</button>`;
+  row.querySelector(".geo-rule-country").value = rule.country_code;
+  row.querySelector(".geo-rule-status").value = rule.status;
+  container.appendChild(row);
+}
+
+function initGeoRuleEditor(initialRules = []) {
+  const container = document.getElementById("geoRuleRows");
+  const addBtn = document.getElementById("addGeoRuleBtn");
+  if (!container || !addBtn) return;
+  addBtn.addEventListener("click", () => addGeoRuleRow());
+  container.addEventListener("click", (e) => {
+    if (e.target.classList.contains("remove-geo-rule")) e.target.closest(".geo-rule-row").remove();
+  });
+  initialRules.forEach((r) => addGeoRuleRow(r));
+}
+
+// Returns null (=> omit geo_rules from the payload, leaving stored rules
+// untouched) if the country list never loaded -- otherwise a failed load
+// would render rows with no matching <option>, read back as empty, and a
+// save would silently wipe the item's existing rules.
+function readGeoRules() {
+  if (geoCountryOptionsHtml === null || geoCountryOptionsHtml === "") {
+    return document.querySelector("#geoRuleRows .geo-rule-row") ? null : [];
+  }
+  return Array.from(document.querySelectorAll("#geoRuleRows .geo-rule-row")).map((row) => ({
+    country_code: row.querySelector(".geo-rule-country").value,
+    status: row.querySelector(".geo-rule-status").value,
+  })).filter((r) => r.country_code);
 }
 
 function readCheckedIds(containerId) {
@@ -932,6 +1023,9 @@ async function initContentItemEditForm() {
       if (el) el.checked = !!item[key];
     }
 
+    await loadCategoryCheckboxes(data.category_ids || []);
+    initGeoRuleEditor(data.geo_rules || []);
+
     if (contentType === "sportsbook") {
       await loadRelationshipCheckboxes({
         sportIds: data.sport_ids || [], currencyIds: data.currency_ids || [], paymentMethodIds: data.payment_method_ids || [],
@@ -979,6 +1073,9 @@ async function initContentItemEditForm() {
       });
       payload.custom_field_values = values;
     }
+    if (document.getElementById("categoryCheckboxes")?.dataset.loaded === "1") payload.category_ids = readCheckedIds("categoryCheckboxes");
+    const geoRulesToSend = readGeoRules();
+    if (geoRulesToSend !== null) payload.geo_rules = geoRulesToSend;
     if (contentType === "sportsbook") {
       payload.sport_ids = readCheckedIds("sportsCheckboxes");
       payload.currency_ids = readCheckedIds("currenciesCheckboxes");
@@ -1256,18 +1353,44 @@ async function loadGenericReviewsTable(reviewedContentType) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No reviews yet for this type.</td></tr>';
       return;
     }
+    // Public review URL per reviewed type (routes.js). Custom-type reviews
+    // are addressed under their custom type slug, which the review row
+    // doesn't carry, so no View link is offered for those.
+    const viewPrefix = { sportsbook: "/en/sportsbook/review/", affiliate_partner: "/en/affiliate-partner/review/" }[type];
     tbody.innerHTML = reviews.map((r) => `
       <tr>
-        <td><strong>${r.title}</strong></td>
-        <td>${r.slug}</td>
-        <td>${r.rating != null ? "★ " + r.rating : "—"}</td>
+        <td><strong>${escapeHtmlClient(r.title)}</strong></td>
+        <td>${escapeHtmlClient(r.slug)}</td>
+        <td>${r.rating != null ? "★ " + escapeHtmlClient(r.rating) : "—"}</td>
         <td>${r.published ? "Yes" : "No"}</td>
-        <td class="table-actions"></td>
+        <td class="table-actions">
+          ${viewPrefix && r.published ? `<a href="${viewPrefix}${encodeURIComponent(r.slug)}" class="btn btn--ghost btn--sm" target="_blank">View</a>` : ""}
+          <button class="btn btn--ghost btn--sm" onclick="toggleGenericReviewPublished(${Number(r.id)}, ${r.published ? "true" : "false"}, '${type}')">${r.published ? "Unpublish" : "Publish"}</button>
+          <button class="btn btn--danger btn--sm" onclick="deleteGenericReview(${Number(r.id)}, '${type}')">Delete</button>
+        </td>
       </tr>
     `).join("");
   } catch {
     tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
   }
+}
+
+async function deleteGenericReview(id, type) {
+  if (!confirm("Delete this review? This cannot be undone.")) return;
+  try {
+    const res = await fetch("/en/api/v1/generic-review/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    const data = await res.json();
+    if (data.success) loadGenericReviewsTable(type); else alert(data.error || "Delete failed");
+  } catch { alert("Network error. Try again."); }
+}
+
+// Uses the existing /generic-review/update endpoint (which had no UI at all).
+async function toggleGenericReviewPublished(id, currentlyPublished, type) {
+  try {
+    const res = await fetch("/en/api/v1/generic-review/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, published: !currentlyPublished }) });
+    const data = await res.json();
+    if (data.success) loadGenericReviewsTable(type); else alert(data.error || "Update failed");
+  } catch { alert("Network error. Try again."); }
 }
 
 document.addEventListener("change", (e) => {
@@ -1313,6 +1436,7 @@ async function initGenericReviewForm() {
       title: formData.get("title"), slug: formData.get("slug"), content: formData.get("content"),
       pros: toJsonArray(formData.get("pros")), cons: toJsonArray(formData.get("cons")),
       rating: formData.get("rating") || null, verdict: formData.get("verdict") || null,
+      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
       published: formData.get("published") === "on",
       seo_title: formData.get("seo_title") || null, seo_description: formData.get("seo_description") || null, seo_keywords: formData.get("seo_keywords") || null,
     };

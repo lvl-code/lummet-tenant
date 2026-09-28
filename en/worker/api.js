@@ -656,6 +656,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/custom-type/fields": "custom_content_types",
       "/api/v1/comparisons/list": "comparisons",
       "/api/v1/comparison/get": "comparisons",
+      "/api/v1/generic-reviews/list": "reviews", // was ungated on GET, same gap as the entries above
       // Sports/currencies are read-only reference/taxonomy lookups used
       // only to populate the sportsbook edit form's checkboxes -- same
       // supporting-reference-data posture as payment_methods above.
@@ -934,9 +935,18 @@ if (path === "/api/v1/content-item/get" && request.method === "GET") {
         contentItemsDB.getContentItemPaymentMethods(env.DB, contentType, item.id),
       ])
     : [[], [], []];
+  // Categories and GEO rules apply to every generic content type (the
+  // content_categories / content_geo tables from migration 0051 are
+  // type-agnostic), unlike sports/currencies/payment methods above.
+  const [categoryIds, geoRules] = await Promise.all([
+    contentItemsDB.getContentItemCategories(env.DB, contentType, item.id),
+    contentItemsDB.getContentItemGeoRules(env.DB, contentType, item.id),
+  ]);
   return json({
     success: true, item,
     sport_ids: sportIds.map(s => s.id), currency_ids: currencyIds.map(c => c.id), payment_method_ids: paymentMethodIds.map(p => p.id),
+    category_ids: categoryIds,
+    geo_rules: geoRules.map(r => ({ country_code: r.country_code, status: r.status })),
   });
 }
 
@@ -996,6 +1006,8 @@ if (path === "/api/v1/content-item/create" && request.method === "POST") {
   if (body.content_type === "custom" && !body.custom_type_slug) {
     return failure("custom_type_slug is required when content_type is custom");
   }
+  const geoCheck = await normalizeGeoRules(env.DB, body.geo_rules);
+  if (geoCheck.error) return failure(geoCheck.error);
   const item = await contentItemsDB.createContentItem(env.DB, body.content_type, {
     slug: body.slug, name: body.name, title: body.title || null, description: body.description || null,
     website: body.website || null, rating: parseFloat(body.rating) || 0,
@@ -1015,6 +1027,8 @@ if (path === "/api/v1/content-item/create" && request.method === "POST") {
   if (body.content_type === "custom" && body.custom_field_values && typeof body.custom_field_values === "object") {
     await contentItemsDB.setContentItemCustomFieldValues(env.DB, item.id, body.custom_field_values);
   }
+  if (Array.isArray(body.category_ids)) await contentItemsDB.setContentItemCategories(env.DB, body.content_type, item.id, body.category_ids.map(Number).filter(Number.isInteger));
+  if (geoCheck.rules) await contentItemsDB.setContentItemGeoRules(env.DB, body.content_type, item.id, geoCheck.rules);
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "content_item", entityId: item.id, metadata: { content_type: body.content_type, slug: body.slug, name: body.name } });
   return success({ item });
 }
@@ -1027,6 +1041,13 @@ if (path === "/api/v1/content-item/delete" && request.method === "POST") {
   const canAccess = await itemAccess.canAccessItem(env.DB, user, "content_items", "delete", existing);
   if (!canAccess) return failure("Content item not found", 404);
   await env.DB.prepare(`DELETE FROM content_items WHERE content_type = ? AND slug = ?`).bind(body.content_type, body.slug).run();
+  // The normalized relationship tables key on (content_type, content_id)
+  // with no FK to content_items (one polymorphic table serves every
+  // type), so they don't cascade -- clean them up explicitly rather than
+  // leaving orphaned rows behind.
+  for (const table of ["content_sports", "content_currencies", "content_payment_methods", "content_categories", "content_geo"]) {
+    await env.DB.prepare(`DELETE FROM ${table} WHERE content_type = ? AND content_id = ?`).bind(body.content_type, existing.id).run();
+  }
   await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "content_item", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug, name: existing.name } });
   return success();
 }
@@ -1067,7 +1088,11 @@ if (path === "/api/v1/content-item/update" && request.method === "POST") {
     if (body[bodyKey] !== undefined) fields[fieldKey] = !!body[bodyKey];
   }
 
+  const geoCheck = await normalizeGeoRules(env.DB, body.geo_rules);
+  if (geoCheck.error) return failure(geoCheck.error);
   const item = await contentItemsDB.updateContentItem(env.DB, body.content_type, body.slug, fields);
+  if (Array.isArray(body.category_ids)) await contentItemsDB.setContentItemCategories(env.DB, body.content_type, item.id, body.category_ids.map(Number).filter(Number.isInteger));
+  if (geoCheck.rules) await contentItemsDB.setContentItemGeoRules(env.DB, body.content_type, item.id, geoCheck.rules);
   if (body.content_type === "sportsbook") {
     if (Array.isArray(body.sport_ids)) await contentItemsDB.setContentItemSports(env.DB, body.content_type, item.id, body.sport_ids);
     if (Array.isArray(body.currency_ids)) await contentItemsDB.setContentItemCurrencies(env.DB, body.content_type, item.id, body.currency_ids);
@@ -1301,10 +1326,25 @@ if (path === "/api/v1/generic-review/update" && request.method === "POST") {
   }
   if (body.rating !== undefined) fields.rating = parseFloat(body.rating) || null;
   if (body.published !== undefined) fields.published = body.published ? 1 : 0;
+  if (body.author_id !== undefined) fields.author_id = body.author_id || null;
+  const existingReview = await genericReviewsDB.getGenericReview(env.DB, body.id);
+  if (!existingReview) return failure("Review not found or no fields to update", 404); // also what a casino review id gets here
+  if (!(await itemAccess.canAccessItem(env.DB, user, "reviews", "update", existingReview))) return failure("Review not found or no fields to update", 404);
   const review = await genericReviewsDB.updateGenericReview(env.DB, body.id, fields);
   if (!review) return failure("Review not found or no fields to update", 404);
   await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "review", entityId: review.id, metadata: {} });
   return success({ review });
+}
+
+if (path === "/api/v1/generic-review/delete" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["id"]);
+  const existingReview = await genericReviewsDB.getGenericReview(env.DB, body.id); // generic-only: a casino review id is a 404 here
+  if (!existingReview) return failure("Review not found", 404);
+  if (!(await itemAccess.canAccessItem(env.DB, user, "reviews", "delete", existingReview))) return failure("Review not found", 404);
+  await genericReviewsDB.deleteGenericReview(env.DB, body.id);
+  await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "review", entityId: existingReview.id, metadata: { reviewed_content_type: existingReview.reviewed_content_type, slug: existingReview.slug } });
+  return success();
 }
 
 if (path === "/api/v1/content-types-enabled" && request.method === "GET") {
@@ -4930,6 +4970,43 @@ function failure(message, status = 400) {
         error: message
     }, status);
 
+}
+
+/**
+ * Validate a client-supplied GEO rule list for content_geo. Returns
+ * { rules } (normalized: uppercase country_code, status in
+ * allowed|blocked only) or { error }. `undefined`/non-array input means
+ * "client didn't send geo rules" -> { rules: null } so the caller leaves
+ * existing rules untouched (an explicit [] DOES clear them). Only
+ * country_code + status are accepted: content_geo also has
+ * redirect_url/bonus_override columns, but nothing renders them for
+ * generic content yet, and redirect_url is a URL field that would need
+ * the same javascript:/data: protection as every other URL -- so they
+ * are deliberately not accepted here rather than stored unvalidated.
+ * Every country_code must exist in `countries` (the table content_geo
+ * references), so a typo gets a clear 400 instead of a silent orphan.
+ */
+async function normalizeGeoRules(db, rawRules) {
+  if (!Array.isArray(rawRules)) return { rules: null };
+  const seen = new Set();
+  const rules = [];
+  for (const r of rawRules) {
+    const code = String(r?.country_code || "").trim().toUpperCase();
+    const status = String(r?.status || "").trim();
+    if (!/^[A-Z]{2}$/.test(code)) return { error: `Invalid country code: "${r?.country_code}"` };
+    if (status !== "allowed" && status !== "blocked") return { error: `GEO status must be "allowed" or "blocked" (got "${r?.status}")` };
+    if (seen.has(code)) return { error: `Duplicate GEO rule for country ${code}` };
+    seen.add(code);
+    rules.push({ country_code: code, status });
+  }
+  if (rules.length) {
+    const placeholders = rules.map(() => "?").join(",");
+    const found = (await db.prepare(`SELECT code FROM countries WHERE code IN (${placeholders})`).bind(...rules.map(r => r.country_code)).all()).results || [];
+    const foundCodes = new Set(found.map(c => c.code));
+    const unknown = rules.filter(r => !foundCodes.has(r.country_code)).map(r => r.country_code);
+    if (unknown.length) return { error: `Unknown country code(s): ${unknown.join(", ")}` };
+  }
+  return { rules };
 }
 
 function validate(body, required) {

@@ -103,7 +103,12 @@
 // reasoning as the four newsroom-taxonomy flags in v12. Relations/
 // versions/review-queue/datasets (research's other four
 // sub-systems, from migrations 0047-0050) are NOT exposed yet.
-export const SUPER_API_VERSION = 14;
+// Version 15: analytics parity for the control plane -- GET analytics-geo,
+// GET analytics-health (scheduled-job health), POST analytics-aggregate /
+// analytics-evaluate-alerts / analytics-run-due-reports (the dashboard's
+// manual runs), and an additive `name` on every analytics-overview row.
+// All under the existing 'analytics' capability flag (no new flag).
+export const SUPER_API_VERSION = 15;
 
 export const CAPABILITIES = {
   casinos: true,

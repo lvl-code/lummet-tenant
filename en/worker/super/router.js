@@ -259,6 +259,12 @@ const ROUTES = [
   ["GET", "/en/api/super/analytics-overview", anh.handleAnalyticsOverview, "analytics"],
   ["GET", "/en/api/super/analytics-revenue", anh.handleAnalyticsRevenue, "analytics"],
   ["GET", "/en/api/super/tracking-health", anh.handleTrackingHealth, "analytics"],
+  // v15: GEO breakdown, scheduled-job health, and the dashboard's manual runs.
+  ["GET", "/en/api/super/analytics-geo", anh.handleAnalyticsGeo, "analytics"],
+  ["GET", "/en/api/super/analytics-health", anh.handleAnalyticsHealth, "analytics"],
+  ["POST", "/en/api/super/analytics-aggregate", anh.handleAnalyticsAggregate, "analytics"],
+  ["POST", "/en/api/super/analytics-evaluate-alerts", anh.handleAnalyticsEvaluateAlerts, "analytics"],
+  ["POST", "/en/api/super/analytics-run-due-reports", anh.handleAnalyticsRunDueReports, "analytics"],
 
   // Reports (v9) -- see handlers-reporting.js header comment for exactly
   // what's exposed and why report output is treated as the same trust

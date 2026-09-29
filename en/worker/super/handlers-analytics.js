@@ -31,7 +31,12 @@
 // analytics numbers) through this channel.
 // =====================================================
 
-import { getDimensionPerformance, getTimeSeries } from "../database/analytics.js";
+import {
+  getDimensionPerformance, getTimeSeries, getGeoPerformance, backfillAnalyticsDaily
+} from "../database/analytics.js";
+import { getCronHealth, recordCronRun } from "../database/cron-health.js";
+import { evaluateAllRulesNow } from "../database/alerts.js";
+import { runDueReportSchedulesNow } from "../database/reports.js";
 
 // Synthetic tenant-wide actor -- see file header. Never constructed
 // from request data; always this exact literal.
@@ -73,7 +78,47 @@ export async function handleAnalyticsOverview(request, env) {
     dimensionType, currency, ...range
   });
 
-  return ok({ dimension_type: dimensionType, rows });
+  // v15: additive `name` on every row (dimensionId is unchanged). The
+  // tenant dashboard itself still shows the bare ID; a human-readable
+  // label is what an operator managing many tenants centrally needs.
+  const names = await resolveDimensionNames(env.DB, dimensionType, rows.map(r => r.dimensionId));
+  return ok({
+    dimension_type: dimensionType,
+    rows: rows.map(r => ({ ...r, name: names.get(r.dimensionId) ?? null }))
+  });
+}
+
+// Fixed table/column map -- names come only from this literal, never from
+// request input (dimensionType outside the map simply yields no names).
+const DIMENSION_NAME_SOURCES = {
+  casino: { table: "casinos", column: "name" },
+  offer: { table: "offers", column: "internal_name" },
+  tracking_link: { table: "tracking_links", column: "internal_name" },
+  partner: { table: "affiliate_partners", column: "name" },
+  program: { table: "affiliate_programs", column: "name" },
+  account: { table: "affiliate_accounts", column: "account_name" },
+  campaign: { table: "campaigns", column: "name" },
+  review: { table: "reviews", column: "title" },
+  news: { table: "news", column: "title" },
+  page: { table: "pages", column: "title" }
+};
+
+export async function resolveDimensionNames(db, dimensionType, ids) {
+  const out = new Map();
+  const src = DIMENSION_NAME_SOURCES[dimensionType];
+  const clean = [...new Set((ids || []).filter(i => Number.isInteger(Number(i)) && i !== null).map(Number))];
+  if (!src || !clean.length) return out;
+  // D1 allows at most 100 bound parameters per statement.
+  for (let i = 0; i < clean.length; i += 90) {
+    const chunk = clean.slice(i, i + 90);
+    try {
+      const r = await db.prepare(
+        `SELECT id, ${src.column} AS label FROM ${src.table} WHERE id IN (${chunk.map(() => "?").join(",")})`
+      ).bind(...chunk).all();
+      for (const row of r.results || []) out.set(row.id, row.label);
+    } catch (_) { /* a missing/renamed table degrades to "no names", never a 500 */ }
+  }
+  return out;
 }
 
 // =====================================================
@@ -137,4 +182,71 @@ export async function handleTrackingHealth(request, env) {
       id: r.id, name: r.internal_name, status: r.health_status
     }))
   });
+}
+
+
+// =====================================================
+// v15 -- GEO, system health, manual runs
+// =====================================================
+
+// GET /en/api/super/analytics-geo?start_date=&end_date=&currency=
+// Same getGeoPerformance() the tenant dashboard's /analytics/geo uses,
+// tenant-wide (admin-equivalent actor), currency optional like the
+// dashboard. Reads analytics_events/analytics_conversions for a bounded,
+// explicitly date-ranged request (never a page-render path).
+export async function handleAnalyticsGeo(request, env) {
+  const url = new URL(request.url);
+  const range = parseDateRange(url);
+  if (!range) return fail("start_date and end_date are required");
+  const currency = url.searchParams.get("currency") || null;
+  const rows = await getGeoPerformance(env.DB, SUPER_API_ACTOR, { currency, ...range });
+  return ok({ rows });
+}
+
+// GET /en/api/super/analytics-health
+// Scheduled-job health (never_run / disabled / stale / ok) -- the
+// diagnosis for "the dashboard shows zero". Same getCronHealth() as the
+// tenant dashboard's System Health table.
+export async function handleAnalyticsHealth(request, env) {
+  const jobs = await getCronHealth(env.DB);
+  return ok({ jobs });
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// POST /en/api/super/analytics-aggregate  { start_date, end_date }
+// Manual/backfill aggregation, same as the dashboard's "Run Aggregation
+// Now" (does not depend on the automation flag; records the run in the
+// same cron-health row).
+export async function handleAnalyticsAggregate(request, env, _id, bodyText) {
+  let body = {};
+  try { body = bodyText ? JSON.parse(bodyText) : {}; } catch (_) { /* validated below */ }
+  if (!DATE_RE.test(body.start_date || "") || !DATE_RE.test(body.end_date || "")) {
+    return fail("start_date and end_date (YYYY-MM-DD) are required");
+  }
+  if (body.start_date > body.end_date) return fail("start_date must not be after end_date");
+  try {
+    const result = await backfillAnalyticsDaily(env.DB, { startDate: body.start_date, endDate: body.end_date });
+    await recordCronRun(env.DB, "analytics_aggregation", {
+      skipped: false, date: `${body.start_date} to ${body.end_date}`, daysProcessed: result.daysProcessed
+    });
+    return ok({ ...result });
+  } catch (error) {
+    return fail(error.message || "aggregation_failed", 422);
+  }
+}
+
+// POST /en/api/super/analytics-evaluate-alerts
+export async function handleAnalyticsEvaluateAlerts(request, env) {
+  const result = await evaluateAllRulesNow(env.DB);
+  await recordCronRun(env.DB, "alert_evaluation", { skipped: false, summary: result.summary });
+  return ok({ ...result });
+}
+
+// POST /en/api/super/analytics-run-due-reports
+// Only schedules that are actually due right now (next_run_at <= now).
+export async function handleAnalyticsRunDueReports(request, env) {
+  const result = await runDueReportSchedulesNow(env.DB, env);
+  await recordCronRun(env.DB, "report_schedules", { skipped: false, results: result.summary });
+  return ok({ ...result });
 }

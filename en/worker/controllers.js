@@ -3909,7 +3909,11 @@ export async function renderLogin(
         seo_title:
           "Login",
         seo_description: `${site.siteName} Login`,
-        canonical: site.url("/en/login")
+        canonical: site.url("/en/login"),
+
+        // Public Turnstile sitekey — per-Worker dashboard variable
+        // (Settings → Variables and Secrets), never hardcoded.
+        turnstile_sitekey: escapeHtml(env.TURNSTILE_SITEKEY || "")
       }
     );
 
@@ -3941,7 +3945,11 @@ export async function renderRegister(
         seo_title:
           "Register",
         seo_description: `Create ${site.siteName} account`,
-        canonical: site.url("/en/register")
+        canonical: site.url("/en/register"),
+
+        // Public Turnstile sitekey — per-Worker dashboard variable
+        // (Settings → Variables and Secrets), never hardcoded.
+        turnstile_sitekey: escapeHtml(env.TURNSTILE_SITEKEY || "")
       }
     );
 

@@ -4,6 +4,10 @@
 
   "compatibility_date": "2024-04-01",
 
+  // Keep plaintext variables set in the Cloudflare dashboard
+  // (e.g. TURNSTILE_SITEKEY) instead of removing them on deploy.
+  "keep_vars": true,
+
   "compatibility_flags": [
     "nodejs_compat"
   ],

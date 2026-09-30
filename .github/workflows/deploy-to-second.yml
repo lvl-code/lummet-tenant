@@ -26,6 +26,7 @@ jobs:
           - neuroodds
           - legendodds
           - brilliantodds
+          - blucca
 
     steps:
       - name: Checkout repository

@@ -198,6 +198,40 @@
     },
 
     // ==========================================================
+    // BLUCCA
+    // ==========================================================
+
+    "blucca": {
+      "name": "blucca",
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "blucca-db",
+          "database_id": "32bc65bf-20e7-41a4-9f24-32c7dfed021c"
+        }
+      ],
+
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "e49336c4d27e430bbaec42bf91f3f20c"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "blucca-media"
+        }
+      ],
+
+      "ai": {
+        "binding": "AI"
+      }
+    },
+
+    // ==========================================================
     // BRILLIANTODDS
     // ==========================================================
 

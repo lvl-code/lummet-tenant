@@ -85,6 +85,47 @@ export function getRoute(request) {
   // content lives under /en/affiliate-partner/... instead.
   // =====================================================
 
+  // =====================================================
+  // CONTENT LANDING PAGES ("SEO landing pages for generic types")
+  // /en/best/top-sportsbooks-2026 -- slug is globally unique
+  // (content_landing_pages.slug UNIQUE, migration 0061), so no
+  // content_type segment is needed in the URL, unlike
+  // /en/sportsbook|affiliate-partner|custom above.
+  // =====================================================
+
+  const contentLandingPageMatch =
+    path.match(/^\/en\/best\/([^/]+)$/);
+
+  if (contentLandingPageMatch) {
+    return {
+      type: "contentLandingPage",
+      slug: contentLandingPageMatch[1]
+    };
+  }
+
+  // =====================================================
+  // TRACKED CONTENT LINK ("sportsbook tracking/affiliate URL")
+  // /en/go-content/sportsbook/bet365 -- logs a CONTENT_CLICK event
+  // (content_item_id, migration 0059) then 302s to content_items.tracking_url.
+  // Deliberately separate from casino's /en/go/{slug} + tracking_links/
+  // click_id/postback pipeline (worker/index.js's "go" case) -- that
+  // pipeline is the protected commercial-affiliate attribution system;
+  // this is a lighter-weight tracked outbound link for editorial
+  // sportsbook/affiliate-partner/custom content, not a new entry point
+  // into commercial-partner revenue attribution.
+  // =====================================================
+
+  const goContentMatch =
+    path.match(/^\/en\/go-content\/([^/]+)\/([^/]+)$/);
+
+  if (goContentMatch) {
+    return {
+      type: "goContent",
+      contentType: goContentMatch[1],
+      slug: goContentMatch[2]
+    };
+  }
+
   const affiliatePartnerMatch =
     path.match(/^\/en\/affiliate-partner\/([^/]+)$/);
 
@@ -468,6 +509,14 @@ export function getRoute(request) {
 
   const comparisonEditMatch = path.match(/^\/en\/dashboard\/comparison\/edit\/([^/]+)\/([^/]+)$/);
   if (comparisonEditMatch) return { type: "dashboardComparisonEdit", compareType: comparisonEditMatch[1], slug: comparisonEditMatch[2] };
+
+  const genericReviewEditMatch = path.match(/^\/en\/dashboard\/generic-review\/edit\/(\d+)$/);
+  if (genericReviewEditMatch) return { type: "dashboardGenericReviewEdit", id: parseInt(genericReviewEditMatch[1]) };
+
+  const contentLandingPageEditMatch = path.match(/^\/en\/dashboard\/content-landing-page\/edit\/([^/]+)$/);
+  if (contentLandingPageEditMatch) return { type: "dashboardContentLandingPageEdit", slug: contentLandingPageEditMatch[1] };
+  if (path === "/en/dashboard/content-landing-pages") return { type: "dashboardContentLandingPages" };
+  if (path === "/en/dashboard/content-landing-page/create") return { type: "dashboardContentLandingPageCreate" };
 
   if (path === "/en/dashboard/components") return { type: "dashboardComponents" };
   if (path === "/en/dashboard/seo") return { type: "dashboardSeo" };

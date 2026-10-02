@@ -84,7 +84,7 @@ export async function getPublishedContentItems(db, contentType, { limit = 100, o
  * unfiltered-by-search/status/scope behavior exactly, so existing
  * callers are unaffected.
  */
-export async function getAllContentItems(db, contentType, { search = null, status = null, extraCondition = null, extraParams = [] } = {}) {
+export async function getAllContentItems(db, contentType, { search = null, status = null, extraCondition = null, extraParams = [], limit = null, offset = 0 } = {}) {
   const clauses = ["content_type = ?"];
   const params = [contentType];
   if (search) {
@@ -100,10 +100,18 @@ export async function getAllContentItems(db, contentType, { search = null, statu
     clauses.push(extraCondition);
     params.push(...extraParams);
   }
+  const where = clauses.join(" AND ");
+  // limit is optional and defaults to unbounded (existing callers, e.g.
+  // public list pages that don't paginate, are unaffected); passing it
+  // is how the admin list's pager (audit #15) works.
+  const limitSql = limit != null ? "LIMIT ? OFFSET ?" : "";
   const result = await db.prepare(`
-    SELECT * FROM content_items WHERE ${clauses.join(" AND ")} ORDER BY featured DESC, sort_order ASC, name ASC
-  `).bind(...params).all();
-  return result.results || [];
+    SELECT * FROM content_items WHERE ${where} ORDER BY featured DESC, sort_order ASC, name ASC ${limitSql}
+  `).bind(...(limit != null ? [...params, limit, offset] : params)).all();
+  const items = result.results || [];
+  if (limit == null) return items;
+  const total = (await db.prepare(`SELECT COUNT(*) n FROM content_items WHERE ${where}`).bind(...params).first()).n;
+  return { items, total };
 }
 
 export async function countPublishedContentItems(db, contentType) {
@@ -172,6 +180,7 @@ export async function updateContentItem(db, contentType, slug, fields) {
     linkedAffiliatePartnerId: "linked_affiliate_partner_id", metadataJson: "metadata_json",
     featured: "featured", sortOrder: "sort_order", status: "status", published: "published",
     seoTitle: "seo_title", seoDescription: "seo_description", seoKeywords: "seo_keywords",
+    logoMediaId: "logo_media_id", featuredImageMediaId: "featured_image_media_id", trackingUrl: "tracking_url",
   };
   const booleanFields = new Set(["liveBetting", "preMatch", "cashout", "mobileApp", "featured", "published"]);
 
@@ -220,6 +229,7 @@ export async function createContentItem(db, contentType, fields) {
     featured = false, sortOrder = 0, status = 'draft', published = false,
     seoTitle = null, seoDescription = null, seoKeywords = null,
     authorId = null, createdBy = null, customTypeSlug = null,
+    logoMediaId = null, featuredImageMediaId = null, trackingUrl = null,
   } = fields;
 
   const result = await db.prepare(`
@@ -228,8 +238,9 @@ export async function createContentItem(db, contentType, fields) {
       website, rating, license, license_country, live_betting, pre_match, cashout, mobile_app,
       linked_affiliate_partner_id, metadata_json,
       featured, sort_order, status, published,
-      seo_title, seo_description, seo_keywords, author_id, created_by, published_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      seo_title, seo_description, seo_keywords, author_id, created_by, published_at,
+      logo_media_id, featured_image_media_id, tracking_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING *
   `).bind(
     contentType, customTypeSlug, slug, name, title, description, excerpt,
@@ -237,7 +248,8 @@ export async function createContentItem(db, contentType, fields) {
     linkedAffiliatePartnerId, metadataJson,
     featured ? 1 : 0, sortOrder, status, published ? 1 : 0,
     seoTitle, seoDescription, seoKeywords, authorId, createdBy,
-    published ? new Date().toISOString() : null
+    published ? new Date().toISOString() : null,
+    logoMediaId, featuredImageMediaId, trackingUrl
   ).first();
 
   return result;

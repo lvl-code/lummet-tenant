@@ -42,7 +42,7 @@ export async function getPublishedComparisons(db, contentType, { limit = 100, of
  * `extraParams` let the caller AND in an item-level access scoping
  * clause the same way content-items.js's getAllContentItems() does.
  */
-export async function getAllComparisons(db, contentType, { status = null, extraCondition = null, extraParams = [], limit = 200 } = {}) {
+export async function getAllComparisons(db, contentType, { status = null, extraCondition = null, extraParams = [], limit = 200, offset = 0, withTotal = false } = {}) {
   const clauses = ["content_type = ?"];
   const params = [contentType];
   if (status) {
@@ -53,10 +53,14 @@ export async function getAllComparisons(db, contentType, { status = null, extraC
     clauses.push(extraCondition);
     params.push(...extraParams);
   }
+  const where = clauses.join(" AND ");
   const result = await db.prepare(`
-    SELECT * FROM comparisons WHERE ${clauses.join(" AND ")} ORDER BY updated_at DESC LIMIT ?
-  `).bind(...params, limit).all();
-  return result.results || [];
+    SELECT * FROM comparisons WHERE ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?
+  `).bind(...params, limit, offset).all();
+  const items = result.results || [];
+  if (!withTotal) return items; // existing callers unaffected
+  const total = (await db.prepare(`SELECT COUNT(*) n FROM comparisons WHERE ${where}`).bind(...params).first()).n;
+  return { items, total };
 }
 
 /**

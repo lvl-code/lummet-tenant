@@ -8,6 +8,7 @@ import * as contentItems from "./database/content-items.js";
 import * as customTypes from "./database/custom-types.js";
 import * as reviewCriteria from "./database/review-criteria.js";
 import * as comparisonsDb from "./database/comparisons.js";
+import * as landingPagesDB from "./database/content-landing-pages.js";
 import { resolveAffiliateLink, resolveContentItemById } from "./content-resolver.js";import { renderCustomFieldsHtml } from "./custom-field-render.js";
 import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
@@ -4106,6 +4107,108 @@ export async function renderCasinoList(request, env) {
 // §8 design — this function assumes it has already been called only
 // because sportsbook is enabled for this environment.
 //
+/**
+ * Tracked outbound link for sportsbook/affiliate_partner/custom items
+ * (content_items.tracking_url, migration 0060). Deliberately NOT the
+ * casino pipeline above (tracking_links/click_id/postback/commercial
+ * attribution) -- this only logs a CONTENT_CLICK analytics event
+ * (content_item_id, migration 0059) and redirects. Falls back to
+ * item.website if tracking_url isn't set, so the "Visit Site" CTA
+ * always has somewhere to go once ANY URL is configured.
+ */
+export async function handleContentTrackedRedirect(request, env, contentType, slug, ctx = null) {
+  if (!["sportsbook", "affiliate_partner", "custom"].includes(contentType)) return render404(request, env);
+  const item = await contentItems.getPublishedContentItem(env.DB, contentType, slug);
+  if (!item) return render404(request, env);
+  const target = item.tracking_url || item.website;
+  if (!target) return render404(request, env);
+
+  const edgeGeo = { country: request.cf?.country || null, city: request.cf?.city || "Unknown" };
+  const geoInfo = geoEngine.process(request, edgeGeo);
+  const ipHash = await hashIP(request.headers.get("CF-Connecting-IP"));
+  const userAgent = request.headers.get("user-agent");
+  const { deviceType, isBot } = classifyUserAgent(userAgent);
+
+  const work = logAnalyticsEvent(env.DB, {
+    eventType: "CONTENT_CLICK",
+    contentItemId: item.id,
+    countryCode: geoInfo.country, city: geoInfo.city, deviceType, isBot,
+    visitorHash: ipHash,
+    referrer: request.headers.get("referer") || null,
+    metadata: { content_type: contentType },
+  }).catch(() => {});
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+  else await work;
+
+  return Response.redirect(target, 302);
+}
+
+/**
+ * Public renderer for content_landing_pages (migration 0061). See
+ * that migration's own comment for why this is a separate, smaller
+ * system from the casino seo_pages one, not an extension of it.
+ */
+export async function renderContentLandingPage(request, env, slug) {
+  const page = await landingPagesDB.getPublishedLandingPage(env.DB, slug);
+  if (!page) return render404(request, env);
+
+  let itemList;
+  if (page.item_mode === "manual") {
+    const itemIds = await landingPagesDB.getLandingPageItemIds(env.DB, page.id);
+    itemList = [];
+    for (const id of itemIds) {
+      // getContentGeoStatuses() below needs published items; a manually
+      // curated id that has since been unpublished is skipped rather
+      // than rendered as a broken card (same "skip, don't fail" posture
+      // loadComparisonRowItems() uses for comparison rows).
+      const row = await contentItems.getContentItemById(env.DB, page.content_type, id);
+      if (row && row.published && row.status === "published" && (page.content_type !== "custom" || row.custom_type_slug === page.custom_type_slug)) {
+        itemList.push(row);
+      }
+    }
+  } else {
+    itemList = await contentItems.getAllContentItems(env.DB, page.content_type, { status: "published" });
+    if (page.content_type === "custom") itemList = itemList.filter(i => i.custom_type_slug === page.custom_type_slug);
+    itemList = itemList.filter(i => i.published)
+      .sort((a, b) => (b.featured - a.featured) || ((b.rating || 0) - (a.rating || 0)))
+      .slice(0, page.auto_limit);
+  }
+
+  const renderer = new Renderer(env, request);
+  const geoData = await prepareContentGeoData(env, request, page.content_type, itemList);
+  const eligibleItems = itemList.filter(i => geoData.statuses[i.id] === "allowed");
+
+  const [site, allComponents, dynamicSeo] = await Promise.all([
+    getSiteContext(request, env),
+    renderer.renderAllComponents("content_landing_page", slug),
+    renderer.loadDynamicSeo("content_landing_page", slug),
+  ]);
+
+  const linkPrefix = page.content_type === "custom" ? `/en/custom/${page.custom_type_slug}` : page.content_type === "sportsbook" ? "/en/sportsbook" : "/en/affiliate-partner";
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": page.title,
+    "itemListElement": eligibleItems.map((item, idx) => ({ "@type": "ListItem", "position": idx + 1, "url": site.url(`${linkPrefix}/${item.slug}`) })),
+  };
+
+  const html = await renderer.render("category.html", {
+    canonical: dynamicSeo.canonical || site.url(`/en/best/${slug}`),
+    category: page.title,
+    description: page.description || "",
+    casino_cards: buildContentItemCards(eligibleItems, page.content_type, linkPrefix, geoData),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    seo_title: escapeHtml(dynamicSeo.title || page.seo_title || page.title),
+    seo_description: escapeHtml(dynamicSeo.description || page.seo_description || page.description || ""),
+  }, listSchema, buildBreadcrumbs("contentLandingPage", { title: page.title }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
 // Simplified relative to renderCasino() for this first pass: no KV
 // caching of related items, no per-country GEO badge on the card
 // grid, no analytics event logging yet. Noted in the Phase 3 report
@@ -6078,6 +6181,18 @@ export async function renderDashboardCustomTypeEdit(request, env, typeSlug) {
 }
 export async function renderDashboardComparisonEdit(request, env, compareType, slug) {
   return renderAdminPage(request, env, "admin/comparison-edit.html", { compare_type: compareType, slug });
+}
+export async function renderDashboardGenericReviewEdit(request, env, id) {
+  return renderAdminPage(request, env, "admin/generic-review-edit.html", { id });
+}
+export async function renderDashboardContentLandingPages(request, env) {
+  return renderAdminPage(request, env, "admin/content-landing-pages.html");
+}
+export async function renderDashboardContentLandingPageCreate(request, env) {
+  return renderAdminPage(request, env, "admin/content-landing-page-create.html");
+}
+export async function renderDashboardContentLandingPageEdit(request, env, slug) {
+  return renderAdminPage(request, env, "admin/content-landing-page-edit.html", { slug });
 }
 export async function renderDashboardContentTypeSettings(request, env) {
   // This page's own copy says "Admin-only: not visible to editors", and

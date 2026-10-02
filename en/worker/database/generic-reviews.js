@@ -75,9 +75,16 @@ export async function updateGenericReview(db, id, fields) {
 }
 
 /** All generic (non-casino) reviews for a given reviewed content type, admin listing. */
-export async function getGenericReviewsForType(db, reviewedContentType) {
+export async function getGenericReviewsForType(db, reviewedContentType, { limit = null, offset = 0 } = {}) {
+  if (limit == null) {
+    const result = await db.prepare(`
+      SELECT * FROM reviews WHERE reviewed_content_type = ? AND ${GENERIC_ONLY} ORDER BY created_at DESC
+    `).bind(reviewedContentType).all();
+    return result.results || []; // existing callers unaffected
+  }
   const result = await db.prepare(`
-    SELECT * FROM reviews WHERE reviewed_content_type = ? AND ${GENERIC_ONLY} ORDER BY created_at DESC
-  `).bind(reviewedContentType).all();
-  return result.results || [];
+    SELECT * FROM reviews WHERE reviewed_content_type = ? AND ${GENERIC_ONLY} ORDER BY created_at DESC LIMIT ? OFFSET ?
+  `).bind(reviewedContentType, limit, offset).all();
+  const total = (await db.prepare(`SELECT COUNT(*) n FROM reviews WHERE reviewed_content_type = ? AND ${GENERIC_ONLY}`).bind(reviewedContentType).first()).n;
+  return { items: result.results || [], total };
 }

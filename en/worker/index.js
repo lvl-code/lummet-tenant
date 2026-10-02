@@ -73,6 +73,10 @@ import {
   renderDashboardContentItemEdit,
   renderDashboardCustomTypeEdit,
   renderDashboardComparisonEdit,
+  renderDashboardGenericReviewEdit,
+  renderDashboardContentLandingPages,
+  renderDashboardContentLandingPageCreate,
+  renderDashboardContentLandingPageEdit,
   renderDashboardContentTypeSettings,
   renderDashboardGenericReviews,
   renderDashboardGenericReviewCreate,
@@ -104,6 +108,8 @@ import {
   renderUserBookmarks,
   renderDynamicPage,
   handleAffiliateRedirect,
+  renderContentLandingPage,
+  handleContentTrackedRedirect,
   renderLogin,
   renderRegister,
   renderForgotPassword,
@@ -419,6 +425,12 @@ if (
           ctx
         );
 
+      case "contentLandingPage":
+        return renderContentLandingPage(request, env, route.slug);
+
+      case "goContent":
+        return handleContentTrackedRedirect(request, env, route.contentType, route.slug, ctx);
+
       case "dashboard":
         return renderDashboardPage(
           request,
@@ -473,6 +485,14 @@ if (
         return renderDashboardCustomTypeEdit(request, env, route.typeSlug);
       case "dashboardComparisonEdit":
         return renderDashboardComparisonEdit(request, env, route.compareType, route.slug);
+      case "dashboardGenericReviewEdit":
+        return renderDashboardGenericReviewEdit(request, env, route.id);
+      case "dashboardContentLandingPages":
+        return renderDashboardContentLandingPages(request, env);
+      case "dashboardContentLandingPageCreate":
+        return renderDashboardContentLandingPageCreate(request, env);
+      case "dashboardContentLandingPageEdit":
+        return renderDashboardContentLandingPageEdit(request, env, route.slug);
       case "dashboardContentTypeSettings":
         return renderDashboardContentTypeSettings(request, env);
       case "dashboardGenericReviews":

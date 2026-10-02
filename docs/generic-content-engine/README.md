@@ -133,6 +133,44 @@ that test file's "regression" test for the exact payload that used to get throug
 As of this integration: **238/238 tests pass** (the pre-existing 201 + 37 new),
 confirmed by actually running `npm test` against the merged repository.
 
+## Pass 3 (on top of pass 2 / CHANGES-pass2.md)
+
+All 7 previously-open items are now built. Full suite: 756/756.
+
+- **SEO landing pages for generic types** (migration 0061, `content_landing_pages`)
+  -- a deliberately smaller, separate system from the casino `seo_pages` one
+  (one item grid per page, manual or auto selection, public URL `/en/best/:slug`).
+- **Sportsbook tracking/affiliate URL** -- added `content_items.tracking_url`
+  (migration 0060) rather than reusing `linked_affiliate_partner_id` (that
+  column means a different thing: a link to a commercial AffiliatePartner
+  relationship). Outbound clicks go through `/en/go-content/:type/:slug`,
+  which logs a `CONTENT_CLICK` analytics event and redirects -- deliberately
+  **not** wired into the casino `tracking_links`/`click_id`/postback
+  pipeline, which is the protected commercial-attribution system; this is a
+  lighter editorial tracked-link, not a new revenue-attribution entry point.
+  If you want sportsbook clicks in that pipeline later, that's a deliberate
+  follow-up decision, not something this pass made silently.
+- **Logo and hero image media pickers** -- wired to the existing
+  `MediaPicker.openImagePicker()` component on both content-item forms.
+- **Editorial Pick picker** -- now the same searchable picker the
+  comparison **items** list already used, single-select.
+- **Structured review content** -- wired the existing
+  `/api/v1/review-blocks/*` endpoints (already generic, keyed by the
+  globally-unique `reviews.slug`) into the new review edit page below.
+  No backend work was needed; it was pure admin-UI wiring.
+- **Admin list pagination** -- `page`/`per_page` query params on
+  content-items, custom-types, comparisons and generic-reviews list
+  endpoints; omitted = unbounded (every existing caller is unaffected).
+- **A full edit page for generic reviews** -- `/en/dashboard/generic-review/edit/:id`,
+  with the structured-blocks editor above, author, SEO fields, and delete.
+
+A real bug was found and fixed along the way: `CONTENT_CLICK` (the new
+tracked-link event) was missing from `analytics.js`'s event-type whitelist,
+so it logged nothing and raised no error -- added, with a regression test
+guarding the whitelist itself.
+
+See `CHANGES-pass3.md` for the full breakdown.
+
 ## What's NOT built yet
 
 Verified against the code on the pass-2 integration (see `GENERIC-CONTENT-ENGINE-GAPS-AND-BUGS.md`

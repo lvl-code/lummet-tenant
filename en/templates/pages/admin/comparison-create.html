@@ -58,7 +58,7 @@
       <fieldset>
         <legend>Editorial Pick (optional)</legend>
         <label>Item Content Type
-          <select name="editorial_selection_item_type">
+          <select name="editorial_selection_item_type" id="editorialPickContentType">
             <option value="">None</option>
             <option value="casino">Casino</option>
             <option value="sportsbook">Sportsbook</option>
@@ -66,7 +66,11 @@
             <option value="custom">Custom</option>
           </select>
         </label>
-        <label>Item ID <input type="number" name="editorial_selection_item_id"></label>
+        <input type="hidden" name="editorial_selection_item_id" id="editorialPickItemId">
+        <p class="muted">Search by name instead of entering a numeric ID.</p>
+        <input type="text" id="editorialPickSearchInput" placeholder="Search for the item to feature...">
+        <div id="editorialPickSearchResults" style="margin:6px 0"></div>
+        <div id="editorialPickSelected" class="muted">No item selected.</div>
       </fieldset>
 
       <fieldset>

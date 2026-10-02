@@ -11,6 +11,7 @@ import * as comparisonsDb from "./database/comparisons.js";
 import * as landingPagesDB from "./database/content-landing-pages.js";
 import { resolveAffiliateLink, resolveContentItemById } from "./content-resolver.js";import { renderCustomFieldsHtml } from "./custom-field-render.js";
 import * as reviews from "./database/reviews.js";
+import * as genericReviewsDb from "./database/generic-reviews.js";
 import * as pages from "./database/pages.js";
 import * as countries from "./database/countries.js";
 import * as research from "./database/research.js";
@@ -4496,6 +4497,7 @@ export async function renderSportsbook(request, env, slug, ctx = null) {
     status: item.status || "published",
     geo_status_html: buildContentItemGeoStatusHtml(itemGeoData, item.id),
     related_items_html: relatedItemsHtml,
+    item_reviews_html: await buildItemReviewsHtml(env.DB, item),
     content_type_label: "Sportsbooks",
   }, itemSchema, buildBreadcrumbs("sportsbook", { name: item.name }));
 
@@ -4684,6 +4686,7 @@ export async function renderAffiliatePartner(request, env, slug, ctx = null) {
     status: item.status || "published",
     geo_status_html: buildContentItemGeoStatusHtml(itemGeoData, item.id),
     related_items_html: relatedItemsHtml,
+    item_reviews_html: await buildItemReviewsHtml(env.DB, item),
     content_type_label: "Affiliate Partners",
   }, itemSchema, buildBreadcrumbs("affiliatePartner", { name: item.name }));
 
@@ -4860,6 +4863,7 @@ export async function renderCustom(request, env, typeSlug, slug, ctx = null) {
     status: item.status || "published",
     geo_status_html: buildContentItemGeoStatusHtml(itemGeoData, item.id),
     related_items_html: relatedItemsHtml,
+    item_reviews_html: await buildItemReviewsHtml(env.DB, item),
     content_type_label: customType.plural_label,
   }, itemSchema, buildBreadcrumbs("custom", { typeSlug, typeLabel: customType.label, name: item.name }));
 
@@ -4931,6 +4935,27 @@ function buildReviewedItemCardHtml(item, linkUrl) {
         <a href="${linkUrl}" class="btn btn--primary">View ${item.name}</a>
       </div>
     </div>`;
+}
+
+function reviewUrlForItem(item, reviewSlug) {
+  if (item.content_type === "custom") return `/en/custom/${item.custom_type_slug}/review/${reviewSlug}`;
+  if (item.content_type === "affiliate_partner") return `/en/affiliate-partner/review/${reviewSlug}`;
+  return `/en/sportsbook/review/${reviewSlug}`;
+}
+
+async function buildItemReviewsHtml(db, item) {
+  let rows = [];
+  try {
+    rows = await genericReviewsDb.getPublishedReviewsForContent(db, item.content_type, item.id);
+  } catch (e) {
+    console.error("Item reviews failed (page renders without them):", e.message);
+  }
+  if (!rows.length) return `<p class="muted">No reviews yet.</p>`;
+  return rows.map(r => {
+    const plain = String(r.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const excerpt = plain.length > 200 ? plain.substring(0, 200) + "..." : plain;
+    return `<div class="review-item"><h4><a href="${reviewUrlForItem(item, r.slug)}">${escapeReviewText(r.title)}</a></h4><span class="review-rating">★ ${r.rating ? escapeReviewText(r.rating + "/5") : "N/A"}</span><p class="review-excerpt">${escapeReviewText(excerpt)}</p></div>`;
+  }).join("");
 }
 
 const REVIEWABLE_TYPE_ROUTES = {

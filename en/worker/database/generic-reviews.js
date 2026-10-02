@@ -88,3 +88,12 @@ export async function getGenericReviewsForType(db, reviewedContentType, { limit 
   const total = (await db.prepare(`SELECT COUNT(*) n FROM reviews WHERE reviewed_content_type = ? AND ${GENERIC_ONLY}`).bind(reviewedContentType).first()).n;
   return { items: result.results || [], total };
 }
+
+export async function getPublishedReviewsForContent(db, reviewedContentType, reviewedContentId, limit = 20) {
+  const result = await db.prepare(`
+    SELECT id, slug, title, content, rating, verdict, created_at FROM reviews
+    WHERE reviewed_content_type = ? AND reviewed_content_id = ? AND ${GENERIC_ONLY} AND published = 1
+    ORDER BY created_at DESC LIMIT ?
+  `).bind(reviewedContentType, reviewedContentId, limit).all();
+  return result.results || [];
+}

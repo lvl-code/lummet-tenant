@@ -40,7 +40,7 @@ async function populateAuthorDropdowns() {
     const options = '<option value="">No author assigned</option>' +
       authors.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
 
-    ["reviewAuthorSelect", "newsAuthorSelect", "pageAuthorSelect", "updateAuthorSelect", "genericReviewAuthorSelect"].forEach(id => {
+    ["reviewAuthorSelect", "newsAuthorSelect", "pageAuthorSelect", "updateAuthorSelect", "genericReviewAuthorSelect", "genericReviewEditAuthorSelect"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = options;
     });

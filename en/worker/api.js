@@ -43,6 +43,7 @@ import * as cronHealthDB from "./database/cron-health.js";
 import * as contentItemsDB from "./database/content-items.js";
 import * as customTypesDB from "./database/custom-types.js";
 import * as comparisonsDB from "./database/comparisons.js";
+import * as landingPagesDB from "./database/content-landing-pages.js";
 import * as genericReviewsDB from "./database/generic-reviews.js";
 import { isReservedSlug } from "./reserved-slugs.js";
 import { getContentTypeEnablement, updateContentTypeEnablement } from "./content-types.js";
@@ -657,6 +658,9 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/comparisons/list": "comparisons",
       "/api/v1/comparison/get": "comparisons",
       "/api/v1/generic-reviews/list": "reviews", // was ungated on GET, same gap as the entries above
+      "/api/v1/generic-review/get": "reviews",
+      "/api/v1/content-landing-pages/list": "content_landing_pages",
+      "/api/v1/content-landing-page/get": "content_landing_pages",
       // Sports/currencies are read-only reference/taxonomy lookups used
       // only to populate the sportsbook edit form's checkboxes -- same
       // supporting-reference-data posture as payment_methods above.
@@ -756,6 +760,8 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/comparisons": "comparisons",
       "/api/v1/generic-review": "reviews",
       "/api/v1/generic-reviews": "reviews",
+      "/api/v1/content-landing-page": "content_landing_pages",
+      "/api/v1/content-landing-pages": "content_landing_pages",
     };
 
     let resource = null;
@@ -915,8 +921,15 @@ if (path === "/api/v1/content-items/list" && request.method === "GET") {
   const search = url.searchParams.get("search") || null;
   const status = url.searchParams.get("status") || null;
   const { condition, params } = await itemAccess.getAccessibleWhereClause(env.DB, user, "content_items", "read");
-  const items = await contentItemsDB.getAllContentItems(env.DB, contentType, { search, status, extraCondition: condition || null, extraParams: params });
-  return json({ success: true, items });
+  // page/per_page (audit #15): omitted -> unbounded, unchanged behavior
+  // for any existing caller (e.g. buildContentItemCards() call sites).
+  const page = url.searchParams.has("page") ? Math.max(1, parseInt(url.searchParams.get("page")) || 1) : null;
+  const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page")) || 25));
+  const opts = { search, status, extraCondition: condition || null, extraParams: params };
+  if (page != null) { opts.limit = perPage; opts.offset = (page - 1) * perPage; }
+  const result = await contentItemsDB.getAllContentItems(env.DB, contentType, opts);
+  if (page != null) return json({ success: true, items: result.items, total: result.total, page, per_page: perPage });
+  return json({ success: true, items: result });
 }
 
 if (path === "/api/v1/content-item/get" && request.method === "GET") {
@@ -997,6 +1010,85 @@ if (path === "/api/v1/currencies/list" && request.method === "GET") {
   return json({ success: true, currencies: result.results || [] });
 }
 
+// =====================================================
+// CONTENT LANDING PAGES (audit "SEO landing pages for generic types").
+// Deliberately smaller than the casino seo_pages system (migration
+// 0019): one item grid per page, manual or auto selection, no
+// country x category matrix, no section builder. See migration 0061.
+// =====================================================
+
+if (path === "/api/v1/content-landing-pages/list" && request.method === "GET") {
+  const url = new URL(request.url);
+  const contentType = url.searchParams.get("content_type") || null;
+  const pages = await landingPagesDB.getAllLandingPages(env.DB, { contentType });
+  return json({ success: true, pages });
+}
+
+if (path === "/api/v1/content-landing-page/get" && request.method === "GET") {
+  const url = new URL(request.url);
+  const slug = url.searchParams.get("slug");
+  if (!slug) return failure("slug is required");
+  const page = await landingPagesDB.getLandingPage(env.DB, slug);
+  if (!page) return failure("Landing page not found", 404);
+  const itemIds = await landingPagesDB.getLandingPageItemIds(env.DB, page.id);
+  return json({ success: true, page, item_ids: itemIds });
+}
+
+if (path === "/api/v1/content-landing-page/create" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["content_type", "slug", "title"]);
+  if (!["sportsbook", "affiliate_partner", "custom"].includes(body.content_type)) {
+    return failure("content_type must be sportsbook, affiliate_partner, or custom");
+  }
+  if (body.content_type === "custom" && !body.custom_type_slug) {
+    return failure("custom_type_slug is required when content_type is custom");
+  }
+  if (body.item_mode && !["manual", "auto"].includes(body.item_mode)) {
+    return failure('item_mode must be "manual" or "auto"');
+  }
+  const page = await landingPagesDB.createLandingPage(env.DB, {
+    contentType: body.content_type, customTypeSlug: body.custom_type_slug || null,
+    slug: body.slug, title: body.title, description: body.description || null,
+    itemMode: body.item_mode || "manual", autoLimit: parseInt(body.auto_limit) || 10,
+    status: body.status || "draft",
+    seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
+    authorId: body.author_id || null, createdBy: user.user_id,
+  });
+  if (page.item_mode === "manual" && Array.isArray(body.item_ids)) {
+    await landingPagesDB.setLandingPageItems(env.DB, page.id, body.item_ids.map(Number).filter(Number.isInteger));
+  }
+  await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "content_landing_page", entityId: page.id, metadata: { slug: body.slug, content_type: body.content_type } });
+  return success({ page });
+}
+
+if (path === "/api/v1/content-landing-page/update" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["slug"]);
+  const existing = await landingPagesDB.getLandingPage(env.DB, body.slug);
+  if (!existing) return failure("Landing page not found", 404);
+  if (body.item_mode && !["manual", "auto"].includes(body.item_mode)) {
+    return failure('item_mode must be "manual" or "auto"');
+  }
+  const fields = {};
+  for (const [bodyKey, fieldKey] of [["title", "title"], ["description", "description"], ["item_mode", "itemMode"], ["status", "status"], ["seo_title", "seoTitle"], ["seo_description", "seoDescription"], ["seo_keywords", "seoKeywords"]]) {
+    if (body[bodyKey] !== undefined) fields[fieldKey] = body[bodyKey];
+  }
+  if (body.auto_limit !== undefined) fields.autoLimit = parseInt(body.auto_limit) || 10;
+  const page = await landingPagesDB.updateLandingPage(env.DB, body.slug, fields);
+  if (Array.isArray(body.item_ids)) await landingPagesDB.setLandingPageItems(env.DB, page.id, body.item_ids.map(Number).filter(Number.isInteger));
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "content_landing_page", entityId: page.id, metadata: { slug: body.slug, status: page.status } });
+  return success({ page });
+}
+
+if (path === "/api/v1/content-landing-page/delete" && request.method === "POST") {
+  const body = await request.json();
+  validate(body, ["slug"]);
+  const existing = await landingPagesDB.deleteLandingPage(env.DB, body.slug);
+  if (!existing) return failure("Landing page not found", 404);
+  await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "content_landing_page", entityId: existing.id, metadata: { slug: body.slug, title: existing.title } });
+  return success();
+}
+
 if (path === "/api/v1/content-item/create" && request.method === "POST") {
   const body = await request.json();
   validate(body, ["content_type", "slug", "name"]);
@@ -1008,6 +1100,8 @@ if (path === "/api/v1/content-item/create" && request.method === "POST") {
   }
   const geoCheck = await normalizeGeoRules(env.DB, body.geo_rules);
   if (geoCheck.error) return failure(geoCheck.error);
+  const mediaCheck = normalizeMediaAndTrackingFields(body);
+  if (mediaCheck.error) return failure(mediaCheck.error);
   const item = await contentItemsDB.createContentItem(env.DB, body.content_type, {
     slug: body.slug, name: body.name, title: body.title || null, description: body.description || null,
     website: body.website || null, rating: parseFloat(body.rating) || 0,
@@ -1018,6 +1112,7 @@ if (path === "/api/v1/content-item/create" && request.method === "POST") {
     status: body.status || "draft", published: !!body.published,
     seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
     authorId: body.author_id || null, createdBy: user.user_id, customTypeSlug: body.custom_type_slug || null,
+    ...mediaCheck.fields,
   });
   if (body.content_type === "sportsbook") {
     if (Array.isArray(body.sport_ids)) await contentItemsDB.setContentItemSports(env.DB, body.content_type, item.id, body.sport_ids);
@@ -1090,6 +1185,9 @@ if (path === "/api/v1/content-item/update" && request.method === "POST") {
 
   const geoCheck = await normalizeGeoRules(env.DB, body.geo_rules);
   if (geoCheck.error) return failure(geoCheck.error);
+  const mediaCheck = normalizeMediaAndTrackingFields(body);
+  if (mediaCheck.error) return failure(mediaCheck.error);
+  Object.assign(fields, mediaCheck.fields);
   const item = await contentItemsDB.updateContentItem(env.DB, body.content_type, body.slug, fields);
   if (Array.isArray(body.category_ids)) await contentItemsDB.setContentItemCategories(env.DB, body.content_type, item.id, body.category_ids.map(Number).filter(Number.isInteger));
   if (geoCheck.rules) await contentItemsDB.setContentItemGeoRules(env.DB, body.content_type, item.id, geoCheck.rules);
@@ -1120,8 +1218,15 @@ if (path === "/api/v1/content-item/custom-field-values" && request.method === "G
 }
 
 if (path === "/api/v1/custom-types/list" && request.method === "GET") {
-  const types = await customTypesDB.getAllCustomContentTypes(env.DB);
-  return json({ success: true, types });
+  const url = new URL(request.url);
+  const page = url.searchParams.has("page") ? Math.max(1, parseInt(url.searchParams.get("page")) || 1) : null;
+  const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page")) || 25));
+  if (page == null) {
+    const types = await customTypesDB.getAllCustomContentTypes(env.DB);
+    return json({ success: true, types });
+  }
+  const result = await customTypesDB.getAllCustomContentTypes(env.DB, { limit: perPage, offset: (page - 1) * perPage });
+  return json({ success: true, types: result.items, total: result.total, page, per_page: perPage });
 }
 
 if (path === "/api/v1/custom-type/create" && request.method === "POST") {
@@ -1217,8 +1322,12 @@ if (path === "/api/v1/comparisons/list" && request.method === "GET") {
   // for anywhere that specifically wants that.
   const statusFilter = url.searchParams.get("status");
   const { condition, params } = await itemAccess.getAccessibleWhereClause(env.DB, user, "comparisons", "read");
-  const items = await comparisonsDB.getAllComparisons(env.DB, contentType, { status: statusFilter || null, extraCondition: condition || null, extraParams: params });
-  return json({ success: true, comparisons: items });
+  const page = url.searchParams.has("page") ? Math.max(1, parseInt(url.searchParams.get("page")) || 1) : null;
+  const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page")) || 25));
+  const opts = { status: statusFilter || null, extraCondition: condition || null, extraParams: params, limit: page != null ? perPage : 200, offset: page != null ? (page - 1) * perPage : 0, withTotal: page != null };
+  const result = await comparisonsDB.getAllComparisons(env.DB, contentType, opts);
+  if (page != null) return json({ success: true, comparisons: result.items, total: result.total, page, per_page: perPage });
+  return json({ success: true, comparisons: result });
 }
 
 if (path === "/api/v1/comparison/create" && request.method === "POST") {
@@ -1313,8 +1422,14 @@ if (path === "/api/v1/generic-reviews/list" && request.method === "GET") {
   const url = new URL(request.url);
   const reviewedContentType = url.searchParams.get("reviewed_content_type");
   if (!reviewedContentType) return failure("reviewed_content_type is required");
-  const reviews = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType);
-  return json({ success: true, reviews });
+  const page = url.searchParams.has("page") ? Math.max(1, parseInt(url.searchParams.get("page")) || 1) : null;
+  const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page")) || 25));
+  if (page == null) {
+    const reviews = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType);
+    return json({ success: true, reviews });
+  }
+  const result = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType, { limit: perPage, offset: (page - 1) * perPage });
+  return json({ success: true, reviews: result.items, total: result.total, page, per_page: perPage });
 }
 
 if (path === "/api/v1/generic-review/update" && request.method === "POST") {
@@ -1334,6 +1449,16 @@ if (path === "/api/v1/generic-review/update" && request.method === "POST") {
   if (!review) return failure("Review not found or no fields to update", 404);
   await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "review", entityId: review.id, metadata: {} });
   return success({ review });
+}
+
+if (path === "/api/v1/generic-review/get" && request.method === "GET") {
+  const url = new URL(request.url);
+  const id = parseInt(url.searchParams.get("id"));
+  if (!Number.isInteger(id)) return failure("id is required");
+  const review = await genericReviewsDB.getGenericReview(env.DB, id); // generic-only: a casino review id is a 404 here
+  if (!review) return failure("Review not found", 404);
+  if (!(await itemAccess.canAccessItem(env.DB, user, "reviews", "read", review))) return failure("Review not found", 404);
+  return json({ success: true, review });
 }
 
 if (path === "/api/v1/generic-review/delete" && request.method === "POST") {
@@ -5007,6 +5132,38 @@ async function normalizeGeoRules(db, rawRules) {
     if (unknown.length) return { error: `Unknown country code(s): ${unknown.join(", ")}` };
   }
   return { rules };
+}
+
+
+/**
+ * Validates logo_media_id/featured_image_media_id (plain integers or
+ * null -- FK to media_library, no existence check here since an
+ * invalid id just LEFT JOINs to nothing, same non-fatal posture as any
+ * other optional FK in this codebase) and tracking_url (sanitizeUrl(),
+ * the same javascript:/data:-scheme protection every other URL field
+ * in this codebase gets). Returns { fields } or { error }.
+ * `undefined` for a key means "client didn't send it" -> omitted from
+ * `fields` so the caller leaves the existing value untouched on update.
+ */
+function normalizeMediaAndTrackingFields(body) {
+  const fields = {};
+  for (const [bodyKey, fieldKey] of [["logo_media_id", "logoMediaId"], ["featured_image_media_id", "featuredImageMediaId"]]) {
+    if (body[bodyKey] === undefined) continue;
+    if (body[bodyKey] === null || body[bodyKey] === "") { fields[fieldKey] = null; continue; }
+    const id = parseInt(body[bodyKey]);
+    if (!Number.isInteger(id)) return { error: `${bodyKey} must be a media library id or null` };
+    fields[fieldKey] = id;
+  }
+  if (body.tracking_url !== undefined) {
+    if (!body.tracking_url) {
+      fields.trackingUrl = null;
+    } else {
+      const safe = sanitizeUrl(body.tracking_url, false);
+      if (!safe) return { error: "tracking_url is not a valid/safe URL" };
+      fields.trackingUrl = safe;
+    }
+  }
+  return { fields };
 }
 
 function validate(body, required) {

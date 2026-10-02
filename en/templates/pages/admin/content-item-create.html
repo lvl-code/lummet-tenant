@@ -30,6 +30,26 @@
       <label>Description <textarea name="description" rows="4"></textarea></label>
       <label>Website URL <input type="url" name="website"></label>
       <label>Rating (0-5) <input type="number" name="rating" min="0" max="5" step="0.1"></label>
+      <label>Tracking / "Bet Now" URL (optional -- falls back to Website URL if empty)
+        <input type="url" name="tracking_url">
+      </label>
+
+      <div class="form-group">
+        <label>Logo</label>
+        <div id="logoPreview" style="display:none;margin-bottom:6px"><img id="logoImg" style="max-height:60px" alt="Logo"></div>
+        <input type="hidden" name="logo_media_id" id="logoMediaId">
+        <button type="button" class="btn btn--ghost btn--sm" id="selectLogo" onclick="openContentItemMediaPicker('logo')">Choose Logo</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="clearLogo" style="display:none" onclick="clearContentItemMedia('logo')">Remove</button>
+      </div>
+
+      <div class="form-group">
+        <label>Hero / Featured Image</label>
+        <div id="heroPreview" style="display:none;margin-bottom:6px"><img id="heroImg" style="max-height:100px" alt="Hero image"></div>
+        <input type="hidden" name="featured_image_media_id" id="heroMediaId">
+        <button type="button" class="btn btn--ghost btn--sm" id="selectHero" onclick="openContentItemMediaPicker('hero')">Choose Hero Image</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="clearHero" style="display:none" onclick="clearContentItemMedia('hero')">Remove</button>
+      </div>
+
 
       <div id="sportsbookFields" style="display:none">
         <label>License <input type="text" name="license"></label>

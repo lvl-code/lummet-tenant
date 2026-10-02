@@ -105,6 +105,10 @@ export function buildBreadcrumbs(route, data = {}) {
       );
       break;
 
+    case "contentLandingPage":
+      crumbs.push({ label: data.title, url: null });
+      break;
+
     case "sportsbookReview":
       crumbs.push(
         { label: "All Sportsbooks", url: "/en/sportsbook" },

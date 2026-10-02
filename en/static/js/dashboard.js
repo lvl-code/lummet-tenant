@@ -20,7 +20,335 @@ document.addEventListener("DOMContentLoaded", () => {
   initContentTypeSettingsForm();
   loadGenericReviewsTable();
   initGenericReviewForm();
+  initGenericReviewEditForm();
+  initContentLandingPagesTable();
+  initContentLandingPageForm();
+  initContentLandingPageEditForm();
 });
+
+
+// ---- Generic review: full edit page (gaps #3 full edit, #14 structured content) ----
+async function initGenericReviewEditForm() {
+  const form = document.getElementById("genericReviewEditForm");
+  if (!form) return;
+
+  const id = parseInt(form.dataset.id);
+  const alertEl = document.getElementById("genericReviewEditAlert");
+  const blockRowsContainer = document.getElementById("reviewBlockRows");
+  const blockTemplate = document.getElementById("reviewBlockRowTemplate");
+
+  function addBlockRow(block = { title: "", content: "" }) {
+    const clone = blockTemplate.content.cloneNode(true);
+    clone.querySelector(".block-title").value = block.title || "";
+    clone.querySelector(".block-content").value = block.content || "";
+    blockRowsContainer.appendChild(clone);
+  }
+  document.getElementById("addReviewBlockBtn").addEventListener("click", () => addBlockRow());
+  blockRowsContainer.addEventListener("click", (e) => {
+    if (e.target.classList.contains("remove-review-block")) e.target.closest(".review-block-row").remove();
+  });
+
+  function showAlert(kind, message) {
+    alertEl.className = `alert alert--${kind}`;
+    alertEl.textContent = message;
+    alertEl.style.display = "block";
+  }
+
+  let review;
+  try {
+    const res = await fetch(`/en/api/v1/generic-review/get?id=${id}`);
+    const data = await res.json();
+    if (!data.success) { showAlert("error", data.error || "Review not found"); form.style.display = "none"; return; }
+    review = data.review;
+    document.getElementById("genericReviewEditSubtitle").textContent = `Reviewing: ${review.reviewed_content_type} #${review.reviewed_content_id}`;
+    form.elements.title.value = review.title;
+    form.elements.slug.value = review.slug;
+    form.elements.content.value = review.content || "";
+    const fromJsonArray = (raw) => { try { return (JSON.parse(raw || "[]") || []).join("\n"); } catch { return raw || ""; } };
+    form.elements.pros.value = fromJsonArray(review.pros);
+    form.elements.cons.value = fromJsonArray(review.cons);
+    if (review.rating != null) form.elements.rating.value = review.rating;
+    form.elements.verdict.value = review.verdict || "";
+    form.elements.published.checked = !!review.published;
+    form.elements.seo_title.value = review.seo_title || "";
+    form.elements.seo_description.value = review.seo_description || "";
+    form.elements.seo_keywords.value = review.seo_keywords || "";
+  } catch {
+    showAlert("error", "Failed to load review.");
+    form.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch(`/en/api/v1/review-blocks/list?review_slug=${encodeURIComponent(review.slug)}`);
+    const data = await res.json();
+    (data.blocks || []).forEach((b) => addBlockRow(b));
+  } catch { /* structured blocks are optional; a load failure just leaves the section empty rather than blocking the edit form */ }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    alertEl.style.display = "none";
+    const formData = new FormData(form);
+    const toJsonArray = (text) => JSON.stringify((text || "").split("\n").map((s) => s.trim()).filter(Boolean));
+    const payload = {
+      id,
+      title: formData.get("title"), content: formData.get("content"),
+      pros: toJsonArray(formData.get("pros")), cons: toJsonArray(formData.get("cons")),
+      rating: formData.get("rating") || null, verdict: formData.get("verdict") || null,
+      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
+      published: formData.get("published") === "on",
+      seo_title: formData.get("seo_title") || null, seo_description: formData.get("seo_description") || null, seo_keywords: formData.get("seo_keywords") || null,
+    };
+    const blocks = Array.from(blockRowsContainer.querySelectorAll(".review-block-row")).map((row) => ({
+      title: row.querySelector(".block-title").value.trim(),
+      content: row.querySelector(".block-content").value.trim(),
+    })).filter((b) => b.title && b.content);
+
+    try {
+      const [updRes, blocksRes] = await Promise.all([
+        fetch("/en/api/v1/generic-review/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+        fetch("/en/api/v1/review-blocks/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ review_slug: review.slug, blocks }) }),
+      ]);
+      const updData = await updRes.json();
+      if (updData.success && blocksRes.ok) showAlert("success", "Saved.");
+      else showAlert("error", updData.error || "Failed to save");
+    } catch {
+      showAlert("error", "Network error. Try again.");
+    }
+  });
+
+  document.getElementById("deleteGenericReviewBtn").addEventListener("click", async () => {
+    if (!confirm("Delete this review? This cannot be undone.")) return;
+    try {
+      const res = await fetch("/en/api/v1/generic-review/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const data = await res.json();
+      if (data.success) window.location.href = "/en/dashboard/reviews/generic";
+      else alert(data.error || "Delete failed");
+    } catch { alert("Network error. Try again."); }
+  });
+}
+
+
+// ---- Content Landing Pages ("SEO landing pages for generic types") ----
+async function loadContentLandingPagesTable(contentType) {
+  const tbody = document.getElementById("landingPagesTableBody");
+  if (!tbody) return;
+  const typeFilter = document.getElementById("landingPageTypeFilter");
+  const type = contentType !== undefined ? contentType : (typeFilter ? typeFilter.value : "");
+  try {
+    const params = new URLSearchParams();
+    if (type) params.set("content_type", type);
+    const res = await fetch(`/en/api/v1/content-landing-pages/list?${params.toString()}`);
+    const data = await res.json();
+    const pages = data.pages || [];
+    if (pages.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="muted">No landing pages yet.</td></tr>'; return; }
+    tbody.innerHTML = pages.map((p) => `
+      <tr>
+        <td><strong>${escapeHtmlClient(p.title)}</strong></td>
+        <td>${escapeHtmlClient(p.slug)}</td>
+        <td>${escapeHtmlClient(p.content_type)}${p.custom_type_slug ? ` (${escapeHtmlClient(p.custom_type_slug)})` : ""}</td>
+        <td>${escapeHtmlClient(p.item_mode)}</td>
+        <td><span class="status-badge ${p.status === "published" ? "status-published" : "status-draft"}">${escapeHtmlClient(p.status)}</span></td>
+        <td class="table-actions">
+          ${p.status === "published" ? `<a href="/en/best/${encodeURIComponent(p.slug)}" class="btn btn--ghost btn--sm" target="_blank">View</a>` : ""}
+          <a href="/en/dashboard/content-landing-page/edit/${encodeURIComponent(p.slug)}" class="btn btn--ghost btn--sm">Edit</a>
+          <button class="btn btn--danger btn--sm" onclick="deleteContentLandingPage('${p.slug}')">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+function initContentLandingPagesTable() {
+  if (!document.getElementById("landingPagesTableBody")) return;
+  loadContentLandingPagesTable();
+  document.getElementById("landingPageTypeFilter")?.addEventListener("change", (e) => loadContentLandingPagesTable(e.target.value));
+}
+
+async function deleteContentLandingPage(slug) {
+  if (!confirm(`Delete landing page "${slug}"? This cannot be undone.`)) return;
+  try {
+    const res = await fetch("/en/api/v1/content-landing-page/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
+    const data = await res.json();
+    if (data.success) loadContentLandingPagesTable(); else alert(data.error || "Delete failed");
+  } catch { alert("Network error. Try again."); }
+}
+
+function initLandingPageModeToggle(contentTypeEl) {
+  const modeSelect = document.getElementById("landingPageItemMode");
+  const autoFields = document.getElementById("landingPageAutoFields");
+  const manualFields = document.getElementById("landingPageManualFields");
+  if (!modeSelect) return;
+  const update = () => {
+    autoFields.style.display = modeSelect.value === "auto" ? "" : "none";
+    manualFields.style.display = modeSelect.value === "auto" ? "none" : "";
+  };
+  modeSelect.addEventListener("change", update);
+  update();
+}
+
+function initContentLandingPageForm() {
+  const form = document.getElementById("landingPageForm");
+  if (!form) return;
+
+  const contentTypeSelect = document.getElementById("landingPageContentType");
+  const customTypeField = document.getElementById("landingPageCustomTypeField");
+  const customTypeSelect = document.getElementById("landingPageCustomTypeSelect");
+  initLandingPageModeToggle(contentTypeSelect);
+
+  async function updateCustomTypeVisibility() {
+    const isCustom = contentTypeSelect.value === "custom";
+    customTypeField.style.display = isCustom ? "" : "none";
+    if (isCustom && !customTypeSelect.dataset.loaded) {
+      customTypeSelect.dataset.loaded = "1";
+      try {
+        const res = await fetch("/en/api/v1/custom-types/list");
+        const data = await res.json();
+        customTypeSelect.innerHTML = (data.types || []).map((t) => `<option value="${t.slug}">${escapeHtmlClient(t.label)}</option>`).join("");
+      } catch { customTypeSelect.innerHTML = '<option value="">Failed to load</option>'; }
+    }
+  }
+  contentTypeSelect.addEventListener("change", updateCustomTypeVisibility);
+  updateCustomTypeVisibility();
+
+  const picker = initComparisonItemPicker({
+    contentTypeSelectEl: contentTypeSelect,
+    searchInputId: "itemSearchInput", resultsId: "itemSearchResults",
+    selectedRowsId: "selectedItemRows", rowTemplateId: "selectedItemRowTemplate",
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById("landingPageFormAlert");
+    alertEl.style.display = "none";
+    const formData = new FormData(form);
+    const payload = {
+      content_type: formData.get("content_type"),
+      custom_type_slug: formData.get("content_type") === "custom" ? (formData.get("custom_type_slug") || null) : null,
+      title: formData.get("title"), slug: formData.get("slug"), description: formData.get("description") || null,
+      item_mode: formData.get("item_mode"), auto_limit: parseInt(formData.get("auto_limit")) || 10,
+      status: formData.get("status") || "draft",
+      seo_title: formData.get("seo_title") || null, seo_description: formData.get("seo_description") || null, seo_keywords: formData.get("seo_keywords") || null,
+      item_ids: picker.getSelected().map((it) => it.itemId),
+    };
+    try {
+      const res = await fetch("/en/api/v1/content-landing-page/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) {
+        alertEl.className = "alert alert--success"; alertEl.textContent = "Landing page created!"; alertEl.style.display = "block";
+        setTimeout(() => { window.location.href = "/en/dashboard/content-landing-pages"; }, 1200);
+      } else {
+        alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed to create"; alertEl.style.display = "block";
+      }
+    } catch {
+      alertEl.className = "alert alert--error"; alertEl.textContent = "Network error. Try again."; alertEl.style.display = "block";
+    }
+  });
+}
+
+async function initContentLandingPageEditForm() {
+  const form = document.getElementById("landingPageEditForm");
+  if (!form) return;
+  const slug = form.dataset.slug;
+  const alertEl = document.getElementById("landingPageEditAlert");
+  function showAlert(kind, msg) { alertEl.className = `alert alert--${kind}`; alertEl.textContent = msg; alertEl.style.display = "block"; }
+
+  const contentTypeInput = document.getElementById("landingPageContentType");
+  initLandingPageModeToggle(contentTypeInput);
+
+  let page, itemIds;
+  try {
+    const res = await fetch(`/en/api/v1/content-landing-page/get?slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    if (!data.success) { showAlert("error", data.error || "Not found"); form.style.display = "none"; return; }
+    page = data.page; itemIds = data.item_ids || [];
+    contentTypeInput.value = page.content_type + (page.custom_type_slug ? ` (${page.custom_type_slug})` : "");
+    form.elements.title.value = page.title;
+    form.elements.description.value = page.description || "";
+    form.elements.item_mode.value = page.item_mode;
+    form.elements.auto_limit.value = page.auto_limit;
+    form.elements.status.value = page.status;
+    form.elements.seo_title.value = page.seo_title || "";
+    form.elements.seo_description.value = page.seo_description || "";
+    form.elements.seo_keywords.value = page.seo_keywords || "";
+    document.getElementById("landingPageItemMode").dispatchEvent(new Event("change"));
+  } catch {
+    showAlert("error", "Failed to load landing page.");
+    form.style.display = "none";
+    return;
+  }
+
+  const picker = initComparisonItemPicker({
+    contentTypeSelectEl: contentTypeInput,
+    searchInputId: "itemSearchInput", resultsId: "itemSearchResults",
+    selectedRowsId: "selectedItemRows", rowTemplateId: "selectedItemRowTemplate",
+  });
+  await Promise.all(itemIds.map(async (id) => {
+    try {
+      const r = await fetch(`/en/api/v1/content-item/search?content_type=${encodeURIComponent(page.content_type)}&id=${id}`);
+      const rd = await r.json();
+      picker.addPreset((rd.items || [])[0] || { id, content_type: page.content_type, name: `#${id}` });
+    } catch { picker.addPreset({ id, content_type: page.content_type, name: `#${id}` }); }
+  }));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    alertEl.style.display = "none";
+    const formData = new FormData(form);
+    const payload = {
+      slug,
+      title: formData.get("title"), description: formData.get("description") || null,
+      item_mode: formData.get("item_mode"), auto_limit: parseInt(formData.get("auto_limit")) || 10,
+      status: formData.get("status") || "draft",
+      seo_title: formData.get("seo_title") || null, seo_description: formData.get("seo_description") || null, seo_keywords: formData.get("seo_keywords") || null,
+      item_ids: picker.getSelected().map((it) => it.itemId),
+    };
+    try {
+      const res = await fetch("/en/api/v1/content-landing-page/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) showAlert("success", "Saved.");
+      else showAlert("error", data.error || "Failed to save");
+    } catch { showAlert("error", "Network error. Try again."); }
+  });
+
+  document.getElementById("deleteLandingPageBtn").addEventListener("click", async () => {
+    if (!confirm("Delete this landing page? This cannot be undone.")) return;
+    try {
+      const res = await fetch("/en/api/v1/content-landing-page/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
+      const data = await res.json();
+      if (data.success) window.location.href = "/en/dashboard/content-landing-pages";
+      else alert(data.error || "Delete failed");
+    } catch { alert("Network error. Try again."); }
+  });
+}
+
+
+// ---- Shared: admin list pagination (audit #15) ----
+// Renders Prev/Next + "showing X-Y of N" into a container, and calls
+// onPageChange(newPage) when clicked. A list whose API call omitted
+// page/per_page (no `total` in the response) renders nothing here --
+// pagination is opt-in per list via PAGE_STATE below, existing callers
+// of these loaders with no page argument are unaffected.
+function renderPagerControls(containerId, page, perPage, total, onPageChange) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (total == null) { el.innerHTML = ""; return; }
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const from = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const to = Math.min(total, page * perPage);
+  el.innerHTML = `
+    <button type="button" class="btn btn--ghost btn--sm" id="${containerId}PrevBtn" ${page <= 1 ? "disabled" : ""}>&laquo; Prev</button>
+    <span class="muted">Showing ${from}-${to} of ${total}</span>
+    <button type="button" class="btn btn--ghost btn--sm" id="${containerId}NextBtn" ${page >= totalPages ? "disabled" : ""}>Next &raquo;</button>
+  `;
+  document.getElementById(`${containerId}PrevBtn`)?.addEventListener("click", () => page > 1 && onPageChange(page - 1));
+  document.getElementById(`${containerId}NextBtn`)?.addEventListener("click", () => page < totalPages && onPageChange(page + 1));
+}
+
+const PAGE_STATE = { contentItems: 1, customTypes: 1, comparisons: 1, genericReviews: 1 };
+const PER_PAGE = 25;
 
 // ---- Stats ----
 async function loadStats() {
@@ -298,12 +626,13 @@ async function loadContentItemsTable(contentType) {
   const search = searchInput ? searchInput.value.trim() : "";
 
   try {
-    const params = new URLSearchParams({ content_type: type });
+    const params = new URLSearchParams({ content_type: type, page: String(PAGE_STATE.contentItems), per_page: String(PER_PAGE) });
     if (status) params.set("status", status);
     if (search) params.set("search", search);
     const res = await fetch(`/en/api/v1/content-items/list?${params.toString()}`);
     const data = await res.json();
     const items = data.items || [];
+    renderPagerControls("contentItemsPager", PAGE_STATE.contentItems, PER_PAGE, data.total, (p) => { PAGE_STATE.contentItems = p; loadContentItemsTable(type); });
 
     if (items.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="muted">No items yet for this type.</td></tr>';
@@ -353,9 +682,11 @@ function escapeHtmlClient(value) {
 
 document.addEventListener("change", (e) => {
   if (e.target && (e.target.id === "contentItemTypeFilter" || e.target.id === "contentItemStatusFilter")) {
+    PAGE_STATE.contentItems = 1;
     loadContentItemsTable(document.getElementById("contentItemTypeFilter")?.value);
   }
   if (e.target && e.target.id === "comparisonTypeFilter") {
+    PAGE_STATE.comparisons = 1;
     loadComparisonsTable(e.target.value);
   }
 });
@@ -364,7 +695,7 @@ let contentItemSearchDebounce;
 document.addEventListener("input", (e) => {
   if (e.target && e.target.id === "contentItemSearchInput") {
     clearTimeout(contentItemSearchDebounce);
-    contentItemSearchDebounce = setTimeout(() => loadContentItemsTable(), 300);
+    contentItemSearchDebounce = setTimeout(() => { PAGE_STATE.contentItems = 1; loadContentItemsTable(); }, 300);
   }
 });
 
@@ -499,6 +830,9 @@ async function initContentItemForm() {
       cashout: formData.get("cashout") === "on",
       mobile_app: formData.get("mobile_app") === "on",
       linked_affiliate_partner_id: formData.get("linked_affiliate_partner_id") || null,
+      tracking_url: formData.get("tracking_url") || null,
+      logo_media_id: formData.get("logo_media_id") || null,
+      featured_image_media_id: formData.get("featured_image_media_id") || null,
       featured: formData.get("featured") === "on" ? 1 : 0,
       sort_order: parseInt(formData.get("sort_order")) || 0,
       status: formData.get("status") || "draft",
@@ -659,6 +993,37 @@ function readGeoRules() {
   })).filter((r) => r.country_code);
 }
 
+
+// ---- Shared: logo/hero media picker for content-item forms (gap #5/#6) ----
+// Same MediaPicker.openImagePicker() API news/admin.js already uses.
+function openContentItemMediaPicker(which) {
+  if (!window.MediaPicker || typeof window.MediaPicker.openImagePicker !== "function") {
+    alert("Media Library is not available. Make sure media-picker.js is loaded.");
+    return;
+  }
+  window.MediaPicker.openImagePicker(function (media) {
+    if (!media || !media.id) return;
+    setContentItemMedia(which, media.id, media.url || media.thumbnail_url || "");
+  }, "content-items");
+}
+
+function setContentItemMedia(which, id, url) {
+  const idInput = document.getElementById(which === "logo" ? "logoMediaId" : "heroMediaId");
+  const img = document.getElementById(which === "logo" ? "logoImg" : "heroImg");
+  const preview = document.getElementById(which === "logo" ? "logoPreview" : "heroPreview");
+  const selectBtn = document.getElementById(which === "logo" ? "selectLogo" : "selectHero");
+  const clearBtn = document.getElementById(which === "logo" ? "clearLogo" : "clearHero");
+  if (idInput) idInput.value = id ? String(id) : "";
+  if (img) img.src = url || "";
+  if (preview) preview.style.display = url ? "block" : "none";
+  if (selectBtn) selectBtn.style.display = url ? "none" : "";
+  if (clearBtn) clearBtn.style.display = url ? "" : "none";
+}
+
+function clearContentItemMedia(which) {
+  setContentItemMedia(which, "", "");
+}
+
 function readCheckedIds(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return [];
@@ -671,9 +1036,10 @@ async function loadCustomTypesTable() {
   if (!tbody) return;
 
   try {
-    const res = await fetch("/en/api/v1/custom-types/list");
+    const res = await fetch(`/en/api/v1/custom-types/list?page=${PAGE_STATE.customTypes}&per_page=${PER_PAGE}`);
     const data = await res.json();
     const types = data.types || [];
+    renderPagerControls("customTypesPager", PAGE_STATE.customTypes, PER_PAGE, data.total, (p) => { PAGE_STATE.customTypes = p; loadCustomTypesTable(); });
 
     if (types.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="muted">No custom types yet.</td></tr>';
@@ -776,9 +1142,10 @@ async function loadComparisonsTable(contentType) {
   const type = contentType || (typeFilter ? typeFilter.value : "casino");
 
   try {
-    const res = await fetch(`/en/api/v1/comparisons/list?content_type=${encodeURIComponent(type)}`);
+    const res = await fetch(`/en/api/v1/comparisons/list?content_type=${encodeURIComponent(type)}&page=${PAGE_STATE.comparisons}&per_page=${PER_PAGE}`);
     const data = await res.json();
     const comparisons = data.comparisons || [];
+    renderPagerControls("comparisonsPager", PAGE_STATE.comparisons, PER_PAGE, data.total, (p) => { PAGE_STATE.comparisons = p; loadComparisonsTable(type); });
 
     if (comparisons.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No comparisons yet for this type.</td></tr>';
@@ -901,6 +1268,57 @@ function initComparisonItemPicker({ contentTypeSelectEl, searchInputId, resultsI
   };
 }
 
+
+// ---- Shared: single-select searchable Editorial Pick (gap #8) ----
+// Same /content-item/search backend the multi-select item picker uses,
+// but keeps only one selection instead of accumulating a list.
+function initEditorialPickPicker(preset = null) {
+  const typeSelect = document.getElementById("editorialPickContentType");
+  const idInput = document.getElementById("editorialPickItemId");
+  const searchInput = document.getElementById("editorialPickSearchInput");
+  const resultsEl = document.getElementById("editorialPickSearchResults");
+  const selectedEl = document.getElementById("editorialPickSelected");
+  if (!typeSelect || !idInput || !searchInput || !resultsEl || !selectedEl) return;
+
+  function showSelected(item) {
+    idInput.value = item ? item.id : "";
+    selectedEl.textContent = item ? `Selected: ${item.name} (${item.content_type})` : "No item selected.";
+  }
+
+  let debounce;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(debounce);
+    const q = searchInput.value.trim();
+    debounce = setTimeout(async () => {
+      const contentType = typeSelect.value;
+      if (!contentType) { resultsEl.innerHTML = ""; return; }
+      try {
+        const res = await fetch(`/en/api/v1/content-item/search?content_type=${encodeURIComponent(contentType)}&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const items = data.items || [];
+        resultsEl.innerHTML = items.length
+          ? items.map((it, idx) => `<button type="button" class="btn btn--ghost btn--sm editorial-pick-result" data-idx="${idx}" style="margin:2px">${escapeHtmlClient(it.name)}</button>`).join("")
+          : '<span class="muted">No matches.</span>';
+        resultsEl.dataset.itemsJson = JSON.stringify(items);
+      } catch {
+        resultsEl.innerHTML = '<span class="muted">Search failed.</span>';
+      }
+    }, 250);
+  });
+
+  resultsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".editorial-pick-result");
+    if (!btn) return;
+    const items = JSON.parse(resultsEl.dataset.itemsJson || "[]");
+    const item = items[parseInt(btn.dataset.idx)];
+    if (item) { showSelected(item); resultsEl.innerHTML = ""; searchInput.value = ""; }
+  });
+
+  typeSelect.addEventListener("change", () => { resultsEl.innerHTML = ""; searchInput.value = ""; showSelected(null); });
+
+  if (preset && preset.id) showSelected(preset);
+}
+
 function initCriterionRowEditor(criterionRowsContainer, addBtn, template) {
   addBtn.addEventListener("click", () => {
     criterionRowsContainer.appendChild(template.content.cloneNode(true));
@@ -931,6 +1349,7 @@ function initComparisonForm() {
   const criterionRowsContainer = document.getElementById("criterionRows");
   const criterionTemplate = document.getElementById("criterionRowTemplate");
   initCriterionRowEditor(criterionRowsContainer, document.getElementById("addCriterionRowBtn"), criterionTemplate);
+  initEditorialPickPicker();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1009,8 +1428,10 @@ async function initContentItemEditForm() {
     const data = await res.json();
     if (!data.success) throw new Error(data.error || "Failed to load");
     const item = data.item;
+    setContentItemMedia("logo", item.logo_media_id, item.logo);
+    setContentItemMedia("hero", item.featured_image_media_id, item.hero_image);
     for (const [key, val] of Object.entries({
-      name: item.name, title: item.title, description: item.description, website: item.website,
+      name: item.name, title: item.title, description: item.description, website: item.website, tracking_url: item.tracking_url,
       rating: item.rating, license: item.license, license_country: item.license_country,
       linked_affiliate_partner_id: item.linked_affiliate_partner_id, sort_order: item.sort_order,
       status: item.status, seo_title: item.seo_title, seo_description: item.seo_description, seo_keywords: item.seo_keywords,
@@ -1062,6 +1483,9 @@ async function initContentItemEditForm() {
       live_betting: formData.get("live_betting") === "on", pre_match: formData.get("pre_match") === "on",
       cashout: formData.get("cashout") === "on", mobile_app: formData.get("mobile_app") === "on",
       linked_affiliate_partner_id: formData.get("linked_affiliate_partner_id") || null,
+      tracking_url: formData.get("tracking_url") || null,
+      logo_media_id: formData.get("logo_media_id") || null,
+      featured_image_media_id: formData.get("featured_image_media_id") || null,
       featured: formData.get("featured") === "on", sort_order: formData.get("sort_order"),
       status: formData.get("status"), published: formData.get("published") === "on",
       seo_title: formData.get("seo_title") || null, seo_description: formData.get("seo_description") || null, seo_keywords: formData.get("seo_keywords") || null,
@@ -1229,10 +1653,18 @@ async function initComparisonEditForm() {
     form.elements.status.value = c.status;
     form.elements.seo_title.value = c.seo_title || "";
     form.elements.seo_description.value = c.seo_description || "";
+    let editorialPreset = null;
     if (c.editorial_selection_item_type) {
       form.elements.editorial_selection_item_type.value = c.editorial_selection_item_type;
-      form.elements.editorial_selection_item_id.value = c.editorial_selection_item_id;
+      try {
+        const r = await fetch(`/en/api/v1/content-item/search?content_type=${encodeURIComponent(c.editorial_selection_item_type)}&id=${c.editorial_selection_item_id}`);
+        const rd = await r.json();
+        editorialPreset = (rd.items || [])[0] || { id: c.editorial_selection_item_id, content_type: c.editorial_selection_item_type, name: `#${c.editorial_selection_item_id}` };
+      } catch {
+        editorialPreset = { id: c.editorial_selection_item_id, content_type: c.editorial_selection_item_type, name: `#${c.editorial_selection_item_id}` };
+      }
     }
+    initEditorialPickPicker(editorialPreset);
     // comparison_items only stores (item_content_type, item_id), no
     // name -- resolve each already-selected item's label via the exact
     // -id lookup on content-item/search so the picker can show
@@ -1346,9 +1778,10 @@ async function loadGenericReviewsTable(reviewedContentType) {
   const type = reviewedContentType || (typeFilter ? typeFilter.value : "sportsbook");
 
   try {
-    const res = await fetch(`/en/api/v1/generic-reviews/list?reviewed_content_type=${encodeURIComponent(type)}`);
+    const res = await fetch(`/en/api/v1/generic-reviews/list?reviewed_content_type=${encodeURIComponent(type)}&page=${PAGE_STATE.genericReviews}&per_page=${PER_PAGE}`);
     const data = await res.json();
     const reviews = data.reviews || [];
+    renderPagerControls("genericReviewsPager", PAGE_STATE.genericReviews, PER_PAGE, data.total, (p) => { PAGE_STATE.genericReviews = p; loadGenericReviewsTable(type); });
     if (reviews.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No reviews yet for this type.</td></tr>';
       return;
@@ -1394,7 +1827,7 @@ async function toggleGenericReviewPublished(id, currentlyPublished, type) {
 }
 
 document.addEventListener("change", (e) => {
-  if (e.target && e.target.id === "genericReviewTypeFilter") loadGenericReviewsTable(e.target.value);
+  if (e.target && e.target.id === "genericReviewTypeFilter") { PAGE_STATE.genericReviews = 1; loadGenericReviewsTable(e.target.value); }
 });
 
 async function initGenericReviewForm() {

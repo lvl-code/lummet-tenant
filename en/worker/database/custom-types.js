@@ -8,9 +8,14 @@ export async function getCustomContentType(db, typeSlug) {
   return db.prepare(`SELECT * FROM custom_content_types WHERE slug = ? LIMIT 1`).bind(typeSlug).first();
 }
 
-export async function getAllCustomContentTypes(db) {
-  const result = await db.prepare(`SELECT * FROM custom_content_types ORDER BY label ASC`).all();
-  return result.results || [];
+export async function getAllCustomContentTypes(db, { limit = null, offset = 0 } = {}) {
+  if (limit == null) {
+    const result = await db.prepare(`SELECT * FROM custom_content_types ORDER BY label ASC`).all();
+    return result.results || []; // existing callers (dropdowns etc.) unaffected
+  }
+  const result = await db.prepare(`SELECT * FROM custom_content_types ORDER BY label ASC LIMIT ? OFFSET ?`).bind(limit, offset).all();
+  const total = (await db.prepare(`SELECT COUNT(*) n FROM custom_content_types`).first()).n;
+  return { items: result.results || [], total };
 }
 
 export async function getCustomFieldDefinitions(db, typeSlug) {

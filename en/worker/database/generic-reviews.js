@@ -55,7 +55,18 @@ export async function getGenericReview(db, id) {
 }
 
 export async function deleteGenericReview(db, id) {
-  return db.prepare(`DELETE FROM reviews WHERE id = ? AND ${GENERIC_ONLY}`).bind(id).run();
+  // analytics_events.review_id -> reviews(id) has no ON DELETE action;
+  // detach logged events first (same batch) so the delete cannot fail
+  // with a foreign key constraint error. Only generic reviews qualify.
+  const review = await getGenericReview(db, id);
+  if (!review) {
+    return { success: true, meta: { changes: 0 } };
+  }
+
+  return db.batch([
+    db.prepare(`UPDATE analytics_events SET review_id = NULL WHERE review_id = ?`).bind(review.id),
+    db.prepare(`DELETE FROM reviews WHERE id = ? AND ${GENERIC_ONLY}`).bind(review.id),
+  ]);
 }
 
 export async function updateGenericReview(db, id, fields) {

@@ -143,14 +143,37 @@ export async function updateCasino(db, oldSlug, casino) {
     .run();
 }
 
+export async function getCasinoTermDependents(db, casinoId) {
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS terms FROM affiliate_commercial_terms WHERE casino_id = ?`)
+    .bind(casinoId)
+    .first();
+  return row && row.terms > 0 ? { terms: row.terms } : null;
+}
+
 export async function deleteCasino(db, slug) {
-  return await db
-    .prepare(`
-      DELETE FROM casinos
-      WHERE slug = ?
-    `)
+  // These tables reference casinos(id) with no ON DELETE action, so a
+  // casino with logged history failed the delete with a foreign key
+  // constraint error (a network error in the admin UI). The references
+  // below are nullable, so detach them in the same batch rather than
+  // cascading history away. Offers (NOT NULL), tracking links and
+  // commercial terms (NULL would mean "all casinos") are guarded
+  // separately by the caller with a clear 409 message.
+  const casino = await db
+    .prepare(`SELECT id FROM casinos WHERE slug = ? LIMIT 1`)
     .bind(slug)
-    .run();
+    .first();
+
+  if (!casino) {
+    return { success: true, meta: { changes: 0 } };
+  }
+
+  return db.batch([
+    db.prepare(`UPDATE analytics_events SET casino_id = NULL WHERE casino_id = ?`).bind(casino.id),
+    db.prepare(`UPDATE analytics_conversions SET casino_id = NULL WHERE casino_id = ?`).bind(casino.id),
+    db.prepare(`UPDATE news_entities SET casino_id = NULL WHERE casino_id = ?`).bind(casino.id),
+    db.prepare(`DELETE FROM casinos WHERE id = ?`).bind(casino.id),
+  ]);
 }
 
 export async function setCasinoCategories(db, casino_id, category_ids) {

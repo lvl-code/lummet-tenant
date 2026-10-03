@@ -314,7 +314,11 @@ export async function handleAiCommand(request, env) {
         const yearMatch = cmd.match(/older than (\d{4})/);
         if (yearMatch) {
           const year = parseInt(yearMatch[1]);
-          const r = await env.DB.prepare(`DELETE FROM news WHERE created_at < datetime(?)`).bind(`${year}-01-01`).run();
+          const cutoff = `${year}-01-01`;
+          const [, r] = await env.DB.batch([
+            env.DB.prepare(`UPDATE analytics_events SET news_id = NULL WHERE news_id IN (SELECT id FROM news WHERE created_at < datetime(?))`).bind(cutoff),
+            env.DB.prepare(`DELETE FROM news WHERE created_at < datetime(?)`).bind(cutoff),
+          ]);
           return Response.json({ result: `Deleted news older than ${year}. Rows affected: ${r.meta?.changes || 0}` });
         }
       }

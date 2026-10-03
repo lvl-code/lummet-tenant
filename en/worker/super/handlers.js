@@ -240,8 +240,15 @@ export async function handleUpdateCasino(request, env, slug, bodyText) {
 }
 
 export async function handleDeleteCasino(request, env, slug) {
-  await casinosDB.deleteCasino(env.DB, slug);
-  return ok();
+  try {
+    await casinosDB.deleteCasino(env.DB, slug);
+    return ok();
+  } catch (error) {
+    if (/FOREIGN KEY/i.test(String(error && error.message))) {
+      return fail("Cannot delete: this casino still has offers, tracking links or commercial terms attached. Unpublish it instead, or remove those first.", 409);
+    }
+    throw error;
+  }
 }
 
 // =====================================================

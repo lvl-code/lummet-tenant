@@ -82,6 +82,22 @@ export function createTestDb() {
     prepare(sql) {
       return wrapStatement(sqliteDb, sql);
     },
+    // D1's db.batch([...bound statements]): runs them in order inside one
+    // transaction (all-or-nothing) and returns one result per statement.
+    async batch(statements) {
+      sqliteDb.exec('BEGIN');
+      try {
+        const out = [];
+        for (const st of statements) {
+          out.push(await st.run());
+        }
+        sqliteDb.exec('COMMIT');
+        return out;
+      } catch (err) {
+        sqliteDb.exec('ROLLBACK');
+        throw err;
+      }
+    },
     // exposed for fixture setup that wants raw exec (multi-statement
     // migration files) rather than the single-statement .prepare() path
     _exec(sql) {

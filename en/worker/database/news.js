@@ -399,9 +399,26 @@ export async function updateNewsbackup(db, oldSlug, data) {
 }
 
 export async function deleteNews(db, slug) {
-  return await db.prepare(`DELETE FROM news WHERE slug = ?`)
+  // analytics_events.news_id -> news(id) has no ON DELETE action, so an
+  // article with logged events fails the delete with a foreign key
+  // constraint error (surfacing as a network error in the admin UI).
+  // Detach those rows in the same batch instead of cascading them away,
+  // since analytics history is worth keeping. Every other table that
+  // references news cascades; news_revisions / news_corrections carry no
+  // FK on purpose (audit trail).
+  const article = await db
+    .prepare(`SELECT id FROM news WHERE slug = ? LIMIT 1`)
     .bind(slug)
-    .run();
+    .first();
+
+  if (!article) {
+    return { success: true, meta: { changes: 0 } };
+  }
+
+  return db.batch([
+    db.prepare(`UPDATE analytics_events SET news_id = NULL WHERE news_id = ?`).bind(article.id),
+    db.prepare(`DELETE FROM news WHERE id = ?`).bind(article.id),
+  ]);
 }
 
 // ── Helpers ──────────────────────────────────────────────

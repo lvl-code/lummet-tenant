@@ -5286,6 +5286,15 @@ async function deleteCasino(request, env, user) {
     );
   }
 
+  const termDependents = await casinos.getCasinoTermDependents(env.DB, existing.id);
+  if (termDependents) {
+    return failure(
+      `Cannot delete: this casino has ${termDependents.terms} commercial term(s) attached. ` +
+      `Unpublish the casino instead, or remove its commercial terms first.`,
+      409
+    );
+  }
+
   await casinos.deleteCasino(
     env.DB,
     body.slug

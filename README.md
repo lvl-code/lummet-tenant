@@ -10,6 +10,10 @@ Application code lives under `en/`.
 
 Deployment is handled through GitHub Actions and Cloudflare Wrangler.
 
+## Dashboard navigation
+
+Admin and user dashboards use a grouped menu with a menu toggle and an off-canvas drawer on phones. See `docs/DASHBOARD_UI.md`.
+
 ## Structure
 
 - `en/worker/` — Worker application

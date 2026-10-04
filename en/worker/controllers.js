@@ -2564,11 +2564,14 @@ export async function renderDashboardPage(request, env) {
     const site = await getSiteContext(request, env);
         // Add CSRF token for admin pages — used by rich-editor.js and media-library.js
 
+    const userNav = await renderer.loadTemplate("layout/user-nav.html");
+
     const html = await renderer.render("users/dashboard.html", {
         seo_title: "Dashboard",
         seo_description: `${site.siteName} Dashboard`,
         email: user.email,
-        role: user.role
+        role: user.role,
+        user_nav: userNav
     });
 
     return new Response(html, {
@@ -6281,12 +6284,14 @@ async function renderUserPage(request, env, template) {
 
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
+  const userNav = await renderer.loadTemplate("layout/user-nav.html");
 
   const html = await renderer.render(template, {
     seo_title: `${site.siteName} — Dashboard`,
     seo_description: `Manage your ${site.siteName} account`,
     email: user.email,
-    role: user.role
+    role: user.role,
+    user_nav: userNav
   });
 
   return new Response(html, {

@@ -61,7 +61,17 @@
 
   // ------------------------------------------------------------ validation (the server checks again)
   var LINK_FIELDS = ["site_announce_url", "site_header_cta_url", "site_hero_button_url", "site_hero_button2_url", "site_hero_image"];
-  var COLOR_FIELDS = ["theme_header_background", "site_hero_bg_color"];
+  var COLOR_FIELDS = ["theme_header_background", "site_header_text_color", "site_hero_bg_color", "site_hero_text_color", "site_hero_title_color"];
+  var FONTS = {
+    "default": "",
+    system: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    modern: "'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif",
+    rounded: "ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Quicksand, 'Trebuchet MS', sans-serif",
+    serif: "Georgia, 'Times New Roman', Times, serif",
+    elegant: "'Palatino Linotype', Palatino, 'Book Antiqua', 'URW Palladio L', Georgia, serif",
+    display: "Impact, 'Arial Narrow Bold', 'Haettenschweiler', 'Franklin Gothic Medium', sans-serif",
+    mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace"
+  };
 
   function validLink(v) {
     if (!v) return true;
@@ -78,7 +88,33 @@
     el.textContent = message || "";
     el.hidden = !message;
   }
+  function hexToRgb(v) {
+    v = String(v || "").trim();
+    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+    if (!m) return null;
+    var h = m[1].length === 3 ? m[1].replace(/./g, "$&$&") : m[1];
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function luminance(rgb) {
+    var c = rgb.map(function (x) { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function contrast(a, b) {
+    var la = luminance(a), lb = luminance(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+  // Advice only, never blocks saving: text that is hard to read on the header colour.
+  function checkContrast() {
+    var el = form.querySelector('[data-warn-for="site_header_text_color"]');
+    if (!el) return;
+    var fg = hexToRgb(String(getValue("site_header_text_color")).trim());
+    var bg = hexToRgb(String(getValue("theme_header_background")).trim() || "#000000");
+    var low = fg && bg && contrast(fg, bg) < 3;
+    el.textContent = low ? "Low contrast with the header colour: the text may be hard to read." : "";
+    el.hidden = !low;
+  }
   function validate() {
+    checkContrast();
     var ok = true;
     LINK_FIELDS.forEach(function (k) {
       var bad = !validLink(String(getValue(k)).trim());
@@ -167,6 +203,11 @@
     stage.style.height = Math.ceil(contentHeight * scale) + 28 + "px";
   }
 
+  function setOptionalVar(node, name, value) {
+    if (value) node.style.setProperty(name, value);
+    else node.style.removeProperty(name);
+  }
+
   function renderPreview() {
     if (!previewEl || !loaded || !frameReady) return;
     var doc = frameDoc();
@@ -182,7 +223,15 @@
     var navAlign = pick(v.site_header_nav_align, ["left", "center", "right"], "left");
 
     body.className = "hh-preview-body hh-static hh-height-" + heightKey + " hh-style-" + headerStyle + " hh-logo-" + logoMode +
-      " hh-logo-size-" + logoKey + " hh-nav-" + navAlign;
+      " hh-logo-size-" + logoKey + " hh-nav-" + navAlign +
+      (validColor(v.site_header_text_color) && v.site_header_text_color ? " hh-hfg" : "") +
+      (FONTS[v.site_header_font] ? " hh-hfont" : "");
+    setOptionalVar(body, "--hh-header-fg", validColor(v.site_header_text_color) ? v.site_header_text_color : "");
+    setOptionalVar(body, "--hh-hero-fg", validColor(v.site_hero_text_color) ? v.site_hero_text_color : "");
+    setOptionalVar(body, "--hh-hero-title", validColor(v.site_hero_title_color) ? v.site_hero_title_color : "");
+    setOptionalVar(body, "--hh-header-font", FONTS[v.site_header_font] || "");
+    setOptionalVar(body, "--hh-hero-heading-font", FONTS[v.site_hero_heading_font] || "");
+    setOptionalVar(body, "--hh-hero-body-font", FONTS[v.site_hero_body_font] || "");
     body.style.setProperty("--hh-header-h", heights[heightKey] + "px");
     body.style.setProperty("--hh-logo", logos[logoKey] + "px");
     body.style.setProperty("--hh-hero-overlay", String(Math.min(85, Math.max(0, Number(v.site_hero_overlay_opacity) || 0)) / 100));
@@ -255,7 +304,11 @@
       var heroClass = "hero hero--h-" + pick(v.site_hero_height, ["compact", "standard", "tall", "screen"], "standard") +
         " hero--text-" + pick(v.site_hero_text_theme, ["light", "dark"], "light") +
         " hero--focus-" + pick(v.site_hero_image_focus, ["center", "top", "bottom"], "center") +
-        (hasImage ? " hero--image" : " hero--bg-" + pick(v.site_hero_bg_mode, ["default", "brand", "solid"], "default"));
+        (hasImage ? " hero--image" : " hero--bg-" + pick(v.site_hero_bg_mode, ["default", "brand", "solid"], "default")) +
+        (validColor(v.site_hero_text_color) && v.site_hero_text_color ? " hero--custom-fg" : "") +
+        (validColor(v.site_hero_title_color) && v.site_hero_title_color ? " hero--custom-title" : "") +
+        (FONTS[v.site_hero_heading_font] ? " hero--font-heading" : "") +
+        (FONTS[v.site_hero_body_font] ? " hero--font-body" : "");
       var hero = el("section", heroClass);
       if (hasImage && /^(https?:\/\/|\/(?!\/))/i.test(v.site_hero_image.trim())) {
         hero.style.backgroundImage = 'url("' + encodeURI(v.site_hero_image.trim()).replace(/"/g, "%22") + '")';

@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import {
   FIELDS, HEADER_HERO_KEYS, parseHeaderHero, defaultHeaderHero, sanitizeHeaderHeroInput,
-  headerHeroTemplateVars, headerHeroDefaultsForAdmin, jsonForScript, cleanLink, cleanColor
+  headerHeroTemplateVars, headerHeroDefaultsForAdmin, jsonForScript, cleanLink, cleanColor, FONT_STACKS, FONT_KEYS, headerClasses, heroClasses
 } from '../worker/header-hero.js';
 import { getSiteSettings } from '../worker/site-settings.js';
 import { Renderer } from '../worker/render.js';
@@ -330,7 +330,9 @@ describe('admin page', () => {
 
   test('radio/select values offered are all allowed by the model', () => {
     for (const field of FIELDS.filter((f) => f.type === 'enum')) {
-      const offered = [...page.matchAll(new RegExp(`name="${field.key}" value="([^"]+)"`, 'g'))].map((m) => m[1]);
+      const radios = [...page.matchAll(new RegExp(`name="${field.key}" value="([^"]+)"`, 'g'))].map((m) => m[1]);
+      const select = page.match(new RegExp(`<select id="f_${field.key}" name="${field.key}">(.*?)</select>`));
+      const offered = select ? [...select[1].matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]) : radios;
       assert.deepEqual(offered.sort(), [...field.values].sort(), field.key);
     }
   });
@@ -381,5 +383,78 @@ describe('navigation', () => {
     const nav = read('templates/layout/admin-nav.html');
     const hrefs = [...nav.matchAll(/<a\s+href="([^"]+)"/g)].map((m) => m[1]);
     assert.equal(hrefs.filter((h) => h === '/en/dashboard/header-hero').length, 1);
+  });
+});
+
+describe('custom colours and fonts', () => {
+  test('defaults add nothing: no colour or font variables, no extra classes', () => {
+    const hh = defaultHeaderHero();
+    const v = headerHeroTemplateVars(hh);
+    assert.doesNotMatch(v.hh_css, /--hh-header-fg|--hh-hero-fg|--hh-hero-title|-font:/);
+    assert.doesNotMatch(v.hh_body_class, /hh-hfg|hh-hfont/);
+    assert.doesNotMatch(v.hh_hero_html, /hero--custom|hero--font/);
+  });
+
+  test('saved colours and fonts reach the variables and the classes', () => {
+    const hh = parseHeaderHero({
+      site_header_text_color: '#ffd166', site_header_font: 'serif',
+      site_hero_text_color: 'rgb(255, 255, 255)', site_hero_title_color: '#ee9f28',
+      site_hero_heading_font: 'display', site_hero_body_font: 'rounded'
+    });
+    const v = headerHeroTemplateVars(hh);
+    assert.match(v.hh_css, /--hh-header-fg:#ffd166/);
+    assert.match(v.hh_css, /--hh-hero-title:#ee9f28/);
+    assert.match(v.hh_css, /--hh-header-font:Georgia/);
+    assert.match(v.hh_css, /--hh-hero-heading-font:Impact/);
+    assert.match(v.hh_css, /--hh-hero-body-font:ui-rounded/);
+    assert.match(v.hh_body_class, /\bhh-hfg\b/);
+    assert.match(v.hh_body_class, /\bhh-hfont\b/);
+    assert.match(v.hh_hero_html, /hero--custom-fg/);
+    assert.match(v.hh_hero_html, /hero--custom-title/);
+    assert.match(v.hh_hero_html, /hero--font-heading/);
+    assert.match(v.hh_hero_html, /hero--font-body/);
+  });
+
+  test('colours and fonts that are not on the allow-list are dropped', () => {
+    const hh = parseHeaderHero({
+      site_header_text_color: 'red;}</style><script>x</script>', site_hero_text_color: 'url(javascript:1)',
+      site_hero_title_color: '#12', site_header_font: 'Arial; background:url(x)', site_hero_heading_font: 'comic', site_hero_body_font: '</style>'
+    });
+    assert.equal(hh.headerTextColor, '');
+    assert.equal(hh.heroTextColor, '');
+    assert.equal(hh.heroTitleColor, '');
+    assert.equal(hh.headerFont, 'default');
+    assert.equal(hh.heroHeadingFont, 'default');
+    assert.equal(hh.heroBodyFont, 'default');
+    const css = headerHeroTemplateVars(hh).hh_css;
+    assert.doesNotMatch(css, /script|<\/style>(?!$)/i);
+  });
+
+  test('the save path cleans them too', () => {
+    const clean = sanitizeHeaderHeroInput({ site_header_text_color: '#FFF', site_header_font: 'mono', site_hero_title_color: 'javascript:alert(1)', site_hero_body_font: 'nope' });
+    assert.equal(clean.site_header_text_color, '#FFF');
+    assert.equal(clean.site_header_font, 'mono');
+    assert.equal(clean.site_hero_title_color, '');
+    assert.equal(clean.site_hero_body_font, 'default');
+  });
+
+  test('every font stack is a fixed string free of characters that could end a style block', () => {
+    assert.deepEqual(FONT_KEYS[0], 'default');
+    for (const [key, stack] of Object.entries(FONT_STACKS)) {
+      assert.doesNotMatch(stack, /[<>{};"\\]/, key);
+    }
+  });
+
+  test('the admin script offers exactly the same stacks as the server', () => {
+    const js = read('static/js/header-hero-admin.js');
+    for (const [key, stack] of Object.entries(FONT_STACKS)) {
+      if (!stack) continue;
+      assert.ok(js.includes(stack), `admin script is missing the ${key} stack`);
+    }
+    const page = read('templates/pages/admin/header-hero.html');
+    for (const key of FONT_KEYS) assert.match(page, new RegExp(`<option value="${key}">`), key);
+    for (const name of ['site_header_text_color', 'site_header_font', 'site_hero_text_color', 'site_hero_title_color', 'site_hero_heading_font', 'site_hero_body_font']) {
+      assert.match(page, new RegExp(`name="${name}"`), name);
+    }
   });
 });

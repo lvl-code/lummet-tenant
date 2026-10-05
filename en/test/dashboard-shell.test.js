@@ -28,6 +28,8 @@ const PREVIOUS_ADMIN_HREFS = [
   '/en/dashboard/reports', '/en/dashboard/settings', '/en/dashboard/ai', '/en/user/notifications',
   '/en/api/v1/auth/logout'
 ];
+// Pages added to the menu after the redesign (each addition is deliberate and listed here).
+const ADDED_ADMIN_HREFS = ['/en/dashboard/header-hero'];
 const USER_HREFS = [
   '/en/user/dashboard', '/en/user/bookmarks', '/en/user/submit-casino', '/en/user/inquiries',
   '/en/user/profile', '/en/user/notifications', '/en/api/v1/auth/logout'
@@ -36,10 +38,10 @@ const USER_HREFS = [
 describe('admin navigation', () => {
   const nav = read('templates/layout/admin-nav.html');
 
-  test('offers exactly the same links as before, each once', () => {
+  test('offers every link it offered before plus the deliberate additions, each once', () => {
     const now = hrefs(nav);
     assert.equal(new Set(now).size, now.length, 'duplicate link');
-    assert.deepEqual([...now].sort(), [...PREVIOUS_ADMIN_HREFS].sort());
+    assert.deepEqual([...now].sort(), [...PREVIOUS_ADMIN_HREFS, ...ADDED_ADMIN_HREFS].sort());
   });
 
   test('is grouped into collapsible sections instead of one flat list', () => {

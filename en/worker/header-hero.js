@@ -28,6 +28,20 @@ const URL_T = "url";
 const COLOR = "color";
 const INT = "int";
 
+// Font choices. Only system font stacks are offered: nothing is downloaded, so there is no
+// extra request, no layout shift and no third-party tracking. "default" keeps the site font.
+export const FONT_STACKS = {
+  default: "",
+  system: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  modern: "'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif",
+  rounded: "ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Quicksand, 'Trebuchet MS', sans-serif",
+  serif: "Georgia, 'Times New Roman', Times, serif",
+  elegant: "'Palatino Linotype', Palatino, 'Book Antiqua', 'URW Palladio L', Georgia, serif",
+  display: "Impact, 'Arial Narrow Bold', 'Haettenschweiler', 'Franklin Gothic Medium', sans-serif",
+  mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace"
+};
+export const FONT_KEYS = Object.keys(FONT_STACKS);
+
 export const HERO_SUBTITLE_DEFAULT =
   "Expert reviews, exclusive bonuses, and real player data for {{casino_count}}+ casinos worldwide.";
 
@@ -44,6 +58,8 @@ export const FIELDS = [
   // ---------------------------- header
   { key: "theme_header_style", prop: "headerStyle", group: "header", type: ENUM, values: ["default", "solid", "glass", "transparent"], def: "default" },
   { key: "theme_header_background", prop: "headerBackground", group: "header", type: COLOR, def: "" },
+  { key: "site_header_text_color", prop: "headerTextColor", group: "header", type: COLOR, def: "" },
+  { key: "site_header_font", prop: "headerFont", group: "header", type: ENUM, values: FONT_KEYS, def: "default" },
   { key: "site_header_sticky", prop: "headerSticky", group: "header", type: BOOL, def: true },
   { key: "site_header_height", prop: "headerHeight", group: "header", type: ENUM, values: ["compact", "default", "tall"], def: "default" },
   { key: "site_header_logo_mode", prop: "logoMode", group: "header", type: ENUM, values: ["both", "logo", "text"], def: "both" },
@@ -82,7 +98,11 @@ export const FIELDS = [
   { key: "site_hero_bg_color", prop: "heroBgColor", group: "hero", type: COLOR, def: "" },
   { key: "site_hero_overlay", prop: "heroOverlay", group: "hero", type: BOOL, def: true },
   { key: "site_hero_overlay_opacity", prop: "heroOverlayOpacity", group: "hero", type: INT, min: 0, max: 85, def: 45 },
-  { key: "site_hero_text_theme", prop: "heroTextTheme", group: "hero", type: ENUM, values: ["light", "dark"], def: "light" }
+  { key: "site_hero_text_theme", prop: "heroTextTheme", group: "hero", type: ENUM, values: ["light", "dark"], def: "light" },
+  { key: "site_hero_text_color", prop: "heroTextColor", group: "hero", type: COLOR, def: "" },
+  { key: "site_hero_title_color", prop: "heroTitleColor", group: "hero", type: COLOR, def: "" },
+  { key: "site_hero_heading_font", prop: "heroHeadingFont", group: "hero", type: ENUM, values: FONT_KEYS, def: "default" },
+  { key: "site_hero_body_font", prop: "heroBodyFont", group: "hero", type: ENUM, values: FONT_KEYS, def: "default" }
 ];
 
 export const HEADER_HERO_KEYS = FIELDS.map((f) => f.key);
@@ -252,8 +272,10 @@ export function headerClasses(hh) {
     `hh-style-${hh.headerStyle}`,
     `hh-logo-${hh.logoMode}`,
     `hh-logo-size-${hh.logoSize}`,
-    `hh-nav-${hh.navAlign}`
-  ].join(" ");
+    `hh-nav-${hh.navAlign}`,
+    hh.headerTextColor ? "hh-hfg" : "",
+    hh.headerFont !== "default" ? "hh-hfont" : ""
+  ].filter(Boolean).join(" ");
 }
 
 export function heroClasses(hh, hasImage) {
@@ -261,8 +283,12 @@ export function heroClasses(hh, hasImage) {
     `hero--h-${hh.heroHeight}`,
     `hero--text-${hh.heroTextTheme}`,
     `hero--focus-${hh.heroImageFocus}`,
-    hasImage ? "hero--image" : `hero--bg-${hh.heroBgMode}`
-  ].join(" ");
+    hasImage ? "hero--image" : `hero--bg-${hh.heroBgMode}`,
+    hh.heroTextColor ? "hero--custom-fg" : "",
+    hh.heroTitleColor ? "hero--custom-title" : "",
+    hh.heroHeadingFont !== "default" ? "hero--font-heading" : "",
+    hh.heroBodyFont !== "default" ? "hero--font-body" : ""
+  ].filter(Boolean).join(" ");
 }
 
 function announceHtml(hh, showLink) {
@@ -313,6 +339,13 @@ export function headerHeroTemplateVars(hh = defaultHeaderHero()) {
   if (hh.headerBackground) vars.push(`--hh-header-bg:${hh.headerBackground}`);
   vars.push(`--hh-hero-overlay:${(hh.heroOverlayOpacity / 100).toFixed(2)}`);
   if (hh.heroBgColor) vars.push(`--hh-hero-bg:${hh.heroBgColor}`);
+  if (hh.headerTextColor) vars.push(`--hh-header-fg:${hh.headerTextColor}`);
+  if (hh.heroTextColor) vars.push(`--hh-hero-fg:${hh.heroTextColor}`);
+  if (hh.heroTitleColor) vars.push(`--hh-hero-title:${hh.heroTitleColor}`);
+  // Font stacks are fixed strings from FONT_STACKS, never user input.
+  if (FONT_STACKS[hh.headerFont]) vars.push(`--hh-header-font:${FONT_STACKS[hh.headerFont]}`);
+  if (FONT_STACKS[hh.heroHeadingFont]) vars.push(`--hh-hero-heading-font:${FONT_STACKS[hh.heroHeadingFont]}`);
+  if (FONT_STACKS[hh.heroBodyFont]) vars.push(`--hh-hero-body-font:${FONT_STACKS[hh.heroBodyFont]}`);
 
   const hasImage = Boolean(hh.heroImage);
   const showCta = hh.ctaEnabled && hh.ctaText && hh.ctaUrl;

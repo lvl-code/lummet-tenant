@@ -62,13 +62,16 @@
   <link rel="stylesheet" href="/static/css/supportive.css">
   <link rel="stylesheet" href="/static/css/research.css">
   <link rel="stylesheet" href="/static/css/dashboard-shell.css">
+  <link rel="stylesheet" href="/static/css/header-hero.css">
   {{theme_css}}
+  {{{hh_css}}}
 </head>
 <body
   class="theme-card-{{theme_card_style}}
          theme-button-{{theme_button_style}}
          theme-header-{{theme_header_style}}
-         theme-layout-{{theme_layout_style}}"
+         theme-layout-{{theme_layout_style}}
+         {{hh_body_class}}"
   data-site-logo="{{site_logo}}"
 >
   {{#if gpwa_script_enabled}}
@@ -107,6 +110,8 @@
   <script defer src="/static/js/permissions-admin.js"></script>
   <script defer src="/static/js/user-dashboard.js"></script>
   <script defer src="/static/js/admin-tools.js"></script>
+  <script defer src="/static/js/header-hero.js"></script>
+  <script defer src="/static/js/header-hero-admin.js"></script>
   <script defer src="/static/js/subscriptions-admin.js"></script>
   <script defer src="/static/js/email-campaigns-admin.js"></script>
   <script defer src="/static/js/banner-admin.js"></script>

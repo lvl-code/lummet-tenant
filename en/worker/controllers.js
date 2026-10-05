@@ -45,6 +45,7 @@ import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
 import { getSetting } from "./database/settings.js";
+import { headerHeroDefaultsForAdmin, jsonForScript } from "./header-hero.js";
 import { getRelatedCasinos } from "./database/related-casinos.js";
 import { getCached, setCached } from "./cache.js";
 import {
@@ -6265,6 +6266,11 @@ export async function renderDashboardPages(request, env) {
 }
 export async function renderDashboardSettings(request, env) {
   return renderAdminPage(request, env, "admin/settings.html");
+}
+export async function renderDashboardHeaderHero(request, env) {
+  return renderAdminPage(request, env, "admin/header-hero.html", {
+    hh_defaults_json: jsonForScript(headerHeroDefaultsForAdmin())
+  });
 }
 export async function renderDashboardAI(request, env) {
   return renderAdminPage(request, env, "admin/ai.html");

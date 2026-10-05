@@ -11,6 +11,7 @@ import {
   buildGpwaSeal,
   buildGpwaScript
 } from "./site-settings.js";
+import { headerHeroTemplateVars } from "./header-hero.js";
 import {
   buildBreadcrumbSchema,
   renderBreadcrumbs
@@ -732,6 +733,9 @@ const allData = {
   gpwa_script_html: site.gpwaScriptMarkup,
 
   homepage_sections_html: site.homepageSectionsHtml,
+
+  // Header, announcement bar and hero (Dashboard > Header & Hero)
+  ...headerHeroTemplateVars(site.headerHero),
 
   ga_script: site.gaScriptHtml,
   theme_css: site.themeCss,

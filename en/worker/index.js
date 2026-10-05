@@ -89,6 +89,7 @@ import {
   renderDashboardCategoryCountries,
   renderDashboardPages,
   renderDashboardSettings,
+  renderDashboardHeaderHero,
   renderDashboardAI,
   renderCategoryList,
   renderPaymentMethodList,
@@ -523,6 +524,8 @@ if (
         return renderDashboardPages(request, env);
       case "dashboardSettings":
         return renderDashboardSettings(request, env);
+      case "dashboardHeaderHero":
+        return renderDashboardHeaderHero(request, env);
       case "dashboardAI":
         return renderDashboardAI(request, env);
       case "dashboardCategories":

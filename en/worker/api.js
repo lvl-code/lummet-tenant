@@ -8,6 +8,7 @@ import * as reviews from "./database/reviews.js";
 import * as pages from "./database/pages.js";
 import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
+import { sanitizeHeaderHeroInput } from "./header-hero.js";
 import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
 import * as paymentMethods from "./database/payment-methods.js";
@@ -5425,7 +5426,7 @@ async function saveSettings(request, env, user) {
 
   await settings.saveSettings(
     env.DB,
-    body
+    sanitizeHeaderHeroInput(body)
   );
   const hostname =
   new URL(request.url)

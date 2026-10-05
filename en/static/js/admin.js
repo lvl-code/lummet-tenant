@@ -2916,22 +2916,29 @@ if (addCardsSectionButton) {
 
         }
 
+        // The homepage hero is managed on Dashboard > Header & Hero. Only send
+        // these when the checkboxes exist on this page, otherwise saving here
+        // would switch the hero off.
         const heroEnabled =
   document.getElementById("siteHeroEnabled");
 
-payload.site_hero_enabled =
-  heroEnabled && heroEnabled.checked
-    ? "true"
-    : "false";
+if (heroEnabled) {
+  payload.site_hero_enabled =
+    heroEnabled.checked
+      ? "true"
+      : "false";
+}
 
 
 const heroOverlay =
   document.getElementById("siteHeroOverlay");
 
-payload.site_hero_overlay =
-  heroOverlay && heroOverlay.checked
-    ? "true"
-    : "false";
+if (heroOverlay) {
+  payload.site_hero_overlay =
+    heroOverlay.checked
+      ? "true"
+      : "false";
+}
 
 const gpwaSealEnabledInput =
   document.getElementById("gpwaSealEnabled");

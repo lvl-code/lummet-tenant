@@ -6,6 +6,7 @@
 
 //import { getSetting } from "./database/settings.js";
 import { getAllSettings } from "./database/settings.js";
+import { parseHeaderHero } from "./header-hero.js";
 import {
   getCached,
   setCached
@@ -533,6 +534,9 @@ heroAlignment:
 
 heroOverlay:
   values.site_hero_overlay !== "false",
+
+    // Header, announcement bar and hero, validated (worker/header-hero.js)
+    headerHero: parseHeaderHero(values),
 
 
 

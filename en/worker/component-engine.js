@@ -7,6 +7,7 @@ import { getPageComponents } from "./database/components.js";
 import { getReviewBlocks } from "./database/review_blocks.js";
 import { getSeoMeta } from "./database/seo_meta.js";
 import { logEvent as logAnalyticsEvent } from "./database/analytics.js";
+import { isAdvancedHero, renderAdvancedHero } from "./component-hero.js";
 
 /**
  * Load all components assigned to a page, in position order.
@@ -50,6 +51,15 @@ export async function loadPageComponents(db, pageType, pageSlug, injectionPoint 
  * The renderer instance is passed in to reuse template loading.
  */
 export async function renderComponent(renderer, component) {
+  // A hero component with picture/video/colour options uses the shared hero builder;
+  // one with only the original settings keeps the original template below.
+  if (component.type === "hero" && isAdvancedHero(component.settings)) {
+    try {
+      return renderAdvancedHero(component);
+    } catch (err) {
+      console.error("advanced hero failed, using the basic hero", err);
+    }
+  }
   const templateName = `components/${component.type}.html`;
   let template;
   try {

@@ -9,6 +9,7 @@ import * as pages from "./database/pages.js";
 import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import { sanitizeHeaderHeroInput } from "./header-hero.js";
+import { cleanHeroSettingsJson, renderAdvancedHero } from "./component-hero.js";
 import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
 import * as paymentMethods from "./database/payment-methods.js";
@@ -2471,6 +2472,10 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     if (path === "/api/v1/component/create" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["name", "type"]);
+      if (body.type === "hero") {
+        try { body.settings_json = cleanHeroSettingsJson(body.settings_json); }
+        catch (err) { return failure(err.message); }
+      }
       const id = await componentsDB.createComponent(env.DB, body);
       return json({ success: true, id });
     }
@@ -2478,8 +2483,32 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     if (path === "/api/v1/component/update" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["id", "name", "type"]);
+      if (body.type === "hero") {
+        try { body.settings_json = cleanHeroSettingsJson(body.settings_json); }
+        catch (err) { return failure(err.message); }
+      }
       await componentsDB.updateComponent(env.DB, body.id, body);
       return success();
+    }
+
+    // Draft preview of a hero component: the same HTML the public page would get, built from
+    // the form's current values. Nothing is saved.
+    if (path === "/api/v1/component/hero-preview" && request.method === "POST") {
+      const body = await request.json();
+      let settings = {};
+      try { settings = JSON.parse(cleanHeroSettingsJson(body.settings_json) || "{}"); }
+      catch (err) { return failure(err.message); }
+      // the preview always uses the advanced layout so that every option can be seen
+      settings.design = "advanced";
+      const html = renderAdvancedHero({
+        id: 0,
+        type: "hero",
+        title: String(body.title || ""),
+        content: String(body.content || ""),
+        settings,
+        injection_point: "top"
+      });
+      return json({ success: true, html });
     }
 
     if (path === "/api/v1/component/delete" && request.method === "POST") {

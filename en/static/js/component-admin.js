@@ -84,7 +84,7 @@ function initComponentForm() {
       text: "Raw text or HTML",
       html: "Raw HTML",
       cta: 'Text content. Settings: {"link":"https://...","button_text":"Click Here"}',
-      hero: 'Hero subtitle text. Settings: {"link":"...","button_text":"...","bg_image":"https://..."}',
+      hero: 'Hero subtitle (plain text). Use the Hero options below for buttons, pictures, video, colours and fonts.',
       casino_grid: 'Optional heading. Settings: {"limit":5}',
       banner: 'Banner text. Settings: {"link":"...","button_text":"..."}',
     };
@@ -410,6 +410,7 @@ async function editComponent(id) {
     form.querySelector("[name='status']").value = c.status || "active";
     document.getElementById("componentSubmitBtn").textContent = "Update Component";
     document.getElementById("componentCancelEdit").style.display = "";
+    form.dispatchEvent(new Event("component:loaded"));
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
   } catch { alert("Failed to load component"); }
 }

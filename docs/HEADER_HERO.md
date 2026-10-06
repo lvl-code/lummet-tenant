@@ -26,6 +26,28 @@ Links must be a site path (`/en/...`) or `https://`; anything else is refused on
   keeps the admin script in step with it. Only keys from that list are accepted, never typed font names.
 - Anything left on Default adds no CSS, so the site looks exactly as before.
 
+## Hero pictures and video
+
+Two optional cards under the hero settings. Both are off until you switch them on, and the hero is unchanged while they are off.
+
+**Pictures and video behind the text** (up to 6 slides)
+- Each slide is a picture or a short video. Pick files from the Media library or paste an address.
+- One slide stays still (fixed). Two or more move on their own (fade or slide), or by arrows, dots, keyboard and swipe.
+- Picture motion: Still, Slow zoom or Slow pan. Seconds per picture: 3 to 20. A video plays to the end, then the show moves on.
+- A slide can have a link; then the empty part of the hero is clickable (text and buttons keep working).
+- The slideshow pauses when the pointer is over it (optional), when the tab is hidden, when the hero is off screen, and on
+  the visitor's pause button. It stays still for visitors who ask for reduced motion, and videos stay on their poster picture
+  for visitors on data saver.
+
+**Pictures inside the hero** (up to 4)
+- Fixed or clickable images with an optional caption, shown under the text or beside it (wide screens), in three sizes.
+
+Tips
+- Videos: MP4 (H.264) is the safest; keep each under about 5 MB, 10 to 15 seconds, no sound needed (they play muted).
+  Always add a poster picture. Use pictures about 1920 px wide and under 300 KB.
+- Videos must be a file (.mp4, .webm, .ogg, .m4v). A YouTube or Vimeo page address is not accepted.
+- Settings: `site_hero_media_*`, `site_hero_slides` and `site_hero_cards*` in the `settings` table. Slides and pictures are stored as JSON text.
+
 ## How it works
 
 - Values are stored in the existing `settings` table (keys `site_announce_*`, `site_header_*`, `site_hero_*`,

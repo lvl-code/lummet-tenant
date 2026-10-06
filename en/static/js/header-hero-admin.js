@@ -130,6 +130,10 @@
       showError(k, bad ? "Use a colour like #1a1a1a" : "");
       if (bad) ok = false;
     });
+    var watch = String(getValue("site_hero_watch_url")).trim();
+    var watchBad = Boolean(watch) && !parseVideo(watch);
+    showError("site_hero_watch_url", watchBad ? "Use a YouTube or Vimeo video link." : "");
+    if (watchBad) ok = false;
     Object.keys(repeaters).forEach(function (k) { if (!repeaters[k].validate()) ok = false; });
     return ok;
   }
@@ -154,9 +158,31 @@
   }
 
   // ------------------------------------------------------------ slide and picture lists
+  // The same rules as the server (worker/header-hero.js parseVideoUrl); the server has the final say.
+  function parseVideo(value) {
+    var raw = String(value || "").trim();
+    if (!raw || raw.length > 300 || /[\s"'<>\\]/.test(raw)) return null;
+    var u;
+    try { u = new URL(raw); } catch (e) { return null; }
+    if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+    var host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
+    var parts = u.pathname.split("/").filter(Boolean);
+    if (host === "youtu.be") return /^[A-Za-z0-9_-]{11}$/.test(parts[0] || "") ? { provider: "youtube", id: parts[0] } : null;
+    if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      var id = "";
+      if (parts[0] === "watch") id = u.searchParams.get("v") || "";
+      else if (["embed", "shorts", "live", "v"].indexOf(parts[0]) !== -1) id = parts[1] || "";
+      return /^[A-Za-z0-9_-]{11}$/.test(id) ? { provider: "youtube", id: id } : null;
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      var segs = host === "player.vimeo.com" ? (parts[0] === "video" ? parts.slice(1) : []) : parts;
+      for (var i = 0; i < segs.length; i++) if (/^\d{5,12}$/.test(segs[i])) return { provider: "vimeo", id: segs[i] };
+    }
+    return null;
+  }
   var VIDEO_RE = /\.(mp4|webm|ogv|ogg|m4v)(\?[^\s]*)?$/i;
   var KINDS = {
-    slide: { fields: ["type", "src", "poster", "alt", "link"], blank: { type: "image", src: "", poster: "", alt: "", link: "" }, noun: "slide" },
+    slide: { fields: ["type", "src", "poster", "alt", "link", "play"], blank: { type: "image", src: "", poster: "", alt: "", link: "", play: "popup" }, noun: "slide" },
     card: { fields: ["src", "alt", "link", "caption"], blank: { src: "", alt: "", link: "", caption: "" }, noun: "picture" }
   };
 
@@ -191,7 +217,12 @@
     function clean(item) {
       var o = {};
       kind.fields.forEach(function (f) { o[f] = String(item[f] == null ? "" : item[f]).trim(); });
-      if (o.type !== undefined) { o.type = o.type === "video" ? "video" : "image"; if (o.type !== "video") o.poster = ""; }
+      if (o.type !== undefined) {
+        o.type = o.type === "video" || o.type === "embed" ? o.type : "image";
+        if (o.type === "image") o.poster = "";
+        if (o.type === "embed") { o.play = o.play === "background" ? "background" : "popup"; if (o.play === "popup") o.link = ""; }
+        else delete o.play;
+      }
       return o;
     }
     function filled() { return items.map(clean).filter(function (i) { return i.src; }).slice(0, max); }
@@ -213,11 +244,11 @@
     var thumbs = [];
     function updateThumbs() {
       thumbs.forEach(function (t) {
-        var it = t.item, url = it.type === "video" ? it.poster : it.src;
+        var it = t.item, url = it.type === "video" || it.type === "embed" ? it.poster : it.src;
         t.node.textContent = "";
         t.node.style.backgroundImage = "";
         if (url && /^(https?:\/\/|\/(?!\/))/i.test(url.trim()) && !/["'()\\\s]/.test(url.trim())) t.node.style.backgroundImage = 'url("' + url.trim() + '")';
-        else t.node.textContent = it.type === "video" ? "Video" : "No picture";
+        else t.node.textContent = it.type === "video" || it.type === "embed" ? "Video" : "No picture";
       });
     }
 
@@ -233,16 +264,17 @@
 
         if (kind === KINDS.slide) {
           var type = el("select");
-          [["image", "Picture"], ["video", "Video"]].forEach(function (o) {
+          [["image", "Picture"], ["video", "Video file"], ["embed", "YouTube / Vimeo"]].forEach(function (o) {
             var opt = el("option", null, o[1]); opt.value = o[0]; type.appendChild(opt);
           });
-          type.value = item.type === "video" ? "video" : "image";
+          type.value = item.type === "video" || item.type === "embed" ? item.type : "image";
           type.addEventListener("change", function () { item.type = type.value; render(); changed(); });
           fields.appendChild(labelled("Type", type));
         }
 
+        var isEmbed = item.type === "embed";
         var srcWrap = el("div", "hh-srcrow");
-        var src = textInput(item, "src", item.type === "video" ? "/media/videos/clip.mp4" : "/media/banners/hero.jpg", 500);
+        var src = textInput(item, "src", isEmbed ? "https://www.youtube.com/watch?v=..." : item.type === "video" ? "/media/videos/clip.mp4" : "/media/banners/hero.jpg", 500);
         var choose = el("button", "hh-btn", "Choose from Media");
         choose.type = "button";
         choose.addEventListener("click", function () {
@@ -253,21 +285,31 @@
           });
         });
         srcWrap.appendChild(src);
-        srcWrap.appendChild(choose);
-        fields.appendChild(labelled(item.type === "video" ? "Video file (.mp4 or .webm)" : "Picture address", srcWrap, true));
+        if (!isEmbed) srcWrap.appendChild(choose);
+        fields.appendChild(labelled(isEmbed ? "YouTube or Vimeo link" : item.type === "video" ? "Video file (.mp4 or .webm)" : "Picture address", srcWrap, true));
 
-        if (item.type === "video") {
+        if (isEmbed) {
+          var play = el("select");
+          [["popup", "Opens in a pop-up when clicked"], ["background", "Plays silently behind the text"]].forEach(function (o) {
+            var opt = el("option", null, o[1]); opt.value = o[0]; play.appendChild(opt);
+          });
+          play.value = item.play === "background" ? "background" : "popup";
+          play.addEventListener("change", function () { item.play = play.value; render(); changed(); });
+          fields.appendChild(labelled("How it plays", play, true));
+        }
+
+        if (item.type === "video" || isEmbed) {
           var posterWrap = el("div", "hh-srcrow");
           posterWrap.appendChild(textInput(item, "poster", "/media/banners/poster.jpg", 500));
           var pc = el("button", "hh-btn", "Choose");
           pc.type = "button";
           pc.addEventListener("click", function () { pickMedia("image", function (m) { item.poster = m.url || ""; render(); changed(); }); });
           posterWrap.appendChild(pc);
-          fields.appendChild(labelled("Poster picture (recommended)", posterWrap, true));
+          fields.appendChild(labelled(isEmbed ? "Poster picture (shown before the video plays)" : "Poster picture (recommended)", posterWrap, true));
         }
         fields.appendChild(labelled("Description (alt text)", textInput(item, "alt", "What the picture shows", 140)));
         if (kind === KINDS.card) fields.appendChild(labelled("Caption (optional)", textInput(item, "caption", "Short caption", 60)));
-        fields.appendChild(labelled("Link when clicked (optional)", textInput(item, "link", "/en/casino", 300), kind === KINDS.slide));
+        if (!(isEmbed && item.play !== "background")) fields.appendChild(labelled("Link when clicked (optional)", textInput(item, "link", "/en/casino", 300), kind === KINDS.slide));
         var err = el("p", "hh-error"); err.hidden = true; err.setAttribute("data-row-error", "");
         fields.appendChild(err);
         row.appendChild(fields);
@@ -313,7 +355,8 @@
         items.forEach(function (item, i) {
           var msg = "";
           var src = String(item.src || "").trim();
-          if (src && !validLink(src)) msg = "The address must start with / or https://";
+          if (src && item.type === "embed" && !parseVideo(src)) msg = "Use a YouTube or Vimeo video link (a channel or playlist page will not work).";
+          else if (src && item.type !== "embed" && !validLink(src)) msg = "The address must start with / or https://";
           else if (src && item.type === "video" && !VIDEO_RE.test(src)) msg = "Use a video file ending in .mp4 or .webm (not a web page).";
           else if (item.poster && !validLink(String(item.poster).trim())) msg = "The poster address must start with / or https://";
           else if (item.link && !validLink(String(item.link).trim())) msg = "The link must start with / or https://";
@@ -395,15 +438,18 @@
       " hero-media--motion-" + pick(v.site_hero_media_motion, ["none", "zoom", "pan"], "zoom"));
     var first = slides[0];
     var slide = el("div", "hero-slide is-active");
+    slide.setAttribute("data-type", first.type);
     var img;
-    if (first.type === "video" && !first.poster) {
+    if (first.type === "embed" && !first.poster) {
+      slide.style.background = "#0b0b10";
+    } else if (first.type === "video" && !first.poster) {
       var vid = el("video");
       vid.muted = true; vid.preload = "metadata";
       vid.src = first.src;
       slide.appendChild(vid);
     } else {
       img = el("img");
-      img.src = first.type === "video" ? first.poster : first.src;
+      img.src = first.type === "video" || first.type === "embed" ? first.poster : first.src;
       img.alt = "";
       slide.appendChild(img);
     }
@@ -412,6 +458,7 @@
   }
   function previewControls(v, slides) {
     var ui = el("div", "hero-media__ui");
+    if (slides[0].type === "embed" && slides[0].play !== "background") ui.appendChild(el("span", "hero-watch", "\u25B6 " + (slides[0].alt || "Watch video")));
     if (isOn(v.site_hero_media_arrows)) {
       ui.appendChild(el("span", "hero-media__nav hero-media__prev", "\u2039"));
       ui.appendChild(el("span", "hero-media__nav hero-media__next", "\u203A"));
@@ -571,12 +618,13 @@
       var btn1 = v.site_hero_button_text.trim() || DEFAULTS.site_hero_button_text;
       if (isOn(v.site_hero_button_enabled) && btn1) acts.appendChild(el("span", "btn btn--primary btn--lg", btn1));
       if (v.site_hero_button2_text.trim() && v.site_hero_button2_url.trim()) acts.appendChild(el("span", "btn btn--ghost btn--lg", v.site_hero_button2_text.trim()));
+      if (isOn(v.site_hero_watch_enabled) && parseVideo(v.site_hero_watch_url.trim())) acts.appendChild(el("span", "btn btn--ghost btn--lg", "\u25B6 " + (v.site_hero_watch_text.trim() || DEFAULTS.site_hero_watch_text)));
       if (acts.children.length) content.appendChild(acts);
       if (showCards && !cardsSide) content.appendChild(previewCards(v, cardsOk));
       container.appendChild(content);
       if (cardsSide) { container.className = "container hero-grid"; container.appendChild(previewCards(v, cardsOk)); }
       hero.appendChild(container);
-      if (showMedia && slidesOk.length > 1) hero.appendChild(previewControls(v, slidesOk));
+      if (showMedia && (slidesOk.length > 1 || (slidesOk[0].type === "embed" && slidesOk[0].play !== "background"))) hero.appendChild(previewControls(v, slidesOk));
       root.appendChild(hero);
     } else {
       var off = el("div", "hh-preview-off", "The homepage hero is switched off.");
@@ -629,7 +677,7 @@
     var preset = PRESETS[key];
     if (!preset) return;
     // keep the visitor-facing text you wrote; a style changes the look, not your words
-    var keep = ["site_hero_media_enabled", "site_hero_slides", "site_hero_cards_enabled", "site_hero_cards", "site_hero_title", "site_hero_subtitle", "site_hero_description", "site_hero_badge", "site_hero_button_text", "site_hero_button_url", "site_hero_image"];
+    var keep = ["site_hero_media_enabled", "site_hero_slides", "site_hero_media_embed_mobile", "site_hero_cards_enabled", "site_hero_cards", "site_hero_title", "site_hero_subtitle", "site_hero_description", "site_hero_badge", "site_hero_button_text", "site_hero_button_url", "site_hero_image"];
     var next = {};
     KEYS.forEach(function (k) { next[k] = keep.indexOf(k) !== -1 ? getValue(k) : DEFAULTS[k]; });
     Object.keys(preset).forEach(function (k) { next[k] = preset[k]; });

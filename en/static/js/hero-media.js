@@ -8,6 +8,88 @@
 (function () {
   "use strict";
 
+  // Only these two player addresses are ever put into an iframe, whatever the markup says.
+  var ALLOWED_EMBED = /^https:\/\/(www\.youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}\?|player\.vimeo\.com\/video\/\d{5,12}\?)/;
+
+  var modalOpen = false;
+  var modalWatchers = [];
+  var modal = null;
+  var modalOpener = null;
+
+  function notifyModal() { modalWatchers.forEach(function (fn) { fn(modalOpen); }); }
+
+  function makeFrame(url, title) {
+    var f = document.createElement("iframe");
+    f.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture; fullscreen");
+    f.setAttribute("allowfullscreen", "");
+    f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    f.title = title || "Video";
+    f.src = url;
+    return f;
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    var overlay = modal;
+    modal = null;
+    document.removeEventListener("keydown", onModalKey, true);
+    document.documentElement.classList.remove("hh-modal-open");
+    var frame = overlay.querySelector("iframe");
+    if (frame) frame.src = "about:blank";
+    overlay.parentNode.removeChild(overlay);
+    modalOpen = false;
+    notifyModal();
+    if (modalOpener && modalOpener.focus) { try { modalOpener.focus(); } catch (e) { /* element gone */ } }
+    modalOpener = null;
+  }
+
+  function onModalKey(e) {
+    if (!modal) return;
+    if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+    // the player is in another document and cannot be tabbed through, so keep focus on the close button
+    if (e.key === "Tab") { e.preventDefault(); var b = modal.querySelector(".hh-modal__close"); if (b) b.focus(); }
+  }
+
+  function openModal(url, title, trigger) {
+    if (modal || !ALLOWED_EMBED.test(String(url || ""))) return;
+    modalOpener = trigger || null;
+    var overlay = document.createElement("div");
+    overlay.className = "hh-modal";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", title || "Video");
+    var box = document.createElement("div");
+    box.className = "hh-modal__box";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "hh-modal__close";
+    close.setAttribute("aria-label", "Close video");
+    close.textContent = "\u00D7";
+    var frameWrap = document.createElement("div");
+    frameWrap.className = "hh-modal__frame";
+    frameWrap.appendChild(makeFrame(url, title));
+    box.appendChild(close);
+    box.appendChild(frameWrap);
+    overlay.appendChild(box);
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) closeModal(); });
+    close.addEventListener("click", closeModal);
+    document.body.appendChild(overlay);
+    document.documentElement.classList.add("hh-modal-open");
+    document.addEventListener("keydown", onModalKey, true);
+    modal = overlay;
+    modalOpen = true;
+    notifyModal();
+    close.focus();
+  }
+
+  // any button with data-hh-embed (the hero's "Watch video" button, a slide's pill) opens the player
+  document.addEventListener("click", function (e) {
+    var t = e.target && e.target.closest ? e.target.closest("[data-hh-embed]") : null;
+    if (!t) return;
+    e.preventDefault();
+    openModal(t.getAttribute("data-hh-embed"), t.getAttribute("data-hh-title"), t);
+  });
+
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var saveData = Boolean(navigator.connection && navigator.connection.saveData);
 
@@ -24,6 +106,13 @@
     var interval = Math.max(3000, parseInt(media.getAttribute("data-interval"), 10) || 6000);
     var wantsAuto = media.getAttribute("data-autoplay") === "1" && many && !reduceMotion;
     var pauseOnHover = media.getAttribute("data-pause-hover") === "1";
+
+    var embedMobile = media.getAttribute("data-embed-mobile") === "1";
+    var phone = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+    // Online background videos are the heaviest thing here: not for reduced motion, data saver,
+    // or (unless chosen) phones. Those visitors keep the poster picture.
+    var allowEmbeds = !reduceMotion && !saveData && (embedMobile || !phone);
+    var watchPills = ui ? Array.prototype.slice.call(ui.querySelectorAll("[data-hh-watch-for]")) : [];
 
     var index = 0;
     var timer = null;
@@ -49,7 +138,30 @@
       v.pause();
     }
 
-    function running() { return wantsAuto && !userPaused && !hovering && !tabHidden && onScreen; }
+    function running() { return wantsAuto && !userPaused && !hovering && !tabHidden && onScreen && !modalOpen; }
+
+    function embedHost(slide) { return slide.querySelector("[data-hh-bg-embed]"); }
+    function playable() { return !userPaused && !tabHidden && onScreen && !modalOpen; }
+    function startEmbed(slide) {
+      var host = embedHost(slide);
+      if (!host || !allowEmbeds || host.firstChild || !playable()) return;
+      var url = host.getAttribute("data-hh-bg-embed");
+      if (!ALLOWED_EMBED.test(String(url || ""))) return;
+      var f = makeFrame(url, "");
+      f.setAttribute("tabindex", "-1");
+      f.setAttribute("aria-hidden", "true");
+      f.addEventListener("load", function () { slide.classList.add("is-embed-ready"); });
+      host.appendChild(f);
+    }
+    function stopEmbed(slide) {
+      var host = embedHost(slide);
+      if (!host) return;
+      while (host.firstChild) host.removeChild(host.firstChild);
+      slide.classList.remove("is-embed-ready");
+    }
+    function syncWatch() {
+      watchPills.forEach(function (b) { b.hidden = parseInt(b.getAttribute("data-hh-watch-for"), 10) !== index; });
+    }
 
     function clear() { if (timer) { window.clearTimeout(timer); timer = null; } }
 
@@ -77,6 +189,7 @@
         prev.classList.remove("is-active");
         prev.classList.add("is-prev");
         stopVideoLater(prev);
+        window.setTimeout(function () { if (!prev.classList.contains("is-active")) stopEmbed(prev); }, 900);
       }
       var cur = slides[next];
       slides.forEach(function (s) { if (s !== prev && s !== cur) s.classList.remove("is-prev"); });
@@ -90,6 +203,8 @@
       cur.classList.add("is-active");
       index = next;
       setDots();
+      syncWatch();
+      startEmbed(cur);
       var v = videoOf(cur);
       if (v) {
         v.loop = !wantsAuto;
@@ -123,7 +238,7 @@
           userPaused = !userPaused;
           toggle.setAttribute("aria-pressed", userPaused ? "true" : "false");
           toggle.setAttribute("aria-label", userPaused ? "Play slideshow" : "Pause slideshow");
-          if (userPaused) { clear(); stopVideo(slides[index]); } else { playVideo(slides[index]); schedule(); }
+          if (userPaused) { clear(); stopVideo(slides[index]); stopEmbed(slides[index]); } else { playVideo(slides[index]); startEmbed(slides[index]); schedule(); }
         });
       }
     }
@@ -153,15 +268,27 @@
 
     document.addEventListener("visibilitychange", function () {
       tabHidden = document.hidden;
-      if (tabHidden) { clear(); stopVideo(slides[index]); } else { if (!userPaused) playVideo(slides[index]); schedule(); }
+      if (tabHidden) { clear(); stopVideo(slides[index]); stopEmbed(slides[index]); } else { if (!userPaused) playVideo(slides[index]); startEmbed(slides[index]); schedule(); }
     });
 
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (entries) {
         onScreen = entries[0].isIntersecting;
-        if (!onScreen) { clear(); stopVideo(slides[index]); } else { if (!userPaused && !tabHidden) playVideo(slides[index]); schedule(); }
+        if (!onScreen) { clear(); stopVideo(slides[index]); stopEmbed(slides[index]); } else { if (!userPaused && !tabHidden) playVideo(slides[index]); startEmbed(slides[index]); schedule(); }
       }, { threshold: 0.15 }).observe(hero);
     }
+
+    // while the pop-up player is open, the slideshow and any background video stand still
+    modalWatchers.push(function (open) {
+      if (open) { clear(); stopVideo(slides[index]); stopEmbed(slides[index]); }
+      else { if (!userPaused) playVideo(slides[index]); startEmbed(slides[index]); schedule(); }
+    });
+
+    syncWatch();
+    // a background video on the first slide starts once the page has finished loading
+    var startFirst = function () { window.setTimeout(function () { startEmbed(slides[index]); }, 400); };
+    if (document.readyState === "complete") startFirst();
+    else window.addEventListener("load", startFirst);
 
     // the first slide
     var first = videoOf(slides[0]);

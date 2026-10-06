@@ -42,6 +42,20 @@ Two optional cards under the hero settings. Both are off until you switch them o
 **Pictures inside the hero** (up to 4)
 - Fixed or clickable images with an optional caption, shown under the text or beside it (wide screens), in three sizes.
 
+**YouTube and Vimeo**
+- A slide can be type "YouTube / Vimeo". Paste a normal video link; only the provider and video id are kept, and the
+  player address is built from a fixed template (`youtube-nocookie.com`, `player.vimeo.com` with Do Not Track).
+- *Opens in a pop-up*: the slide shows your poster picture and a "Watch video" pill. Nothing from YouTube or Vimeo loads
+  until a visitor clicks. The pop-up closes with the X, the Escape key or a click outside, and returns focus to the button.
+- *Plays silently behind the text*: loads after the page has finished, moves on after "seconds per picture", and is removed
+  again when the slide changes, the tab is hidden, the hero scrolls out of view, or the visitor pauses.
+  It does not load for reduced-motion or data-saver visitors, and on phones it stays on the poster unless you switch
+  "Play online background videos on phones" on.
+- The hero can also have a separate **Watch video** button (a pop-up player, same rules).
+- Privacy: a pop-up loads YouTube or Vimeo only after a click. A background video loads them on every visit to the page, which
+  may need visitor consent where the law requires it. The site has no cookie-consent banner today, so prefer the pop-up
+  unless you have decided otherwise. Channel, playlist and profile links are refused.
+
 Tips
 - Videos: MP4 (H.264) is the safest; keep each under about 5 MB, 10 to 15 seconds, no sound needed (they play muted).
   Always add a poster picture. Use pictures about 1920 px wide and under 300 KB.

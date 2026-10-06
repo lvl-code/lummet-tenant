@@ -26,6 +26,7 @@ const TEXT = "text";
 const LINES = "lines";
 const URL_T = "url";
 const COLOR = "color";
+const VIDEOLINK = "videolink";
 const INT = "int";
 const SLIDES = "slides";
 const CARDS = "cards";
@@ -98,6 +99,9 @@ export const FIELDS = [
   { key: "site_hero_button_url", prop: "heroButtonUrl", group: "hero", type: URL_T, max: 300, def: "/en/casino", fallbackWhenEmpty: true },
   { key: "site_hero_button2_text", prop: "heroButton2Text", group: "hero", type: TEXT, max: 40, def: "" },
   { key: "site_hero_button2_url", prop: "heroButton2Url", group: "hero", type: URL_T, max: 300, def: "" },
+  { key: "site_hero_watch_enabled", prop: "heroWatchEnabled", group: "hero", type: BOOL, def: false },
+  { key: "site_hero_watch_text", prop: "heroWatchText", group: "hero", type: TEXT, max: 30, def: "Watch video", fallbackWhenEmpty: true },
+  { key: "site_hero_watch_url", prop: "heroWatchUrl", group: "hero", type: VIDEOLINK, def: "" },
   { key: "site_hero_alignment", prop: "heroAlignment", group: "hero", type: ENUM, values: ["left", "center", "right"], def: "center" },
   { key: "site_hero_height", prop: "heroHeight", group: "hero", type: ENUM, values: ["compact", "standard", "tall", "screen"], def: "standard" },
   { key: "site_hero_bg_mode", prop: "heroBgMode", group: "hero", type: ENUM, values: ["default", "brand", "solid"], def: "default" },
@@ -112,6 +116,7 @@ export const FIELDS = [
   { key: "site_hero_media_interval", prop: "heroMediaInterval", group: "hero", type: INT, min: 3, max: 20, def: 6 },
   { key: "site_hero_media_transition", prop: "heroMediaTransition", group: "hero", type: ENUM, values: ["fade", "slide"], def: "fade" },
   { key: "site_hero_media_motion", prop: "heroMediaMotion", group: "hero", type: ENUM, values: ["none", "zoom", "pan"], def: "zoom" },
+  { key: "site_hero_media_embed_mobile", prop: "heroMediaEmbedMobile", group: "hero", type: BOOL, def: false },
   { key: "site_hero_media_arrows", prop: "heroMediaArrows", group: "hero", type: BOOL, def: true },
   { key: "site_hero_media_dots", prop: "heroMediaDots", group: "hero", type: BOOL, def: true },
   { key: "site_hero_media_pause_hover", prop: "heroMediaPauseHover", group: "hero", type: BOOL, def: true },
@@ -198,12 +203,94 @@ function cleanVideoSrc(value) {
   return v && VIDEO_EXT.test(v) ? v : "";
 }
 
-/** Slides: [{ type: "image"|"video", src, poster, alt, link }], at most MAX_SLIDES, bad entries dropped. */
+// ------------------------------------------------------------
+// Online video (YouTube and Vimeo)
+//
+// Only the video's provider and id are ever kept. The address that
+// reaches a visitor's browser is always built here from a fixed
+// template, so a pasted link can never become an arbitrary iframe.
+// ------------------------------------------------------------
+
+const YT_ID = /^[A-Za-z0-9_-]{11}$/;
+const VIMEO_ID = /^\d{5,12}$/;
+const VIMEO_HASH = /^[0-9a-f]{6,20}$/i;
+
+/** @returns {{provider:"youtube"|"vimeo", id:string, hash:string}|null} */
+export function parseVideoUrl(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.length > 300 || /[\u0000-\u001f\u007f\s"'<>\\]/.test(raw)) return null;
+  let u;
+  try {
+    u = new URL(raw);
+  } catch (e) {
+    return null;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  const parts = u.pathname.split("/").filter(Boolean);
+  if (host === "youtu.be") {
+    return YT_ID.test(parts[0] || "") ? { provider: "youtube", id: parts[0], hash: "" } : null;
+  }
+  if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    let id = "";
+    if (parts[0] === "watch") id = u.searchParams.get("v") || "";
+    else if (["embed", "shorts", "live", "v"].includes(parts[0])) id = parts[1] || "";
+    return YT_ID.test(id) ? { provider: "youtube", id, hash: "" } : null;
+  }
+  if (host === "vimeo.com" || host === "player.vimeo.com") {
+    const segs = host === "player.vimeo.com" ? (parts[0] === "video" ? parts.slice(1) : []) : parts;
+    const idIndex = segs.findIndex((x) => VIMEO_ID.test(x));
+    if (idIndex === -1) return null;
+    const id = segs[idIndex];
+    const next = segs[idIndex + 1] || "";
+    const hash = VIMEO_HASH.test(next) ? next : VIMEO_HASH.test(u.searchParams.get("h") || "") ? u.searchParams.get("h") : "";
+    return { provider: "vimeo", id, hash };
+  }
+  return null;
+}
+
+/** The address people paste back into the form: one clean form per video. */
+export function canonicalVideoUrl(video) {
+  if (!video) return "";
+  if (video.provider === "youtube") return `https://www.youtube.com/watch?v=${video.id}`;
+  return `https://vimeo.com/${video.id}${video.hash ? `/${video.hash}` : ""}`;
+}
+
+/** The iframe address. mode: "popup" (sound, controls) or "background" (silent loop, no controls). */
+export function embedUrl(video, mode) {
+  if (!video) return "";
+  const bg = mode === "background";
+  if (video.provider === "youtube") {
+    const q = bg
+      ? `autoplay=1&mute=1&controls=0&loop=1&playlist=${video.id}&playsinline=1&rel=0&modestbranding=1&disablekb=1&iv_load_policy=3&fs=0`
+      : "autoplay=1&rel=0&playsinline=1&modestbranding=1";
+    return `https://www.youtube-nocookie.com/embed/${video.id}?${q}`;
+  }
+  const q = bg ? "background=1&autoplay=1&muted=1&loop=1&dnt=1" : "autoplay=1&dnt=1";
+  return `https://player.vimeo.com/video/${video.id}?${q}${video.hash ? `&h=${video.hash}` : ""}`;
+}
+
+/** Slides: [{ type: "image"|"video"|"embed", src, poster, alt, link, play? }], at most MAX_SLIDES, bad entries dropped. */
 export function cleanSlides(raw) {
   const out = [];
   for (const item of parseJsonArray(raw)) {
     if (out.length >= MAX_SLIDES) break;
     if (!item || typeof item !== "object") continue;
+    if (item.type === "embed") {
+      const video = parseVideoUrl(item.src);
+      if (!video) continue;
+      const play = item.play === "background" ? "background" : "popup";
+      out.push({
+        type: "embed",
+        src: canonicalVideoUrl(video),
+        poster: cleanImage(item.poster, 500),
+        alt: cleanText(item.alt, 140),
+        // a pop-up slide opens the video, so it has no separate link
+        link: play === "background" ? cleanImage(item.link, 300) : "",
+        play
+      });
+      continue;
+    }
     const type = item.type === "video" ? "video" : "image";
     const src = type === "video" ? cleanVideoSrc(item.src) : cleanImage(item.src, 500);
     if (!src) continue;
@@ -264,6 +351,8 @@ function normalizeOne(field, raw) {
     }
     case COLOR:
       return cleanColor(raw);
+    case VIDEOLINK:
+      return canonicalVideoUrl(parseVideoUrl(raw)) || "";
     case SLIDES:
       return JSON.stringify(cleanSlides(raw));
     case CARDS:
@@ -408,7 +497,13 @@ function mediaHtml(hh) {
     .map((sl, i) => {
       const first = i === 0;
       let inner;
-      if (sl.type === "video") {
+      if (sl.type === "embed") {
+        // The player is created by the script (after load for a background, on click for a pop-up),
+        // so nothing from YouTube or Vimeo is requested before it is needed.
+        const poster = sl.poster ? `<img src="${e(sl.poster)}" alt="" decoding="async"${first ? ' fetchpriority="high"' : ' loading="lazy"'}>` : "";
+        const bg = sl.play === "background" ? `<div class="hero-embed" data-hh-bg-embed="${e(embedUrl(parseVideoUrl(sl.src), "background"))}"></div>` : "";
+        inner = poster + bg;
+      } else if (sl.type === "video") {
         // Only the first video gets autoplay here; the script plays and pauses the others.
         const attrs = `muted playsinline${first ? " autoplay" : ""}${many && hh.heroMediaAutoplay ? "" : " loop"} preload="${first ? "auto" : "none"}"` +
           (sl.poster ? ` poster="${e(sl.poster)}"` : "") +
@@ -424,7 +519,7 @@ function mediaHtml(hh) {
     .join("");
   return (
     `<div class="hero-media hero-media--${hh.heroMediaTransition} hero-media--motion-${hh.heroMediaMotion}" ` +
-    `data-autoplay="${autoplay ? "1" : "0"}" data-interval="${hh.heroMediaInterval * 1000}" data-pause-hover="${hh.heroMediaPauseHover ? "1" : "0"}" ` +
+    `data-autoplay="${autoplay ? "1" : "0"}" data-interval="${hh.heroMediaInterval * 1000}" data-pause-hover="${hh.heroMediaPauseHover ? "1" : "0"}" data-embed-mobile="${hh.heroMediaEmbedMobile ? "1" : "0"}" ` +
     `style="--hh-interval:${hh.heroMediaInterval}s">${slideHtml}</div>`
   );
 }
@@ -432,7 +527,16 @@ function mediaHtml(hh) {
 /** Arrows, dots and the pause button. They sit above the text so they can be clicked. */
 function mediaControlsHtml(hh) {
   const slides = hh.heroSlides;
-  if (slides.length < 2) return "";
+  const e = escapeHtml;
+  // "Watch video" pills for pop-up slides; the script shows the one that belongs to the visible slide
+  const pills = slides
+    .map((sl, i) =>
+      sl.type === "embed" && sl.play !== "background"
+        ? `<button type="button" class="hero-watch" data-hh-embed="${e(embedUrl(parseVideoUrl(sl.src), "popup"))}" data-hh-title="${e(sl.alt || "Video")}" data-hh-watch-for="${i}" aria-haspopup="dialog"${i === 0 ? "" : " hidden"}><span aria-hidden="true">&#9654;</span> ${e(sl.alt || "Watch video")}</button>`
+        : ""
+    )
+    .join("");
+  if (slides.length < 2) return pills ? `<div class="hero-media__ui">${pills}</div>` : "";
   const arrows = hh.heroMediaArrows
     ? '<button type="button" class="hero-media__nav hero-media__prev" data-hh-prev aria-label="Previous slide">&#8249;</button>' +
       '<button type="button" class="hero-media__nav hero-media__next" data-hh-next aria-label="Next slide">&#8250;</button>'
@@ -443,7 +547,7 @@ function mediaControlsHtml(hh) {
   const pause = hh.heroMediaAutoplay
     ? '<button type="button" class="hero-media__pause" data-hh-toggle aria-label="Pause slideshow" aria-pressed="false"><span aria-hidden="true">&#10074;&#10074;</span></button>'
     : "";
-  return `<div class="hero-media__ui">${arrows}${dots}${pause}</div>`;
+  return `<div class="hero-media__ui">${pills}${arrows}${dots}${pause}</div>`;
 }
 
 /** Images placed inside the hero, fixed or clickable. */
@@ -478,7 +582,11 @@ function heroHtml(hh, hasImage) {
     hh.heroButton2Text && hh.heroButton2Url
       ? `<a href="${e(hh.heroButton2Url)}" class="btn btn--ghost btn--lg">${e(hh.heroButton2Text)}</a>`
       : "";
-  const actions = primary || secondary ? `<div class="hero-actions">${primary}${secondary}</div>` : "";
+  const watchVideo = hh.heroWatchEnabled ? parseVideoUrl(hh.heroWatchUrl) : null;
+  const watch = watchVideo
+    ? `<button type="button" class="btn btn--ghost btn--lg hero-watch-btn" data-hh-embed="${e(embedUrl(watchVideo, "popup"))}" data-hh-title="${e(hh.heroWatchText)}" aria-haspopup="dialog"><span aria-hidden="true">&#9654;</span> ${e(hh.heroWatchText)}</button>`
+    : "";
+  const actions = primary || secondary || watch ? `<div class="hero-actions">${primary}${secondary}${watch}</div>` : "";
   const media = hasMedia(hh) ? mediaHtml(hh) : "";
   const controls = hasMedia(hh) ? mediaControlsHtml(hh) : "";
   const cards = hasCards(hh) ? cardsHtml(hh) : "";

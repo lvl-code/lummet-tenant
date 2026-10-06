@@ -62,6 +62,29 @@ Tips
 - Videos must be a file (.mp4, .webm, .ogg, .m4v). A YouTube or Vimeo page address is not accepted.
 - Settings: `site_hero_media_*`, `site_hero_slides` and `site_hero_cards*` in the `settings` table. Slides and pictures are stored as JSON text.
 
+## Hero components (Dashboard > Components)
+
+A component of type **Hero Section** can do everything the homepage hero can: picture slider, short video, YouTube / Vimeo
+(pop-up or silent background), pictures inside the hero, a Watch video button, colours, fonts, alignment, height and
+background. Put it on any page like other components (Assign Component to Page), as many as you like.
+
+- In Components, choose type **Hero Section**. A **Hero options** panel appears with the same sections as Header & Hero and a
+  live preview (desktop or phone). The **Title** is the headline and the **Content** is the subtitle (plain text).
+- The options are saved in the component's **Settings (JSON)** box; the panel fills it in. Each key is the homepage setting name
+  without `site_hero_` (for example `media_enabled`, `slides`, `cards`, `text_color`, `button_url`). Keys the panel does not
+  know are kept. `button_new_tab` is new.
+- **Existing hero components do not change.** One that only has the original settings (`link`, `button_text`, `bg_image`,
+  `new_tab`) keeps the original simple layout. Switch **Use the advanced hero** on to move it to the new layout; its link,
+  button text, picture and new-tab values carry over. Switching it off restores the simple hero (the extra options are removed
+  from the box).
+- Differences from the homepage hero: no default label or button (empty until you fill them), the first picture is loaded
+  lazily unless the component is placed at the **top** injection point, and several heroes on one page move independently
+  (a slideshow below the fold waits until it is on screen).
+- Safety is shared with the homepage hero: links, colours, fonts and videos are checked on save and again when the page is
+  built; the page source never contains an iframe. Settings that are not valid JSON are refused when saving a hero.
+- Implementation: `en/worker/component-hero.js` (settings, model, save cleaning), `heroHtml` in `en/worker/header-hero.js`
+  (shared builder), `en/static/js/component-hero-admin.js` (panel), `POST /en/api/v1/component/hero-preview` (preview).
+
 ## How it works
 
 - Values are stored in the existing `settings` table (keys `site_announce_*`, `site_header_*`, `site_hero_*`,

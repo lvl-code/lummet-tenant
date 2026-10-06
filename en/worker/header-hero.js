@@ -147,7 +147,7 @@ export function escapeHtml(value = "") {
     .replace(/>/g, "&gt;");
 }
 
-function cleanText(value, max) {
+export function cleanText(value, max) {
   return String(value ?? "")
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
     .replace(/\s*[\r\n]+\s*/g, " ")
@@ -179,7 +179,7 @@ export function cleanLink(value, max = 300) {
 }
 
 // A background image must be an absolute http(s) URL or an on-site path.
-function cleanImage(value, max) {
+export function cleanImage(value, max) {
   const v = cleanLink(value, max);
   if (!v) return "";
   if (/^(mailto|tel):/i.test(v) || v.startsWith("#")) return "";
@@ -332,7 +332,7 @@ function toBool(value, def) {
   return def;
 }
 
-function normalizeOne(field, raw) {
+export function normalizeOne(field, raw) {
   const present = raw !== undefined && raw !== null;
   // A setting that was never saved uses its default; one saved as empty stays empty
   // (except where a blank means "use the default", marked fallbackWhenEmpty).
@@ -488,14 +488,15 @@ function videoType(src) {
 }
 
 /** The slides layer that sits behind the overlay and the text. */
-function mediaHtml(hh) {
+function mediaHtml(hh, priority = true) {
   const e = escapeHtml;
   const slides = hh.heroSlides;
   const many = slides.length > 1;
   const autoplay = many && hh.heroMediaAutoplay;
   const slideHtml = slides
     .map((sl, i) => {
-      const first = i === 0;
+      const first = i === 0 && priority;
+      const isFirst = i === 0;
       let inner;
       if (sl.type === "embed") {
         // The player is created by the script (after load for a background, on click for a pop-up),
@@ -514,7 +515,7 @@ function mediaHtml(hh) {
       }
       const link = sl.link ? `<a class="hero-slide__link" href="${e(sl.link)}" aria-label="${e(sl.alt || "Learn more")}"${/^https?:/i.test(sl.link) ? ' target="_blank" rel="noopener"' : ""}></a>` : "";
       const label = many ? ` role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}"` : "";
-      return `<div class="hero-slide${first ? " is-active" : ""}" data-type="${sl.type}"${label}>${inner}${link}</div>`;
+      return `<div class="hero-slide${isFirst ? " is-active" : ""}" data-type="${sl.type}"${label}>${inner}${link}</div>`;
     })
     .join("");
   return (
@@ -565,9 +566,21 @@ function cardsHtml(hh) {
   return `<div class="hero-cards hero-cards--${hh.heroCardsSize} hero-cards--n${hh.heroCards.length}">${cards}</div>`;
 }
 
-function heroHtml(hh, hasImage) {
+/**
+ * Builds the hero section. The homepage calls it with no options (its output is unchanged);
+ * a hero component passes `opts`:
+ *   id        element id (default "siteHero")
+ *   className extra classes
+ *   style     extra inline CSS custom properties (already escaped)
+ *   priority  false = the first picture is lazy (the hero is not at the top of the page)
+ *   compact   true = leave out an empty heading or subtitle
+ */
+export function heroHtml(hh, hasImage, opts = {}) {
   const e = escapeHtml;
-  const style = hasImage ? ` style="background-image:url('${cssUrl(hh.heroImage)}')"` : "";
+  const styleParts = [];
+  if (hasImage) styleParts.push(`background-image:url('${cssUrl(hh.heroImage)}')`);
+  if (opts.style) styleParts.push(opts.style);
+  const style = styleParts.length ? ` style="${styleParts.join(";")}"` : "";
   const overlay = hh.heroOverlay && hh.heroOverlayOpacity > 0 ? '<div class="hero-overlay" aria-hidden="true"></div>' : "";
   const badge = hh.heroBadgeEnabled && hh.heroBadge ? `<div class="hero-badge">${e(hh.heroBadge)}</div>` : "";
   const description = hh.heroDescription ? `<p class="hero-description">${e(hh.heroDescription)}</p>` : "";
@@ -576,7 +589,7 @@ function heroHtml(hh, hasImage) {
     : "";
   const primary =
     hh.heroButtonEnabled && hh.heroButtonText && hh.heroButtonUrl
-      ? `<a href="${e(hh.heroButtonUrl)}" class="btn btn--primary btn--lg">${e(hh.heroButtonText)}</a>`
+      ? `<a href="${e(hh.heroButtonUrl)}" class="btn btn--primary btn--lg"${hh.heroButtonNewTab ? ' target="_blank" rel="noopener"' : ""}>${e(hh.heroButtonText)}</a>`
       : "";
   const secondary =
     hh.heroButton2Text && hh.heroButton2Url
@@ -587,15 +600,17 @@ function heroHtml(hh, hasImage) {
     ? `<button type="button" class="btn btn--ghost btn--lg hero-watch-btn" data-hh-embed="${e(embedUrl(watchVideo, "popup"))}" data-hh-title="${e(hh.heroWatchText)}" aria-haspopup="dialog"><span aria-hidden="true">&#9654;</span> ${e(hh.heroWatchText)}</button>`
     : "";
   const actions = primary || secondary || watch ? `<div class="hero-actions">${primary}${secondary}${watch}</div>` : "";
-  const media = hasMedia(hh) ? mediaHtml(hh) : "";
+  const media = hasMedia(hh) ? mediaHtml(hh, opts.priority !== false) : "";
   const controls = hasMedia(hh) ? mediaControlsHtml(hh) : "";
   const cards = hasCards(hh) ? cardsHtml(hh) : "";
   const side = Boolean(cards) && hh.heroCardsPosition === "side";
-  const body = `${badge}<h1>${e(hh.heroTitle)}</h1><p class="hero-subtitle">${e(hh.heroSubtitle)}</p>${description}${highlights}${actions}${side ? "" : cards}`;
+  const heading = opts.compact && !hh.heroTitle ? "" : `<h1>${e(hh.heroTitle)}</h1>`;
+  const subtitle = opts.compact && !hh.heroSubtitle ? "" : `<p class="hero-subtitle">${e(hh.heroSubtitle)}</p>`;
+  const body = `${badge}${heading}${subtitle}${description}${highlights}${actions}${side ? "" : cards}`;
   const content = `<div class="hero-content hero-content--${hh.heroAlignment}">${body}</div>`;
   const wrapped = side ? `<div class="container hero-grid">${content}${cards}</div>` : `<div class="container">${content}</div>`;
   return (
-    `<section class="hero ${heroClasses(hh, hasImage)}" id="siteHero"${style}${media ? " data-hh-hero-media" : ""}>${media}${overlay}` +
+    `<section class="hero ${opts.className ? opts.className + " " : ""}${heroClasses(hh, hasImage)}" id="${e(opts.id || "siteHero")}"${style}${media ? " data-hh-hero-media" : ""}>${media}${overlay}` +
     `${wrapped}${controls}</section>`
   );
 }

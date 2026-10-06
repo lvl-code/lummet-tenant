@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import {
   FIELDS, HEADER_HERO_KEYS, parseHeaderHero, defaultHeaderHero, sanitizeHeaderHeroInput,
-  headerHeroTemplateVars, headerHeroDefaultsForAdmin, jsonForScript, cleanLink, cleanColor, FONT_STACKS, FONT_KEYS, headerClasses, heroClasses, cleanSlides, cleanCards, MAX_SLIDES, MAX_CARDS
+  headerHeroTemplateVars, headerHeroDefaultsForAdmin, jsonForScript, cleanLink, cleanColor, FONT_STACKS, FONT_KEYS, headerClasses, heroClasses, cleanSlides, cleanCards, MAX_SLIDES, MAX_CARDS, parseVideoUrl, canonicalVideoUrl, embedUrl
 } from '../worker/header-hero.js';
 import { getSiteSettings } from '../worker/site-settings.js';
 import { Renderer } from '../worker/render.js';
@@ -588,5 +588,93 @@ describe('hero media: slides and pictures', () => {
     const js = stripComments(read('static/js/header-hero-admin.js'));
     assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
     assert.match(js, /MediaPicker/);
+  });
+});
+
+describe('online video: YouTube and Vimeo', () => {
+  const YT = 'dQw4w9WgXcQ';
+  const embedSlide = (extra = {}) => ({ type: 'embed', src: `https://youtu.be/${YT}`, poster: '/media/p.jpg', alt: 'Our review', ...extra });
+  const html = (settings) => headerHeroTemplateVars(parseHeaderHero(settings)).hh_hero_html;
+
+  test('links in every common form give the same video, anything else is refused', () => {
+    for (const u of [`https://www.youtube.com/watch?v=${YT}&t=5`, `https://youtu.be/${YT}?si=x`, `https://youtube.com/shorts/${YT}`, `https://m.youtube.com/embed/${YT}`, `https://www.youtube-nocookie.com/embed/${YT}`]) {
+      assert.deepEqual(parseVideoUrl(u), { provider: 'youtube', id: YT, hash: '' }, u);
+    }
+    assert.deepEqual(parseVideoUrl('https://vimeo.com/76979871'), { provider: 'vimeo', id: '76979871', hash: '' });
+    assert.deepEqual(parseVideoUrl('https://vimeo.com/76979871/abcdef1234'), { provider: 'vimeo', id: '76979871', hash: 'abcdef1234' });
+    assert.deepEqual(parseVideoUrl('https://player.vimeo.com/video/76979871?h=abcdef1234'), { provider: 'vimeo', id: '76979871', hash: 'abcdef1234' });
+    assert.deepEqual(parseVideoUrl('https://vimeo.com/channels/staffpicks/76979871'), { provider: 'vimeo', id: '76979871', hash: '' });
+    for (const bad of ['', 'javascript:alert(1)', 'https://evil.test/watch?v=' + YT, 'https://youtube.com.evil.test/watch?v=' + YT, `https://evil.test/https://youtube.com/watch?v=${YT}`,
+      'https://www.youtube.com/watch?v=short', 'https://www.youtube.com/@channel', 'https://www.youtube.com/playlist?list=PL123', 'https://vimeo.com/channels/staffpicks', 'ftp://youtu.be/' + YT, `https://youtu.be/${YT}"onload="x`, '//youtu.be/' + YT]) {
+      assert.equal(parseVideoUrl(bad), null, bad);
+    }
+  });
+
+  test('the player address is built from a fixed template, never from the pasted text', () => {
+    const yt = embedUrl(parseVideoUrl(`https://www.youtube.com/watch?v=${YT}&evil=1`), 'popup');
+    assert.equal(yt, `https://www.youtube-nocookie.com/embed/${YT}?autoplay=1&rel=0&playsinline=1&modestbranding=1`);
+    const bg = embedUrl(parseVideoUrl(`https://youtu.be/${YT}`), 'background');
+    assert.match(bg, /^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1&mute=1&controls=0&loop=1&playlist=dQw4w9WgXcQ&/);
+    assert.equal(embedUrl(parseVideoUrl('https://vimeo.com/76979871/abcdef1234'), 'popup'), 'https://player.vimeo.com/video/76979871?autoplay=1&dnt=1&h=abcdef1234');
+    assert.match(embedUrl(parseVideoUrl('https://vimeo.com/76979871'), 'background'), /background=1&autoplay=1&muted=1&loop=1&dnt=1$/);
+    assert.equal(canonicalVideoUrl(parseVideoUrl(`https://m.youtube.com/shorts/${YT}?x=1`)), `https://www.youtube.com/watch?v=${YT}`);
+  });
+
+  test('slides: embeds are stored canonically, a pop-up has no link, existing types keep their exact shape', () => {
+    const out = cleanSlides([
+      embedSlide({ src: `https://youtube.com/shorts/${YT}?feature=share`, link: '/en/casino' }),
+      embedSlide({ play: 'background', link: '/en/casino' }),
+      { type: 'embed', src: 'https://evil.test/x' },
+      { type: 'image', src: '/a.jpg' }
+    ]);
+    assert.deepEqual(out[0], { type: 'embed', src: `https://www.youtube.com/watch?v=${YT}`, poster: '/media/p.jpg', alt: 'Our review', link: '', play: 'popup' });
+    assert.equal(out[1].link, '/en/casino');
+    assert.equal(out[1].play, 'background');
+    assert.equal(out.length, 3);
+    assert.deepEqual(Object.keys(out[2]), ['type', 'src', 'poster', 'alt', 'link']);
+  });
+
+  test('a pop-up slide: poster, a Watch pill for that slide, and no iframe in the page source', () => {
+    const out = html({ site_hero_media_enabled: 'true', site_hero_slides: JSON.stringify([embedSlide(), { type: 'image', src: '/b.jpg' }]) });
+    assert.match(out, /<img src="\/media\/p\.jpg" alt=""/);
+    assert.match(out, /<button type="button" class="hero-watch" data-hh-embed="https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1/);
+    assert.match(out, /data-hh-watch-for="0" aria-haspopup="dialog">/);
+    assert.doesNotMatch(out, /<iframe|<script/);
+  });
+
+  test('a background slide carries the player address in a data attribute only', () => {
+    const out = html({ site_hero_media_enabled: 'true', site_hero_slides: JSON.stringify([embedSlide({ play: 'background' })]) });
+    assert.match(out, /<div class="hero-embed" data-hh-bg-embed="https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1&amp;mute=1&amp;controls=0/);
+    assert.doesNotMatch(out, /<iframe|hero-watch"/);
+    assert.match(out, /data-embed-mobile="0"/);
+    assert.match(html({ site_hero_media_enabled: 'true', site_hero_media_embed_mobile: 'true', site_hero_slides: JSON.stringify([embedSlide({ play: 'background' })]) }), /data-embed-mobile="1"/);
+  });
+
+  test('a single pop-up slide still gets its Watch pill, but no arrows or dots', () => {
+    const out = html({ site_hero_media_enabled: 'true', site_hero_slides: JSON.stringify([embedSlide()]) });
+    assert.match(out, /hero-media__ui"><button type="button" class="hero-watch"/);
+    assert.doesNotMatch(out, /data-hh-next|data-hh-dot/);
+  });
+
+  test('the hero "Watch video" button: needs the switch and a real video link', () => {
+    const on = html({ site_hero_watch_enabled: 'true', site_hero_watch_url: `https://www.youtube.com/watch?v=${YT}&junk=1`, site_hero_watch_text: 'See how we rate' });
+    assert.match(on, /<button type="button" class="btn btn--ghost btn--lg hero-watch-btn" data-hh-embed="https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?/);
+    assert.match(on, /See how we rate<\/button>/);
+    assert.equal(html({ site_hero_watch_url: `https://youtu.be/${YT}` }).includes('hero-watch-btn'), false);
+    assert.equal(html({ site_hero_watch_enabled: 'true', site_hero_watch_url: 'https://evil.test/a' }).includes('hero-watch-btn'), false);
+    assert.equal(sanitizeHeaderHeroInput({ site_hero_watch_url: `https://m.youtube.com/watch?v=${YT}&x=1` }).site_hero_watch_url, `https://www.youtube.com/watch?v=${YT}`);
+    assert.equal(sanitizeHeaderHeroInput({ site_hero_watch_url: 'javascript:alert(1)' }).site_hero_watch_url, '');
+    assert.equal(sanitizeHeaderHeroInput({ site_hero_watch_text: '' }).site_hero_watch_text, 'Watch video');
+  });
+
+  test('the public script only ever frames the two allowed player addresses and cleans up', () => {
+    const js = stripComments(read('static/js/hero-media.js'));
+    assert.match(js, /youtube-nocookie\\\.com/);
+    assert.match(js, /player\\\.vimeo\\\.com/);
+    assert.match(js, /ALLOWED_EMBED\.test/);
+    assert.match(js, /role", "dialog"/);
+    assert.match(js, /Escape/);
+    assert.match(js, /about:blank/);
+    assert.match(js, /allowEmbeds/);
   });
 });

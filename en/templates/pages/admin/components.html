@@ -113,12 +113,19 @@ Exclusive bonuses" maxlength="240"></textarea><span class="hh-hint hh-count" dat
             <option value="news">News Article (individual)</option>
             <option value="update">Platform Update (individual)</option>
             <option value="page">Static Page (individual)</option>
+            <option value="author">Author (individual)</option>
+            <option value="payment_method">Payment Method (individual)</option>
+            <option value="research">Research item (individual, slug type/slug)</option>
             <option value="casino_list">Casino Listing Page (/en/casino)</option>
             <option value="review_list">Review Listing Page (/en/review)</option>
             <option value="news_list">News Listing Page (/en/news)</option>
             <option value="updates_list">Platform Updates Listing Page (/en/updates)</option>
             <option value="category_list">Category Listing Page (/en/category)</option>
             <option value="country_list">Country Listing Page (/en/country)</option>
+            <option value="author_list">Author Listing Page (/en/author)</option>
+            <option value="payment_method_list">Payment Methods Listing Page (/en/payment-methods)</option>
+            <option value="research_list">Research Hub (/en/research)</option>
+            <option value="research_type_list">Research Type Page (/en/research/&lt;type&gt;, slug = type)</option>
           </select>
         </div>
       </div>
@@ -126,6 +133,7 @@ Exclusive bonuses" maxlength="240"></textarea><span class="hh-hint hh-count" dat
         <div class="form-group">
           <label>Page Slug *</label>
           <input type="text" name="page_slug" required placeholder="e.g. homepage, fresh-casino-review, RW, crypto — use * for ALL pages of this type">
+          <small class="muted">Research item: <code>type/slug</code> (for example <code>country/netherlands</code>). Research Type Page: the type (for example <code>country</code>). Hub and listing pages: the type name itself (for example <code>research_list</code>), or <code>*</code>.</small>
         </div>
         <div class="form-group">
           <label>Injection Point *</label>
@@ -161,12 +169,18 @@ Exclusive bonuses" maxlength="240"></textarea><span class="hh-hint hh-count" dat
           <option value="update">Platform Update</option>
           <option value="page">Static Page</option>
           <option value="author">Author</option>
+          <option value="payment_method">Payment Method</option>
+          <option value="research">Research item</option>
           <option value="casino_list">Casino Listing Page</option>
           <option value="review_list">Review Listing Page</option>
           <option value="news_list">News Listing Page</option>
           <option value="updates_list">Platform Updates Listing Page</option>
           <option value="category_list">Category Listing Page</option>
           <option value="country_list">Country Listing Page</option>
+          <option value="author_list">Author Listing Page</option>
+          <option value="payment_method_list">Payment Methods Listing Page</option>
+          <option value="research_list">Research Hub</option>
+          <option value="research_type_list">Research Type Page</option>
         </select>
       </div>
       <div class="form-group">

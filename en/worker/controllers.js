@@ -3347,12 +3347,25 @@ function researchDirectoryFilterOptions(items, relationsByItemId) {
   };
 }
 
+// The components assigned to a research page, as the template variables research.html and
+// research-list.html already contain.
+function researchComponentVars(all) {
+  return {
+    components_top: all.top,
+    components_content_top: all.content_top,
+    components_content_bottom: all.content_bottom,
+    components_bottom: all.bottom,
+    components_sidebar: all.sidebar
+  };
+}
+
 export async function renderResearchHub(request, env) {
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
 
   const featured = await research.getFeaturedResearchItems(env.DB, 6);
   const latest = await research.getPublishedResearchItems(env.DB, { limit: 12 });
+  const allComponents = await renderer.renderAllComponents("research_list", "research_list");
 
   const allShown = [...featured, ...latest];
   const relationsByItemId = await researchRelations.getRelationsFromMany(
@@ -3364,6 +3377,7 @@ export async function renderResearchHub(request, env) {
   const itemCard = (item) => researchItemCardHtml(item, relationsByItemId.get(String(item.id)), true);
 
   const html = await renderer.render("research-list.html", {
+    ...researchComponentVars(allComponents),
     heading: "Research",
     intro: "Independent, source-cited research on online casino regulation, licensing, and player protection.",
     seo_title: "Research | " + site.siteName,
@@ -3388,6 +3402,7 @@ export async function renderResearchTypeList(request, env, researchType) {
   const site = await getSiteContext(request, env);
   const items = await research.getPublishedResearchItems(env.DB, { type: researchType, limit: 500 });
   const label = researchTypeLabel(researchType);
+  const allComponents = await renderer.renderAllComponents("research_type_list", researchType);
 
   const relationsByItemId = await researchRelations.getRelationsFromMany(
     env.DB, "research_item", items.map((i) => i.id)
@@ -3397,6 +3412,7 @@ export async function renderResearchTypeList(request, env, researchType) {
   const itemCard = (item) => researchItemCardHtml(item, relationsByItemId.get(String(item.id)), false);
 
   const html = await renderer.render("research-list.html", {
+    ...researchComponentVars(allComponents),
     heading: label,
     intro: "",
     seo_title: `${label} | Research | ${site.siteName}`,
@@ -3488,6 +3504,8 @@ export async function renderResearchItem(request, env, researchType, slug) {
   };
 
   const faqSchema = seoPageFaqSchema(contentData);
+  // components assigned in Dashboard > Components: page type "research", slug "<type>/<slug>" (or *)
+  const allComponents = await renderer.renderAllComponents("research", `${item.type}/${item.slug}`);
 
   const articleSchema = {
     "@context": "https://schema.org",
@@ -3501,6 +3519,7 @@ export async function renderResearchItem(request, env, researchType, slug) {
 
   const html = await renderer.render("research.html", {
     ...item,
+    ...researchComponentVars(allComponents),
     title: escapeHtml(item.title),
     type_label: researchTypeLabel(item.type),
     seo_title: item.seo_title || item.title,

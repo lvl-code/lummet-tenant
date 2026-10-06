@@ -26,7 +26,10 @@
   // ------------------------------------------------------------ field access
   function inputsFor(name) { return form.querySelectorAll('[name="' + name + '"]'); }
 
+  var repeaters = {};
+
   function getValue(name) {
+    if (repeaters[name]) return repeaters[name].serialize();
     var els = inputsFor(name);
     if (!els.length) return DEFAULTS[name];
     var first = els[0];
@@ -39,8 +42,9 @@
   }
 
   function setValue(name, value) {
-    var els = inputsFor(name);
     value = value == null ? "" : String(value);
+    if (repeaters[name]) { repeaters[name].load(value); return; }
+    var els = inputsFor(name);
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.type === "checkbox") el.checked = value === "true";
@@ -126,6 +130,7 @@
       showError(k, bad ? "Use a colour like #1a1a1a" : "");
       if (bad) ok = false;
     });
+    Object.keys(repeaters).forEach(function (k) { if (!repeaters[k].validate()) ok = false; });
     return ok;
   }
 
@@ -144,9 +149,185 @@
       el.textContent = max ? input.value.length + " / " + max : "";
     });
     Array.prototype.forEach.call(form.querySelectorAll("[data-output-for]"), function (el) {
-      el.textContent = String(getValue(el.getAttribute("data-output-for"))) + "%";
+      el.textContent = String(getValue(el.getAttribute("data-output-for"))) + (el.getAttribute("data-unit") || "%");
     });
   }
+
+  // ------------------------------------------------------------ slide and picture lists
+  var VIDEO_RE = /\.(mp4|webm|ogv|ogg|m4v)(\?[^\s]*)?$/i;
+  var KINDS = {
+    slide: { fields: ["type", "src", "poster", "alt", "link"], blank: { type: "image", src: "", poster: "", alt: "", link: "" }, noun: "slide" },
+    card: { fields: ["src", "alt", "link", "caption"], blank: { src: "", alt: "", link: "", caption: "" }, noun: "picture" }
+  };
+
+  function pickMedia(kind, done) {
+    var picker = window.MediaPicker;
+    var fn = picker && (kind === "video" ? picker.openVideoPicker : picker.openImagePicker);
+    if (!fn) { window.alert("The Media library is not available on this page. Paste the address instead."); return; }
+    fn.call(picker, function (media) { if (media) done(media); }, kind === "video" ? "videos" : "banners");
+  }
+
+  function initRepeater(host) {
+    var name = host.getAttribute("data-repeat");
+    var kind = KINDS[host.getAttribute("data-kind")];
+    var max = parseInt(host.getAttribute("data-max"), 10) || 4;
+    var items = [];
+    var list = el("div", "hh-rows");
+    var addBar = el("div", "hh-addbar");
+    var addMain = el("button", "hh-btn", "+ Add " + (kind === KINDS.slide ? "picture" : "picture"));
+    addMain.type = "button";
+    var addVideo = null;
+    addBar.appendChild(addMain);
+    if (kind === KINDS.slide) {
+      addVideo = el("button", "hh-btn", "+ Add video");
+      addVideo.type = "button";
+      addBar.appendChild(addVideo);
+    }
+    var count = el("span", "hh-hint");
+    addBar.appendChild(count);
+    host.appendChild(list);
+    host.appendChild(addBar);
+
+    function clean(item) {
+      var o = {};
+      kind.fields.forEach(function (f) { o[f] = String(item[f] == null ? "" : item[f]).trim(); });
+      if (o.type !== undefined) { o.type = o.type === "video" ? "video" : "image"; if (o.type !== "video") o.poster = ""; }
+      return o;
+    }
+    function filled() { return items.map(clean).filter(function (i) { return i.src; }).slice(0, max); }
+    function changed() { updateCounts(); validate(); refresh(); }
+
+    function labelled(text, control, wide) {
+      var wrap = el("div", "hh-mini" + (wide ? " hh-mini--wide" : ""));
+      wrap.appendChild(el("label", null, text));
+      wrap.appendChild(control);
+      return wrap;
+    }
+    function textInput(item, key, placeholder, max2) {
+      var input = el("input");
+      input.type = "text"; input.value = item[key] || ""; input.placeholder = placeholder; input.maxLength = max2 || 500; input.autocomplete = "off";
+      input.addEventListener("input", function () { item[key] = input.value; changed(); updateThumbs(); });
+      return input;
+    }
+
+    var thumbs = [];
+    function updateThumbs() {
+      thumbs.forEach(function (t) {
+        var it = t.item, url = it.type === "video" ? it.poster : it.src;
+        t.node.textContent = "";
+        t.node.style.backgroundImage = "";
+        if (url && /^(https?:\/\/|\/(?!\/))/i.test(url.trim()) && !/["'()\\\s]/.test(url.trim())) t.node.style.backgroundImage = 'url("' + url.trim() + '")';
+        else t.node.textContent = it.type === "video" ? "Video" : "No picture";
+      });
+    }
+
+    function render() {
+      list.textContent = "";
+      thumbs = [];
+      items.forEach(function (item, index) {
+        var row = el("div", "hh-row");
+        var thumb = el("div", "hh-row__thumb");
+        thumbs.push({ item: item, node: thumb });
+        row.appendChild(thumb);
+        var fields = el("div", "hh-row__fields");
+
+        if (kind === KINDS.slide) {
+          var type = el("select");
+          [["image", "Picture"], ["video", "Video"]].forEach(function (o) {
+            var opt = el("option", null, o[1]); opt.value = o[0]; type.appendChild(opt);
+          });
+          type.value = item.type === "video" ? "video" : "image";
+          type.addEventListener("change", function () { item.type = type.value; render(); changed(); });
+          fields.appendChild(labelled("Type", type));
+        }
+
+        var srcWrap = el("div", "hh-srcrow");
+        var src = textInput(item, "src", item.type === "video" ? "/media/videos/clip.mp4" : "/media/banners/hero.jpg", 500);
+        var choose = el("button", "hh-btn", "Choose from Media");
+        choose.type = "button";
+        choose.addEventListener("click", function () {
+          pickMedia(item.type === "video" ? "video" : "image", function (m) {
+            item.src = m.url || m.public_url || "";
+            if (!item.alt && m.alt_text) item.alt = m.alt_text;
+            render(); changed();
+          });
+        });
+        srcWrap.appendChild(src);
+        srcWrap.appendChild(choose);
+        fields.appendChild(labelled(item.type === "video" ? "Video file (.mp4 or .webm)" : "Picture address", srcWrap, true));
+
+        if (item.type === "video") {
+          var posterWrap = el("div", "hh-srcrow");
+          posterWrap.appendChild(textInput(item, "poster", "/media/banners/poster.jpg", 500));
+          var pc = el("button", "hh-btn", "Choose");
+          pc.type = "button";
+          pc.addEventListener("click", function () { pickMedia("image", function (m) { item.poster = m.url || ""; render(); changed(); }); });
+          posterWrap.appendChild(pc);
+          fields.appendChild(labelled("Poster picture (recommended)", posterWrap, true));
+        }
+        fields.appendChild(labelled("Description (alt text)", textInput(item, "alt", "What the picture shows", 140)));
+        if (kind === KINDS.card) fields.appendChild(labelled("Caption (optional)", textInput(item, "caption", "Short caption", 60)));
+        fields.appendChild(labelled("Link when clicked (optional)", textInput(item, "link", "/en/casino", 300), kind === KINDS.slide));
+        var err = el("p", "hh-error"); err.hidden = true; err.setAttribute("data-row-error", "");
+        fields.appendChild(err);
+        row.appendChild(fields);
+
+        var actions = el("div", "hh-row__actions");
+        function act(label, title, fn, disabled) {
+          var b = el("button", "hh-btn", label);
+          b.type = "button"; b.title = title; b.setAttribute("aria-label", title); b.disabled = Boolean(disabled);
+          b.addEventListener("click", fn);
+          actions.appendChild(b);
+        }
+        act("\u2191", "Move up", function () { items.splice(index - 1, 0, items.splice(index, 1)[0]); render(); changed(); }, index === 0);
+        act("\u2193", "Move down", function () { items.splice(index + 1, 0, items.splice(index, 1)[0]); render(); changed(); }, index === items.length - 1);
+        act("Remove", "Remove this " + kind.noun, function () { items.splice(index, 1); render(); changed(); });
+        row.appendChild(actions);
+        list.appendChild(row);
+      });
+      updateThumbs();
+      addMain.disabled = items.length >= max;
+      if (addVideo) addVideo.disabled = items.length >= max;
+      count.textContent = items.length + " of " + max;
+    }
+
+    addMain.addEventListener("click", function () { items.push(clean(kind.blank)); render(); changed(); });
+    if (addVideo) addVideo.addEventListener("click", function () { var b = clean(kind.blank); b.type = "video"; items.push(b); render(); changed(); });
+
+    repeaters[name] = {
+      serialize: function () { return JSON.stringify(filled()); },
+      load: function (value) {
+        var parsed = [];
+        try { parsed = JSON.parse(value || "[]"); } catch (e) { parsed = []; }
+        items = (Array.isArray(parsed) ? parsed : []).slice(0, max).map(function (x) {
+          var o = {};
+          kind.fields.forEach(function (f) { o[f] = x && x[f] != null ? String(x[f]) : ""; });
+          if (o.type !== undefined && o.type !== "video") o.type = "image";
+          return o;
+        });
+        render();
+      },
+      validate: function () {
+        var ok = true;
+        var errs = list.querySelectorAll("[data-row-error]");
+        items.forEach(function (item, i) {
+          var msg = "";
+          var src = String(item.src || "").trim();
+          if (src && !validLink(src)) msg = "The address must start with / or https://";
+          else if (src && item.type === "video" && !VIDEO_RE.test(src)) msg = "Use a video file ending in .mp4 or .webm (not a web page).";
+          else if (item.poster && !validLink(String(item.poster).trim())) msg = "The poster address must start with / or https://";
+          else if (item.link && !validLink(String(item.link).trim())) msg = "The link must start with / or https://";
+          else if (!src && (item.alt || item.link)) msg = "Add a picture or video address, or remove this row.";
+          if (errs[i]) { errs[i].textContent = msg; errs[i].hidden = !msg; }
+          if (msg) ok = false;
+        });
+        return ok;
+      }
+    };
+    repeaters[name].load("[]");
+  }
+
+  Array.prototype.forEach.call(form.querySelectorAll("[data-repeat]"), initRepeater);
 
   // ------------------------------------------------------------ preview
   function el(tag, className, text) {
@@ -206,6 +387,53 @@
   function setOptionalVar(node, name, value) {
     if (value) node.style.setProperty(name, value);
     else node.style.removeProperty(name);
+  }
+
+  // The preview shows the first slide, the controls and the picture motion; the live site also slides on its own.
+  function previewMedia(v, slides) {
+    var wrap = el("div", "hero-media hero-media--" + pick(v.site_hero_media_transition, ["fade", "slide"], "fade") +
+      " hero-media--motion-" + pick(v.site_hero_media_motion, ["none", "zoom", "pan"], "zoom"));
+    var first = slides[0];
+    var slide = el("div", "hero-slide is-active");
+    var img;
+    if (first.type === "video" && !first.poster) {
+      var vid = el("video");
+      vid.muted = true; vid.preload = "metadata";
+      vid.src = first.src;
+      slide.appendChild(vid);
+    } else {
+      img = el("img");
+      img.src = first.type === "video" ? first.poster : first.src;
+      img.alt = "";
+      slide.appendChild(img);
+    }
+    wrap.appendChild(slide);
+    return wrap;
+  }
+  function previewControls(v, slides) {
+    var ui = el("div", "hero-media__ui");
+    if (isOn(v.site_hero_media_arrows)) {
+      ui.appendChild(el("span", "hero-media__nav hero-media__prev", "\u2039"));
+      ui.appendChild(el("span", "hero-media__nav hero-media__next", "\u203A"));
+    }
+    if (isOn(v.site_hero_media_dots)) {
+      var dots = el("div", "hero-media__dots");
+      slides.forEach(function (s, i) { var d = el("button"); if (i === 0) d.setAttribute("aria-current", "true"); dots.appendChild(d); });
+      ui.appendChild(dots);
+    }
+    return ui;
+  }
+  function previewCards(v, cards) {
+    var wrap = el("div", "hero-cards hero-cards--" + pick(v.site_hero_cards_size, ["sm", "md", "lg"], "md") + " hero-cards--n" + cards.length);
+    cards.forEach(function (c) {
+      var fig = el("figure", "hero-card" + (c.link ? " hero-card--link" : ""));
+      var img = el("img");
+      img.src = c.src; img.alt = "";
+      fig.appendChild(img);
+      if (c.caption) fig.appendChild(el("figcaption", null, c.caption));
+      wrap.appendChild(fig);
+    });
+    return wrap;
   }
 
   function renderPreview() {
@@ -309,7 +537,17 @@
         (validColor(v.site_hero_title_color) && v.site_hero_title_color ? " hero--custom-title" : "") +
         (FONTS[v.site_hero_heading_font] ? " hero--font-heading" : "") +
         (FONTS[v.site_hero_body_font] ? " hero--font-body" : "");
+      var slidesOk = [];
+      var cardsOk = [];
+      try { slidesOk = JSON.parse(v.site_hero_slides || "[]"); } catch (e) { slidesOk = []; }
+      try { cardsOk = JSON.parse(v.site_hero_cards || "[]"); } catch (e) { cardsOk = []; }
+      var showMedia = isOn(v.site_hero_media_enabled) && slidesOk.length > 0;
+      var showCards = isOn(v.site_hero_cards_enabled) && cardsOk.length > 0;
+      var cardsSide = showCards && v.site_hero_cards_position === "side";
+      if (showMedia) heroClass += " hero--has-media" + (slidesOk.length > 1 && isOn(v.site_hero_media_arrows) ? " hero--arrows" : "");
+      if (cardsSide) heroClass += " hero--cards-side";
       var hero = el("section", heroClass);
+      if (showMedia) hero.appendChild(previewMedia(v, slidesOk));
       if (hasImage && /^(https?:\/\/|\/(?!\/))/i.test(v.site_hero_image.trim())) {
         hero.style.backgroundImage = 'url("' + encodeURI(v.site_hero_image.trim()).replace(/"/g, "%22") + '")';
       }
@@ -334,8 +572,11 @@
       if (isOn(v.site_hero_button_enabled) && btn1) acts.appendChild(el("span", "btn btn--primary btn--lg", btn1));
       if (v.site_hero_button2_text.trim() && v.site_hero_button2_url.trim()) acts.appendChild(el("span", "btn btn--ghost btn--lg", v.site_hero_button2_text.trim()));
       if (acts.children.length) content.appendChild(acts);
+      if (showCards && !cardsSide) content.appendChild(previewCards(v, cardsOk));
       container.appendChild(content);
+      if (cardsSide) { container.className = "container hero-grid"; container.appendChild(previewCards(v, cardsOk)); }
       hero.appendChild(container);
+      if (showMedia && slidesOk.length > 1) hero.appendChild(previewControls(v, slidesOk));
       root.appendChild(hero);
     } else {
       var off = el("div", "hh-preview-off", "The homepage hero is switched off.");
@@ -388,7 +629,7 @@
     var preset = PRESETS[key];
     if (!preset) return;
     // keep the visitor-facing text you wrote; a style changes the look, not your words
-    var keep = ["site_hero_title", "site_hero_subtitle", "site_hero_description", "site_hero_badge", "site_hero_button_text", "site_hero_button_url", "site_hero_image"];
+    var keep = ["site_hero_media_enabled", "site_hero_slides", "site_hero_cards_enabled", "site_hero_cards", "site_hero_title", "site_hero_subtitle", "site_hero_description", "site_hero_badge", "site_hero_button_text", "site_hero_button_url", "site_hero_image"];
     var next = {};
     KEYS.forEach(function (k) { next[k] = keep.indexOf(k) !== -1 ? getValue(k) : DEFAULTS[k]; });
     Object.keys(preset).forEach(function (k) { next[k] = preset[k]; });

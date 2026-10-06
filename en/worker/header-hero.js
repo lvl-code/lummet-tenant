@@ -27,6 +27,12 @@ const LINES = "lines";
 const URL_T = "url";
 const COLOR = "color";
 const INT = "int";
+const SLIDES = "slides";
+const CARDS = "cards";
+
+export const MAX_SLIDES = 6;
+export const MAX_CARDS = 4;
+const VIDEO_EXT = /\.(mp4|webm|ogv|ogg|m4v)(\?[^\s]*)?$/i;
 
 // Font choices. Only system font stacks are offered: nothing is downloaded, so there is no
 // extra request, no layout shift and no third-party tracking. "default" keeps the site font.
@@ -99,6 +105,20 @@ export const FIELDS = [
   { key: "site_hero_overlay", prop: "heroOverlay", group: "hero", type: BOOL, def: true },
   { key: "site_hero_overlay_opacity", prop: "heroOverlayOpacity", group: "hero", type: INT, min: 0, max: 85, def: 45 },
   { key: "site_hero_text_theme", prop: "heroTextTheme", group: "hero", type: ENUM, values: ["light", "dark"], def: "light" },
+  // ---- hero media (all off by default: the hero looks exactly as before until it is switched on)
+  { key: "site_hero_media_enabled", prop: "heroMediaEnabled", group: "hero", type: BOOL, def: false },
+  { key: "site_hero_slides", prop: "heroSlides", group: "hero", type: SLIDES, def: "[]" },
+  { key: "site_hero_media_autoplay", prop: "heroMediaAutoplay", group: "hero", type: BOOL, def: true },
+  { key: "site_hero_media_interval", prop: "heroMediaInterval", group: "hero", type: INT, min: 3, max: 20, def: 6 },
+  { key: "site_hero_media_transition", prop: "heroMediaTransition", group: "hero", type: ENUM, values: ["fade", "slide"], def: "fade" },
+  { key: "site_hero_media_motion", prop: "heroMediaMotion", group: "hero", type: ENUM, values: ["none", "zoom", "pan"], def: "zoom" },
+  { key: "site_hero_media_arrows", prop: "heroMediaArrows", group: "hero", type: BOOL, def: true },
+  { key: "site_hero_media_dots", prop: "heroMediaDots", group: "hero", type: BOOL, def: true },
+  { key: "site_hero_media_pause_hover", prop: "heroMediaPauseHover", group: "hero", type: BOOL, def: true },
+  { key: "site_hero_cards_enabled", prop: "heroCardsEnabled", group: "hero", type: BOOL, def: false },
+  { key: "site_hero_cards", prop: "heroCards", group: "hero", type: CARDS, def: "[]" },
+  { key: "site_hero_cards_position", prop: "heroCardsPosition", group: "hero", type: ENUM, values: ["below", "side"], def: "below" },
+  { key: "site_hero_cards_size", prop: "heroCardsSize", group: "hero", type: ENUM, values: ["sm", "md", "lg"], def: "md" },
   { key: "site_hero_text_color", prop: "heroTextColor", group: "hero", type: COLOR, def: "" },
   { key: "site_hero_title_color", prop: "heroTitleColor", group: "hero", type: COLOR, def: "" },
   { key: "site_hero_heading_font", prop: "heroHeadingFont", group: "hero", type: ENUM, values: FONT_KEYS, def: "default" },
@@ -161,6 +181,56 @@ function cleanImage(value, max) {
   return v;
 }
 
+function parseJsonArray(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// A video must point at a playable file (mp4, webm, ogg, m4v), not a web page.
+function cleanVideoSrc(value) {
+  const v = cleanImage(value, 500);
+  return v && VIDEO_EXT.test(v) ? v : "";
+}
+
+/** Slides: [{ type: "image"|"video", src, poster, alt, link }], at most MAX_SLIDES, bad entries dropped. */
+export function cleanSlides(raw) {
+  const out = [];
+  for (const item of parseJsonArray(raw)) {
+    if (out.length >= MAX_SLIDES) break;
+    if (!item || typeof item !== "object") continue;
+    const type = item.type === "video" ? "video" : "image";
+    const src = type === "video" ? cleanVideoSrc(item.src) : cleanImage(item.src, 500);
+    if (!src) continue;
+    out.push({
+      type,
+      src,
+      poster: type === "video" ? cleanImage(item.poster, 500) : "",
+      alt: cleanText(item.alt, 140),
+      link: cleanImage(item.link, 300)
+    });
+  }
+  return out;
+}
+
+/** Cards (images placed inside the hero): [{ src, alt, link, caption }], at most MAX_CARDS. */
+export function cleanCards(raw) {
+  const out = [];
+  for (const item of parseJsonArray(raw)) {
+    if (out.length >= MAX_CARDS) break;
+    if (!item || typeof item !== "object") continue;
+    const src = cleanImage(item.src, 500);
+    if (!src) continue;
+    out.push({ src, alt: cleanText(item.alt, 140), link: cleanImage(item.link, 300), caption: cleanText(item.caption, 60) });
+  }
+  return out;
+}
+
 export function cleanColor(value) {
   const v = String(value ?? "").trim();
   if (!v) return "";
@@ -194,6 +264,10 @@ function normalizeOne(field, raw) {
     }
     case COLOR:
       return cleanColor(raw);
+    case SLIDES:
+      return JSON.stringify(cleanSlides(raw));
+    case CARDS:
+      return JSON.stringify(cleanCards(raw));
     case URL_T: {
       const v = field.absoluteOnly ? cleanImage(raw, field.max) : cleanLink(raw, field.max);
       return v || (field.fallbackWhenEmpty ? field.def : "");
@@ -216,7 +290,9 @@ function normalizeOne(field, raw) {
 export function parseHeaderHero(values = {}) {
   const out = {};
   for (const field of FIELDS) {
-    out[field.prop] = normalizeOne(field, values ? values[field.key] : undefined);
+    const value = normalizeOne(field, values ? values[field.key] : undefined);
+    // slides and cards are stored as JSON text; the rest of the code works with arrays
+    out[field.prop] = field.type === SLIDES || field.type === CARDS ? JSON.parse(value) : value;
   }
   return out;
 }
@@ -287,7 +363,11 @@ export function heroClasses(hh, hasImage) {
     hh.heroTextColor ? "hero--custom-fg" : "",
     hh.heroTitleColor ? "hero--custom-title" : "",
     hh.heroHeadingFont !== "default" ? "hero--font-heading" : "",
-    hh.heroBodyFont !== "default" ? "hero--font-body" : ""
+    hh.heroBodyFont !== "default" ? "hero--font-body" : "",
+    hasMedia(hh) ? "hero--has-media" : "",
+    hasMedia(hh) && hh.heroSlides.some((x) => x.link) ? "hero--media-link" : "",
+    hasMedia(hh) && hh.heroSlides.length > 1 && hh.heroMediaArrows ? "hero--arrows" : "",
+    hasCards(hh) && hh.heroCardsPosition === "side" ? "hero--cards-side" : ""
   ].filter(Boolean).join(" ");
 }
 
@@ -303,6 +383,82 @@ function announceHtml(hh, showLink) {
     `<div class="hh-announce hh-announce--${hh.announceTone}" role="region" aria-label="Announcement" data-announce-id="${id}">` +
     `<div class="container hh-announce__inner"><p class="hh-announce__text">${escapeHtml(hh.announceText)}${link}</p>${close}</div></div>`
   );
+}
+
+function hasMedia(hh) {
+  return Boolean(hh.heroMediaEnabled && hh.heroSlides && hh.heroSlides.length);
+}
+function hasCards(hh) {
+  return Boolean(hh.heroCardsEnabled && hh.heroCards && hh.heroCards.length);
+}
+
+function videoType(src) {
+  const m = /\.(mp4|webm|ogv|ogg|m4v)(\?|$)/i.exec(src);
+  const ext = m ? m[1].toLowerCase() : "mp4";
+  return ext === "webm" ? "video/webm" : ext === "ogv" || ext === "ogg" ? "video/ogg" : "video/mp4";
+}
+
+/** The slides layer that sits behind the overlay and the text. */
+function mediaHtml(hh) {
+  const e = escapeHtml;
+  const slides = hh.heroSlides;
+  const many = slides.length > 1;
+  const autoplay = many && hh.heroMediaAutoplay;
+  const slideHtml = slides
+    .map((sl, i) => {
+      const first = i === 0;
+      let inner;
+      if (sl.type === "video") {
+        // Only the first video gets autoplay here; the script plays and pauses the others.
+        const attrs = `muted playsinline${first ? " autoplay" : ""}${many && hh.heroMediaAutoplay ? "" : " loop"} preload="${first ? "auto" : "none"}"` +
+          (sl.poster ? ` poster="${e(sl.poster)}"` : "") +
+          (sl.alt ? ` aria-label="${e(sl.alt)}"` : ' aria-hidden="true"');
+        inner = `<video ${attrs}><source src="${e(sl.src)}" type="${videoType(sl.src)}"></video>`;
+      } else {
+        inner = `<img src="${e(sl.src)}" alt="${e(sl.alt)}" decoding="async"${first ? ' fetchpriority="high"' : ' loading="lazy"'}>`;
+      }
+      const link = sl.link ? `<a class="hero-slide__link" href="${e(sl.link)}" aria-label="${e(sl.alt || "Learn more")}"${/^https?:/i.test(sl.link) ? ' target="_blank" rel="noopener"' : ""}></a>` : "";
+      const label = many ? ` role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}"` : "";
+      return `<div class="hero-slide${first ? " is-active" : ""}" data-type="${sl.type}"${label}>${inner}${link}</div>`;
+    })
+    .join("");
+  return (
+    `<div class="hero-media hero-media--${hh.heroMediaTransition} hero-media--motion-${hh.heroMediaMotion}" ` +
+    `data-autoplay="${autoplay ? "1" : "0"}" data-interval="${hh.heroMediaInterval * 1000}" data-pause-hover="${hh.heroMediaPauseHover ? "1" : "0"}" ` +
+    `style="--hh-interval:${hh.heroMediaInterval}s">${slideHtml}</div>`
+  );
+}
+
+/** Arrows, dots and the pause button. They sit above the text so they can be clicked. */
+function mediaControlsHtml(hh) {
+  const slides = hh.heroSlides;
+  if (slides.length < 2) return "";
+  const arrows = hh.heroMediaArrows
+    ? '<button type="button" class="hero-media__nav hero-media__prev" data-hh-prev aria-label="Previous slide">&#8249;</button>' +
+      '<button type="button" class="hero-media__nav hero-media__next" data-hh-next aria-label="Next slide">&#8250;</button>'
+    : "";
+  const dots = hh.heroMediaDots
+    ? `<div class="hero-media__dots">${slides.map((_, i) => `<button type="button" data-hh-dot="${i}" aria-label="Go to slide ${i + 1}"${i === 0 ? ' aria-current="true"' : ""}></button>`).join("")}</div>`
+    : "";
+  const pause = hh.heroMediaAutoplay
+    ? '<button type="button" class="hero-media__pause" data-hh-toggle aria-label="Pause slideshow" aria-pressed="false"><span aria-hidden="true">&#10074;&#10074;</span></button>'
+    : "";
+  return `<div class="hero-media__ui">${arrows}${dots}${pause}</div>`;
+}
+
+/** Images placed inside the hero, fixed or clickable. */
+function cardsHtml(hh) {
+  const e = escapeHtml;
+  const cards = hh.heroCards
+    .map((c) => {
+      const img = `<img src="${e(c.src)}" alt="${e(c.alt)}" loading="lazy" decoding="async">`;
+      const external = /^https?:/i.test(c.link);
+      const media = c.link ? `<a class="hero-card__link" href="${e(c.link)}"${external ? ' target="_blank" rel="noopener"' : ""}>${img}</a>` : img;
+      const caption = c.caption ? `<figcaption>${e(c.caption)}</figcaption>` : "";
+      return `<figure class="hero-card${c.link ? " hero-card--link" : ""}">${media}${caption}</figure>`;
+    })
+    .join("");
+  return `<div class="hero-cards hero-cards--${hh.heroCardsSize} hero-cards--n${hh.heroCards.length}">${cards}</div>`;
 }
 
 function heroHtml(hh, hasImage) {
@@ -323,11 +479,16 @@ function heroHtml(hh, hasImage) {
       ? `<a href="${e(hh.heroButton2Url)}" class="btn btn--ghost btn--lg">${e(hh.heroButton2Text)}</a>`
       : "";
   const actions = primary || secondary ? `<div class="hero-actions">${primary}${secondary}</div>` : "";
+  const media = hasMedia(hh) ? mediaHtml(hh) : "";
+  const controls = hasMedia(hh) ? mediaControlsHtml(hh) : "";
+  const cards = hasCards(hh) ? cardsHtml(hh) : "";
+  const side = Boolean(cards) && hh.heroCardsPosition === "side";
+  const body = `${badge}<h1>${e(hh.heroTitle)}</h1><p class="hero-subtitle">${e(hh.heroSubtitle)}</p>${description}${highlights}${actions}${side ? "" : cards}`;
+  const content = `<div class="hero-content hero-content--${hh.heroAlignment}">${body}</div>`;
+  const wrapped = side ? `<div class="container hero-grid">${content}${cards}</div>` : `<div class="container">${content}</div>`;
   return (
-    `<section class="hero ${heroClasses(hh, hasImage)}" id="siteHero"${style}>${overlay}` +
-    `<div class="container"><div class="hero-content hero-content--${hh.heroAlignment}">` +
-    `${badge}<h1>${e(hh.heroTitle)}</h1><p class="hero-subtitle">${e(hh.heroSubtitle)}</p>${description}${highlights}${actions}` +
-    `</div></div></section>`
+    `<section class="hero ${heroClasses(hh, hasImage)}" id="siteHero"${style}${media ? " data-hh-hero-media" : ""}>${media}${overlay}` +
+    `${wrapped}${controls}</section>`
   );
 }
 

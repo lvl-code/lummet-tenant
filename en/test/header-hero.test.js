@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import {
   FIELDS, HEADER_HERO_KEYS, parseHeaderHero, defaultHeaderHero, sanitizeHeaderHeroInput,
-  headerHeroTemplateVars, headerHeroDefaultsForAdmin, jsonForScript, cleanLink, cleanColor, FONT_STACKS, FONT_KEYS, headerClasses, heroClasses
+  headerHeroTemplateVars, headerHeroDefaultsForAdmin, jsonForScript, cleanLink, cleanColor, FONT_STACKS, FONT_KEYS, headerClasses, heroClasses, cleanSlides, cleanCards, MAX_SLIDES, MAX_CARDS
 } from '../worker/header-hero.js';
 import { getSiteSettings } from '../worker/site-settings.js';
 import { Renderer } from '../worker/render.js';
@@ -322,7 +322,7 @@ describe('saving', () => {
 
 describe('admin page', () => {
   const page = read('templates/pages/admin/header-hero.html');
-  const names = [...page.matchAll(/\sname="([a-z0-9_]+)"/g)].map((m) => m[1]).filter((n) => n !== 'hh_device');
+  const names = [...page.matchAll(/\s(?:name|data-repeat)="([a-z0-9_]+)"/g)].map((m) => m[1]).filter((n) => n !== 'hh_device');
 
   test('every setting has a control, and every control is a known setting', () => {
     assert.deepEqual([...new Set(names)].sort(), [...HEADER_HERO_KEYS].sort());
@@ -368,7 +368,7 @@ describe('admin page', () => {
     const css = read('static/css/header-hero.css').replace(/\/\*[\s\S]*?\*\//g, '').replace(/@[a-z-]+[^{;]*\{/g, '');
     const selectors = [...css.matchAll(/(^|\})\s*([^{}@][^{}]*)\{/g)].flatMap((m) => m[2].split(',').map((s) => s.trim())).filter(Boolean);
     for (const sel of selectors) {
-      assert.ok(/^(:root|\.|\.hh-|\.hero|\.site-header|\.hh-)/.test(sel) || /^\.(hh|hero|site-header)/.test(sel) || sel.startsWith('.') || /^(fieldset|body)\.hh-/.test(sel), `unscoped selector: ${sel}`);
+      assert.ok(/^(:root|\.|\.hh-|\.hero|\.site-header|\.hh-)/.test(sel) || /^\.(hh|hero|site-header)/.test(sel) || sel.startsWith('.') || /^(fieldset|body)\.hh-/.test(sel) || /^(from|to)$/.test(sel), `unscoped selector: ${sel}`);
     }
   });
 
@@ -456,5 +456,137 @@ describe('custom colours and fonts', () => {
     for (const name of ['site_header_text_color', 'site_header_font', 'site_hero_text_color', 'site_hero_title_color', 'site_hero_heading_font', 'site_hero_body_font']) {
       assert.match(page, new RegExp(`name="${name}"`), name);
     }
+  });
+});
+
+describe('hero media: slides and pictures', () => {
+  const slides = (list) => JSON.stringify(list);
+  const on = (extra = {}) => headerHeroTemplateVars(parseHeaderHero({ site_hero_media_enabled: 'true', ...extra })).hh_hero_html;
+
+  test('off by default: the hero markup has no media, cards, controls or extra classes', () => {
+    const html = headerHeroTemplateVars(defaultHeaderHero()).hh_hero_html;
+    assert.doesNotMatch(html, /hero-media|hero-slide|hero-card|data-hh-hero-media|hero--has-media|hero-grid/);
+    // switching it on with no slides still changes nothing
+    assert.equal(on({ site_hero_slides: '[]' }), html);
+  });
+
+  test('the default hero is byte-for-byte what v8 produced', () => {
+    const html = headerHeroTemplateVars(defaultHeaderHero()).hh_hero_html;
+    assert.equal(
+      html,
+      '<section class="hero hero--h-standard hero--text-light hero--focus-center hero--bg-default" id="siteHero"><div class="hero-overlay" aria-hidden="true"></div>' +
+        '<div class="container"><div class="hero-content hero-content--center"><div class="hero-badge">Find Your Perfect Casino</div><h1>Find Your Perfect Casino</h1>' +
+        '<p class="hero-subtitle">Expert reviews, exclusive bonuses, and real player data for {{casino_count}}+ casinos worldwide.</p>' +
+        '<div class="hero-actions"><a href="/en/casino" class="btn btn--primary btn--lg">Browse Casinos</a></div></div></div></section>'
+    );
+  });
+
+  test('a single picture is fixed: no arrows, dots or pause button', () => {
+    const html = on({ site_hero_slides: slides([{ type: 'image', src: '/media/a.jpg', alt: 'A' }]) });
+    assert.match(html, /<img src="\/media\/a\.jpg" alt="A"/);
+    assert.match(html, /data-autoplay="0"/);
+    assert.doesNotMatch(html, /hero-media__ui|data-hh-next|data-hh-toggle/);
+  });
+
+  test('several slides get the controls, the interval and the transition', () => {
+    const html = on({
+      site_hero_slides: slides([{ type: 'image', src: '/a.jpg' }, { type: 'image', src: '/b.jpg' }]),
+      site_hero_media_interval: '9', site_hero_media_transition: 'slide', site_hero_media_motion: 'pan'
+    });
+    assert.match(html, /data-autoplay="1" data-interval="9000"/);
+    assert.match(html, /hero-media--slide hero-media--motion-pan/);
+    assert.match(html, /data-hh-prev/);
+    assert.match(html, /data-hh-dot="1"/);
+    assert.match(html, /data-hh-toggle/);
+    assert.match(html, /hero--arrows/);
+    assert.match(html, /aria-label="2 of 2"/);
+  });
+
+  test('autoplay off removes the pause button and the timer', () => {
+    const html = on({ site_hero_media_autoplay: 'false', site_hero_slides: slides([{ type: 'image', src: '/a.jpg' }, { type: 'image', src: '/b.jpg' }]) });
+    assert.match(html, /data-autoplay="0"/);
+    assert.doesNotMatch(html, /data-hh-toggle/);
+  });
+
+  test('videos: muted, inline, poster, correct type; only a playable file is accepted', () => {
+    const html = on({ site_hero_slides: slides([{ type: 'video', src: '/media/videos/a.mp4', poster: '/media/p.jpg', alt: 'Clip' }]) });
+    assert.match(html, /<video muted playsinline autoplay loop preload="auto" poster="\/media\/p\.jpg" aria-label="Clip">/);
+    assert.match(html, /<source src="\/media\/videos\/a\.mp4" type="video\/mp4">/);
+    assert.deepEqual(cleanSlides([{ type: 'video', src: '/page.html' }, { type: 'video', src: 'https://x.test/a.webm?v=2' }]).map((s) => s.src), ['https://x.test/a.webm?v=2']);
+    assert.match(on({ site_hero_slides: slides([{ type: 'video', src: '/a.webm' }]) }), /type="video\/webm"/);
+  });
+
+  test('with several slides a video does not loop (it moves the show on) and only the first can autoplay', () => {
+    const html = on({ site_hero_slides: slides([{ type: 'video', src: '/a.mp4' }, { type: 'video', src: '/b.mp4' }]) });
+    const vids = html.match(/<video [^>]*>/g);
+    assert.equal(vids.length, 2);
+    assert.match(vids[0], /autoplay/);
+    assert.doesNotMatch(vids[0], /\bloop\b/);
+    assert.doesNotMatch(vids[1], /autoplay/);
+    assert.match(vids[1], /preload="none"/);
+  });
+
+  test('a slide link makes the hero clickable and opens other sites in a new tab', () => {
+    const html = on({ site_hero_slides: slides([{ type: 'image', src: '/a.jpg', link: 'https://partner.test/x' }, { type: 'image', src: '/b.jpg', link: '/en/casino' }]) });
+    assert.match(html, /hero--media-link/);
+    assert.match(html, /href="https:\/\/partner\.test\/x"[^>]*target="_blank" rel="noopener"/);
+    assert.doesNotMatch(html.match(/<a class="hero-slide__link" href="\/en\/casino"[^>]*>/)[0], /target=/);
+  });
+
+  test('bad entries are dropped and the lists are capped', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ type: 'image', src: `/m/${i}.jpg` }));
+    assert.equal(cleanSlides(many).length, MAX_SLIDES);
+    assert.equal(cleanCards(many).length, MAX_CARDS);
+    assert.deepEqual(cleanSlides([null, 5, 'x', { src: 'javascript:alert(1)' }, { src: '//evil.test/a.jpg' }, { src: 'a b.jpg' }, { src: '/ok.jpg', link: 'javascript:1', alt: 'x'.repeat(500) }]).map((s) => [s.src, s.link, s.alt.length]), [['/ok.jpg', '', 140]]);
+    assert.deepEqual(cleanSlides('not json'), []);
+    assert.deepEqual(cleanSlides('{"a":1}'), []);
+  });
+
+  test('text from the lists is escaped', () => {
+    const html = on({ site_hero_slides: slides([{ type: 'image', src: '/a.jpg', alt: '"><script>alert(1)</script>' }]) }) +
+      headerHeroTemplateVars(parseHeaderHero({ site_hero_cards_enabled: 'true', site_hero_cards: slides([{ src: '/c.jpg', caption: '<b>x</b>', alt: '"onerror="1' }]) })).hh_hero_html;
+    assert.doesNotMatch(html, /<script>|<b>x|onerror="1/);
+    assert.match(html, /&lt;b&gt;x&lt;\/b&gt;/);
+  });
+
+  test('pictures inside the hero: below by default, beside on request, links optional', () => {
+    const cards = slides([{ src: '/c1.jpg', caption: 'One', link: '/en/casino' }, { src: '/c2.jpg' }, { src: '/c3.jpg' }]);
+    const below = headerHeroTemplateVars(parseHeaderHero({ site_hero_cards_enabled: 'true', site_hero_cards: cards })).hh_hero_html;
+    assert.match(below, /<\/div><div class="hero-cards hero-cards--md hero-cards--n3">/);
+    assert.doesNotMatch(below, /hero-grid|hero--cards-side/);
+    assert.match(below, /<a class="hero-card__link" href="\/en\/casino">/);
+    assert.equal((below.match(/<figure/g) || []).length, 3);
+    const side = headerHeroTemplateVars(parseHeaderHero({ site_hero_cards_enabled: 'true', site_hero_cards: cards, site_hero_cards_position: 'side', site_hero_cards_size: 'lg' })).hh_hero_html;
+    assert.match(side, /class="container hero-grid"/);
+    assert.match(side, /hero--cards-side/);
+    assert.match(side, /hero-cards--lg/);
+    assert.equal(headerHeroTemplateVars(parseHeaderHero({ site_hero_cards: cards })).hh_hero_html.includes('hero-card'), false);
+  });
+
+  test('the save path stores canonical JSON and rejects junk', () => {
+    const out = sanitizeHeaderHeroInput({
+      site_hero_slides: JSON.stringify([{ src: '/a.jpg', extra: 'x', type: 'weird' }, { src: 'ftp://x' }]),
+      site_hero_cards: 'oops', site_hero_media_interval: '999', site_hero_media_transition: 'spin'
+    });
+    assert.equal(out.site_hero_slides, '[{"type":"image","src":"/a.jpg","poster":"","alt":"","link":""}]');
+    assert.equal(out.site_hero_cards, '[]');
+    assert.equal(out.site_hero_media_interval, '20');
+    assert.equal(out.site_hero_media_transition, 'fade');
+  });
+
+  test('the public script and stylesheet are wired and free of dynamic-code sinks', () => {
+    const js = stripComments(read('static/js/hero-media.js'));
+    assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
+    assert.match(js, /prefers-reduced-motion/);
+    assert.match(js, /saveData/);
+    assert.match(js, /visibilitychange/);
+    assert.match(read('templates/layout/base.html'), /\/static\/js\/hero-media\.js/);
+    assert.match(read('static/css/header-hero.css'), /prefers-reduced-motion/);
+  });
+
+  test('the admin script stays free of innerHTML and uses the Media library', () => {
+    const js = stripComments(read('static/js/header-hero-admin.js'));
+    assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
+    assert.match(js, /MediaPicker/);
   });
 });

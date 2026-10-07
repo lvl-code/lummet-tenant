@@ -40,6 +40,33 @@ describe('page types in the assign form', () => {
   });
 });
 
+const MORE_TYPES = ['sportsbook', 'sportsbook_list', 'affiliate_partner', 'affiliate_partner_list', 'content_landing_page', 'generic_review', 'country_custom_page', 'category_country_page', 'compare_casino', 'compare_casino_list', 'compare_sportsbook', 'compare_sportsbook_list', 'compare_affiliate_partner', 'compare_affiliate_partner_list'];
+
+describe('the other page types that render components are offered too', () => {
+  for (const t of MORE_TYPES) {
+    test(`${t}: offered, and a controller renders components for it`, () => {
+      assert.ok(assignSelect.includes(`value="${t}"`), `assign form lacks ${t}`);
+      assert.ok(filterSelect.includes(`value="${t}"`), `filter lacks ${t}`);
+      const stem = t.replace(/^compare_(casino|sportsbook|affiliate_partner)(_list)?$/, (m, k, l) => '`compare_${compareType}' + (l || '') + '`');
+      assert.ok(controllers.includes(`renderAllComponents("${t}"`) || controllers.includes('renderAllComponents(' + stem), `no controller renders ${t}`);
+    });
+  }
+  test('custom content types are added by script, with safe values only', () => {
+    assert.match(page, /id="assignCustomGroup"/);
+    assert.match(page, /id="filterCustomGroup"/);
+    const js = read('static/js/component-admin.js');
+    assert.match(js, /populateCustomPageTypes\(\)/);
+    assert.match(js, /\^\[a-z0-9_-\]\+\$/i);
+    const fn = js.slice(js.indexOf('async function populateCustomPageTypes'));
+    assert.doesNotMatch(fn, /innerHTML/);
+  });
+  test('comparison and generic review pages now have the content-top slot too', () => {
+    for (const f of ['templates/pages/comparison.html', 'templates/pages/generic-review.html']) {
+      assert.ok(read(f).includes('{{components_content_top}}'), f);
+    }
+  });
+});
+
 describe('the pages render what is assigned to them', () => {
   test('author and payment method pages already ask for their components', () => {
     for (const t of ['author', 'author_list', 'payment_method', 'payment_method_list']) {

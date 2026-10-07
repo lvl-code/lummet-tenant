@@ -126,6 +126,23 @@ Exclusive bonuses" maxlength="240"></textarea><span class="hh-hint hh-count" dat
             <option value="payment_method_list">Payment Methods Listing Page (/en/payment-methods)</option>
             <option value="research_list">Research Hub (/en/research)</option>
             <option value="research_type_list">Research Type Page (/en/research/&lt;type&gt;, slug = type)</option>
+            <optgroup label="More content types" id="assignMoreGroup">
+              <option value="sportsbook">Sportsbook (individual)</option>
+              <option value="sportsbook_list">Sportsbook Listing Page (/en/sportsbook)</option>
+              <option value="affiliate_partner">Affiliate Partner (individual)</option>
+              <option value="affiliate_partner_list">Affiliate Partner Listing Page</option>
+              <option value="content_landing_page">Content Landing Page (individual)</option>
+              <option value="generic_review">Generic Review (individual)</option>
+              <option value="country_custom_page">Country sub-page (slug = country-code/page-slug)</option>
+              <option value="category_country_page">Category + country page (slug = category/country-code)</option>
+              <option value="compare_casino">Comparison: casino (individual)</option>
+              <option value="compare_casino_list">Comparison list: casino (/en/compare/casino)</option>
+              <option value="compare_sportsbook">Comparison: sportsbook (individual)</option>
+              <option value="compare_sportsbook_list">Comparison list: sportsbook</option>
+              <option value="compare_affiliate_partner">Comparison: affiliate partner (individual)</option>
+              <option value="compare_affiliate_partner_list">Comparison list: affiliate partner</option>
+            </optgroup>
+            <optgroup label="Your custom content types" id="assignCustomGroup"></optgroup>
           </select>
         </div>
       </div>
@@ -133,7 +150,7 @@ Exclusive bonuses" maxlength="240"></textarea><span class="hh-hint hh-count" dat
         <div class="form-group">
           <label>Page Slug *</label>
           <input type="text" name="page_slug" required placeholder="e.g. homepage, fresh-casino-review, RW, crypto — use * for ALL pages of this type">
-          <small class="muted">Research item: <code>type/slug</code> (for example <code>country/netherlands</code>). Research Type Page: the type (for example <code>country</code>). Hub and listing pages: the type name itself (for example <code>research_list</code>), or <code>*</code>.</small>
+          <small class="muted">Research item: <code>type/slug</code> (for example <code>country/netherlands</code>). Research Type Page: the type (for example <code>country</code>). Hub and listing pages: the type name itself (for example <code>research_list</code>), or <code>*</code>.<br>Country sub-page: <code>RW/best-casinos</code>. Category + country page: <code>crypto/RW</code>. Custom content types and comparisons are listed at the bottom of the Page Type list.</small>
         </div>
         <div class="form-group">
           <label>Injection Point *</label>
@@ -181,6 +198,23 @@ Exclusive bonuses" maxlength="240"></textarea><span class="hh-hint hh-count" dat
           <option value="payment_method_list">Payment Methods Listing Page</option>
           <option value="research_list">Research Hub</option>
           <option value="research_type_list">Research Type Page</option>
+          <optgroup label="More content types" id="filterMoreGroup">
+            <option value="sportsbook">Sportsbook</option>
+            <option value="sportsbook_list">Sportsbook Listing Page</option>
+            <option value="affiliate_partner">Affiliate Partner</option>
+            <option value="affiliate_partner_list">Affiliate Partner Listing Page</option>
+            <option value="content_landing_page">Content Landing Page</option>
+            <option value="generic_review">Generic Review</option>
+            <option value="country_custom_page">Country sub-page</option>
+            <option value="category_country_page">Category + country page</option>
+            <option value="compare_casino">Comparison: casino</option>
+            <option value="compare_casino_list">Comparison list: casino</option>
+            <option value="compare_sportsbook">Comparison: sportsbook</option>
+            <option value="compare_sportsbook_list">Comparison list: sportsbook</option>
+            <option value="compare_affiliate_partner">Comparison: affiliate partner</option>
+            <option value="compare_affiliate_partner_list">Comparison list: affiliate partner</option>
+          </optgroup>
+          <optgroup label="Your custom content types" id="filterCustomGroup"></optgroup>
         </select>
       </div>
       <div class="form-group">

@@ -1289,6 +1289,19 @@ if (adminContent) {
   positionNav();
   window.addEventListener('resize', positionNav);
 
+  // The bar floats while the settings are on screen. Once the end of the settings has scrolled
+  // up past it (the site footer is showing), it steps aside; it also goes if the page is replaced.
+  const settingsArea = document.querySelector('.admin-content');
+  function syncNavVisibility() {
+    if (!settingsArea || !document.body.contains(settingsArea)) { nav.remove(); return; }
+    const navBottom = nav.getBoundingClientRect().bottom;
+    const settingsEnd = settingsArea.getBoundingClientRect().bottom;
+    nav.style.display = settingsEnd <= navBottom ? 'none' : '';
+  }
+  window.addEventListener('scroll', syncNavVisibility, { passive: true });
+  window.addEventListener('resize', syncNavVisibility);
+  syncNavVisibility();
+
   // Active-link highlight on scroll
   const links = Array.from(nav.querySelectorAll('a'));
   const sections = links

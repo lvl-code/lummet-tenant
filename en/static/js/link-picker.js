@@ -97,10 +97,58 @@
       });
     });
   }
+  // ---- "Choose from Media" next to picture-address fields (logos, icons, avatars, backgrounds)
+  var IMAGE_SELECTORS = [
+    'input[name="avatar_url"]', 'input[name="logo"]', 'input[name="og_image"]:not([type="hidden"])',
+    'input[name="site_logo"]', 'input[name="site_og_image"]', 'input[name="site_favicon_96"]', 'input[name="site_favicon_svg"]',
+    'input[name="site_favicon_ico"]', 'input[name="site_apple_touch_icon"]', 'input[name="site_pwa_icon_192"]', 'input[name="site_pwa_icon_512"]',
+    ".compliance-image", ".section-background-image", ".card-image-url", ".card-background-image", 'input[data-section-field="image"]'
+  ];
+  function showThumb(input, thumb) {
+    var v = (input.value || "").trim();
+    if (/^(\/|https:\/\/)/.test(v) && !/\.(ico|webmanifest|json)(\?|$)/i.test(v)) { thumb.src = v; thumb.hidden = false; } else { thumb.hidden = true; }
+  }
+  function enhanceImages(root) {
+    IMAGE_SELECTORS.forEach(function (sel) {
+      Array.prototype.forEach.call((root || document).querySelectorAll(sel), function (input) {
+        if (input.getAttribute("data-media-added")) return;
+        input.setAttribute("data-media-added", "1");
+        var wrap = el("div", "lp-media");
+        wrap.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px";
+        var thumb = el("img", "lp-media__thumb"); thumb.alt = ""; thumb.hidden = true; thumb.loading = "lazy";
+        thumb.style.cssText = "width:56px;height:40px;object-fit:contain;background:#e2e8f0;border-radius:6px";
+        var pick = btn("Choose from Media", "btn btn--ghost btn--sm lp-pick", function () {
+          var mp = window.MediaPicker;
+          if (!mp || !mp.openImagePicker) { window.alert("The Media library is not available on this page. Paste the address instead."); return; }
+          mp.openImagePicker(function (m) {
+            if (!m) return;
+            input.value = m.url || m.public_url || "";
+            showThumb(input, thumb);
+            input.dispatchEvent(new Event("input", { bubbles: true })); input.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+        });
+        var clear = btn("Remove", "btn btn--ghost btn--sm lp-pick", function () {
+          input.value = ""; showThumb(input, thumb);
+          input.dispatchEvent(new Event("input", { bubbles: true })); input.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        wrap.appendChild(thumb); wrap.appendChild(pick); wrap.appendChild(clear);
+        input.insertAdjacentElement("afterend", wrap);
+        input.addEventListener("input", function () { showThumb(input, thumb); });
+        showThumb(input, thumb);
+      });
+    });
+  }
+  function enhanceAll(root) { enhance(root); enhanceImages(root); }
   function start() {
-    enhance(document);
-    var hs = document.getElementById("homepageSections");
-    if (hs && window.MutationObserver) new MutationObserver(function () { enhance(hs); }).observe(hs, { childList: true, subtree: true });
+    enhanceAll(document);
+    // rows that the dashboard builds later (homepage cards, footer icons, research sections)
+    if (window.MutationObserver) {
+      var queued = false;
+      new MutationObserver(function () {
+        if (queued) return; queued = true;
+        window.requestAnimationFrame(function () { queued = false; enhanceAll(document); });
+      }).observe(document.body, { childList: true, subtree: true });
+    }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
 })();

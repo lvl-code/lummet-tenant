@@ -10,6 +10,8 @@ import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import { sanitizeHeaderHeroInput } from "./header-hero.js";
 import { cleanHeroSettingsJson, renderAdvancedHero } from "./component-hero.js";
+import { isStudioType, cleanStudioSettingsJson, cleanLegacySettingsJson, renderStudioComponent } from "./component-studio.js";
+import { searchSource, searchLinks, resolvePicks, isSource, LINK_SOURCE_KEYS } from "./component-sources.js";
 import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
 import * as paymentMethods from "./database/payment-methods.js";
@@ -508,6 +510,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
     // ── READ permission gate (GET requests) ──
   if (request.method === "GET") {
     const readResourceMap = {
+      "/api/v1/component/pick-search": "components",
       // Casinos
       "/api/v1/casinos/list": "casinos",
       "/api/v1/casino/get": "casinos",
@@ -2472,10 +2475,8 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     if (path === "/api/v1/component/create" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["name", "type"]);
-      if (body.type === "hero") {
-        try { body.settings_json = cleanHeroSettingsJson(body.settings_json); }
-        catch (err) { return failure(err.message); }
-      }
+      try { body.settings_json = cleanComponentSettings(body.type, body.settings_json); }
+      catch (err) { return failure(err.message); }
       const id = await componentsDB.createComponent(env.DB, body);
       return json({ success: true, id });
     }
@@ -2483,10 +2484,8 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     if (path === "/api/v1/component/update" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["id", "name", "type"]);
-      if (body.type === "hero") {
-        try { body.settings_json = cleanHeroSettingsJson(body.settings_json); }
-        catch (err) { return failure(err.message); }
-      }
+      try { body.settings_json = cleanComponentSettings(body.type, body.settings_json); }
+      catch (err) { return failure(err.message); }
       await componentsDB.updateComponent(env.DB, body.id, body);
       return success();
     }
@@ -2509,6 +2508,38 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
         injection_point: "top"
       });
       return json({ success: true, html });
+    }
+
+    // Preview of a visual-editor component (grid, table, section): the same HTML the page gets.
+    if (path === "/api/v1/component/preview" && request.method === "POST") {
+      const body = await request.json();
+      if (!isStudioType(body.type)) return failure("Unsupported type for preview");
+      let settings;
+      try { settings = JSON.parse(cleanStudioSettingsJson(body.type, body.settings_json)); }
+      catch (err) { return failure(err.message); }
+      const html = await renderStudioComponent(env.DB, {
+        id: 0, type: body.type, title: String(body.title || ""), content: "", settings, injection_point: "content_top"
+      });
+      return json({ success: true, html });
+    }
+
+    // Picker search: ?source=casino&q=...&type=... ; links=1 returns link targets instead of cards
+    if (path === "/api/v1/component/pick-search" && request.method === "GET") {
+      const source = url.searchParams.get("source") || "";
+      const q = url.searchParams.get("q") || "";
+      const limit = Math.min(30, parseInt(url.searchParams.get("limit")) || 20);
+      const type = url.searchParams.get("type") || "";
+      if (url.searchParams.get("links")) {
+        if (!LINK_SOURCE_KEYS.includes(source)) return failure("Unknown source");
+        return json({ success: true, results: await searchLinks(env.DB, source, { q, limit, customType: type }) });
+      }
+      if (!isSource(source)) return failure("Unknown source");
+      return json({ success: true, results: await searchSource(env.DB, source, { q, limit, customType: type }) });
+    }
+
+    if (path === "/api/v1/component/pick-resolve" && request.method === "POST") {
+      const body = await request.json();
+      return json({ success: true, results: await resolvePicks(env.DB, Array.isArray(body.picks) ? body.picks.slice(0, 48) : []) });
     }
 
     if (path === "/api/v1/component/delete" && request.method === "POST") {
@@ -5096,6 +5127,12 @@ async function requireAdAdmin(request, env) {
 // =====================================================
 // HELPERS
 // =====================================================
+
+function cleanComponentSettings(type, text) {
+  if (type === "hero") return cleanHeroSettingsJson(text);
+  if (isStudioType(type)) return cleanStudioSettingsJson(type, text);
+  return cleanLegacySettingsJson(type, text);
+}
 
 function json(data, status = 200) {
   return new Response(

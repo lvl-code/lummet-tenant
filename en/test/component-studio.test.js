@@ -8,6 +8,7 @@ import {
 } from '../worker/component-studio.js';
 import { searchSource, resolvePicks, latestItems, searchLinks, isValidKey } from '../worker/component-sources.js';
 import { renderComponent } from '../worker/component-engine.js';
+import { Renderer } from '../worker/render.js';
 
 let db;
 before(async () => {
@@ -118,5 +119,20 @@ describe('wiring', () => {
     for (const s of ['/api/v1/component/preview', '/api/v1/component/pick-search', '/api/v1/component/pick-resolve']) assert.ok(api.includes(s), s);
     assert.ok(/"\/api\/v1\/component\/pick-search":\s*"components"/.test(api));
     assert.equal((api.match(/cleanComponentSettings\(body\.type/g) || []).length, 2);
+  });
+});
+
+describe('older types preview', () => {
+  const real = new Renderer({}, new Request('https://example.test/en'));
+  const renderer = { env: {}, loadTemplate: async (n) => read(`templates/${n}`), replaceVariables: (t, d) => real.replaceVariables(t, d) };
+  test('cta and text render through the real templates', async () => {
+    const cta = await renderComponent(renderer, { type: 'cta', title: 'Join', content: 'Now', settings: { button_text: 'Go', link: '/en/casino' }, injection_point: 'content_top' });
+    assert.ok(cta.includes('Go') && cta.includes('/en/casino'));
+    const text = await renderComponent(renderer, { type: 'text', title: '', content: '<p>Hello</p>', settings: {}, injection_point: 'content_top' });
+    assert.ok(text.includes('Hello'));
+  });
+  test('the preview route accepts the older types', () => {
+    const api = read('worker/api.js');
+    assert.ok(api.includes('PREVIEW_OLD') && api.includes('new Renderer(env, request)'));
   });
 });

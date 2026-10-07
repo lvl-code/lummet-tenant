@@ -645,7 +645,7 @@
     contentGroup.hidden = on && !advToggle.checked;
     settingsGroup.hidden = on && !advToggle.checked;
     if (type === "hero") { contentGroup.hidden = false; settingsGroup.hidden = false; }
-    previewBox.hidden = NEW_TYPES.indexOf(type) === -1;
+    previewBox.hidden = !on;
     if (!on) return;
     S = parseObj(settingsEl.value);
     // a settings box that held something that is not an object is left alone until the form changes it
@@ -666,10 +666,10 @@
   }
   function preview() {
     var mine = ++ticket;
-    fetch("/en/api/v1/component/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: typeSel.value, title: titleEl.value, settings_json: settingsEl.value }) })
+    fetch("/en/api/v1/component/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: typeSel.value, title: titleEl.value, content: contentEl.value, settings_json: settingsEl.value }) })
       .then(function (r) { return r.json(); }).then(function (d) {
         if (mine !== ticket) return;
-        if (d && d.success) { frame.srcdoc = wrapDoc(d.html || '<p style="color:#64748b;font:14px sans-serif">Nothing to show yet. Add content on the left.</p>'); previewNote.textContent = "The preview uses the site styles and your saved content."; }
+        if (d && d.success) { frame.srcdoc = wrapDoc(d.html || '<p style="color:#64748b;font:14px sans-serif">Nothing to show yet. Add content on the left.</p>'); previewNote.textContent = "The preview uses the site styles. Grids and feeds that load on the live page are shown by the live page."; }
         else previewNote.textContent = (d && d.error) || "The preview could not be built.";
       }).catch(function () { if (mine === ticket) previewNote.textContent = "The preview could not be loaded."; });
   }

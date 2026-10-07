@@ -10,6 +10,8 @@ import * as geo from "./database/geo.js";
 import * as settings from "./database/settings.js";
 import { sanitizeHeaderHeroInput } from "./header-hero.js";
 import { cleanHeroSettingsJson, renderAdvancedHero } from "./component-hero.js";
+import { Renderer } from "./render.js";
+import { renderComponent } from "./component-engine.js";
 import { isStudioType, cleanStudioSettingsJson, cleanLegacySettingsJson, renderStudioComponent } from "./component-studio.js";
 import { searchSource, searchLinks, resolvePicks, isSource, LINK_SOURCE_KEYS } from "./component-sources.js";
 import * as ai from "./database/ai.js";
@@ -2513,6 +2515,18 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     // Preview of a visual-editor component (grid, table, section): the same HTML the page gets.
     if (path === "/api/v1/component/preview" && request.method === "POST") {
       const body = await request.json();
+      const PREVIEW_OLD = ["text", "cta", "banner", "faq_group", "author", "casino_grid", "comparison_table", "news_feed"];
+      if (PREVIEW_OLD.includes(body.type)) {
+        let settings = {};
+        try { settings = JSON.parse(cleanLegacySettingsJson(body.type, body.settings_json) || "{}") || {}; }
+        catch (err) { return failure(err.message); }
+        let content = String(body.content || "");
+        if (body.type === "faq_group") { try { content = JSON.parse(content); } catch { content = []; } if (!Array.isArray(content)) content = []; }
+        const html = await renderComponent(new Renderer(env, request), {
+          id: 0, type: body.type, name: "preview", title: String(body.title || ""), content, settings, injection_point: "content_top"
+        });
+        return json({ success: true, html });
+      }
       if (!isStudioType(body.type)) return failure("Unsupported type for preview");
       let settings;
       try { settings = JSON.parse(cleanStudioSettingsJson(body.type, body.settings_json)); }

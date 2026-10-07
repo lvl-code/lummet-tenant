@@ -154,3 +154,49 @@ describe('shared link picker', () => {
     assert.ok(admin.includes('section-button-url') && admin.includes('card-url'));
   });
 });
+
+describe('api routes declare what they use', () => {
+  test('pick-search builds its own url object', () => {
+    const api = read('worker/api.js');
+    const i = api.indexOf('if (path === "/api/v1/component/pick-search"');
+    const block = api.slice(i, api.indexOf('pick-resolve', i));
+    assert.ok(block.includes('const url = new URL(request.url)'), 'url is used but never defined in this route');
+  });
+});
+
+import { handleAPI } from '../worker/api.js';
+describe('real handleAPI() for the studio routes', () => {
+  const admin = { user_id: 1, role: 'admin', email: 'a@test.com' };
+  const req = (method, url, body) => ({ method, url, headers: new Headers(), json: async () => body });
+  const call = (method, path, body, user = admin) => handleAPI(req(method, `https://x.com${path}`, body), { DB: db }, path.split('?')[0], user);
+
+  test('pick-search answers for each source and for links', async () => {
+    for (const q of ['source=casino&q=alp', 'source=page&links=1', 'source=casino&links=1&q=alp', 'source=news', 'source=research', 'source=media', 'source=author', 'source=update']) {
+      const res = await call('GET', `/api/v1/component/pick-search?${q}`);
+      const d = await res.json();
+      assert.equal(res.status, 200, `${q}: ${JSON.stringify(d)}`);
+      assert.equal(d.success, true, q);
+    }
+    const d = await (await call('GET', '/api/v1/component/pick-search?source=casino&q=alp')).json();
+    assert.ok(d.results.some((r) => r.key === 'alpha'));
+  });
+  test('pick-search rejects an unknown source', async () => {
+    assert.equal((await call('GET', '/api/v1/component/pick-search?source=evil')).status, 400);
+  });
+  test('pick-resolve and preview work', async () => {
+    const r = await (await call('POST', '/api/v1/component/pick-resolve', { picks: [{ source: 'casino', key: 'alpha' }] })).json();
+    assert.equal(r.results.length, 1);
+    const p = await (await call('POST', '/api/v1/component/preview', { type: 'section', title: 'T', settings_json: '{"blocks":[{"type":"divider"}]}' })).json();
+    assert.ok(p.success && p.html.includes('component-section'));
+    const g = await (await call('POST', '/api/v1/component/preview', { type: 'content_grid', settings_json: JSON.stringify({ items: [{ source: 'casino', key: 'alpha' }] }) })).json();
+    assert.ok(g.html.includes('cg-card'));
+  });
+  test('create cleans settings of the new types', async () => {
+    const res = await call('POST', '/api/v1/component/create', { name: 'g', type: 'content_grid', settings_json: '{"columns":99,"more_url":"javascript:1"}' });
+    const d = await res.json();
+    assert.equal(d.success, true, JSON.stringify(d));
+    const got = await (await call('GET', `/api/v1/component/get?id=${d.id}`)).json();
+    const s = JSON.parse(got.component.settings_json);
+    assert.equal(s.columns, 4); assert.equal(s.more_url, '');
+  });
+});

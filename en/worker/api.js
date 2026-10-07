@@ -2539,6 +2539,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
 
     // Picker search: ?source=casino&q=...&type=... ; links=1 returns link targets instead of cards
     if (path === "/api/v1/component/pick-search" && request.method === "GET") {
+      const url = new URL(request.url);
       const source = url.searchParams.get("source") || "";
       const q = url.searchParams.get("q") || "";
       const limit = Math.min(30, parseInt(url.searchParams.get("limit")) || 20);

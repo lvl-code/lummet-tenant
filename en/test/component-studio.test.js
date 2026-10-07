@@ -200,3 +200,38 @@ describe('real handleAPI() for the studio routes', () => {
     assert.equal(s.columns, 4); assert.equal(s.more_url, '');
   });
 });
+
+describe('Choose from Media on picture-address fields', () => {
+  const lp = read('static/js/link-picker.js');
+  const admin = read('static/js/admin.js');
+  const fields = {
+    'templates/pages/admin/authors.html': ['avatar_url'],
+    'templates/pages/admin/casino-create.html': ['name="logo"'],
+    'templates/pages/admin/casino-edit.html': ['name="logo"'],
+    'templates/pages/admin/seo.html': ['og_image'],
+    'templates/pages/admin/settings.html': ['site_logo', 'site_og_image', 'site_favicon_96', 'site_favicon_svg', 'site_favicon_ico', 'site_apple_touch_icon', 'site_pwa_icon_192', 'site_pwa_icon_512'],
+  };
+  for (const [file, names] of Object.entries(fields)) {
+    test(`${file} fields are covered`, () => {
+      const page = read(file);
+      for (const n of names) {
+        assert.ok(page.includes(n), `${n} missing from page`);
+        const key = n.replace(/^name="|"$/g, '');
+        assert.ok(lp.includes(key), `${key} not covered by the picker`);
+      }
+    });
+  }
+  test('rows the dashboard builds later are covered', () => {
+    for (const c of ['compliance-image', 'section-background-image', 'card-image-url', 'card-background-image']) {
+      assert.ok(admin.includes(c) && lp.includes('.' + c), c);
+    }
+    assert.ok(lp.includes('data-section-field="image"') && admin.includes('data-section-field="image"'));
+    assert.ok(lp.includes('MutationObserver'));
+  });
+  test('the page that ships the picker also ships the media library dialog', () => {
+    assert.ok(read('templates/layout/base.html').includes('/static/js/media-picker.js'));
+  });
+  test('the .ico, manifest and json files get no thumbnail', () => {
+    assert.ok(/ico\|webmanifest\|json/.test(lp));
+  });
+});

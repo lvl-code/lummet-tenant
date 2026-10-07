@@ -136,3 +136,21 @@ describe('older types preview', () => {
     assert.ok(api.includes('PREVIEW_OLD') && api.includes('new Renderer(env, request)'));
   });
 });
+
+describe('shared link picker', () => {
+  const lp = read('static/js/link-picker.js');
+  test('is loaded before the editor and exposes the dialog', () => {
+    const base = read('templates/layout/base.html');
+    assert.ok(base.indexOf('link-picker.js') !== -1 && base.indexOf('link-picker.js') < base.indexOf('component-studio.js'));
+    assert.ok(lp.includes('window.LummetPicker'));
+  });
+  test('adds a picker to the nav and homepage link fields, without HTML strings', () => {
+    for (const sel of ['#navForm input[name=\\"url\\"]', '.section-button-url', '.card-url']) assert.ok(lp.includes(sel), sel);
+    assert.ok(!/\.innerHTML\s*=|insertAdjacentHTML|document\.write/.test(lp));
+  });
+  test('those fields exist in the pages the picker targets', () => {
+    assert.ok(read('templates/pages/admin/nav.html').includes('name="url"'));
+    const admin = read('static/js/admin.js');
+    assert.ok(admin.includes('section-button-url') && admin.includes('card-url'));
+  });
+});

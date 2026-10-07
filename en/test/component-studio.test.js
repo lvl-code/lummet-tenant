@@ -243,3 +243,12 @@ describe('media picker thumbnails', () => {
     assert.ok(/addEventListener\('error'/.test(mp));
   });
 });
+
+describe('settings contents bar', () => {
+  test('steps aside once the end of the settings has scrolled past it', () => {
+    const page = read('templates/pages/admin/settings.html');
+    assert.ok(page.includes('syncNavVisibility'));
+    assert.ok(/settingsEnd <= navBottom \? 'none'/.test(page));
+    assert.ok(page.includes("window.addEventListener('scroll', syncNavVisibility"));
+  });
+});

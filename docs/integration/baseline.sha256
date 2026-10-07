@@ -1,3 +1,3 @@
-e9684ad709f76749483609cc12019f6798e8f680ff54c98530faf8fcb3364d90  docs/integration/baseline.sha256
-3289c1a08d3735a0f4074230b87905bf82a03361b8243952f14eb7981aa3031b  en/static/js/media-picker.js
-ca22af684651ee741ec315341627fa2ac0fea12235ef6f021116aec46cb53099  en/test/component-studio.test.js
+b0f74dacce130eb0a71b60b927279d455984da73c663e682a5e482b06575c324  docs/integration/baseline.sha256
+7492f2c851dc26847817d6c6d2e8e390fa962958348aeb079484bff2294778db  en/templates/pages/admin/settings.html
+b775ff6cfdb8863e39aa9f79bf65a77f86c71104ffa6cd4d4376742c4d0013db  en/test/component-studio.test.js

@@ -147,67 +147,10 @@
   }
 
   // ------------------------------------------------------------ picker dialog
+  // (shared with the navigation and homepage editors: static/js/link-picker.js)
   function openPicker(opts, onPick) {
-    var links = opts.mode === "link";
-    var sources = opts.sources || (links ? LINK_SOURCES : SOURCES);
-    var src = sources[0][0];
-    var back = el("div", "cs-modal"); back.setAttribute("role", "dialog"); back.setAttribute("aria-modal", "true"); back.setAttribute("aria-label", links ? "Pick a page" : "Pick items");
-    var box = el("div", "cs-modal__box");
-    var head = el("div", "cs-modal__head"); head.appendChild(el("strong", null, links ? "Pick a page to link to" : "Pick items to add"));
-    var close = btn("Done", "hh-btn", function () { back.remove(); document.removeEventListener("keydown", onKey); }); head.appendChild(close);
-    var tabs = el("div", "hh-seg cs-tabs"); tabs.setAttribute("role", "tablist");
-    var search = el("input"); search.type = "search"; search.placeholder = "Search by name…"; search.setAttribute("aria-label", "Search");
-    var extra = el("div", "cs-modal__extra");
-    var list = el("div", "cs-results"); list.setAttribute("aria-live", "polite");
-    var typeIn = null;
-    function onKey(e) { if (e.key === "Escape") close.click(); }
-    document.addEventListener("keydown", onKey);
-    var seq = 0, st = null;
-    function run() {
-      var mine = ++seq;
-      list.textContent = ""; list.appendChild(el("p", "hh-hint", "Searching…"));
-      var u = "/en/api/v1/component/pick-search?source=" + encodeURIComponent(src) + "&q=" + encodeURIComponent(search.value) + (links ? "&links=1" : "");
-      if (src === "custom" && typeIn && typeIn.value) u += "&type=" + encodeURIComponent(typeIn.value.trim());
-      fetch(u).then(function (r) { return r.json(); }).then(function (d) {
-        if (mine !== seq) return;
-        list.textContent = "";
-        var rs = (d && d.results) || [];
-        if (src === "custom" && !(typeIn && typeIn.value.trim())) { list.appendChild(el("p", "hh-hint", "Type the content type name above (the short name used in its address) to list its items.")); return; }
-        if (!rs.length) { list.appendChild(el("p", "hh-hint", d && d.success === false ? (d.error || "Could not search.") : "Nothing found. Only published items are listed.")); return; }
-        rs.forEach(function (it) {
-          var row = el("div", "cs-result");
-          if (it.image) { var im = el("img", "cs-thumb"); im.alt = ""; im.src = it.image; im.loading = "lazy"; row.appendChild(im); }
-          var tx = el("div", "cs-result__text"); tx.appendChild(el("strong", null, it.title || it.url));
-          var sub = it.excerpt || it.url || ""; if (sub) tx.appendChild(el("span", "hh-hint", String(sub).slice(0, 90)));
-          row.appendChild(tx);
-          var add = btn(links ? "Use" : "Add", "hh-btn", function () {
-            if (links) { onPick({ url: it.url, title: it.title }); close.click(); return; }
-            var ok = onPick({ source: it.source || src, key: it.key, label: it.title, card: it });
-            if (ok === false) { add.textContent = "Full"; add.disabled = true; } else { add.textContent = "Added ✓"; add.disabled = true; }
-          });
-          row.appendChild(add); list.appendChild(row);
-        });
-      }).catch(function () { if (mine === seq) { list.textContent = ""; list.appendChild(el("p", "hh-hint", "Could not load results.")); } });
-    }
-    sources.forEach(function (s, i) {
-      var b = btn(s[1], "cs-tab" + (i === 0 ? " is-on" : ""), function () {
-        src = s[0]; Array.prototype.forEach.call(tabs.children, function (c) { c.classList.remove("is-on"); }); b.classList.add("is-on");
-        extra.textContent = ""; typeIn = null;
-        if (src === "custom") { typeIn = el("input"); typeIn.type = "text"; typeIn.placeholder = "Content type, e.g. guides"; typeIn.addEventListener("input", function () { clearTimeout(st); st = setTimeout(run, 300); }); extra.appendChild(typeIn); }
-        run();
-      });
-      b.setAttribute("role", "tab"); tabs.appendChild(b);
-    });
-    search.addEventListener("input", function () { clearTimeout(st); st = setTimeout(run, 250); });
-    box.appendChild(head); box.appendChild(tabs); box.appendChild(search); box.appendChild(extra);
-    if (links) {
-      var manual = el("div", "cs-row"); var mi = el("input"); mi.type = "text"; mi.placeholder = "…or type an address: /en/page or https://…"; mi.maxLength = 300;
-      manual.appendChild(mi); manual.appendChild(btn("Use this address", null, function () { if (mi.value.trim()) { onPick({ url: mi.value.trim() }); close.click(); } }));
-      box.appendChild(manual);
-    }
-    box.appendChild(list); back.appendChild(box);
-    back.addEventListener("click", function (e) { if (e.target === back) close.click(); });
-    document.body.appendChild(back); search.focus(); run();
+    if (!window.LummetPicker) { window.alert("The picker could not be loaded. Reload the page."); return; }
+    window.LummetPicker.open(opts, onPick);
   }
 
   // ------------------------------------------------------------ picked items list

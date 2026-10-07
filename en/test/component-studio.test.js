@@ -235,3 +235,11 @@ describe('Choose from Media on picture-address fields', () => {
     assert.ok(/ico\|webmanifest\|json/.test(lp));
   });
 });
+
+describe('media picker thumbnails', () => {
+  const mp = read('static/js/media-picker.js');
+  test('a thumbnail that fails to load falls back to the original picture', () => {
+    assert.ok(mp.includes('data-fallback-src'));
+    assert.ok(/addEventListener\('error'/.test(mp));
+  });
+});

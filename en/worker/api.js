@@ -13,6 +13,8 @@ import { cleanHeroSettingsJson, renderAdvancedHero } from "./component-hero.js";
 import { Renderer } from "./render.js";
 import { renderComponent } from "./component-engine.js";
 import { isStudioType, cleanStudioSettingsJson, cleanLegacySettingsJson, renderStudioComponent } from "./component-studio.js";
+import { searchSite } from "./site-search.js";
+import { getComparableFields } from "./comparison-fields.js";
 import { searchSource, searchLinks, resolvePicks, isSource, LINK_SOURCE_KEYS } from "./component-sources.js";
 import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
@@ -286,6 +288,14 @@ if (path === "/api/v1/public/casinos/list") {
     await setCached(env, CACHE_KEYS.PUBLIC_CASINOS, casinos);
   }
   return json({ casinos });
+}
+
+if (path === "/api/v1/public/search") {
+  const url = new URL(request.url);
+  const found = await searchSite(env.DB, url.searchParams.get("q") || "", {
+    perGroup: url.searchParams.get("limit") || 5
+  });
+  return json(found);
 }
 
 if (path === "/api/v1/public/news/list") {
@@ -664,6 +674,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/custom-type/fields": "custom_content_types",
       "/api/v1/comparisons/list": "comparisons",
       "/api/v1/comparison/get": "comparisons",
+      "/api/v1/comparison/fields": "comparisons",
       "/api/v1/generic-reviews/list": "reviews", // was ungated on GET, same gap as the entries above
       "/api/v1/generic-review/get": "reviews",
       "/api/v1/content-landing-pages/list": "content_landing_pages",
@@ -1355,6 +1366,16 @@ if (path === "/api/v1/comparison/create" && request.method === "POST") {
   });
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "comparison", entityId: comparison.id, metadata: { content_type: body.content_type, slug: body.slug, title: body.title } });
   return success({ comparison });
+}
+
+if (path === "/api/v1/comparison/fields" && request.method === "GET") {
+  const url = new URL(request.url);
+  const fields = await getComparableFields(
+    env.DB,
+    url.searchParams.get("content_type") || "",
+    url.searchParams.get("custom_type_slug") || ""
+  );
+  return json({ success: true, fields: fields.map((f) => ({ key: f.key, label: f.label, kind: f.kind })) });
 }
 
 if (path === "/api/v1/comparison/get" && request.method === "GET") {

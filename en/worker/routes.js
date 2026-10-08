@@ -29,6 +29,7 @@ export function getRoute(request) {
   }
 
     // LISTING PAGES
+  if (path === "/en/search") return { type: "siteSearch" };
   if (path === "/en/casino") return { type: "casinoList" };
   if (path === "/en/sportsbook") return { type: "sportsbookList" };
   if (path === "/en/affiliate-partner") return { type: "affiliatePartnerList" };

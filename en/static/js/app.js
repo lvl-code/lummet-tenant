@@ -362,7 +362,7 @@ function initMobileSearch() {
     });
   }
 
-  if (input && results) {
+  if (input && results && !window.LummetSiteSearch) {
     let debounceTimer;
     input.addEventListener("input", (e) => {
       clearTimeout(debounceTimer);

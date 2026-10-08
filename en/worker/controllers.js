@@ -48,6 +48,8 @@ import { getSetting } from "./database/settings.js";
 import { headerHeroDefaultsForAdmin, jsonForScript } from "./header-hero.js";
 import { getRelatedCasinos } from "./database/related-casinos.js";
 import { getCached, setCached } from "./cache.js";
+import { searchSite } from "./site-search.js";
+import { getComparableFields, buildComparisonRows } from "./comparison-fields.js";
 import {
     buildBreadcrumbs
 } from "./breadcrumbs.js";
@@ -3309,6 +3311,33 @@ function researchTypeLabel(type) {
 // (research-directory-filter.js) needs — country and related-entity
 // filtering, and a searchable text blob — so filtering never has to
 // re-fetch anything; it just shows/hides these already-rendered cards.
+const RESEARCH_SORTS = {
+  newest: "Newest first",
+  oldest: "Oldest first",
+  updated: "Recently updated",
+  title_asc: "Title A to Z",
+  title_desc: "Title Z to A"
+};
+
+function researchSortOptionsHtml(selected) {
+  return Object.entries(RESEARCH_SORTS)
+    .map(([k, label]) => `<option value="${k}"${k === selected ? " selected" : ""}>${label}</option>`)
+    .join("");
+}
+
+function sortResearchItems(items, key) {
+  const date = (i) => String(i.published_at || i.created_at || "");
+  const upd = (i) => String(i.updated_at || i.published_at || "");
+  const title = (i) => String(i.title || "").toLowerCase();
+  const copy = [...items];
+  if (key === "oldest") copy.sort((a, b) => date(a).localeCompare(date(b)));
+  else if (key === "updated") copy.sort((a, b) => upd(b).localeCompare(upd(a)));
+  else if (key === "title_asc") copy.sort((a, b) => title(a).localeCompare(title(b)));
+  else if (key === "title_desc") copy.sort((a, b) => title(b).localeCompare(title(a)));
+  else copy.sort((a, b) => date(b).localeCompare(date(a)));
+  return copy;
+}
+
 function researchItemCardHtml(item, relations, showType) {
   const relatedLabels = (relations || [])
     .filter((r) => r.target?.exists)
@@ -3321,6 +3350,9 @@ function researchItemCardHtml(item, relations, showType) {
        data-type="${item.type}"
        data-country="${item.country_name || ""}"
        data-related="${relatedLabels.join("|").replace(/"/g, "&quot;")}"
+       data-title="${String(item.title || "").toLowerCase().replace(/"/g, "&quot;")}"
+       data-published="${String(item.published_at || item.created_at || "").replace(/"/g, "")}"
+       data-updated="${String(item.updated_at || item.published_at || "").replace(/"/g, "")}"
        data-search="${searchBlob}">
       ${showType ? `<span class="research-card__type">${researchTypeLabel(item.type)}</span>` : ""}
       <h3 class="research-card__title">${item.title}</h3>
@@ -3359,12 +3391,56 @@ function researchComponentVars(all) {
   };
 }
 
+export async function renderSiteSearch(request, env) {
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+  const q = (new URL(request.url).searchParams.get("q") || "").trim().slice(0, 80);
+  const found = await searchSite(env.DB, q, { perGroup: 20 });
+  const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  let body = "";
+  if (q.length < 2) {
+    body = `<p class="muted">Type at least two letters to search casinos, reviews, research, news and pages.</p>`;
+  } else if (!found.groups.length) {
+    body = `<p class="muted">Nothing matched \u201c${esc(q)}\u201d. Try a shorter word or a different spelling.</p>`;
+  } else {
+    body = `<nav class="ss-jump" aria-label="Result types">${found.groups.map((g) =>
+      `<a href="#ss-${g.key}">${esc(g.label)} <span>${g.items.length}</span></a>`).join("")}</nav>` +
+      found.groups.map((g) => `
+      <section class="ss-group" id="ss-${g.key}">
+        <h2>${esc(g.label)} <span class="ss-count">${g.items.length}</span></h2>
+        <ul class="ss-list">${g.items.map((i) => `
+          <li><a href="${esc(i.url)}">
+            ${i.image ? `<img src="${esc(i.image)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+            <span class="ss-title">${esc(i.title)}</span>
+            ${i.meta ? `<span class="ss-meta">${esc(i.meta)}</span>` : ""}
+          </a></li>`).join("")}</ul>
+      </section>`).join("");
+  }
+
+  const html = await renderer.render("search.html", {
+    heading: q.length >= 2 ? `Search results for \u201c${q}\u201d` : "Search",
+    query: q,
+    summary: q.length >= 2 ? `${found.total} result${found.total === 1 ? "" : "s"}` : "",
+    results_html: body,
+    seo_title: "Search | " + site.siteName,
+    seo_description: "Search everything published on " + site.siteName + ".",
+    canonical: site.url("/en/search"),
+    robots: "noindex,follow"
+  }, [], buildBreadcrumbs("siteSearch"));
+
+  return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+}
+
 export async function renderResearchHub(request, env) {
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
 
   const featured = await research.getFeaturedResearchItems(env.DB, 6);
-  const latest = await research.getPublishedResearchItems(env.DB, { limit: 12 });
+  // Every published item is listed (the old list stopped at 12). Featured items
+  // are highlighted above and also stay in the full list, so nothing disappears.
+  const sortKey = RESEARCH_SORTS[new URL(request.url).searchParams.get("sort")] ? new URL(request.url).searchParams.get("sort") : "newest";
+  const latest = sortResearchItems(await research.getPublishedResearchItems(env.DB, { limit: 5000 }), sortKey);
   const allComponents = await renderer.renderAllComponents("research_list", "research_list");
 
   const allShown = [...featured, ...latest];
@@ -3386,6 +3462,12 @@ export async function renderResearchHub(request, env) {
     robots: "index,follow",
     featured_html: featured.map(itemCard).join(""),
     items_html: latest.map(itemCard).join(""),
+    show_sort: true,
+    all_head_html: featured.length
+      ? `<div class="research-directory__head"><h2>All research</h2><span class="research-directory__badge research-directory__badge--plain">${latest.length} published</span></div>`
+      : "",
+    total_count: latest.length,
+    sort_options_html: researchSortOptionsHtml(sortKey),
     show_type_filter: true,
     type_filter_options_html: research.RESEARCH_TYPES.map((t) => `<option value="${t}">${researchTypeLabel(t)}</option>`).join(""),
     country_filter_options_html: filterOptions.countries.map((c) => `<option value="${c.replace(/"/g, "&quot;")}">${c}</option>`).join(""),
@@ -3421,6 +3503,9 @@ export async function renderResearchTypeList(request, env, researchType) {
     robots: "index,follow",
     featured_html: "",
     items_html: items.map(itemCard).join("") || `<p class="muted">No published research yet.</p>`,
+    show_sort: true,
+    total_count: items.length,
+    sort_options_html: researchSortOptionsHtml("newest"),
     show_type_filter: false,
     type_filter_options_html: "",
     country_filter_options_html: filterOptions.countries.map((c) => `<option value="${c.replace(/"/g, "&quot;")}">${c}</option>`).join(""),
@@ -5184,6 +5269,40 @@ function buildComparisonTableHtml(items, criteria, customFieldValuesByItemKey, l
   return { headerCells, logoCells, ratingCells, ctaCells, criteriaRows };
 }
 
+function renderComparisonHeaderCells(items, comparison) {
+  return items.map((i) => {
+    const isPick = comparison.editorial_selection_item_type === i.contentType && Number(comparison.editorial_selection_item_id) === Number(i.id);
+    return `<th scope="col" class="cmp-head${isPick ? " cmp-head--pick" : ""}">
+      ${isPick ? `<span class="cmp-pick-badge">Our pick</span>` : ""}
+      <a class="cmp-head__link" href="${linkPrefixForItem(i)}/${i.slug}">
+        <img src="${escapeReviewText(i.logo || "/static/images/default.png")}" alt="" loading="lazy" onerror="this.src='/static/images/default.png'">
+        <span class="cmp-head__name">${escapeReviewText(i.name)}</span>
+      </a>
+    </th>`;
+  }).join("");
+}
+
+function renderComparisonCells(row) {
+  return row.cells.map((cell, idx) =>
+    `<td class="${row.best === idx ? "cmp-best" : ""}" data-label="">${cell.html}${row.best === idx ? `<span class="cmp-best-tag">Best</span>` : ""}</td>`
+  ).join("");
+}
+
+function renderComparisonRows(rows, itemCount, heading) {
+  if (!rows.length) return "";
+  const head = heading ? `<tr class="cmp-group"><th colspan="${itemCount + 1}" scope="colgroup">${escapeReviewText(heading)}</th></tr>` : "";
+  return head + rows.map((row) =>
+    `<tr class="${row.differs ? "cmp-diff" : "cmp-same"}"><th scope="row" class="cmp-label">${escapeReviewText(row.label)}</th>${renderComparisonCells(row)}</tr>`
+  ).join("");
+}
+
+function renderComparisonSummary(items, ratingRow) {
+  const rated = items.map((i, idx) => ({ i, n: ratingRow.cells[idx].num })).filter((x) => x.n !== null);
+  if (rated.length < 2) return "";
+  const top = rated.reduce((a, b) => (b.n > a.n ? b : a));
+  return `<p class="cmp-summary"><strong>${escapeReviewText(top.i.name)}</strong> is rated highest of these ${items.length}, at ${top.n.toFixed(1)} out of 5.</p>`;
+}
+
 function linkPrefixForItem(item) {
   switch (item.contentType) {
     case "casino": return "/en/casino";
@@ -5254,8 +5373,9 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
     renderer.loadDynamicSeo(`compare_${compareType}`, slug),
   ]);
 
-  const { headerCells, logoCells, ratingCells, ctaCells, criteriaRows } =
-    buildComparisonTableHtml(items, criteria, customFieldValuesByItemKey, (i) => linkPrefixForItem(i));
+  const customSlug = (items.find((i) => i.contentType === "custom") || {}).customTypeSlug || "";
+  const catalog = await getComparableFields(env.DB, compareType, customSlug);
+  const table = buildComparisonRows(items, criteria, catalog, customFieldValuesByItemKey);
 
   let editorialPickHtml = "";
   if (comparison.editorial_selection_item_type && comparison.editorial_selection_item_id) {
@@ -5278,11 +5398,13 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
   const html = await renderer.render("comparison.html", {
     title: escapeHtml(comparison.title),
     description: comparison.description || "",
-    item_header_cells_html: headerCells,
-    item_logo_cells_html: logoCells,
-    item_rating_cells_html: ratingCells,
-    item_cta_cells_html: ctaCells,
-    criteria_rows_html: criteriaRows,
+    item_header_cells_html: renderComparisonHeaderCells(items, comparison),
+    item_rating_cells_html: renderComparisonCells(table.ratingRow),
+    criteria_rows_html: renderComparisonRows(table.main, items.length, ""),
+    more_rows_html: table.more.length ? renderComparisonRows(table.more, items.length, criteria.length ? "More details" : "Comparison details") : "",
+    item_cta_cells_html: items.map((i) => `<td data-label="${escapeReviewText(i.name)}"><a href="${linkPrefixForItem(i)}/${i.slug}" class="btn btn--primary">View ${escapeReviewText(i.name)}</a></td>`).join(""),
+    summary_html: renderComparisonSummary(items, table.ratingRow),
+    column_count: items.length + 1,
     editorial_pick_html: editorialPickHtml,
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,

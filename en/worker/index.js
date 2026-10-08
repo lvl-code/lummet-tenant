@@ -23,6 +23,7 @@ import {
   renderCountry,
   renderCountryCustomPage,
   renderResearchHub,
+  renderSiteSearch,
   renderResearchTypeList,
   renderResearchItem,
   renderDashboardResearch,
@@ -381,6 +382,9 @@ if (
           route.countryCode,
           route.slug
         );
+
+      case "siteSearch":
+        return renderSiteSearch(request, env);
 
       case "researchHub":
         return renderResearchHub(request, env);

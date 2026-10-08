@@ -1319,13 +1319,78 @@ function initEditorialPickPicker(preset = null) {
   if (preset && preset.id) showSelected(preset);
 }
 
-function initCriterionRowEditor(criterionRowsContainer, addBtn, template) {
-  addBtn.addEventListener("click", () => {
-    criterionRowsContainer.appendChild(template.content.cloneNode(true));
+// Criteria are PICKED from what the chosen type can be compared on; typing a key by hand
+// is still possible ("Custom key") so nothing that worked before stops working.
+const criterionFieldCache = {};
+async function loadComparableFields(contentType) {
+  if (!contentType) return [];
+  if (!criterionFieldCache[contentType]) {
+    criterionFieldCache[contentType] = fetch(`/en/api/v1/comparison/fields?content_type=${encodeURIComponent(contentType)}`)
+      .then((r) => r.json()).then((d) => (d.success ? d.fields : [])).catch(() => []);
+  }
+  return criterionFieldCache[contentType];
+}
+
+function enhanceCriterionRow(row, getType) {
+  if (!row || row.querySelector(".criterion-pick")) return;
+  const keyInput = row.querySelector(".criterion-key");
+  const labelInput = row.querySelector(".criterion-label");
+  if (!keyInput || !labelInput) return;
+  const select = document.createElement("select");
+  select.className = "criterion-pick";
+  select.style.flex = "1";
+  select.setAttribute("aria-label", "Pick what to compare");
+  const fill = async () => {
+    const fields = await loadComparableFields(getType());
+    const current = keyInput.value.trim();
+    select.innerHTML = `<option value="">Pick a field to compare...</option>` +
+      fields.map((f) => `<option value="${f.key}">${f.label}</option>`).join("") +
+      `<option value="__custom">Custom key...</option>`;
+    if (current) {
+      select.value = fields.some((f) => f.key === current) ? current : "__custom";
+    }
+    keyInput.style.display = select.value === "__custom" ? "" : "none";
+  };
+  select.addEventListener("change", async () => {
+    if (select.value === "__custom") { keyInput.style.display = ""; keyInput.focus(); return; }
+    keyInput.style.display = "none";
+    keyInput.value = select.value;
+    const fields = await loadComparableFields(getType());
+    const f = fields.find((x) => x.key === select.value);
+    if (f && !labelInput.value.trim()) labelInput.value = f.label;
   });
+  row.insertBefore(select, keyInput);
+  keyInput.style.display = keyInput.value.trim() ? "" : "none";
+  fill();
+}
+
+function initCriterionRowEditor(criterionRowsContainer, addBtn, template, getType = () => "") {
+  const addRow = (key, label) => {
+    const frag = template.content.cloneNode(true);
+    const row = frag.querySelector(".criterion-row");
+    if (key) row.querySelector(".criterion-key").value = key;
+    if (label) row.querySelector(".criterion-label").value = label;
+    criterionRowsContainer.appendChild(frag);
+    enhanceCriterionRow(criterionRowsContainer.lastElementChild, getType);
+  };
+  addBtn.addEventListener("click", () => addRow());
+
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = "btn btn--ghost btn--sm";
+  allBtn.textContent = "Add all comparable fields";
+  allBtn.style.marginLeft = "8px";
+  allBtn.addEventListener("click", async () => {
+    const fields = await loadComparableFields(getType());
+    const have = new Set(Array.from(criterionRowsContainer.querySelectorAll(".criterion-key")).map((i) => i.value.trim()));
+    fields.filter((f) => f.key !== "rating" && !have.has(f.key)).forEach((f) => addRow(f.key, f.label));
+  });
+  addBtn.insertAdjacentElement("afterend", allBtn);
+
   criterionRowsContainer.addEventListener("click", (e) => {
     if (e.target.classList.contains("remove-criterion-row")) e.target.closest(".criterion-row").remove();
   });
+  return { addRow, refresh: () => Array.from(criterionRowsContainer.querySelectorAll(".criterion-row")).forEach((r) => { const s = r.querySelector(".criterion-pick"); if (s) s.remove(); enhanceCriterionRow(r, getType); }) };
 }
 
 function readCriterionRows(criterionRowsContainer) {
@@ -1348,7 +1413,9 @@ function initComparisonForm() {
 
   const criterionRowsContainer = document.getElementById("criterionRows");
   const criterionTemplate = document.getElementById("criterionRowTemplate");
-  initCriterionRowEditor(criterionRowsContainer, document.getElementById("addCriterionRowBtn"), criterionTemplate);
+  const criteriaEditor = initCriterionRowEditor(criterionRowsContainer, document.getElementById("addCriterionRowBtn"), criterionTemplate,
+    () => (form.elements.content_type ? form.elements.content_type.value : ""));
+  if (form.elements.content_type) form.elements.content_type.addEventListener("change", () => criteriaEditor.refresh());
   initEditorialPickPicker();
 
   form.addEventListener("submit", async (e) => {
@@ -1633,7 +1700,7 @@ async function initComparisonEditForm() {
   const alertEl = document.getElementById("comparisonEditAlert");
   const criterionRowsContainer = document.getElementById("criterionRows");
   const criterionTemplate = document.getElementById("criterionRowTemplate");
-  initCriterionRowEditor(criterionRowsContainer, document.getElementById("addCriterionRowBtn"), criterionTemplate);
+  const criteriaEditor = initCriterionRowEditor(criterionRowsContainer, document.getElementById("addCriterionRowBtn"), criterionTemplate, () => compareType);
 
   const itemSearchContentType = document.getElementById("itemSearchContentType");
   itemSearchContentType.value = compareType; // default the picker to the comparison's own type; still changeable for cross-type comparisons
@@ -1681,12 +1748,7 @@ async function initComparisonEditForm() {
     }));
     let criteria = [];
     try { criteria = JSON.parse(c.criteria_json || "[]"); } catch {}
-    criteria.forEach((crit) => {
-      const row = criterionTemplate.content.cloneNode(true);
-      row.querySelector(".criterion-key").value = crit.key;
-      row.querySelector(".criterion-label").value = crit.label;
-      criterionRowsContainer.appendChild(row);
-    });
+    criteria.forEach((crit) => criteriaEditor.addRow(crit.key, crit.label));
   } catch (e) {
     alertEl.className = "alert alert--error";
     alertEl.textContent = "Failed to load current values.";

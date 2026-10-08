@@ -10,6 +10,10 @@ const ROUTES = {
     { label: "All Casinos", url: "/en/casino" }
   ],
 
+  siteSearch: [
+    { label: "Search", url: "/en/search" }
+  ],
+
   reviewList: [
     { label: "All Reviews", url: "/en/review" }
   ],

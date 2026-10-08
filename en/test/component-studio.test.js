@@ -252,3 +252,20 @@ describe('settings contents bar', () => {
     assert.ok(page.includes("window.addEventListener('scroll', syncNavVisibility"));
   });
 });
+
+describe('research citation links', () => {
+  const js = read('static/js/anchor-scroll.js');
+  test('jump instantly and keep the target in place while the page settles', () => {
+    assert.ok(js.includes('research-source-'));
+    assert.ok(js.includes('scrollBehavior = "auto"'));
+    assert.ok(js.includes('setInterval'));
+  });
+  test('loaded on every page, and the footnote list no longer adds a second offset', () => {
+    assert.ok(read('templates/layout/base.html').includes('/static/js/anchor-scroll.js'));
+    assert.ok(/research-footnotes li \{[^}]*scroll-margin-top: 0/.test(read('static/css/research.css')));
+  });
+  test('footnote ids match the numbers in the links', () => {
+    const c = read('worker/controllers.js');
+    assert.ok(c.includes('href="#research-source-${num}"') && c.includes('id="research-source-${i + 1}"'));
+  });
+});

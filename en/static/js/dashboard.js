@@ -1364,6 +1364,18 @@ function enhanceCriterionRow(row, getType) {
   fill();
 }
 
+function mountComparisonDesign(picker, criterionRowsContainer, criteriaEditor) {
+  const container = document.getElementById("cmpDesign");
+  if (!container || !window.ComparisonDesign) return null;
+  return window.ComparisonDesign.mount({
+    container,
+    getItems: () => picker.getSelected(),
+    getCriteria: () => readCriterionRows(criterionRowsContainer),
+    addCriterion: (key, label) => criteriaEditor.addRow(key, label),
+    watch: [document.getElementById("selectedItemRows"), criterionRowsContainer],
+  });
+}
+
 function initCriterionRowEditor(criterionRowsContainer, addBtn, template, getType = () => "") {
   const addRow = (key, label) => {
     const frag = template.content.cloneNode(true);
@@ -1416,6 +1428,7 @@ function initComparisonForm() {
   const criteriaEditor = initCriterionRowEditor(criterionRowsContainer, document.getElementById("addCriterionRowBtn"), criterionTemplate,
     () => (form.elements.content_type ? form.elements.content_type.value : ""));
   if (form.elements.content_type) form.elements.content_type.addEventListener("change", () => criteriaEditor.refresh());
+  const designEditor = mountComparisonDesign(picker, criterionRowsContainer, criteriaEditor);
   initEditorialPickPicker();
 
   form.addEventListener("submit", async (e) => {
@@ -1436,6 +1449,7 @@ function initComparisonForm() {
       status: formData.get("status") || "draft",
       items,
       criteria,
+      design: designEditor ? designEditor.read() : undefined,
       editorial_selection_item_type: editorialType || null,
       editorial_selection_item_id: editorialType ? (parseInt(formData.get("editorial_selection_item_id")) || null) : null,
       seo_title: formData.get("seo_title") || null,
@@ -1709,6 +1723,7 @@ async function initComparisonEditForm() {
     searchInputId: "itemSearchInput", resultsId: "itemSearchResults",
     selectedRowsId: "selectedItemRows", rowTemplateId: "selectedItemRowTemplate",
   });
+  const designEditor = mountComparisonDesign(picker, criterionRowsContainer, criteriaEditor);
 
   try {
     const res = await fetch(`/en/api/v1/comparison/get?content_type=${encodeURIComponent(compareType)}&slug=${encodeURIComponent(slug)}`);
@@ -1749,6 +1764,7 @@ async function initComparisonEditForm() {
     let criteria = [];
     try { criteria = JSON.parse(c.criteria_json || "[]"); } catch {}
     criteria.forEach((crit) => criteriaEditor.addRow(crit.key, crit.label));
+    if (designEditor) designEditor.load(data.design);
   } catch (e) {
     alertEl.className = "alert alert--error";
     alertEl.textContent = "Failed to load current values.";
@@ -1769,6 +1785,7 @@ async function initComparisonEditForm() {
         body: JSON.stringify({
           content_type: compareType, slug, title: formData.get("title"), description: formData.get("description") || null,
           status: formData.get("status"), items, criteria,
+          design: designEditor ? designEditor.read() : undefined,
           editorial_selection_item_type: editorialType || null,
           editorial_selection_item_id: editorialType ? (parseInt(formData.get("editorial_selection_item_id")) || null) : null,
           seo_title: formData.get("seo_title") || null, seo_description: formData.get("seo_description") || null,

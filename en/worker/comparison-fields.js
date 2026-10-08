@@ -151,12 +151,18 @@ export function formatCell(field, raw) {
  * Every catalog field that at least one item has a value for is listed too, under "More
  * details", so the page always shows everything users can compare on.
  */
-export function buildComparisonRows(items, criteria, fields, customValuesByItemKey) {
+export function buildComparisonRows(items, criteria, fields, customValuesByItemKey, design = null) {
   const valuesOf = (item) => (item.contentType === "custom" ? customValuesByItemKey[`${item.contentType}:${item.id}`] : null);
   const byKey = new Map(fields.map((f) => [f.key, f]));
 
+  const typed = (design && design.cells) || {};
   const rowFor = (field, label) => {
-    const cells = items.map((item) => formatCell(field, rawValue(item, field.key, valuesOf(item))));
+    const cells = items.map((item) => {
+      // a custom value typed in the dashboard replaces the real one for this cell only
+      const own = typed[field.key] && typed[field.key][`${item.contentType}:${item.id}`];
+      if (own) return { html: escapeHtml(own), sort: String(own).toLowerCase(), num: null, custom: true };
+      return formatCell(field, rawValue(item, field.key, valuesOf(item)));
+    });
     const filled = cells.filter((c) => c.sort !== "");
     const distinct = new Set(cells.map((c) => c.sort));
     let best = -1;

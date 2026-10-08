@@ -119,3 +119,40 @@ were made.
 `test/site-upgrades.test.js` (13 tests) covers search grouping and hiding of drafts, the public
 route, research sort wiring, field catalog, cell formatting, row building, the fields API, and
 that every form listed for the panel exists in a template.
+
+---
+
+# Addendum (tenant v18.1): comparison design, custom values, top save bar
+
+## 5. Comparison design and custom values
+
+In the dashboard, Comparisons > create / edit has a new section **Design and custom values**.
+Nothing is required: a comparison with no design looks exactly as before.
+
+- **Whole table:** header, label column, cell, alternate-row and line colours, a highlight colour
+  (the Best marker and Our pick), font (site, serif, elegant, rounded, classic, monospace),
+  text size and corner shape.
+- **Each item (column):** header background and text, column background and text, highlight and font.
+- **Rows and custom values:** a grid with one row per criterion and one box per chosen item. A value
+  typed there replaces the real value for that item only; empty keeps the real value. Each row also has
+  **Row colours** (label and cell colours). **+ Add custom row** adds a new criterion with its own key
+  and label, filled the same way, so a custom key and custom label get a full row of comparable values.
+- Each colour has a clear button to go back to the site colour. The grid follows the items and criteria
+  chosen above it.
+- Order of precedence for a cell: the item's column colours, then the row's, then the whole table's.
+- Safety: colours must be `#rrggbb`, fonts come from a fixed list, values are plain text (200 characters),
+  everything is escaped on the page. Anything else is dropped when saved.
+- Storage: one JSON document per comparison in the existing `settings` table under
+  `comparison_design:{type}:{slug}` (no migration). It is removed when the comparison is deleted and when
+  every design field is cleared. The comparison API (`create`, `update`, `get`) carries it as `design`.
+
+Files: `worker/comparison-design.js` (new), `static/js/comparison-design.js` (new),
+`worker/comparison-fields.js`, `worker/controllers.js`, `worker/api.js`, `static/js/dashboard.js`,
+both comparison admin templates, `templates/pages/comparison.html`, `static/css/component-blocks.css`,
+`static/css/header-hero.css`.
+
+## 6. Create and edit pages: Save bar at the top
+
+Pages that are one large form (casino, content item, generic review, comparison, landing page,
+custom type, create and edit) have no list to move the form away from. They get a bar that stays at the
+top while scrolling, with the page title and a **Save** button that submits the form.

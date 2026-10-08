@@ -121,3 +121,69 @@ describe('admin add panel', () => {
     assert.ok(js.includes('form.scrollIntoView') && js.includes('body.appendChild(form)'));
   });
 });
+
+import { cleanDesign, saveComparisonDesign, getComparisonDesign, pageStyle, cellStyle, headStyle } from '../worker/comparison-design.js';
+
+describe('comparison design and custom values', () => {
+  test('only safe colours, fonts and plain text survive', () => {
+    const d = cleanDesign({
+      page: { head_bg: '#112233', cell_bg: 'red;background:url(x)', font: 'comic', size: 'lg', evil: 1 },
+      items: { 'casino:1': { col_bg: '#abcdef', font: 'serif' }, 'bad key': { col_bg: '#000000' } },
+      rows: { license: { label_bg: '#ffffff' }, 'x y': { label_bg: '#ffffff' } },
+      cells: { license: { 'casino:1': '  <b>Mine</b>\n', 'casino:x': 'no' }, '../x': { 'casino:1': 'no' } }
+    });
+    assert.deepEqual(d.page, { head_bg: '#112233', size: 'lg' });
+    assert.deepEqual(Object.keys(d.items), ['casino:1']);
+    assert.deepEqual(Object.keys(d.rows), ['license']);
+    assert.deepEqual(d.cells, { license: { 'casino:1': '<b>Mine</b>' } });
+    assert.ok(!pageStyle(d).includes('url('));
+  });
+  test('garbage and empty input give an empty design', () => {
+    assert.deepEqual(cleanDesign('{bad'), { page: {}, items: {}, rows: {}, cells: {} });
+    assert.deepEqual(cleanDesign(null).cells, {});
+  });
+  test('save, read back, and an empty design removes the setting', async () => {
+    await saveComparisonDesign(db, 'casino', 'a-vs-b', { page: { head_bg: '#112233' } });
+    assert.equal((await getComparisonDesign(db, 'casino', 'a-vs-b')).page.head_bg, '#112233');
+    await saveComparisonDesign(db, 'casino', 'a-vs-b', {});
+    assert.deepEqual((await getComparisonDesign(db, 'casino', 'a-vs-b')).page, {});
+    assert.equal(await db.prepare("SELECT 1 FROM settings WHERE key = 'comparison_design:casino:a-vs-b'").first(), null);
+  });
+  test('item colours win over row colours; custom values replace real ones and are escaped', async () => {
+    assert.equal(cellStyle({ cell_bg: '#111111' }, { col_bg: '#222222' }), 'background:#222222');
+    assert.equal(cellStyle({ cell_bg: '#111111' }, {}), 'background:#111111');
+    assert.ok(headStyle({ head_bg: '#333333', accent: '#444444' }).includes('inset 0 3px 0 #444444'));
+    const fields = await getComparableFields(db, 'casino');
+    const item = (id) => ({ contentType: 'casino', id, raw: { license: 'MGA', rating: 4 } });
+    const t = buildComparisonRows([item(1), item(2)], [{ key: 'license', label: 'L' }, { key: 'custom_ab12', label: 'Mine' }], fields, {},
+      { cells: { license: { 'casino:1': 'Own <i>text</i>' }, custom_ab12: { 'casino:2': 'Only B' } } });
+    assert.ok(t.main[0].cells[0].html.includes('Own &lt;i&gt;'));
+    assert.ok(t.main[0].cells[1].html.includes('MGA'));
+    assert.equal(t.main[0].differs, true);
+    assert.ok(t.main[1].cells[1].html.includes('Only B') && t.main[1].cells[0].html.includes('cmp-na'));
+  });
+  test('API create/update/get carry the design', async () => {
+    const admin = { user_id: 1, role: 'admin', email: 'a@test.com' };
+    const call = (method, path, body) => handleAPI({ method, url: `https://x.com${path}`, headers: new Headers(), json: async () => body }, { DB: db }, path.split('?')[0], admin);
+    const ids = (await db.prepare('SELECT id FROM casinos WHERE published = 1').all()).results.map((r) => r.id);
+    await db.prepare("INSERT INTO casinos (name, slug, website_url, affiliate_url, rating, published, status) VALUES ('Two','two','https://t.com','https://t.com/go',3,1,'published')").run();
+    const all = (await db.prepare('SELECT id FROM casinos WHERE published = 1').all()).results.map((r) => r.id);
+    const items = all.slice(0, 2).map((id, i) => ({ item_content_type: 'casino', item_id: id, position: i }));
+    const created = await (await call('POST', '/api/v1/comparison/create', { content_type: 'casino', slug: 'dz', title: 'DZ', items, criteria: [], design: { page: { head_bg: '#010203' } } })).json();
+    assert.ok(created.success, JSON.stringify(created));
+    let got = await (await call('GET', '/api/v1/comparison/get?content_type=casino&slug=dz')).json();
+    assert.equal(got.design.page.head_bg, '#010203');
+    await call('POST', '/api/v1/comparison/update', { content_type: 'casino', slug: 'dz', design: { page: { head_bg: '#0a0b0c' }, cells: { x: { 'casino:1': 'v' } } } });
+    got = await (await call('GET', '/api/v1/comparison/get?content_type=casino&slug=dz')).json();
+    assert.equal(got.design.page.head_bg, '#0a0b0c');
+    assert.equal(got.design.cells.x['casino:1'], 'v');
+    await call('POST', '/api/v1/comparison/delete', { content_type: 'casino', slug: 'dz' });
+    assert.equal(await db.prepare("SELECT 1 FROM settings WHERE key = 'comparison_design:casino:dz'").first(), null);
+  });
+  test('editor is wired into both forms and the top save bar exists', () => {
+    for (const f of ['comparison-create', 'comparison-edit']) assert.ok(read(`templates/pages/admin/${f}.html`).includes('id="cmpDesign"'));
+    assert.ok(read('static/js/dashboard.js').includes('mountComparisonDesign'));
+    assert.ok(read('static/js/admin-add-panel.js').includes('ap-bar'));
+    assert.ok(read('templates/pages/comparison.html').includes('design_style'));
+  });
+});

@@ -58,9 +58,32 @@
     return false;
   }
 
+  // Pages that are one big form (create / edit): no list to get away from, so the page gets a
+  // bar that stays at the top with the Save button always in reach.
+  var SINGLE = ["casinoForm", "casinoEditForm", "contentItemForm", "contentItemEditForm", "genericReviewForm", "genericReviewEditForm",
+    "comparisonForm", "comparisonEditForm", "landingPageForm", "landingPageEditForm", "customTypeForm", "customTypeEditForm"];
+
+  function saveBars(root) {
+    SINGLE.forEach(function (id) {
+      var form = document.getElementById(id);
+      if (!form || !root.contains(form) || root.querySelector(".ap-bar")) return;
+      var h1 = root.querySelector(".admin-header h1, h1");
+      var bar = el("div", "ap-bar");
+      bar.appendChild(el("span", "ap-bar__title", h1 ? h1.textContent.trim() : "Editing"));
+      var save = el("button", "btn btn--primary", "Save");
+      save.type = "button";
+      save.addEventListener("click", function () {
+        if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+      });
+      bar.appendChild(save);
+      form.parentNode.insertBefore(bar, form);
+    });
+  }
+
   function init() {
     var root = document.querySelector(".admin-content");
     if (!root || root.querySelector(".ap-panel")) return;
+    saveBars(root);
 
     var panels = [];
     Object.keys(FORMS).forEach(function (id) {

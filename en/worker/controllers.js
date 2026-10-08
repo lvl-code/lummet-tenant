@@ -50,6 +50,7 @@ import { getRelatedCasinos } from "./database/related-casinos.js";
 import { getCached, setCached } from "./cache.js";
 import { searchSite } from "./site-search.js";
 import { getComparableFields, buildComparisonRows } from "./comparison-fields.js";
+import { getComparisonDesign, pageStyle, cellStyle, headStyle, labelStyle } from "./comparison-design.js";
 import {
     buildBreadcrumbs
 } from "./breadcrumbs.js";
@@ -5269,10 +5270,11 @@ function buildComparisonTableHtml(items, criteria, customFieldValuesByItemKey, l
   return { headerCells, logoCells, ratingCells, ctaCells, criteriaRows };
 }
 
-function renderComparisonHeaderCells(items, comparison) {
+function renderComparisonHeaderCells(items, comparison, design = null) {
   return items.map((i) => {
     const isPick = comparison.editorial_selection_item_type === i.contentType && Number(comparison.editorial_selection_item_id) === Number(i.id);
-    return `<th scope="col" class="cmp-head${isPick ? " cmp-head--pick" : ""}">
+    const st = headStyle(design && design.items[`${i.contentType}:${i.id}`]);
+    return `<th scope="col" class="cmp-head${isPick ? " cmp-head--pick" : ""}"${st ? ` style="${st}"` : ""}>
       ${isPick ? `<span class="cmp-pick-badge">Our pick</span>` : ""}
       <a class="cmp-head__link" href="${linkPrefixForItem(i)}/${i.slug}">
         <img src="${escapeReviewText(i.logo || "/static/images/default.png")}" alt="" loading="lazy" onerror="this.src='/static/images/default.png'">
@@ -5282,18 +5284,23 @@ function renderComparisonHeaderCells(items, comparison) {
   }).join("");
 }
 
-function renderComparisonCells(row) {
-  return row.cells.map((cell, idx) =>
-    `<td class="${row.best === idx ? "cmp-best" : ""}" data-label="">${cell.html}${row.best === idx ? `<span class="cmp-best-tag">Best</span>` : ""}</td>`
-  ).join("");
+function renderComparisonCells(row, items, design = null) {
+  const rowSt = design && design.rows[row.key];
+  return row.cells.map((cell, idx) => {
+    const it = items[idx];
+    const st = cellStyle(rowSt, it && design && design.items[`${it.contentType}:${it.id}`]);
+    const best = row.best === idx;
+    return `<td class="${best ? "cmp-best" : ""}${cell.custom ? " cmp-custom" : ""}" data-label=""${st ? ` style="${st}"` : ""}>${cell.html}${best ? `<span class="cmp-best-tag">Best</span>` : ""}</td>`;
+  }).join("");
 }
 
-function renderComparisonRows(rows, itemCount, heading) {
+function renderComparisonRows(rows, items, heading, design = null) {
   if (!rows.length) return "";
-  const head = heading ? `<tr class="cmp-group"><th colspan="${itemCount + 1}" scope="colgroup">${escapeReviewText(heading)}</th></tr>` : "";
-  return head + rows.map((row) =>
-    `<tr class="${row.differs ? "cmp-diff" : "cmp-same"}"><th scope="row" class="cmp-label">${escapeReviewText(row.label)}</th>${renderComparisonCells(row)}</tr>`
-  ).join("");
+  const head = heading ? `<tr class="cmp-group"><th colspan="${items.length + 1}" scope="colgroup">${escapeReviewText(heading)}</th></tr>` : "";
+  return head + rows.map((row) => {
+    const ls = labelStyle(design && design.rows[row.key]);
+    return `<tr class="${row.differs ? "cmp-diff" : "cmp-same"}"><th scope="row" class="cmp-label"${ls ? ` style="${ls}"` : ""}>${escapeReviewText(row.label)}</th>${renderComparisonCells(row, items, design)}</tr>`;
+  }).join("");
 }
 
 function renderComparisonSummary(items, ratingRow) {
@@ -5375,7 +5382,8 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
 
   const customSlug = (items.find((i) => i.contentType === "custom") || {}).customTypeSlug || "";
   const catalog = await getComparableFields(env.DB, compareType, customSlug);
-  const table = buildComparisonRows(items, criteria, catalog, customFieldValuesByItemKey);
+  const design = await getComparisonDesign(env.DB, compareType, slug);
+  const table = buildComparisonRows(items, criteria, catalog, customFieldValuesByItemKey, design);
 
   let editorialPickHtml = "";
   if (comparison.editorial_selection_item_type && comparison.editorial_selection_item_id) {
@@ -5398,10 +5406,11 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
   const html = await renderer.render("comparison.html", {
     title: escapeHtml(comparison.title),
     description: comparison.description || "",
-    item_header_cells_html: renderComparisonHeaderCells(items, comparison),
-    item_rating_cells_html: renderComparisonCells(table.ratingRow),
-    criteria_rows_html: renderComparisonRows(table.main, items.length, ""),
-    more_rows_html: table.more.length ? renderComparisonRows(table.more, items.length, criteria.length ? "More details" : "Comparison details") : "",
+    item_header_cells_html: renderComparisonHeaderCells(items, comparison, design),
+    design_style: pageStyle(design),
+    item_rating_cells_html: renderComparisonCells(table.ratingRow, items, design),
+    criteria_rows_html: renderComparisonRows(table.main, items, "", design),
+    more_rows_html: table.more.length ? renderComparisonRows(table.more, items, criteria.length ? "More details" : "Comparison details", design) : "",
     item_cta_cells_html: items.map((i) => `<td data-label="${escapeReviewText(i.name)}"><a href="${linkPrefixForItem(i)}/${i.slug}" class="btn btn--primary">View ${escapeReviewText(i.name)}</a></td>`).join(""),
     summary_html: renderComparisonSummary(items, table.ratingRow),
     column_count: items.length + 1,

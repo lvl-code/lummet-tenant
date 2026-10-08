@@ -15,6 +15,7 @@ import { renderComponent } from "./component-engine.js";
 import { isStudioType, cleanStudioSettingsJson, cleanLegacySettingsJson, renderStudioComponent } from "./component-studio.js";
 import { searchSite } from "./site-search.js";
 import { getComparableFields } from "./comparison-fields.js";
+import { getComparisonDesign, saveComparisonDesign, deleteComparisonDesign } from "./comparison-design.js";
 import { searchSource, searchLinks, resolvePicks, isSource, LINK_SOURCE_KEYS } from "./component-sources.js";
 import * as ai from "./database/ai.js";
 import * as categories from "./database/categories.js";
@@ -1364,6 +1365,7 @@ if (path === "/api/v1/comparison/create" && request.method === "POST") {
     authorId: body.author_id || null, createdBy: user.user_id,
     items: body.items.map((it, idx) => ({ itemContentType: it.item_content_type, itemId: it.item_id, position: it.position ?? idx })),
   });
+  if (body.design) await saveComparisonDesign(env.DB, body.content_type, body.slug, body.design);
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "comparison", entityId: comparison.id, metadata: { content_type: body.content_type, slug: body.slug, title: body.title } });
   return success({ comparison });
 }
@@ -1388,7 +1390,8 @@ if (path === "/api/v1/comparison/get" && request.method === "GET") {
   const canAccess = await itemAccess.canAccessItem(env.DB, user, "comparisons", "read", comparison);
   if (!canAccess) return failure("Comparison not found", 404);
   const items = await comparisonsDB.getComparisonItems(env.DB, comparison.id);
-  return json({ success: true, comparison, items });
+  const design = await getComparisonDesign(env.DB, contentType, slug);
+  return json({ success: true, comparison, items, design });
 }
 
 if (path === "/api/v1/comparison/update" && request.method === "POST") {
@@ -1409,6 +1412,7 @@ if (path === "/api/v1/comparison/update" && request.method === "POST") {
     status: body.status, seoTitle: body.seo_title, seoDescription: body.seo_description,
     items: Array.isArray(body.items) ? body.items.map((it, idx) => ({ itemContentType: it.item_content_type, itemId: it.item_id, position: it.position ?? idx })) : undefined,
   });
+  if (body.design !== undefined) await saveComparisonDesign(env.DB, body.content_type, body.slug, body.design);
   await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "comparison", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug } });
   return success({ comparison });
 }
@@ -1421,6 +1425,7 @@ if (path === "/api/v1/comparison/delete" && request.method === "POST") {
   const canAccess = await itemAccess.canAccessItem(env.DB, user, "comparisons", "delete", existing);
   if (!canAccess) return failure("Comparison not found", 404);
   await comparisonsDB.deleteComparison(env.DB, body.content_type, body.slug);
+  await deleteComparisonDesign(env.DB, body.content_type, body.slug);
   await logAudit(env.DB, { userId: user.user_id, action: "delete", entityType: "comparison", entityId: existing.id, metadata: { content_type: body.content_type, slug: body.slug, title: existing.title } });
   return success();
 }

@@ -156,3 +156,52 @@ both comparison admin templates, `templates/pages/comparison.html`, `static/css/
 Pages that are one large form (casino, content item, generic review, comparison, landing page,
 custom type, create and edit) have no list to move the form away from. They get a bar that stays at the
 top while scrolling, with the page title and a **Save** button that submits the form.
+
+---
+
+# Addendum (tenant v18.2): comparison sections, related fields, remove item, list search
+
+Nothing from v18 and v18.1 changed; all of this is added on top.
+
+## 7. Comparison: content sections below the table
+
+Comparisons > create / edit > **Design and custom values** has a new part,
+**Content sections below the table**. It builds written content, shown under the table in the order set:
+heading, text (blank line = new paragraph), list (bullets or numbers), highlighted note (information,
+positive, warning), **picked items**, button / link, picture, divider line. No tables.
+- **Picked items** open the same search dialog used elsewhere: casinos, news, research, authors, platform
+  updates, sportsbooks, affiliate partners and custom content (up to 12 per block). They appear as text rows
+  with a small picture, title, type, rating and summary. Unpublished or deleted items drop out by themselves.
+- **Button / link** has a "Pick a page" button (pages, reviews, and the same content types); pictures have
+  "Choose from Media".
+- Up to 30 blocks. Text is plain and escaped on the page; links must start with `/` or `https://`.
+- Stored in the comparison's design document (`sections`), so it needs no migration.
+
+## 8. Comparison table: payment methods and categories
+
+**Payment methods** and **Categories** are now comparable fields for every type, picked like any other
+criterion (or shown automatically under "More details" when at least one item has them). They show what
+each item is linked to on the site: casinos through their payment-method and category links, other types
+through the generic content links. An item with none shows a dash.
+
+## 9. Comparison page: remove an item
+
+Each item header has a small **x**. It hides that column for the visit; **Restore ...** brings it back.
+At least two items always stay. (In the dashboard, items are removed with the x next to each chosen item.)
+
+## 10. Dashboard: search in every list
+
+Every table in the dashboard gets, once it has 6 or more rows:
+- a **search box** (all words must match anywhere in the row, ignoring the Edit/Delete buttons),
+- a **"Showing X of Y"** count and a clear "No rows match" line,
+- **click a heading to sort** (numbers sort as numbers),
+- **/** jumps to the search box, **Esc** clears it.
+Lists that load later or reload after a save keep working. Comparisons and generic reviews, which load one
+page at a time, send the search to the server (`search=` on `comparisons/list` and `generic-reviews/list`),
+so it covers every page. The content items list keeps its own search. A table can opt out with `data-no-search`.
+
+Files: `static/js/admin-list-search.js` (new), `static/css/header-hero.css`, `static/js/dashboard.js`,
+`worker/database/comparisons.js`, `worker/database/generic-reviews.js`, `worker/api.js`,
+`worker/comparison-design.js`, `worker/comparison-fields.js`, `worker/controllers.js`,
+`static/js/comparison-design.js`, `static/js/comparison.js`, `static/css/component-blocks.css`,
+`templates/pages/comparison.html`, `templates/layout/base.html`.

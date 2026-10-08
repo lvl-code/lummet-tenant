@@ -9,6 +9,7 @@
     </header>
 
     <div class="cmp-toolbar">
+      <span class="cmp-removed" id="cmpRemoved" hidden></span>
       <label class="cmp-toggle"><input type="checkbox" id="cmpDiffOnly"> Show differences only</label>
     </div>
 
@@ -34,6 +35,8 @@
         </tbody>
       </table>
     </div>
+
+    {{{sections_html}}}
 
     {{#if editorial_pick_html}}
     <div class="info-block">

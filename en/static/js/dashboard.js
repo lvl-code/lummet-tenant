@@ -331,6 +331,17 @@ async function initContentLandingPageEditForm() {
 // page/per_page (no `total` in the response) renders nothing here --
 // pagination is opt-in per list via PAGE_STATE below, existing callers
 // of these loaders with no page argument are unaffected.
+// The shared list search (admin-list-search.js) keeps what was typed here; server-paged lists add it to their request.
+function listSearchParam(tbodyId) {
+  const q = window.ADMIN_LIST_QUERY && window.ADMIN_LIST_QUERY[tbodyId];
+  return q ? `&search=${encodeURIComponent(q)}` : "";
+}
+window.addEventListener("admin-list-search", (e) => {
+  const id = e.detail && e.detail.id;
+  if (id === "comparisonsTableBody") { PAGE_STATE.comparisons = 1; loadComparisonsTable(); }
+  else if (id === "genericReviewsTableBody") { PAGE_STATE.genericReviews = 1; loadGenericReviewsTable(); }
+});
+
 function renderPagerControls(containerId, page, perPage, total, onPageChange) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -1142,7 +1153,7 @@ async function loadComparisonsTable(contentType) {
   const type = contentType || (typeFilter ? typeFilter.value : "casino");
 
   try {
-    const res = await fetch(`/en/api/v1/comparisons/list?content_type=${encodeURIComponent(type)}&page=${PAGE_STATE.comparisons}&per_page=${PER_PAGE}`);
+    const res = await fetch(`/en/api/v1/comparisons/list?content_type=${encodeURIComponent(type)}&page=${PAGE_STATE.comparisons}&per_page=${PER_PAGE}${listSearchParam("comparisonsTableBody")}`);
     const data = await res.json();
     const comparisons = data.comparisons || [];
     renderPagerControls("comparisonsPager", PAGE_STATE.comparisons, PER_PAGE, data.total, (p) => { PAGE_STATE.comparisons = p; loadComparisonsTable(type); });
@@ -1857,7 +1868,7 @@ async function loadGenericReviewsTable(reviewedContentType) {
   const type = reviewedContentType || (typeFilter ? typeFilter.value : "sportsbook");
 
   try {
-    const res = await fetch(`/en/api/v1/generic-reviews/list?reviewed_content_type=${encodeURIComponent(type)}&page=${PAGE_STATE.genericReviews}&per_page=${PER_PAGE}`);
+    const res = await fetch(`/en/api/v1/generic-reviews/list?reviewed_content_type=${encodeURIComponent(type)}&page=${PAGE_STATE.genericReviews}&per_page=${PER_PAGE}${listSearchParam("genericReviewsTableBody")}`);
     const data = await res.json();
     const reviews = data.reviews || [];
     renderPagerControls("genericReviewsPager", PAGE_STATE.genericReviews, PER_PAGE, data.total, (p) => { PAGE_STATE.genericReviews = p; loadGenericReviewsTable(type); });

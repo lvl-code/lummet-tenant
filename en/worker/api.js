@@ -1343,7 +1343,7 @@ if (path === "/api/v1/comparisons/list" && request.method === "GET") {
   const { condition, params } = await itemAccess.getAccessibleWhereClause(env.DB, user, "comparisons", "read");
   const page = url.searchParams.has("page") ? Math.max(1, parseInt(url.searchParams.get("page")) || 1) : null;
   const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page")) || 25));
-  const opts = { status: statusFilter || null, extraCondition: condition || null, extraParams: params, limit: page != null ? perPage : 200, offset: page != null ? (page - 1) * perPage : 0, withTotal: page != null };
+  const opts = { search: (url.searchParams.get("search") || "").trim().slice(0, 80) || null, status: statusFilter || null, extraCondition: condition || null, extraParams: params, limit: page != null ? perPage : 200, offset: page != null ? (page - 1) * perPage : 0, withTotal: page != null };
   const result = await comparisonsDB.getAllComparisons(env.DB, contentType, opts);
   if (page != null) return json({ success: true, comparisons: result.items, total: result.total, page, per_page: perPage });
   return json({ success: true, comparisons: result });
@@ -1461,7 +1461,7 @@ if (path === "/api/v1/generic-reviews/list" && request.method === "GET") {
     const reviews = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType);
     return json({ success: true, reviews });
   }
-  const result = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType, { limit: perPage, offset: (page - 1) * perPage });
+  const result = await genericReviewsDB.getGenericReviewsForType(env.DB, reviewedContentType, { limit: perPage, offset: (page - 1) * perPage, search: (url.searchParams.get("search") || "").trim().slice(0, 80) || null });
   return json({ success: true, reviews: result.items, total: result.total, page, per_page: perPage });
 }
 

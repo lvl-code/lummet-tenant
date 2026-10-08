@@ -26,8 +26,13 @@
   function mount(opts) {
     var root = opts.container;
     if (!root) return null;
-    var state = { page: {}, items: {}, rows: {}, cells: {} };
+    var state = { page: {}, items: {}, rows: {}, cells: {}, sections: [] };
     var timer;
+    // the colour/values part is redrawn when items or criteria change; the sections part is not
+    var designRoot = el("div", "cd-part");
+    var secRoot = el("div", "cd-part");
+    root.appendChild(designRoot);
+    root.appendChild(secRoot);
 
     function itemKey(it) { return it.itemContentType + ":" + it.itemId; }
     function shortName(it) { return String(it.label || "").replace(/\s*\(.*$/, "") || itemKey(it); }
@@ -81,7 +86,7 @@
     function render() {
       var items = opts.getItems() || [];
       var criteria = opts.getCriteria() || [];
-      root.innerHTML = "";
+      designRoot.innerHTML = "";
 
       // whole table
       var s1 = section("Whole table: colours and fonts", true);
@@ -93,7 +98,7 @@
       g1.appendChild(selectField("Text size", SIZES, function () { return state.page.size; }, function (v) { if (v) state.page.size = v; else delete state.page.size; }));
       g1.appendChild(selectField("Corners", RADII, function () { return state.page.radius; }, function (v) { if (v) state.page.radius = v; else delete state.page.radius; }));
       s1.appendChild(g1);
-      root.appendChild(s1);
+      designRoot.appendChild(s1);
 
       // each item
       var s2 = section("Each item (column)", false);
@@ -110,7 +115,7 @@
         box.appendChild(g);
         s2.appendChild(box);
       });
-      root.appendChild(s2);
+      designRoot.appendChild(s2);
 
       // rows and custom values
       var s3 = section("Rows and custom values", true);
@@ -177,7 +182,117 @@
         opts.addCriterion(key, "Custom row");
       });
       s3.appendChild(add);
-      root.appendChild(s3);
+      designRoot.appendChild(s3);
+    }
+
+    // ------------------------------------------------------------ sections (text below the table)
+    var TYPES = [["heading", "Heading"], ["text", "Text"], ["bullets", "List"], ["callout", "Highlighted note"], ["picks", "Picked items (casinos, news, research, ...)"], ["link", "Button / link"], ["image", "Picture"], ["divider", "Divider line"]];
+    var nameCache = {};
+
+    function inputText(b, k, ph, max) {
+      var i = document.createElement("input"); i.type = "text"; i.placeholder = ph || ""; i.maxLength = max || 200; i.value = b[k] || "";
+      i.addEventListener("input", function () { b[k] = i.value; });
+      return i;
+    }
+    function areaText(b, k, ph, max, rows) {
+      var t = document.createElement("textarea"); t.rows = rows || 4; t.placeholder = ph || ""; t.maxLength = max || 3000; t.value = b[k] || "";
+      t.addEventListener("input", function () { b[k] = t.value; });
+      return t;
+    }
+    function selectOf(b, k, options, def) {
+      var s = document.createElement("select");
+      options.forEach(function (o) { var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; s.appendChild(op); });
+      s.value = b[k] || def; b[k] = s.value;
+      s.addEventListener("change", function () { b[k] = s.value; });
+      return s;
+    }
+    function lab(text, control) { var l = el("label", "cd-field"); l.appendChild(el("span", "cd-color__label", text)); l.appendChild(control); return l; }
+
+    function blockBody(b) {
+      var box = el("div", "cd-blockbody");
+      if (b.type === "heading") { box.appendChild(lab("Heading", inputText(b, "text", "Heading text", 120))); box.appendChild(lab("Size", selectOf(b, "level", [["h2", "Large"], ["h3", "Medium"]], "h2"))); }
+      else if (b.type === "text") { box.appendChild(lab("Text (leave an empty line between paragraphs)", areaText(b, "text", "Write here...", 3000, 6))); }
+      else if (b.type === "bullets") {
+        var ta = document.createElement("textarea"); ta.rows = 5; ta.placeholder = "One point per line";
+        ta.value = (b.items || []).join("\n");
+        ta.addEventListener("input", function () { b.items = ta.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean); });
+        box.appendChild(lab("Points (one per line)", ta)); box.appendChild(lab("Style", selectOf(b, "style", [["bullet", "Bullets"], ["number", "Numbers"]], "bullet")));
+      }
+      else if (b.type === "callout") { box.appendChild(lab("Title", inputText(b, "title", "Optional title", 100))); box.appendChild(lab("Text", areaText(b, "text", "Note text", 600, 3))); box.appendChild(lab("Tone", selectOf(b, "tone", [["info", "Information"], ["good", "Positive"], ["warn", "Warning"]], "info"))); }
+      else if (b.type === "picks") {
+        box.appendChild(lab("Title (optional)", inputText(b, "title", "e.g. Alternatives worth a look", 100)));
+        b.picks = Array.isArray(b.picks) ? b.picks : [];
+        var list = el("div", "cd-picklist");
+        var draw = function () {
+          list.textContent = "";
+          if (!b.picks.length) list.appendChild(el("p", "muted", "Nothing picked yet."));
+          b.picks.forEach(function (p, i) {
+            var row = el("div", "cd-pick");
+            row.appendChild(el("span", "", (nameCache[p.source + ":" + p.key] || p.label || p.key) + "  \u00b7  " + p.source));
+            var rm = el("button", "btn btn--ghost btn--sm", "Remove"); rm.type = "button";
+            rm.addEventListener("click", function () { b.picks.splice(i, 1); draw(); });
+            row.appendChild(rm); list.appendChild(row);
+          });
+        };
+        var add = el("button", "btn btn--ghost btn--sm", "+ Search and add"); add.type = "button";
+        add.addEventListener("click", function () {
+          if (!window.LummetPicker) { window.alert("The picker could not be loaded. Reload the page."); return; }
+          window.LummetPicker.open({}, function (p) {
+            if (b.picks.length >= 12) return false;
+            if (!b.picks.some(function (x) { return x.source === p.source && x.key === p.key; })) { b.picks.push({ source: p.source, key: p.key, label: p.label }); nameCache[p.source + ":" + p.key] = p.label; draw(); }
+            return true;
+          });
+        });
+        draw(); box.appendChild(list); box.appendChild(add);
+      }
+      else if (b.type === "link") {
+        box.appendChild(lab("Button text", inputText(b, "text", "Read the full review", 80)));
+        var li = inputText(b, "link", "/en/page or https://...", 300);
+        var pickBtn = el("button", "btn btn--ghost btn--sm", "Pick a page"); pickBtn.type = "button";
+        pickBtn.addEventListener("click", function () { if (window.LummetPicker) window.LummetPicker.open({ mode: "link" }, function (p) { li.value = p.url; b.link = p.url; }); });
+        var row = el("div", "cd-inline"); row.appendChild(li); row.appendChild(pickBtn);
+        box.appendChild(lab("Link", row)); box.appendChild(lab("Look", selectOf(b, "style", [["primary", "Solid"], ["ghost", "Outline"]], "primary")));
+      }
+      else if (b.type === "image") {
+        var si = inputText(b, "src", "/uploads/picture.jpg or https://...", 300);
+        var mb = el("button", "btn btn--ghost btn--sm", "Choose from Media"); mb.type = "button";
+        mb.addEventListener("click", function () { if (window.MediaPicker && window.MediaPicker.openImagePicker) window.MediaPicker.openImagePicker(function (m) { si.value = m.url; b.src = m.url; }); });
+        var r2 = el("div", "cd-inline"); r2.appendChild(si); r2.appendChild(mb);
+        box.appendChild(lab("Picture", r2)); box.appendChild(lab("Description (for screen readers)", inputText(b, "alt", "", 160))); box.appendChild(lab("Caption", inputText(b, "caption", "", 200)));
+      }
+      else { box.appendChild(el("p", "muted", "A thin line between two parts.")); }
+      return box;
+    }
+
+    function renderSections() {
+      secRoot.innerHTML = "";
+      var d = document.createElement("details"); d.className = "cd-section"; d.open = state.sections.length > 0;
+      d.appendChild(el("summary", "", "Content sections below the table (text, notes, picked items)"));
+      d.appendChild(el("p", "muted", "Written content shown under the table, in this order: headings, text, lists, highlighted notes, buttons, pictures, and items you pick from the site (casinos, news, research, authors, updates, sportsbooks, ...). No tables."));
+      var list = el("div", "cd-blocks");
+      state.sections.forEach(function (b, i) {
+        var card = el("div", "cd-block");
+        var head = el("div", "cd-block__head");
+        head.appendChild(el("strong", "", (TYPES.filter(function (t) { return t[0] === b.type; })[0] || [0, b.type])[1]));
+        var acts = el("span", "cd-block__acts");
+        [["\u2191", -1], ["\u2193", 1]].forEach(function (m) {
+          var bt = el("button", "btn btn--ghost btn--sm", m[0]); bt.type = "button"; bt.disabled = (m[1] < 0 && i === 0) || (m[1] > 0 && i === state.sections.length - 1);
+          bt.addEventListener("click", function () { var j = i + m[1]; var t = state.sections[i]; state.sections[i] = state.sections[j]; state.sections[j] = t; renderSections(); });
+          acts.appendChild(bt);
+        });
+        var rm = el("button", "btn btn--danger btn--sm", "Remove"); rm.type = "button";
+        rm.addEventListener("click", function () { state.sections.splice(i, 1); renderSections(); });
+        acts.appendChild(rm); head.appendChild(acts);
+        card.appendChild(head); card.appendChild(blockBody(b)); list.appendChild(card);
+      });
+      d.appendChild(list);
+      var bar = el("div", "cd-addbar");
+      var sel = document.createElement("select");
+      TYPES.forEach(function (t) { var o = document.createElement("option"); o.value = t[0]; o.textContent = t[1]; sel.appendChild(o); });
+      var add = el("button", "btn btn--ghost btn--sm", "+ Add block"); add.type = "button";
+      add.addEventListener("click", function () { if (state.sections.length >= 30) return; state.sections.push({ type: sel.value }); renderSections(); });
+      bar.appendChild(sel); bar.appendChild(add); d.appendChild(bar);
+      secRoot.appendChild(d);
     }
 
     function later() { clearTimeout(timer); timer = setTimeout(render, 120); }
@@ -188,6 +303,7 @@
       n.addEventListener("input", later);
     });
     render();
+    renderSections();
 
     return {
       read: function () {
@@ -196,7 +312,7 @@
         (opts.getCriteria() || []).forEach(function (c) { keys[c.key] = true; });
         var itemKeys = {};
         (opts.getItems() || []).forEach(function (i) { itemKeys[itemKey(i)] = true; });
-        var out = { page: state.page, items: {}, rows: {}, cells: {} };
+        var out = { page: state.page, items: {}, rows: {}, cells: {}, sections: state.sections };
         Object.keys(state.items).forEach(function (k) { if (itemKeys[k]) out.items[k] = state.items[k]; });
         Object.keys(state.rows).forEach(function (k) { if (keys[k]) out.rows[k] = state.rows[k]; });
         Object.keys(state.cells).forEach(function (k) {
@@ -208,8 +324,9 @@
       },
       load: function (design) {
         var d = design || {};
-        state = { page: d.page || {}, items: d.items || {}, rows: d.rows || {}, cells: d.cells || {} };
+        state = { page: d.page || {}, items: d.items || {}, rows: d.rows || {}, cells: d.cells || {}, sections: Array.isArray(d.sections) ? d.sections : [] };
         render();
+        renderSections();
       },
       refresh: render
     };

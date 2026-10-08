@@ -10,6 +10,12 @@ function escapeHtml(v) {
   return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+// Added to every type: what the item is linked to elsewhere on the site
+const RELATED_FIELDS = [
+  { key: "payment_methods", label: "Payment methods", kind: "list", related: true },
+  { key: "categories", label: "Categories", kind: "list", related: true }
+];
+
 // kind: rating | number | text | bool | list | url
 // better: "high" marks the largest number as the best value
 const CASINO_FIELDS = [
@@ -48,12 +54,12 @@ const CUSTOM_KIND = {
 
 /** The comparable fields for a content type (custom types add their own defined fields). */
 export async function getComparableFields(db, contentType, customTypeSlug = "") {
-  if (contentType === "casino") return CASINO_FIELDS.map((f) => ({ ...f }));
-  if (contentType === "sportsbook") return SPORTSBOOK_FIELDS.map((f) => ({ ...f }));
-  if (contentType === "affiliate_partner") return ITEM_FIELDS.map((f) => ({ ...f }));
+  if (contentType === "casino") return [...CASINO_FIELDS, ...RELATED_FIELDS].map((f) => ({ ...f }));
+  if (contentType === "sportsbook") return [...SPORTSBOOK_FIELDS, ...RELATED_FIELDS].map((f) => ({ ...f }));
+  if (contentType === "affiliate_partner") return [...ITEM_FIELDS, ...RELATED_FIELDS].map((f) => ({ ...f }));
   if (contentType !== "custom") return [];
 
-  const fields = ITEM_FIELDS.map((f) => ({ ...f }));
+  const fields = [...ITEM_FIELDS, ...RELATED_FIELDS].map((f) => ({ ...f }));
   try {
     const slug = String(customTypeSlug || "");
     const sql = `SELECT field_key, label, field_type FROM custom_field_definitions ${slug ? "WHERE custom_type_slug = ?" : ""} ORDER BY display_order ASC, id ASC`;
@@ -92,6 +98,32 @@ function toList(raw) {
 function isTrue(v) { return v === 1 || v === true || v === "1" || v === "true" || v === "yes"; }
 function isFalse(v) { return v === 0 || v === false || v === "0" || v === "false" || v === "no"; }
 function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && !v.length); }
+
+/**
+ * Payment methods and categories of each item, as { "casino:12": { payment_methods: [...], categories: [...] } }.
+ * A missing table or a failed query just leaves those rows empty.
+ */
+export async function loadRelatedValues(db, items) {
+  const out = {};
+  for (const item of items) {
+    const key = `${item.contentType}:${item.id}`;
+    const v = { payment_methods: [], categories: [] };
+    try {
+      const pm = item.contentType === "casino"
+        ? await db.prepare("SELECT pm.name FROM casino_payment_methods l JOIN payment_methods pm ON pm.id = l.payment_method_id WHERE l.casino_id = ? ORDER BY pm.name").bind(item.id).all()
+        : await db.prepare("SELECT pm.name FROM content_payment_methods l JOIN payment_methods pm ON pm.id = l.payment_method_id WHERE l.content_type = ? AND l.content_id = ? ORDER BY pm.name").bind(item.contentType, item.id).all();
+      v.payment_methods = (pm.results || []).map((r) => r.name);
+    } catch (err) { console.error("comparison payment methods unavailable:", err && err.message); }
+    try {
+      const cat = item.contentType === "casino"
+        ? await db.prepare("SELECT c.name FROM casino_categories l JOIN categories c ON c.id = l.category_id WHERE l.casino_id = ? ORDER BY c.name").bind(item.id).all()
+        : await db.prepare("SELECT c.name FROM content_categories l JOIN categories c ON c.id = l.category_id WHERE l.content_type = ? AND l.content_id = ? ORDER BY c.name").bind(item.contentType, item.id).all();
+      v.categories = (cat.results || []).map((r) => r.name);
+    } catch (err) { console.error("comparison categories unavailable:", err && err.message); }
+    out[key] = v;
+  }
+  return out;
+}
 
 /** the raw value of one field for one item, or null */
 export function rawValue(item, key, customValues) {
@@ -151,8 +183,12 @@ export function formatCell(field, raw) {
  * Every catalog field that at least one item has a value for is listed too, under "More
  * details", so the page always shows everything users can compare on.
  */
-export function buildComparisonRows(items, criteria, fields, customValuesByItemKey, design = null) {
-  const valuesOf = (item) => (item.contentType === "custom" ? customValuesByItemKey[`${item.contentType}:${item.id}`] : null);
+export function buildComparisonRows(items, criteria, fields, customValuesByItemKey, design = null, related = {}) {
+  const valuesOf = (item) => {
+    const k = `${item.contentType}:${item.id}`;
+    const custom = item.contentType === "custom" ? customValuesByItemKey[k] : null;
+    return related[k] ? { ...(custom || {}), ...related[k] } : custom;
+  };
   const byKey = new Map(fields.map((f) => [f.key, f]));
 
   const typed = (design && design.cells) || {};

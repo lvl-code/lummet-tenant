@@ -139,7 +139,7 @@ describe('comparison design and custom values', () => {
     assert.ok(!pageStyle(d).includes('url('));
   });
   test('garbage and empty input give an empty design', () => {
-    assert.deepEqual(cleanDesign('{bad'), { page: {}, items: {}, rows: {}, cells: {} });
+    assert.deepEqual(cleanDesign('{bad'), { page: {}, items: {}, rows: {}, cells: {}, sections: [] });
     assert.deepEqual(cleanDesign(null).cells, {});
   });
   test('save, read back, and an empty design removes the setting', async () => {
@@ -185,5 +185,93 @@ describe('comparison design and custom values', () => {
     assert.ok(read('static/js/dashboard.js').includes('mountComparisonDesign'));
     assert.ok(read('static/js/admin-add-panel.js').includes('ap-bar'));
     assert.ok(read('templates/pages/comparison.html').includes('design_style'));
+  });
+});
+
+import { cleanSections, renderComparisonSections } from '../worker/comparison-design.js';
+import { loadRelatedValues } from '../worker/comparison-fields.js';
+
+describe('comparison sections, related fields, remove item', () => {
+  test('sections: only known blocks, plain text, safe links', () => {
+    const s = cleanSections([
+      { type: 'heading', text: '  Hi <b>there</b> ', level: 'h9' },
+      { type: 'text', text: 'One\n\n\n\nTwo <script>x</script>' },
+      { type: 'link', text: 'Go', link: 'javascript:alert(1)' },
+      { type: 'link', text: 'Go', link: '/en/casino/zeta' },
+      { type: 'image', src: '//evil.com/x.png' },
+      { type: 'picks', picks: [{ source: 'casino', key: 'zeta' }, { source: 'evil', key: 'x' }] },
+      { type: 'bullets', items: ['a', '', 'b'] },
+      { type: 'nope' }, null
+    ]);
+    assert.deepEqual(s.map((b) => b.type), ['heading', 'text', 'link', 'picks', 'bullets']);
+    assert.equal(s[0].level, 'h2');
+    assert.equal(s[2].link, '/en/casino/zeta');
+    assert.deepEqual(s[3].picks, [{ source: 'casino', key: 'zeta' }]);
+  });
+  test('sections render as text, escape everything and resolve picked items', async () => {
+    const html = await renderComparisonSections(db, [
+      { type: 'heading', text: 'A <i>b</i>' },
+      { type: 'picks', title: 'Also see', picks: [{ source: 'casino', key: 'zeta' }, { source: 'casino', key: 'zeta-hidden' }] },
+      { type: 'callout', title: 'Note', text: 'x<script>' }
+    ]);
+    assert.ok(html.includes('A &lt;i&gt;b&lt;/i&gt;') && html.includes('Zeta Casino') && !html.includes('Zeta Hidden') && !html.includes('<script>'));
+    assert.ok(!html.includes('<table'));
+    assert.equal(await renderComparisonSections(db, []), '');
+  });
+  test('sections survive save and read back', async () => {
+    await saveComparisonDesign(db, 'casino', 'sec-only', { sections: [{ type: 'divider' }] });
+    assert.equal((await getComparisonDesign(db, 'casino', 'sec-only')).sections.length, 1);
+    await saveComparisonDesign(db, 'casino', 'sec-only', {});
+  });
+  test('payment methods and categories are comparable and read per item', async () => {
+    const fields = await getComparableFields(db, 'casino');
+    assert.ok(fields.some((f) => f.key === 'payment_methods') && fields.some((f) => f.key === 'categories'));
+    const sb = await getComparableFields(db, 'sportsbook');
+    assert.ok(sb.some((f) => f.key === 'payment_methods'));
+    const cid = (await db.prepare("SELECT id FROM casinos WHERE slug = 'zeta'").first()).id;
+    await db.prepare("INSERT INTO payment_methods (slug, name) VALUES ('visa-t','Visa')").run();
+    const pid = (await db.prepare("SELECT id FROM payment_methods WHERE slug = 'visa-t'").first()).id;
+    await db.prepare('INSERT INTO casino_payment_methods (casino_id, payment_method_id) VALUES (?, ?)').bind(cid, pid).run();
+    await db.prepare("INSERT INTO categories (slug, name) VALUES ('crypto-t','Crypto')").run();
+    const gid = (await db.prepare("SELECT id FROM categories WHERE slug = 'crypto-t'").first()).id;
+    await db.prepare('INSERT INTO casino_categories (casino_id, category_id) VALUES (?, ?)').bind(cid, gid).run();
+    const items = [{ contentType: 'casino', id: cid, raw: { rating: 4 } }, { contentType: 'casino', id: 99999, raw: { rating: 3 } }];
+    const related = await loadRelatedValues(db, items);
+    assert.deepEqual(related[`casino:${cid}`], { payment_methods: ['Visa'], categories: ['Crypto'] });
+    const t = buildComparisonRows(items, [{ key: 'payment_methods', label: 'Payments' }], fields, {}, null, related);
+    assert.ok(t.main[0].cells[0].html.includes('Visa') && t.main[0].cells[1].html.includes('cmp-na'));
+    assert.ok(t.more.some((r) => r.key === 'categories'));
+  });
+  test('public page can remove an item for the visit', () => {
+    const c = read('worker/controllers.js');
+    assert.ok(c.includes('cmp-remove') && read('static/js/comparison.js').includes('cmp-restore'));
+    assert.ok(read('templates/pages/comparison.html').includes('sections_html'));
+  });
+});
+
+describe('dashboard list search', () => {
+  test('script and styles are loaded; every list page has a table the search can use', () => {
+    assert.ok(read('templates/layout/base.html').includes('/static/js/admin-list-search.js'));
+    assert.ok(read('static/css/header-hero.css').includes('.als-bar'));
+    for (const f of ['casinos', 'reviews', 'news', 'research', 'payment-methods', 'pages', 'country-pages', 'categories', 'seo', 'components', 'generic-reviews', 'content-items', 'comparisons', 'authors']) {
+      assert.ok(read(`templates/pages/admin/${f}.html`).includes('admin-table'), f);
+    }
+  });
+  test('server-paged lists search on the server', async () => {
+    const admin = { user_id: 1, role: 'admin', email: 'a@test.com' };
+    const call = (path) => handleAPI({ method: 'GET', url: `https://x.com${path}`, headers: new Headers() }, { DB: db }, path.split('?')[0], admin);
+    const ids = (await db.prepare('SELECT id FROM casinos WHERE published = 1').all()).results.map((r) => r.id).slice(0, 2);
+    const items = ids.map((id, i) => ({ item_content_type: 'casino', item_id: id, position: i }));
+    const post = (path, body) => handleAPI({ method: 'POST', url: `https://x.com${path}`, headers: new Headers(), json: async () => body }, { DB: db }, path, admin);
+    await post('/api/v1/comparison/create', { content_type: 'casino', slug: 'alpha-vs', title: 'Alpha versus', items, criteria: [] });
+    await post('/api/v1/comparison/create', { content_type: 'casino', slug: 'other-one', title: 'Something else', items, criteria: [] });
+    const all = await (await call('/api/v1/comparisons/list?content_type=casino&page=1&per_page=25')).json();
+    const found = await (await call('/api/v1/comparisons/list?content_type=casino&page=1&per_page=25&search=ALPHA')).json();
+    assert.ok(all.total > found.total);
+    assert.deepEqual(found.comparisons.map((c) => c.slug), ['alpha-vs']);
+    const none = await (await call('/api/v1/comparisons/list?content_type=casino&page=1&per_page=25&search=%25')).json();
+    assert.equal(none.total, 0);
+    const reviews = await (await call('/api/v1/generic-reviews/list?reviewed_content_type=sportsbook&page=1&per_page=25&search=zzz')).json();
+    assert.equal(reviews.success, true);
   });
 });

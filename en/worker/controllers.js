@@ -49,8 +49,8 @@ import { headerHeroDefaultsForAdmin, jsonForScript } from "./header-hero.js";
 import { getRelatedCasinos } from "./database/related-casinos.js";
 import { getCached, setCached } from "./cache.js";
 import { searchSite } from "./site-search.js";
-import { getComparableFields, buildComparisonRows } from "./comparison-fields.js";
-import { getComparisonDesign, pageStyle, cellStyle, headStyle, labelStyle } from "./comparison-design.js";
+import { getComparableFields, buildComparisonRows, loadRelatedValues } from "./comparison-fields.js";
+import { getComparisonDesign, renderComparisonSections, pageStyle, cellStyle, headStyle, labelStyle } from "./comparison-design.js";
 import {
     buildBreadcrumbs
 } from "./breadcrumbs.js";
@@ -5276,6 +5276,7 @@ function renderComparisonHeaderCells(items, comparison, design = null) {
     const st = headStyle(design && design.items[`${i.contentType}:${i.id}`]);
     return `<th scope="col" class="cmp-head${isPick ? " cmp-head--pick" : ""}"${st ? ` style="${st}"` : ""}>
       ${isPick ? `<span class="cmp-pick-badge">Our pick</span>` : ""}
+      <button type="button" class="cmp-remove" aria-label="Remove ${escapeReviewText(i.name)} from this comparison" title="Remove from comparison">&times;</button>
       <a class="cmp-head__link" href="${linkPrefixForItem(i)}/${i.slug}">
         <img src="${escapeReviewText(i.logo || "/static/images/default.png")}" alt="" loading="lazy" onerror="this.src='/static/images/default.png'">
         <span class="cmp-head__name">${escapeReviewText(i.name)}</span>
@@ -5383,7 +5384,9 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
   const customSlug = (items.find((i) => i.contentType === "custom") || {}).customTypeSlug || "";
   const catalog = await getComparableFields(env.DB, compareType, customSlug);
   const design = await getComparisonDesign(env.DB, compareType, slug);
-  const table = buildComparisonRows(items, criteria, catalog, customFieldValuesByItemKey, design);
+  const related = await loadRelatedValues(env.DB, items);
+  const table = buildComparisonRows(items, criteria, catalog, customFieldValuesByItemKey, design, related);
+  const sectionsHtml = await renderComparisonSections(env.DB, design.sections);
 
   let editorialPickHtml = "";
   if (comparison.editorial_selection_item_type && comparison.editorial_selection_item_id) {
@@ -5414,6 +5417,7 @@ export async function renderComparison(request, env, compareType, slug, ctx = nu
     item_cta_cells_html: items.map((i) => `<td data-label="${escapeReviewText(i.name)}"><a href="${linkPrefixForItem(i)}/${i.slug}" class="btn btn--primary">View ${escapeReviewText(i.name)}</a></td>`).join(""),
     summary_html: renderComparisonSummary(items, table.ratingRow),
     column_count: items.length + 1,
+    sections_html: sectionsHtml,
     editorial_pick_html: editorialPickHtml,
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,

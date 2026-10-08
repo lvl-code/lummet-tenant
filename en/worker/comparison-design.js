@@ -14,6 +14,9 @@
 // Precedence for a cell: the item's column colours, then the row's, then the whole table's.
 // A custom value replaces the real value of that cell only; an empty one means "use the real value".
 
+import { cleanPicks } from "./component-studio.js";
+import { resolvePicks } from "./component-sources.js";
+
 export const FONTS = {
   site: "",
   serif: "Georgia, 'Times New Roman', serif",
@@ -52,6 +55,76 @@ function text(v) {
 }
 function obj(v) { return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
 
+// ---------------------------------------------------------------------------
+// Content sections shown as text below the table
+// ---------------------------------------------------------------------------
+export const SECTION_TYPES = ["heading", "text", "bullets", "callout", "picks", "link", "image", "divider"];
+const MAX_BLOCKS = 30;
+
+function safeLink(v) {
+  const s = String(v ?? "").trim().slice(0, 300);
+  return /^(\/(?!\/)|https?:\/\/)/i.test(s) && !/[\u0000-\u001f\s"'<>]/.test(s) ? s : "";
+}
+function oneOf(v, list, def) { return list.includes(v) ? v : def; }
+function longText(v, max) {
+  return String(v ?? "").replace(/\r/g, "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim().slice(0, max);
+}
+
+export function cleanSections(input) {
+  const out = [];
+  for (const raw of (Array.isArray(input) ? input : []).slice(0, MAX_BLOCKS)) {
+    const b = obj(raw);
+    switch (b.type) {
+      case "heading": { const t = text(b.text); if (t) out.push({ type: "heading", text: t, level: oneOf(b.level, ["h2", "h3"], "h2") }); break; }
+      case "text": { const t = longText(b.text, 3000); if (t) out.push({ type: "text", text: t }); break; }
+      case "bullets": {
+        const items = (Array.isArray(b.items) ? b.items : []).slice(0, 20).map((i) => text(i)).filter(Boolean);
+        if (items.length) out.push({ type: "bullets", items, style: oneOf(b.style, ["bullet", "number"], "bullet") });
+        break;
+      }
+      case "callout": {
+        const t = longText(b.text, 600); const title = text(b.title).slice(0, 100);
+        if (t || title) out.push({ type: "callout", title, text: t, tone: oneOf(b.tone, ["info", "good", "warn"], "info") });
+        break;
+      }
+      case "picks": {
+        const picks = cleanPicks(b.picks, 12);
+        if (picks.length) out.push({ type: "picks", title: text(b.title).slice(0, 100), picks });
+        break;
+      }
+      case "link": { const l = safeLink(b.link); const t = text(b.text).slice(0, 80); if (l && t) out.push({ type: "link", text: t, link: l, style: oneOf(b.style, ["primary", "ghost"], "primary") }); break; }
+      case "image": { const src = safeLink(b.src); if (src) out.push({ type: "image", src, alt: text(b.alt).slice(0, 160), caption: text(b.caption).slice(0, 200) }); break; }
+      case "divider": out.push({ type: "divider" }); break;
+      default: break;
+    }
+  }
+  return out;
+}
+
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+/** HTML of the sections (text, lists, callouts, picked items as text rows) */
+export async function renderComparisonSections(db, sections) {
+  const blocks = cleanSections(sections);
+  if (!blocks.length) return "";
+  const html = [];
+  for (const b of blocks) {
+    if (b.type === "heading") html.push(`<${b.level} class="cmps-heading">${esc(b.text)}</${b.level}>`);
+    else if (b.type === "text") html.push(b.text.split(/\n{2,}/).map((p) => `<p class="cmps-text">${esc(p).replace(/\n/g, "<br>")}</p>`).join(""));
+    else if (b.type === "bullets") { const tag = b.style === "number" ? "ol" : "ul"; html.push(`<${tag} class="cmps-list">${b.items.map((i) => `<li>${esc(i)}</li>`).join("")}</${tag}>`); }
+    else if (b.type === "callout") html.push(`<aside class="cmps-callout cmps-callout--${b.tone}">${b.title ? `<strong>${esc(b.title)}</strong>` : ""}${b.text ? `<p>${esc(b.text).replace(/\n/g, "<br>")}</p>` : ""}</aside>`);
+    else if (b.type === "link") html.push(`<p class="cmps-link"><a class="btn ${b.style === "ghost" ? "btn--ghost" : "btn--primary"}" href="${esc(b.link)}"${/^https?:/i.test(b.link) ? ' target="_blank" rel="noopener"' : ""}>${esc(b.text)}</a></p>`);
+    else if (b.type === "image") html.push(`<figure class="cmps-image"><img src="${esc(b.src)}" alt="${esc(b.alt)}" loading="lazy">${b.caption ? `<figcaption>${esc(b.caption)}</figcaption>` : ""}</figure>`);
+    else if (b.type === "divider") html.push(`<hr class="cmps-divider">`);
+    else if (b.type === "picks") {
+      const cards = await resolvePicks(db, b.picks);
+      if (!cards.length) continue;
+      html.push(`<div class="cmps-picks">${b.title ? `<h3 class="cmps-heading">${esc(b.title)}</h3>` : ""}<ul class="cmps-pickrows">${cards.map((c) => `<li><a href="${esc(c.url)}">${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="cmps-pick__body"><strong>${esc(c.title)}</strong>${c.badge ? ` <em>${esc(c.badge)}</em>` : ""}${c.rating ? ` <span class="cmps-pick__rating">${Number(c.rating).toFixed(1)} / 5</span>` : ""}${c.excerpt ? `<span class="cmps-pick__text">${esc(c.excerpt)}</span>` : ""}</span></a></li>`).join("")}</ul></div>`);
+    }
+  }
+  return html.length ? `<section class="cmp-sections">${html.join("")}</section>` : "";
+}
+
 /** Only known fields survive, colours must be #rrggbb, fonts come from a fixed list, text is plain. */
 export function cleanDesign(input) {
   let src = input;
@@ -89,11 +162,11 @@ export function cleanDesign(input) {
     if (Object.keys(perItem).length) cells[k] = perItem;
   }
 
-  return { page, items, rows, cells };
+  return { page, items, rows, cells, sections: cleanSections(src.sections) };
 }
 
 export function isEmptyDesign(d) {
-  return !d || (!Object.keys(d.page || {}).length && !Object.keys(d.items || {}).length && !Object.keys(d.rows || {}).length && !Object.keys(d.cells || {}).length);
+  return !d || (!Object.keys(d.page || {}).length && !Object.keys(d.items || {}).length && !Object.keys(d.rows || {}).length && !Object.keys(d.cells || {}).length && !(d.sections || []).length);
 }
 
 const keyFor = (type, slug) => `comparison_design:${type}:${slug}`;

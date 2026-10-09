@@ -54,6 +54,7 @@ import * as customTypesDB from "./database/custom-types.js";
 import * as comparisonsDB from "./database/comparisons.js";
 import * as landingPagesDB from "./database/content-landing-pages.js";
 import * as genericReviewsDB from "./database/generic-reviews.js";
+import { cleanSections } from "./generic-review-sections.js";
 import { isReservedSlug } from "./reserved-slugs.js";
 import { getContentTypeEnablement, updateContentTypeEnablement } from "./content-types.js";
 
@@ -1436,6 +1437,16 @@ if (path === "/api/v1/generic-review/create" && request.method === "POST") {
   if (!["sportsbook", "affiliate_partner", "custom"].includes(body.reviewed_content_type)) {
     return failure("reviewed_content_type must be sportsbook, affiliate_partner, or custom");
   }
+  if (!/^[a-z0-9-]{1,120}$/.test(String(body.slug))) return failure("Slug can only use lowercase letters, numbers and dashes.");
+  if (!String(body.content || "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() && !/<(img|iframe|video|table)\b/i.test(String(body.content || ""))) return failure("Write the review text first.");
+  let newSections = null;
+  if (body.sections !== undefined) {
+    const cleaned = cleanSections(body.sections);
+    if (cleaned.error) return failure(cleaned.error);
+    newSections = cleaned.sections;
+  }
+  const slugTaken = await env.DB.prepare("SELECT id FROM reviews WHERE slug = ? LIMIT 1").bind(body.slug).first();
+  if (slugTaken) return failure("A review with this slug already exists -- choose another one.");
   const reviewedItem = await contentItemsDB.getContentItemById(env.DB, body.reviewed_content_type, body.reviewed_content_id);
   if (!reviewedItem) return failure("The item you're reviewing was not found -- check reviewed_content_id", 404);
   const review = await genericReviewsDB.createGenericReview(env.DB, {
@@ -1447,6 +1458,7 @@ if (path === "/api/v1/generic-review/create" && request.method === "POST") {
     seoTitle: body.seo_title || null, seoDescription: body.seo_description || null, seoKeywords: body.seo_keywords || null,
     authorId: body.author_id || null, createdBy: user.user_id, published: !!body.published,
   });
+  if (newSections && newSections.length) await reviewBlocksDB.syncReviewBlocks(env.DB, review.slug, newSections);
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "review", entityId: review.id, metadata: { reviewed_content_type: body.reviewed_content_type, slug: body.slug } });
   return success({ review });
 }
@@ -1478,9 +1490,18 @@ if (path === "/api/v1/generic-review/update" && request.method === "POST") {
   const existingReview = await genericReviewsDB.getGenericReview(env.DB, body.id);
   if (!existingReview) return failure("Review not found or no fields to update", 404); // also what a casino review id gets here
   if (!(await itemAccess.canAccessItem(env.DB, user, "reviews", "update", existingReview))) return failure("Review not found or no fields to update", 404);
-  const review = await genericReviewsDB.updateGenericReview(env.DB, body.id, fields);
+  let updSections = null;
+  if (body.sections !== undefined) {
+    const cleaned = cleanSections(body.sections);
+    if (cleaned.error) return failure(cleaned.error);
+    updSections = cleaned.sections;
+  }
+  const review = Object.keys(fields).length
+    ? await genericReviewsDB.updateGenericReview(env.DB, body.id, fields)
+    : existingReview;
   if (!review) return failure("Review not found or no fields to update", 404);
-  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "review", entityId: review.id, metadata: {} });
+  if (updSections) await reviewBlocksDB.syncReviewBlocks(env.DB, review.slug, updSections);
+  await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "review", entityId: review.id, metadata: updSections ? { sections: updSections.length } : {} });
   return success({ review });
 }
 
@@ -1491,7 +1512,8 @@ if (path === "/api/v1/generic-review/get" && request.method === "GET") {
   const review = await genericReviewsDB.getGenericReview(env.DB, id); // generic-only: a casino review id is a 404 here
   if (!review) return failure("Review not found", 404);
   if (!(await itemAccess.canAccessItem(env.DB, user, "reviews", "read", review))) return failure("Review not found", 404);
-  return json({ success: true, review });
+  const sections = await reviewBlocksDB.getReviewBlocks(env.DB, review.slug);
+  return json({ success: true, review, sections: sections.map((b) => ({ id: b.id, title: b.title, content: b.content, position: b.position })) });
 }
 
 if (path === "/api/v1/generic-review/delete" && request.method === "POST") {

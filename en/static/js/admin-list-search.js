@@ -16,7 +16,9 @@
 
   var SERVER = { comparisonsTableBody: true, genericReviewsTableBody: true };
   var SKIP = { contentItemsTableBody: true };
-  var MIN_ROWS = 6;
+  var MIN_ROWS = 1;
+  // lists made of cards instead of a table
+  var CARD_LISTS = ["inquiriesContainer", "submissionsContainer"];
 
   window.ADMIN_LIST_QUERY = window.ADMIN_LIST_QUERY || {};
 
@@ -146,10 +148,57 @@
     apply();
   }
 
+  function enhanceCards(box) {
+    if (!box || box.dataset.alsDone) return;
+    box.dataset.alsDone = "1";
+    var bar = el("div", "als-bar");
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "als-input";
+    input.placeholder = "Search this list...  ( / )";
+    input.setAttribute("aria-label", "Search this list");
+    input.autocomplete = "off";
+    var count = el("span", "als-count");
+    count.setAttribute("aria-live", "polite");
+    bar.appendChild(input);
+    bar.appendChild(count);
+    box.parentNode.insertBefore(bar, box);
+    var busy = false, timer;
+
+    function apply() {
+      if (busy) return;
+      busy = true;
+      try {
+        var cards = Array.prototype.filter.call(box.children, function (c) { return c.tagName === "DIV" && !c.classList.contains("als-empty"); });
+        bar.hidden = cards.length < MIN_ROWS && !input.value.trim();
+        var old = box.querySelector(".als-empty");
+        if (old) old.remove();
+        var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+        var shown = 0;
+        cards.forEach(function (c) {
+          var ok = words.every(function (w) { return (c.textContent || "").toLowerCase().indexOf(w) !== -1; });
+          c.hidden = !ok;
+          if (ok) shown++;
+        });
+        count.textContent = words.length ? "Showing " + shown + " of " + cards.length : cards.length + " items";
+        if (words.length && cards.length && !shown) box.appendChild(el("p", "muted als-empty", "Nothing matches \u201c" + input.value.trim() + "\u201d."));
+      } finally {
+        setTimeout(function () { busy = false; }, 0);
+      }
+    }
+    input.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(apply, 80); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && input.value) { input.value = ""; input.dispatchEvent(new Event("input")); e.stopPropagation(); }
+    });
+    new MutationObserver(function () { if (!busy) apply(); }).observe(box, { childList: true });
+    apply();
+  }
+
   function scan() {
     var root = document.querySelector(".admin-content");
     if (!root) return;
     Array.prototype.forEach.call(root.querySelectorAll("table.admin-table"), enhance);
+    CARD_LISTS.forEach(function (id) { var b = document.getElementById(id); if (b && root.contains(b)) enhanceCards(b); });
   }
 
   function init() {

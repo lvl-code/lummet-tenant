@@ -191,7 +191,7 @@ At least two items always stay. (In the dashboard, items are removed with the x 
 
 ## 10. Dashboard: search in every list
 
-Every table in the dashboard gets, once it has 6 or more rows:
+Every table in the dashboard (and the card lists of Inquiries and Submissions) gets, as soon as it has a row:
 - a **search box** (all words must match anywhere in the row, ignoring the Edit/Delete buttons),
 - a **"Showing X of Y"** count and a clear "No rows match" line,
 - **click a heading to sort** (numbers sort as numbers),

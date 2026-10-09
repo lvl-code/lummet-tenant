@@ -321,7 +321,7 @@
             '|',
             'table tabledelete tableprops tablecellprops tablerowprops tablemergecells tablesplitcells',
             '|',
-            'image media link anchor',
+            'image media link anchor lummetlink lummetpick',
             '|',
             'code blockquote hr calloutbox addinserter',
             '|',
@@ -1212,6 +1212,59 @@
     }
 
 
+    // Page and item pickers: the same search dialog the rest of the dashboard uses
+    // (casinos, reviews, news, research, authors, updates, sportsbooks, affiliate
+    // partners, custom content, pages and pictures), right in the toolbar.
+    function configureContentPickers(editor) {
+        function picker() {
+            if (!window.LummetPicker || typeof window.LummetPicker.open !== 'function') {
+                editor.notificationManager.open({ text: 'The picker is not available on this page.', type: 'warning', timeout: 3000 });
+                return null;
+            }
+            return window.LummetPicker;
+        }
+        editor.ui.registry.addButton('lummetlink', {
+            icon: 'link',
+            text: 'Page',
+            tooltip: 'Link to a page, review, casino, news or other item',
+            onAction: function () {
+                var p = picker(); if (!p) return;
+                var selected = editor.selection.getContent({ format: 'text' });
+                p.open({ mode: 'link' }, function (pick) {
+                    if (!pick || !pick.url) return;
+                    var label = selected || pick.title || pick.url;
+                    editor.insertContent('<a href="' + escapeAttr(pick.url) + '">' + escapeText(label) + '</a>');
+                });
+            }
+        });
+        editor.ui.registry.addButton('lummetpick', {
+            icon: 'plus',
+            text: 'Items',
+            tooltip: 'Pick items (casinos, news, research, authors, pictures...) and add them here',
+            onAction: function () {
+                var p = picker(); if (!p) return;
+                p.open({}, function (pick) {
+                    if (!pick) return false;
+                    var card = pick.card || {};
+                    if (pick.source === 'media') {
+                        var src = card.image || card.url;
+                        if (!src) return false;
+                        editor.insertContent('<figure><img src="' + escapeAttr(src) + '" alt="' + escapeAttr(pick.label || '') + '"></figure>');
+                        return true;
+                    }
+                    var url = card.url || '';
+                    var label = pick.label || card.title || url;
+                    if (!url) { editor.insertContent('<p>' + escapeText(label) + '</p>'); return true; }
+                    var img = card.image ? '<img src="' + escapeAttr(card.image) + '" alt="" width="64" height="64"> ' : '';
+                    editor.insertContent('<p class="pick-link">' + img + '<a href="' + escapeAttr(url) + '">' + escapeText(label) + '</a></p>');
+                    return true;
+                });
+            }
+        });
+    }
+    function escapeText(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function escapeAttr(t) { return escapeText(t).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
     function configureInternalLink(editor) {
         // The default TinyMCE link dialog already supports URL entry.
         // We add a custom button for internal link search.
@@ -1496,6 +1549,7 @@
                 configureImageUpload(editor, editorId, folder);
                 configureVideoEmbed(editor, editorId, folder);
                 configureInternalLink(editor);
+                configureContentPickers(editor);
                 configureAdInserter(editor);
                 configureCalloutBox(editor);
 

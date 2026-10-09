@@ -205,3 +205,15 @@ Files: `static/js/admin-list-search.js` (new), `static/css/header-hero.css`, `st
 `worker/comparison-design.js`, `worker/comparison-fields.js`, `worker/controllers.js`,
 `static/js/comparison-design.js`, `static/js/comparison.js`, `static/css/component-blocks.css`,
 `templates/pages/comparison.html`, `templates/layout/base.html`.
+
+## 11. Reviews for generic content: one screen, rich editor, real sections (v18.4)
+
+Applies to reviews of sportsbooks, affiliate partners and custom content (casino reviews are untouched).
+
+- **One route.** `/en/dashboard/reviews/generic` is the only screen: the list, `?new=1` (add) and `?edit=ID` (edit). Moving between them never reloads the page and the address follows the view, so back/forward and bookmarks work. The old addresses (`/en/dashboard/review/generic/create`, `/en/dashboard/generic-review/edit/ID`) still work and redirect here. Their templates stay in the repo, unused.
+- **Rich editor for Content.** The review body uses the same editor as news and pages. Reviews written before this change as plain text are shown as paragraphs, in the editor and on the public page.
+- **Sections that actually show.** Sections were saved by the old edit page but the public review page never printed them. They now appear after the Overview, in order, each with its own title and the full editor. The builder has quick-add chips (Overview, Features, Bonuses & promotions, Payments, Mobile experience, Customer support, Security & licensing, FAQ), move up/down, duplicate, collapse and remove. At most 30 sections, titles up to 120 characters. A section with a title but no text is saved but not shown publicly.
+- **Pickers in every editor.** Two new toolbar buttons in the rich editor (everywhere it is used): **Page** links to a page, review, casino, news, research, author, update, sportsbook, affiliate partner or custom item; **Items** adds picked items as links with their picture, or adds a picked picture. Pictures and videos keep their existing buttons.
+- **Safer.** Body and sections pass through the shared HTML sanitizer when the page is rendered. The slug is checked (lowercase letters, numbers, dashes) and duplicates get a clear message. An empty body (including only spaces/`&nbsp;`) is refused. Deleting a review now also deletes its sections, so a later review reusing the slug does not inherit them.
+- **Editing comforts.** Sticky bar with Save, "Unsaved changes" indicator, Ctrl/Cmd+S, leave-page warning, slug filled from the title on new reviews, item filter, SEO length counters.
+- **API.** `generic-review/create` and `/update` accept `sections: [{title, content}]` (omitted on update = unchanged); `generic-review/get` returns `sections`. No migration: sections use the existing `review_blocks` table.

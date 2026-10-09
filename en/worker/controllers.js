@@ -7,6 +7,7 @@ import * as casinos from "./database/casinos.js";
 import * as contentItems from "./database/content-items.js";
 import * as customTypes from "./database/custom-types.js";
 import * as reviewCriteria from "./database/review-criteria.js";
+import { getReviewBlocks as getReviewBlocksForSlug } from "./database/review_blocks.js";
 import * as comparisonsDb from "./database/comparisons.js";
 import * as landingPagesDB from "./database/content-landing-pages.js";
 import { resolveAffiliateLink, resolveContentItemById } from "./content-resolver.js";import { renderCustomFieldsHtml } from "./custom-field-render.js";
@@ -27,6 +28,7 @@ import * as nrHome from "./newsroom-home.js";
 import * as nrAnalytics from "./newsroom-analytics.js";
 import * as nrSearch from "./newsroom-search.js";
 import { sanitizeHtml } from "./sanitize.js";
+import { toRichHtml, renderSectionsHtml } from "./generic-review-sections.js";
 import * as platformUpdates from "./database/platform-updates.js";
 import * as seoPages from "./database/seo-pages.js";
 import { logClick }
@@ -5135,6 +5137,9 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
     reviewCriteria.getCriteriaScores(env.DB, review.id),
   ]);
 
+  let sectionBlocks = [];
+  try { sectionBlocks = await getReviewBlocksForSlug(env.DB, review.slug); } catch { sectionBlocks = []; }
+
   const breakdown = reviewCriteria.buildScoreBreakdown(templates, scores);
   const computedRating = reviewCriteria.computeWeightedRating(templates, scores);
   const displayRating = computedRating !== null ? computedRating : (review.rating || 0);
@@ -5167,7 +5172,8 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
 
   const html = await renderer.render("generic-review.html", {
     title: escapeHtml(review.title),
-    content: review.content || "",
+    content: toRichHtml(review.content || ""),
+    sections_html: renderSectionsHtml(sectionBlocks),
     verdict: review.verdict || "",
     reviewed_at: review.created_at ? new Date(review.created_at).toLocaleDateString() : "",
     updated_at: review.updated_at ? new Date(review.updated_at).toLocaleDateString() : "",
@@ -6365,8 +6371,19 @@ export async function renderDashboardCustomTypeEdit(request, env, typeSlug) {
 export async function renderDashboardComparisonEdit(request, env, compareType, slug) {
   return renderAdminPage(request, env, "admin/comparison-edit.html", { compare_type: compareType, slug });
 }
+// The generic review list, add and edit screens live on ONE route now
+// (/en/dashboard/reviews/generic). The old add and edit addresses stay valid
+// -- bookmarks, history -- and send people to the same screen.
+const GENERIC_REVIEWS_ROUTE = "/en/dashboard/reviews/generic";
+function genericReviewRedirect(request, params) {
+  const from = new URL(request.url);
+  const to = new URL(GENERIC_REVIEWS_ROUTE, from.origin);
+  for (const [k, v] of from.searchParams) to.searchParams.set(k, v);
+  for (const [k, v] of Object.entries(params)) to.searchParams.set(k, v);
+  return new Response(null, { status: 302, headers: { Location: to.pathname + to.search } });
+}
 export async function renderDashboardGenericReviewEdit(request, env, id) {
-  return renderAdminPage(request, env, "admin/generic-review-edit.html", { id });
+  return genericReviewRedirect(request, { edit: String(id) });
 }
 export async function renderDashboardContentLandingPages(request, env) {
   return renderAdminPage(request, env, "admin/content-landing-pages.html");
@@ -6395,7 +6412,7 @@ export async function renderDashboardGenericReviews(request, env) {
   return renderAdminPage(request, env, "admin/generic-reviews.html");
 }
 export async function renderDashboardGenericReviewCreate(request, env) {
-  return renderAdminPage(request, env, "admin/generic-review-create.html");
+  return genericReviewRedirect(request, { new: "1" });
 }
 export async function renderDashboardReviews(request, env) {
   return renderAdminPage(request, env, "admin/reviews.html");

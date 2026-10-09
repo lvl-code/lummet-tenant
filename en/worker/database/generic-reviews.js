@@ -65,6 +65,9 @@ export async function deleteGenericReview(db, id) {
 
   return db.batch([
     db.prepare(`UPDATE analytics_events SET review_id = NULL WHERE review_id = ?`).bind(review.id),
+    // sections are keyed by the review's slug; leaving them behind would hand
+    // them to any later review that reuses the slug
+    db.prepare(`DELETE FROM review_blocks WHERE review_slug = ?`).bind(review.slug),
     db.prepare(`DELETE FROM reviews WHERE id = ? AND ${GENERIC_ONLY}`).bind(review.id),
   ]);
 }

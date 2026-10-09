@@ -1882,11 +1882,12 @@ async function loadGenericReviewsTable(reviewedContentType) {
     const viewPrefix = { sportsbook: "/en/sportsbook/review/", affiliate_partner: "/en/affiliate-partner/review/" }[type];
     tbody.innerHTML = reviews.map((r) => `
       <tr>
-        <td><strong>${escapeHtmlClient(r.title)}</strong></td>
+        <td><a href="/en/dashboard/reviews/generic?edit=${Number(r.id)}" data-gr-edit="${Number(r.id)}"><strong>${escapeHtmlClient(r.title)}</strong></a></td>
         <td>${escapeHtmlClient(r.slug)}</td>
         <td>${r.rating != null ? "★ " + escapeHtmlClient(r.rating) : "—"}</td>
         <td>${r.published ? "Yes" : "No"}</td>
         <td class="table-actions">
+          <a href="/en/dashboard/reviews/generic?edit=${Number(r.id)}" data-gr-edit="${Number(r.id)}" class="btn btn--ghost btn--sm">Edit</a>
           ${viewPrefix && r.published ? `<a href="${viewPrefix}${encodeURIComponent(r.slug)}" class="btn btn--ghost btn--sm" target="_blank">View</a>` : ""}
           <button class="btn btn--ghost btn--sm" onclick="toggleGenericReviewPublished(${Number(r.id)}, ${r.published ? "true" : "false"}, '${type}')">${r.published ? "Unpublish" : "Publish"}</button>
           <button class="btn btn--danger btn--sm" onclick="deleteGenericReview(${Number(r.id)}, '${type}')">Delete</button>

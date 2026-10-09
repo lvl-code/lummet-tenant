@@ -275,3 +275,17 @@ describe('dashboard list search', () => {
     assert.equal(reviews.success, true);
   });
 });
+
+describe('list search covers every list', () => {
+  const js = read('static/js/admin-list-search.js');
+  test('shows from the first row and also handles card lists', () => {
+    assert.ok(js.includes('var MIN_ROWS = 1;'));
+    assert.ok(js.includes('inquiriesContainer') && js.includes('submissionsContainer') && js.includes('enhanceCards'));
+  });
+  test('platform updates and the other list pages use the standard table', () => {
+    for (const f of ['updates', 'users', 'permissions', 'inquiries', 'submissions']) {
+      const t = read(`templates/pages/admin/${f}.html`);
+      assert.ok(t.includes('admin-table') || t.includes('Container'), f);
+    }
+  });
+});

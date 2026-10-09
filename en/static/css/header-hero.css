@@ -591,3 +591,4 @@ body.hh-preview-body .hh-preview-off { padding: 24px; text-align: center; font-s
 .cd-inline input { flex: 1; }
 .cd-pick { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--light-gray, #eef0f3); }
 .cd-addbar { display: flex; gap: 8px; margin-top: 10px; }
+.admin-content [hidden].admin-section { display: none; }

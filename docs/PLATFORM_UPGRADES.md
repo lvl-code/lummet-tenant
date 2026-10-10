@@ -307,3 +307,7 @@ The summary card (casino and generic reviews) now has fixed colours: white backg
 ## 21. Enterprise section cards (v19.5)
 
 Review fields and sections (Overview, Games, Bonuses, Payment Methods, Licensing, More Details, Verdict, FAQ, related casinos, typed sections, Pros & Cons, scoring) now render as white cards: coloured accent edge, icon chip, title with divider, readable body text, check-mark lists, numbered steps, styled tables and quotes. The verdict has a gold highlight; pros and cons are green and red cards. Casino and generic reviews share it. Fixed light colours, so it reads on any theme. Removed a stray `{}` that was printed on casino reviews. Markup keeps all existing section ids, so the navigation bar and jump links are unchanged. No migrations, no deletions.
+
+## 22. White section bar (v19.6)
+
+The sticky section bar (casino reviews, generic reviews, author pages, landing pages) is now white with a soft shadow, dark tab text, a blue active tab and a blue progress line, matching the section cards. CSS only; no migrations, no deletions.

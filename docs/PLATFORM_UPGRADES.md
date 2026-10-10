@@ -299,3 +299,7 @@ The casino review "Review Summary" table is now a card: a rating block with star
 ## 19. Summary card on generic reviews (v19.3)
 
 Sportsbook, affiliate-partner and custom reviews now use the same summary card as casino reviews: rating with star fill, then Item/Product, Reviewed by and Updated. Facts with no value are skipped. No migrations, no deletions.
+
+## 20. Summary card colours (v19.4)
+
+The summary card (casino and generic reviews) now has fixed colours: white background, dark text, light-grey tiles, amber stars and a "Read more" link. It no longer follows the site theme, so it stays readable in dark mode. CSS only; no migrations, no deletions.

@@ -151,7 +151,24 @@
         <button type="button" class="btn btn--ghost btn--lg" id="reviewCancelEdit" style="display:none" onclick="cancelReviewEdit()">Cancel Edit</button>
       </div>
     </form>
-    <h2 style="margin-top:40px">Review Blocks</h2>
+    <h2 style="margin-top:40px" id="rsTitle">Review sections</h2>
+    <p class="muted" style="margin-bottom:16px">Build the sections of a casino review: text, FAQ, images with text, payment methods, picked items (casinos, reviews, news, research, pages and more), cards, callouts and key figures. Each section becomes a tab in the sticky bar on the public review.</p>
+    <div class="form-group" style="margin-bottom:16px">
+      <label for="rsReviewSearch">Review</label>
+      <input type="text" id="rsReviewSearch" autocomplete="off" placeholder="Search a review by title or casino...">
+      <input type="hidden" id="rsReviewSlug">
+    </div>
+    <div id="rsPanel" hidden>
+      <div class="gr-presets" id="rsPresets" aria-label="Quick add"></div>
+      <div id="rsSections" class="gr-sections"></div>
+      <button type="button" class="btn btn--ghost" id="rsAdd" aria-haspopup="menu">+ Add section</button>
+      <div id="rsAlert" class="alert" style="display:none;margin-top:12px"></div>
+      <div style="display:flex;gap:12px;margin-top:16px;align-items:center">
+        <button type="button" class="btn btn--primary btn--lg" id="rsSave">Save sections</button>
+        <a class="btn btn--ghost btn--lg" id="rsView" href="#" target="_blank" rel="noopener" hidden>View review</a>
+      </div>
+    </div>
+    <h2 style="margin-top:40px">Review Blocks (classic, one at a time)</h2>
     <p class="muted" style="margin-bottom:16px">Add structured content sections to any review (e.g. "Game Selection", "Payment Options", "VIP Program"). Blocks appear in position order.</p>
 
     <div class="form-group" style="margin-bottom:16px">

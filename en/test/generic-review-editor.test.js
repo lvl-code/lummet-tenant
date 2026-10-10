@@ -174,6 +174,25 @@ describe('typed sections on the public page, and one public address', () => {
     assert.equal((await renderReview(new Request('https://site.test/en/review/sb-rev'), env, 'sb-rev')).status, 404);
   });
 
+  test('a casino review takes typed sections, shows them with a sticky bar, and the sync is checked', async () => {
+    await db.prepare(`INSERT INTO reviews (casino_slug, slug, title, content, published, verdict) VALUES ('c1','c1-review','Casino One Review','<p>Body text</p>',1,'Solid')`).run();
+    const bad = await (await call('POST', '/api/v1/review-blocks/sync', { review_slug: 'c1-review', sections: [{ title: 'X', type: 'nope', data: {} }] })).json();
+    assert.ok(bad.error);
+    const ok = await (await call('POST', '/api/v1/review-blocks/sync', { review_slug: 'c1-review', sections: [
+      { title: 'Questions', type: 'faq', data: { items: [{ q: 'Legit?', a: 'Yes' }] } },
+      { title: 'Wide', type: 'rich', data: { html: '<table><tr><td>a</td></tr></table>' } },
+    ] })).json();
+    assert.ok(ok.success, JSON.stringify(ok));
+    const html = await (await renderReview(new Request('https://site.test/en/review/c1-review'), env, 'c1-review', null)).text();
+    assert.match(html, /rv-faq__item/); assert.match(html, /FAQPage/); assert.match(html, /class="table-scroll"/);
+    const nav = html.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0];
+    for (const t of ['Summary', 'More details', 'Questions', 'Wide', 'Verdict', 'Pros &amp; Cons']) assert.ok(nav.includes('>' + t + '<'), t);
+    assert.doesNotMatch(nav, /Games|Bonuses|Licensing/);
+    const list = await (await call('GET', '/api/v1/review-blocks/list?review_slug=c1-review')).json();
+    assert.deepEqual(list.sections.map((x) => x.type), ['faq', 'rich']);
+    assert.match(read('templates/pages/admin/reviews.html'), /id="rsSections"/);
+    assert.match(read('templates/layout/base.html'), /review-sections-admin\.js/);
+  });
   test('author page lists everything the author published, with counts', async () => {
     const a = await db.prepare(`INSERT INTO authors (slug, name, role, published) VALUES ('ann','Ann','Editor',1) RETURNING id`).first();
     await db.prepare(`INSERT INTO reviews (casino_slug, slug, title, content, published, author_id) VALUES ('c1','c-rev','Casino Rev','x',1,?)`).bind(a.id).run();

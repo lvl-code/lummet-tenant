@@ -29,18 +29,7 @@
       </div>
     </header>
     <div class="review-body">
-<nav id="review-nav" class="review-nav">
-
-    <a href="#overview">Overview</a>
-    <a href="#games">Games</a>
-    <a href="#bonuses">Bonuses</a>
-    <a href="#payments">Payments</a>
-    <a href="#licensing">Licensing</a>
-    <a href="#more-details">More Details</a>
-    <a href="#verdict">Verdict</a>
-    <a href="#pros-cons">Pros & Cons</a>
-    <a href="#faq">FAQ</a>
-</nav>
+{{{review_nav_html}}}
 
       <!--<nav id="review-toc" class="review-toc">
         <h2>Contents</h2>
@@ -48,7 +37,7 @@
       </nav> -->
       <div class="review-content">
 
-      <div class="review-summary">
+      <div class="review-summary" id="summary">
     <h2>Review Summary</h2>
 
     <table class="review-summary-table">
@@ -125,7 +114,9 @@
   </section>
   {{/if}}
 
-  {{review_blocks_html}}
+  {{{review_blocks_html}}}
+
+  {}
   {{components_content_top}}
   {{components_content_bottom}}
 
@@ -152,7 +143,6 @@
     <h2>More Details</h2>
     {{content}}
   </section>
-  {{review_blocks_html}}
   {{components_content_top}}
   {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
@@ -606,3 +596,4 @@ document.addEventListener("click", function(e) {
 });
 </script>
 </article>
+{{{faq_schema_html}}}

@@ -241,3 +241,12 @@ Applies to reviews of sportsbooks, affiliate partners and custom content (casino
 - **Author page** now shows what the author published, with counts: casino reviews, other reviews, research, news,
   platform updates, sportsbooks/partners/custom listings, comparisons, country and category pages, best-of lists and pages.
   Only content that is live is counted; groups with nothing are left out; each shows the first six, then "Show more".
+
+## 13. Casino reviews get sections and the sticky bar (v18.6)
+
+- The public casino review (`/en/review/slug`) prints every section type and shows the same sticky section bar. The bar lists only
+  what is on the page (no dead tabs): Summary, Overview, Games, Bonuses, Payments, Licensing, More details, each section, Verdict,
+  Pros & Cons, FAQ. FAQ sections also add FAQPage schema. Old plain blocks keep working (they show as text sections).
+- The casino Reviews dashboard has a **Review sections** panel: search and pick a review, build sections with the same builder,
+  press Save. `review-blocks/sync` accepts `sections` and checks them; `review-blocks/list` also returns typed `sections`.
+- The classic one-block-at-a-time form stays. No migration.

@@ -189,10 +189,10 @@ describe('typed sections on the public page, and one public address', () => {
     const nav = html.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0];
     for (const t of ['Summary', 'More details', 'Questions', 'Wide', 'Verdict']) assert.ok(nav.includes('>' + t + '<'), t);
     assert.doesNotMatch(nav, /Games|Bonuses|Licensing|Pros/);
-    assert.doesNotMatch(html, /No pros listed|<th>Bonuses<\/th>|<th>License<\/th>/);
+    assert.doesNotMatch(html, /No pros listed|rs-long__label[^>]*><span[^>]*>[^<]*<\/span>(Bonuses|License)/);
     await db.prepare(`UPDATE reviews SET pros='["Fast"]', bonuses='<p>100% match</p>' WHERE slug='c1-review'`).run();
     const html2 = await (await renderReview(new Request('https://site.test/en/review/c1-review'), env, 'c1-review', null)).text();
-    assert.match(html2.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0], /Pros &amp; Cons/); assert.match(html2, /<th>Bonuses<\/th>/); assert.match(html2, /<li>Fast<\/li>/);
+    assert.match(html2.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0], /Pros &amp; Cons/); assert.match(html2, /<\/span>Bonuses<\/div>/); assert.match(html2, /<li>Fast<\/li>/);
     const list = await (await call('GET', '/api/v1/review-blocks/list?review_slug=c1-review')).json();
     assert.deepEqual(list.sections.map((x) => x.type), ['faq', 'rich']);
     assert.match(read('templates/pages/admin/reviews.html'), /id="rsSections"/);

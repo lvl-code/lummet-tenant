@@ -1199,17 +1199,27 @@ export async function renderReview(request, env, slug, ctx = null) {
   const casinoName = casino?.name || "";
   const reviewBlocksHtml = reviewSections.html;
   const has = (v) => !!String(v || "").replace(/<[^>]*>/g, "").trim();
-  // Summary table: a row with nothing entered is left out instead of showing an empty cell.
-  const summaryRowsHtml = [
-    ["Casino", casinoName ? escapeHtml(casinoName) : ""],
-    ["Rating", review.rating ? `${review.rating} / 5` : ""],
-    ["Reviewed By", author?.name ? escapeHtml(author.name) : ""],
-    ["Updated", (review.updated_at || review.created_at) ? new Date(review.updated_at || review.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : ""],
-    ["Best For", has(review.games) ? review.games : "", "summary-preview"],
-    ["License", has(review.licenses) ? review.licenses : "", "summary-preview"],
-    ["Payment Methods", has(review.payments) ? review.payments : "", "summary-preview"],
-    ["Bonuses", has(review.bonuses) ? review.bonuses : "", "summary-preview"],
-  ].filter((r) => r[1]).map((r) => `<tr><th>${r[0]}</th><td${r[2] ? ` class="${r[2]}"` : ""}>${r[1]}</td></tr>`).join("\n");
+  // Summary card: a fact with nothing entered is left out instead of showing an empty cell.
+  const plainClip = (v, n) => { const t = String(v || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
+  const ratingNum = Math.max(0, Math.min(5, Number(review.rating) || 0));
+  const updatedText = (review.updated_at || review.created_at) ? new Date(review.updated_at || review.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "";
+  const facts = [
+    casinoName ? ["Casino", escapeHtml(casinoName)] : null,
+    author?.name ? ["Reviewed by", escapeHtml(author.name)] : null,
+    updatedText ? ["Updated", escapeHtml(updatedText)] : null,
+  ].filter(Boolean).map((f) => `<div class="rs-fact"><dt>${f[0]}</dt><dd>${f[1]}</dd></div>`).join("");
+  const longFacts = [
+    ["🎰", "Best for", review.games], ["🛡️", "License", review.licenses], ["💳", "Payment methods", review.payments], ["🎁", "Bonuses", review.bonuses],
+  ].filter((r) => has(r[2])).map((r) => {
+    const short = escapeHtml(plainClip(r[2], 150));
+    const long = plainClip(r[2], 100000).length > 150;
+    return `<div class="rs-long"><div class="rs-long__label"><span aria-hidden="true">${r[0]}</span>${r[1]}</div>` + (long ? `<details class="rs-more"><summary><span class="rs-more__text">${short}</span><span class="rs-more__btn" aria-hidden="true"></span></summary><div class="rs-more__full">${r[2]}</div></details>` : `<p class="rs-long__text">${short}</p>`) + "</div>";
+  }).join("");
+  const ratingBlock = ratingNum > 0 ? `<div class="rs-rating" aria-label="Rating ${ratingNum} out of 5"><span class="rs-stars" style="--r:${ratingNum}" aria-hidden="true">★★★★★</span><strong>${ratingNum}</strong><span>/ 5</span></div>` : "";
+  const summaryRowsHtml = (facts || longFacts || ratingBlock)
+    ? `<div class="rs-top">${ratingBlock}${facts ? `<dl class="rs-facts">${facts}</dl>` : ""}</div>${longFacts ? `<div class="rs-longs">${longFacts}</div>` : ""}`
+    : "";
+
   const reviewNavItems = hiddenParts.has("summary") ? [] : [{ id: "summary", title: "Summary" }];
   if (has(review.overview)) reviewNavItems.push({ id: "overview", title: "Overview" });
   if (has(review.games)) reviewNavItems.push({ id: "games", title: "Games" });

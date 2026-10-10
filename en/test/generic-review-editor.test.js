@@ -345,4 +345,13 @@ describe('v18.8: hidden sections, hidden page parts, author look, tabs', () => {
     const html = await (await renderAuthor(new Request('https://site.test/en/author/nia'), env, 'nia')).text();
     assert.match(html, /<img src="\/media\/n\.png" data-alt="\/media\/n-thumb\.png"/);
   });
+  test('landing page shows its picked and automatic items even when they have no country rules', async () => {
+    const sb = await contentItems.createContentItem(db, 'sportsbook', { slug: 'bet-one', name: 'Bet One', status: 'published', published: true });
+    await call('POST', '/api/v1/content-landing-page/create', { content_type: 'sportsbook', slug: 'manual-page', title: 'Manual page', status: 'published', item_mode: 'manual', item_ids: [sb.id] });
+    await call('POST', '/api/v1/content-landing-page/create', { content_type: 'sportsbook', slug: 'auto-page', title: 'Auto page', status: 'published', item_mode: 'auto', auto_limit: 5 });
+    for (const slug of ['manual-page', 'auto-page']) {
+      const html = await (await renderContentLandingPage(new Request('https://site.test/en/best/' + slug), env, slug)).text();
+      assert.match(html, /Bet One/, slug); assert.match(html, /href="\/en\/sportsbook\/bet-one"/, slug); assert.doesNotMatch(html, /Not Available/, slug);
+    }
+  });
 });

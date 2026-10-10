@@ -231,13 +231,14 @@ describe('renderContentLandingPage (gap #1)', () => {
     assert.equal((await renderContentLandingPage(new Request('https://s.test/en/best/draft-page'), env, 'draft-page')).status, 404);
   });
 
-  test('a GEO-ineligible item is excluded even if manually selected', async () => {
-    const item = await pub(env.DB, 'blocked', 'BlockedUnique');
-    // no GEO rule at all -> blocked everywhere (documented default)
+  test('an item with no country rules is shown; one blocked in the visitor\'s country is excluded even if manually selected', async () => {
+    const open = await pub(env.DB, 'open-item', 'OpenUnique');
+    const blocked = await pub(env.DB, 'blocked', 'BlockedUnique');
+    await contentItems.setContentItemGeoRules(env.DB, 'sportsbook', blocked.id, [{ country_code: 'US', status: 'blocked' }]);
     const page = await landingPages.createLandingPage(env.DB, { contentType: 'sportsbook', slug: 'geo-page', title: 'Geo', itemMode: 'manual', status: 'published' });
-    await landingPages.setLandingPageItems(env.DB, page.id, [item.id]);
+    await landingPages.setLandingPageItems(env.DB, page.id, [open.id, blocked.id]);
     const html = await (await renderContentLandingPage(new Request('https://s.test/en/best/geo-page?geo=US'), env, 'geo-page')).text();
-    assert.ok(!html.includes('BlockedUnique'));
+    assert.ok(html.includes('OpenUnique')); assert.ok(!html.includes('BlockedUnique'));
   });
 });
 

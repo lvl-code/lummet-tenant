@@ -4348,7 +4348,19 @@ export async function renderContentLandingPage(request, env, slug) {
 
   const renderer = new Renderer(env, request);
   const geoData = await prepareContentGeoData(env, request, page.content_type, itemList);
-  const eligibleItems = itemList.filter(i => geoData.statuses[i.id] === "allowed");
+  // An item with no country rules at all used to count as "blocked", so a page with picked or automatic items showed none.
+  // Now only an item that HAS rules and is blocked for this visitor's country is left out; items without rules show.
+  let withRules = new Set();
+  try {
+    if (itemList.length) {
+      const ids = itemList.map((i) => i.id);
+      const rows = (await env.DB.prepare(`SELECT DISTINCT content_id FROM content_geo WHERE content_type = ? AND content_id IN (${ids.map(() => "?").join(",")})`).bind(page.content_type, ...ids).all()).results || [];
+      withRules = new Set(rows.map((r) => r.content_id));
+    }
+  } catch { /* no rules data: show everything */ }
+  const eligibleItems = itemList.filter((i) => !(withRules.has(i.id) && geoData.statuses[i.id] === "blocked"));
+  // items without any country rule get no availability badge (their computed status is not meaningful)
+  geoData.statuses = Object.fromEntries(Object.entries(geoData.statuses || {}).filter(([id]) => withRules.has(Number(id))));
 
   const [site, allComponents, dynamicSeo] = await Promise.all([
     getSiteContext(request, env),
@@ -4478,6 +4490,7 @@ function buildContentItemCards(itemList, contentType, linkPrefix, geoData = null
  */
 function buildContentItemGeoBadge(geoData, itemId) {
   if (!geoData) return "";
+  if (!geoData.statuses || geoData.statuses[itemId] === undefined) return ""; // no country rules: nothing to say
   const geoStatus = geoData.statuses[itemId] || "unknown";
   const flag = countryToFlag(geoData.country);
   let geoIcon, geoClass, geoLabel;

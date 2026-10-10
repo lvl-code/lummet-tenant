@@ -336,4 +336,11 @@ describe('v18.8: hidden sections, hidden page parts, author look, tabs', () => {
     assert.match(t, /id="rsParts"/); assert.match(read('templates/layout/base.html'), /review-tabs\.js/);
     assert.match(read('static/js/section-nav.js'), /a\.ah-stat/); assert.match(read('static/js/section-builder.js'), /sb-show/);
   });
+  test('author news cards use the full picture first and fall back to the thumbnail', async () => {
+    const a = await db.prepare(`INSERT INTO authors (slug, name) VALUES ('nia','Nia') RETURNING id`).first();
+    const m = await db.prepare(`INSERT INTO media_library (filename, url, thumbnail_url) VALUES ('n.png','/media/n.png','/media/n-thumb.png') RETURNING id`).first();
+    await db.prepare(`INSERT INTO news (slug, title, content, published, author_id, featured_image) VALUES ('story','Story','<p>x</p>',1,?,?)`).bind(a.id, m.id).run();
+    const html = await (await renderAuthor(new Request('https://site.test/en/author/nia'), env, 'nia')).text();
+    assert.match(html, /<img src="\/media\/n\.png" data-alt="\/media\/n-thumb\.png"/);
+  });
 });

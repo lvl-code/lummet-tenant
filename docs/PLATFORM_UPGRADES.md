@@ -273,3 +273,7 @@ Applies to reviews of sportsbooks, affiliate partners and custom content (casino
   (settings `ah_*`, strict colour values only). Defaults are solid and clearly visible.
 - **Count tiles and the top bar** share one jump: a single smooth scroll to the exact heading, corrected while pictures load, no hover wobble.
 - Dropdowns and pickers in the admin are solid white with dark text.
+
+### v18.9 note: author-page pictures
+News, research and update cards on the author page now try the full picture first and fall back to the thumbnail (before, a missing
+thumbnail file made the picture vanish).

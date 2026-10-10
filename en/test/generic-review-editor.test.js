@@ -8,10 +8,11 @@ import { createTestDb, applyMigrations } from './support/d1-shim.js';
 import * as contentItems from '../worker/database/content-items.js';
 import * as genericReviews from '../worker/database/generic-reviews.js';
 import { handleAPI } from '../worker/api.js';
-import { renderGenericReview, renderReview, renderReviewList, renderAuthor, renderDashboardGenericReviewEdit, renderDashboardGenericReviewCreate } from '../worker/controllers.js';
+import { renderContentLandingPage, renderGenericReview, renderReview, renderReviewList, renderAuthor, renderDashboardGenericReviewEdit, renderDashboardGenericReviewCreate } from '../worker/controllers.js';
 import { searchSite } from '../worker/site-search.js';
 import { toRichHtml, cleanSections, renderSectionsHtml, renderSections, parseSection, serializeSection, buildReviewNav, renderSectionNav } from '../worker/generic-review-sections.js';
 import { getRoute } from '../worker/routes.js';
+import { getAuthorHub } from '../worker/author-hub.js';
 const route = (p) => getRoute(new Request('https://site.test' + p));
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -186,8 +187,12 @@ describe('typed sections on the public page, and one public address', () => {
     const html = await (await renderReview(new Request('https://site.test/en/review/c1-review'), env, 'c1-review', null)).text();
     assert.match(html, /rv-faq__item/); assert.match(html, /FAQPage/); assert.match(html, /class="table-scroll"/);
     const nav = html.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0];
-    for (const t of ['Summary', 'More details', 'Questions', 'Wide', 'Verdict', 'Pros &amp; Cons']) assert.ok(nav.includes('>' + t + '<'), t);
-    assert.doesNotMatch(nav, /Games|Bonuses|Licensing/);
+    for (const t of ['Summary', 'More details', 'Questions', 'Wide', 'Verdict']) assert.ok(nav.includes('>' + t + '<'), t);
+    assert.doesNotMatch(nav, /Games|Bonuses|Licensing|Pros/);
+    assert.doesNotMatch(html, /No pros listed|<th>Bonuses<\/th>|<th>License<\/th>/);
+    await db.prepare(`UPDATE reviews SET pros='["Fast"]', bonuses='<p>100% match</p>' WHERE slug='c1-review'`).run();
+    const html2 = await (await renderReview(new Request('https://site.test/en/review/c1-review'), env, 'c1-review', null)).text();
+    assert.match(html2.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0], /Pros &amp; Cons/); assert.match(html2, /<th>Bonuses<\/th>/); assert.match(html2, /<li>Fast<\/li>/);
     const list = await (await call('GET', '/api/v1/review-blocks/list?review_slug=c1-review')).json();
     assert.deepEqual(list.sections.map((x) => x.type), ['faq', 'rich']);
     assert.match(read('templates/pages/admin/reviews.html'), /id="rsSections"/);
@@ -228,5 +233,55 @@ describe('one dashboard route', () => {
     assert.match(read('templates/pages/admin/reviews.html'), /name="casino_slug"[^>]*data-entity="casino"/);
     assert.match(read('static/js/rich-editor.js'), /lummetpick/);
     assert.match(read('templates/layout/base.html'), /generic-review-admin\.js/);
+  });
+});
+
+describe('landing pages: form, sections, author, public page', () => {
+  let db, env, call, sb;
+  beforeEach(async () => {
+    db = createTestDb(); applyMigrations(db);
+    env = { DB: db, ASSETS: { fetch: async (r) => { const f = join(ROOT, new URL(r.url).pathname); return existsSync(f) ? new Response(readFileSync(f, 'utf-8')) : new Response('nf', { status: 404 }); } } };
+    call = (m, p, b) => handleAPI(makeReq(m, `https://x.com${p}`, b), env, p.split('?')[0], admin);
+    sb = await contentItems.createContentItem(db, 'sportsbook', { slug: 'sb', name: 'SB', status: 'published', published: true });
+  });
+  test('create with sections and author, edit them, show them on the public page', async () => {
+    const a = await db.prepare(`INSERT INTO authors (slug, name) VALUES ('amy','Amy Writer') RETURNING id`).first();
+    const bad = await (await call('POST', '/api/v1/content-landing-page/create', { content_type: 'sportsbook', slug: 'Bad Slug', title: 'T' })).json();
+    assert.ok(bad.error);
+    const r = await (await call('POST', '/api/v1/content-landing-page/create', { content_type: 'sportsbook', slug: 'top-books', title: 'Top books', description: 'Intro', status: 'published', item_ids: [sb.id], author_id: a.id,
+      sections: [{ title: 'Questions', type: 'faq', data: { items: [{ q: 'Why?', a: 'Because' }] } }, { title: 'Notes', type: 'callout', data: { tone: 'info', title: 'Hi', text: 'There' } }] })).json();
+    assert.ok(r.success, JSON.stringify(r));
+    const dup = await (await call('POST', '/api/v1/content-landing-page/create', { content_type: 'sportsbook', slug: 'top-books', title: 'T' })).json();
+    assert.ok(dup.error);
+    const g = await (await call('GET', '/api/v1/content-landing-page/get?slug=top-books')).json();
+    assert.deepEqual(g.sections.map((s) => s.type), ['faq', 'callout']); assert.equal(g.page.author_id, a.id);
+    const html = await (await renderContentLandingPage(new Request('https://site.test/en/best/top-books'), env, 'top-books')).text();
+    assert.match(html, /By <a href="\/en\/author\/amy">Amy Writer<\/a>/); assert.match(html, /rv-faq__item/); assert.match(html, /FAQPage/);
+    const nav = html.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0];
+    for (const t of ['Questions', 'Notes']) assert.ok(nav.includes('>' + t + '<'), t);
+    const u = await (await call('POST', '/api/v1/content-landing-page/update', { slug: 'top-books', author_id: null, sections: [] })).json();
+    assert.ok(u.success);
+    const g2 = await (await call('GET', '/api/v1/content-landing-page/get?slug=top-books')).json();
+    assert.equal(g2.sections.length, 0); assert.equal(g2.page.author_id, null);
+    await call('POST', '/api/v1/content-landing-page/update', { slug: 'top-books', sections: [{ title: 'X', type: 'faq', data: { items: [{ q: 'q', a: 'a' }] } }] });
+    await call('POST', '/api/v1/content-landing-page/delete', { slug: 'top-books' });
+    assert.equal((await db.prepare(`SELECT COUNT(*) n FROM review_blocks WHERE review_slug = 'landing:top-books'`).first()).n, 0);
+  });
+  test('form templates carry the five steps and the script is loaded', () => {
+    for (const f of ['create', 'edit']) {
+      const t = read(`templates/pages/admin/content-landing-page-${f}.html`);
+      for (const id of ['lpForm', 'lpSections', 'lpPresets', 'lpAuthor', 'lpSerpTitle', 'itemSearchInput', 'selectedItemRows']) assert.match(t, new RegExp(`id="${id}"`));
+    }
+    assert.match(read('templates/layout/base.html'), /landing-page-admin\.js/);
+    assert.match(read('static/js/landing-page-admin.js'), /SectionBuilder\.mount/);
+  });
+  test('author page shows pictures for research, updates and country pages', async () => {
+    const a = await db.prepare(`INSERT INTO authors (slug, name) VALUES ('bo','Bo') RETURNING id`).first();
+    const m = await db.prepare(`INSERT INTO media_library (filename, url) VALUES ('r.png','/media/r.png') RETURNING id`).first().catch(() => null);
+    if (!m) return;
+    await db.prepare(`INSERT INTO research_items (type, slug, title, excerpt, author_id, published, status, og_image) VALUES ('report','g1','Guide One','x',?,1,'published',?)`).bind(a.id, m.id).run();
+    const hub = await getAuthorHub(db, a.id);
+    const research = hub.find((g) => g.key === 'research');
+    assert.equal(research.items[0].image, '/media/r.png');
   });
 });

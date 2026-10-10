@@ -124,3 +124,6 @@ html { scroll-behavior: smooth; }
 .rv-stats dt { font-size: 13px; opacity: .75; margin-top: 4px; }
 .rv-stats > div { display: flex; flex-direction: column; }
 .review-section > h2, .ah-section > h2 { margin-top: 0; }
+.lp-byline { margin: 6px 0 0; font-size: .9rem; opacity: .8; }
+.lp-byline a { text-decoration: underline; }
+#landing-items { scroll-margin-top: calc(var(--sn-top, 0px) + var(--sn-h, 56px) + 14px); }

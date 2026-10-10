@@ -250,3 +250,13 @@ Applies to reviews of sportsbooks, affiliate partners and custom content (casino
 - The casino Reviews dashboard has a **Review sections** panel: search and pick a review, build sections with the same builder,
   press Save. `review-blocks/sync` accepts `sections` and checks them; `review-blocks/list` also returns typed `sections`.
 - The classic one-block-at-a-time form stays. No migration.
+
+## 14. Landing pages form, author pictures, no empty tabs (v18.7)
+
+- **Landing pages (`/en/best/...`)**: the add and edit forms are now five clear steps (what it is about, items, page sections,
+  publishing with author, search preview). Sections use the same builder as reviews (all eight types) and are stored in
+  `review_blocks` under the key `landing:<slug>`; no migration. The public page shows an author line, a sticky section bar
+  and the sections; FAQ sections add FAQPage schema. `content-landing-page/create|update` accept `sections` and `author_id`;
+  `get` returns `sections`. Slugs are checked and duplicates refused. Deleting a page deletes its sections.
+- **Author page**: research, platform updates and country pages now show their pictures when they have one.
+- **Casino review**: the Pros & Cons tab and block, and every empty row of the Summary table, are left out when nothing was entered.

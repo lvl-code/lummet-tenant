@@ -35,18 +35,18 @@ const GROUPS = [
     cols: `r.slug, r.title, r.rating, r.created_at, r.updated_at, r.reviewed_content_type, ci.custom_type_slug, ci.name AS subject, lm.url AS image`, order: `COALESCE(r.updated_at, r.created_at)` },
     map: (r) => ({ title: r.title, url: reviewPublicUrl(r), image: r.image, meta: [r.subject, rating(r.rating)].filter(Boolean).join(" · "), date: r.updated_at || r.created_at, badge: TYPE_LABEL[r.reviewed_content_type] }) },
   { key: "research", label: "Research", noun: "research item", sql: {
-    from: `FROM research_items WHERE author_id = ? AND published = 1 AND status != 'draft'`,
-    cols: `type, slug, title, excerpt, updated_at, created_at`, order: `COALESCE(updated_at, created_at)` },
-    map: (r) => ({ title: r.title, url: `/en/research/${encodeURIComponent(r.type)}/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.updated_at || r.created_at, badge: String(r.type || "").replace(/[-_]/g, " ") }) },
+    from: `FROM research_items ri LEFT JOIN media_library m ON m.id = ri.og_image WHERE ri.author_id = ? AND ri.published = 1 AND ri.status != 'draft'`,
+    cols: `ri.type, ri.slug, ri.title, ri.excerpt, ri.updated_at, ri.created_at, COALESCE(m.thumbnail_url, m.url) AS image`, order: `COALESCE(ri.updated_at, ri.created_at)` },
+    map: (r) => ({ title: r.title, image: r.image, url: `/en/research/${encodeURIComponent(r.type)}/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.updated_at || r.created_at, badge: String(r.type || "").replace(/[-_]/g, " ") }) },
   { key: "news", label: "News and articles", noun: "article", sql: {
     from: `FROM news n LEFT JOIN media_library m ON m.id = n.featured_image
            WHERE n.author_id = ? AND n.published = 1 AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))`,
     cols: `n.slug, n.title, n.excerpt, n.created_at, n.updated_at, COALESCE(m.thumbnail_url, m.url) AS image`, order: `n.created_at` },
     map: (r) => ({ title: r.title, url: `/en/news/${encodeURIComponent(r.slug)}`, image: r.image, excerpt: clip(r.excerpt, 140), date: r.created_at }) },
   { key: "updates", label: "Platform updates", noun: "update", sql: {
-    from: `FROM platform_updates WHERE author_id = ? AND published = 1`,
-    cols: `slug, title, excerpt, published_at, created_at`, order: `COALESCE(published_at, created_at)` },
-    map: (r) => ({ title: r.title, url: `/en/updates/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.published_at || r.created_at }) },
+    from: `FROM platform_updates pu LEFT JOIN media_library m ON m.id = pu.featured_image WHERE pu.author_id = ? AND pu.published = 1`,
+    cols: `pu.slug, pu.title, pu.excerpt, pu.published_at, pu.created_at, COALESCE(m.thumbnail_url, m.url) AS image`, order: `COALESCE(pu.published_at, pu.created_at)` },
+    map: (r) => ({ title: r.title, image: r.image, url: `/en/updates/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.published_at || r.created_at }) },
   { key: "content", label: "Sportsbooks, partners and more", noun: "listing", sql: {
     from: `FROM content_items ci LEFT JOIN media_library lm ON lm.id = ci.logo_media_id WHERE ci.author_id = ? AND ci.published = 1 AND ci.status = 'published'`,
     cols: `ci.content_type, ci.custom_type_slug, ci.slug, ci.name, ci.rating, lm.url AS image, ci.updated_at, ci.created_at`, order: `COALESCE(ci.updated_at, ci.created_at)` },
@@ -57,8 +57,8 @@ const GROUPS = [
     map: (r) => ({ title: r.title, url: `/en/compare/${encodeURIComponent(r.content_type)}/${encodeURIComponent(r.slug)}`, excerpt: clip(r.description, 140), date: r.updated_at || r.created_at }) },
   { key: "country-pages", label: "Country and category pages", noun: "country or category page", sql: {
     from: `FROM seo_pages WHERE author_id = ? AND published = 1`,
-    cols: `page_type, slug, country_code, title, updated_at, created_at`, order: `COALESCE(updated_at, created_at)` },
-    map: (r) => ({ title: r.title, url: r.page_type === "country_custom" ? `/en/country/${encodeURIComponent(r.country_code)}/${encodeURIComponent(r.slug)}` : `/en/category/${encodeURIComponent(r.slug)}/${encodeURIComponent(r.country_code)}`, meta: r.country_code, date: r.updated_at || r.created_at, badge: r.page_type === "country_custom" ? "Country" : "Category" }) },
+    cols: `page_type, slug, country_code, title, COALESCE(NULLIF(featured_image, ''), NULLIF(og_image, '')) AS image, updated_at, created_at`, order: `COALESCE(updated_at, created_at)` },
+    map: (r) => ({ title: r.title, image: /^(\/|https?:)/.test(r.image || "") ? r.image : "", url: r.page_type === "country_custom" ? `/en/country/${encodeURIComponent(r.country_code)}/${encodeURIComponent(r.slug)}` : `/en/category/${encodeURIComponent(r.slug)}/${encodeURIComponent(r.country_code)}`, meta: r.country_code, date: r.updated_at || r.created_at, badge: r.page_type === "country_custom" ? "Country" : "Category" }) },
   { key: "best-lists", label: "Best-of lists", noun: "list", sql: {
     from: `FROM content_landing_pages WHERE author_id = ? AND status = 'published'`,
     cols: `slug, title, description, updated_at, created_at`, order: `COALESCE(updated_at, created_at)` },

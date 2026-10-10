@@ -1051,7 +1051,8 @@ if (path === "/api/v1/content-landing-page/get" && request.method === "GET") {
   const page = await landingPagesDB.getLandingPage(env.DB, slug);
   if (!page) return failure("Landing page not found", 404);
   const itemIds = await landingPagesDB.getLandingPageItemIds(env.DB, page.id);
-  return json({ success: true, page, item_ids: itemIds });
+  const blocks = await reviewBlocksDB.getReviewBlocks(env.DB, landingPagesDB.landingBlocksKey(page.slug));
+  return json({ success: true, page, item_ids: itemIds, sections: blocks.map(describeBlock) });
 }
 
 if (path === "/api/v1/content-landing-page/create" && request.method === "POST") {
@@ -1066,6 +1067,14 @@ if (path === "/api/v1/content-landing-page/create" && request.method === "POST")
   if (body.item_mode && !["manual", "auto"].includes(body.item_mode)) {
     return failure('item_mode must be "manual" or "auto"');
   }
+  if (!/^[a-z0-9-]{1,120}$/.test(String(body.slug))) return failure("Slug can only use lowercase letters, numbers and dashes.");
+  if (await landingPagesDB.getLandingPage(env.DB, body.slug)) return failure("A landing page with this slug already exists -- choose another one.");
+  let lpSections = null;
+  if (body.sections !== undefined) {
+    const cleaned = cleanSections(body.sections);
+    if (cleaned.error) return failure(cleaned.error);
+    lpSections = cleaned.sections;
+  }
   const page = await landingPagesDB.createLandingPage(env.DB, {
     contentType: body.content_type, customTypeSlug: body.custom_type_slug || null,
     slug: body.slug, title: body.title, description: body.description || null,
@@ -1077,6 +1086,7 @@ if (path === "/api/v1/content-landing-page/create" && request.method === "POST")
   if (page.item_mode === "manual" && Array.isArray(body.item_ids)) {
     await landingPagesDB.setLandingPageItems(env.DB, page.id, body.item_ids.map(Number).filter(Number.isInteger));
   }
+  if (lpSections && lpSections.length) await reviewBlocksDB.syncReviewBlocks(env.DB, landingPagesDB.landingBlocksKey(page.slug), lpSections);
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "content_landing_page", entityId: page.id, metadata: { slug: body.slug, content_type: body.content_type } });
   return success({ page });
 }
@@ -1094,7 +1104,15 @@ if (path === "/api/v1/content-landing-page/update" && request.method === "POST")
     if (body[bodyKey] !== undefined) fields[fieldKey] = body[bodyKey];
   }
   if (body.auto_limit !== undefined) fields.autoLimit = parseInt(body.auto_limit) || 10;
+  if (body.author_id !== undefined) fields.authorId = body.author_id ? Number(body.author_id) || null : null;
+  let lpSections = null;
+  if (body.sections !== undefined) {
+    const cleaned = cleanSections(body.sections);
+    if (cleaned.error) return failure(cleaned.error);
+    lpSections = cleaned.sections;
+  }
   const page = await landingPagesDB.updateLandingPage(env.DB, body.slug, fields);
+  if (lpSections) await reviewBlocksDB.syncReviewBlocks(env.DB, landingPagesDB.landingBlocksKey(page.slug), lpSections);
   if (Array.isArray(body.item_ids)) await landingPagesDB.setLandingPageItems(env.DB, page.id, body.item_ids.map(Number).filter(Number.isInteger));
   await logAudit(env.DB, { userId: user.user_id, action: "update", entityType: "content_landing_page", entityId: page.id, metadata: { slug: body.slug, status: page.status } });
   return success({ page });

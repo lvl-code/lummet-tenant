@@ -41,45 +41,7 @@
     <h2>Review Summary</h2>
 
     <table class="review-summary-table">
-        <tr>
-            <th>Casino</th>
-            <td>{{casino_name}}</td>
-        </tr>
-
-        <tr>
-            <th>Rating</th>
-            <td>{{rating}} / 5 </td>
-        </tr>
-
-        <tr>
-            <th>Reviewed By</th>
-            <td>{{author_name}}</td>
-        </tr>
-
-        <tr>
-            <th>Updated</th>
-            <td>{{updated_at}}</td>
-        </tr>
-
-        <tr>
-            <th>Best For</th>
-            <td class="summary-preview">{{games}}</td>
-        </tr>
-
-        <tr>
-            <th>License</th>
-            <td class="summary-preview">{{licenses}}</td>
-        </tr>
-
-        <tr>
-            <th>Payment Methods</th>
-            <td class="summary-preview">{{payments}}</td>
-        </tr>
-
-        <tr>
-            <th>Bonuses</th>
-            <td class="summary-preview">{{bonuses}}</td>
-        </tr>
+{{{summary_rows_html}}}
     </table>
 </div>
   {{#if overview}}
@@ -150,20 +112,7 @@
 -->
 </div>
 
-  {{#if pros_html}}
-  <div id="pros-cons" class="review-pros-cons">
-    <div class="pros-cons-block pros">
-      <h3>Pros</h3>
-      {{pros_html}}
-    </div>
-    {{#if cons_html}}
-    <div class="pros-cons-block cons">
-      <h3>Cons</h3>
-      {{cons_html}}
-    </div>
-    {{/if}}
-  </div>
-  {{/if}}
+  {{{pros_cons_html}}}
 
   {{#if faq_html}}
   <section id="faq">

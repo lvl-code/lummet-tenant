@@ -1142,11 +1142,14 @@ export async function renderReview(request, env, slug, ctx = null) {
 }
   const prosHtml = pros.length
     ? `<ul>${pros.map(p => `<li>${p}</li>`).join("")}</ul>`
-    : "<p class='muted'>No pros listed.</p>";
+    : "";
 
   const consHtml = cons.length
     ? `<ul>${cons.map(c => `<li>${c}</li>`).join("")}</ul>`
-    : "<p class='muted'>No cons listed.</p>";
+    : "";
+  const prosConsHtml = (pros.length || cons.length)
+    ? `<div id="pros-cons" class="review-pros-cons">${pros.length ? `<div class="pros-cons-block pros"><h3>Pros</h3>${prosHtml}</div>` : ""}${cons.length ? `<div class="pros-cons-block cons"><h3>Cons</h3>${consHtml}</div>` : ""}</div>`
+    : "";
 
   // Geo evaluation for the casino connected to this review (sync, no DB)
   let geoCountry = "";
@@ -1182,6 +1185,17 @@ export async function renderReview(request, env, slug, ctx = null) {
   const casinoName = casino?.name || "";
   const reviewBlocksHtml = reviewSections.html;
   const has = (v) => !!String(v || "").replace(/<[^>]*>/g, "").trim();
+  // Summary table: a row with nothing entered is left out instead of showing an empty cell.
+  const summaryRowsHtml = [
+    ["Casino", casinoName ? escapeHtml(casinoName) : ""],
+    ["Rating", review.rating ? `${review.rating} / 5` : ""],
+    ["Reviewed By", author?.name ? escapeHtml(author.name) : ""],
+    ["Updated", (review.updated_at || review.created_at) ? new Date(review.updated_at || review.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : ""],
+    ["Best For", has(review.games) ? review.games : "", "summary-preview"],
+    ["License", has(review.licenses) ? review.licenses : "", "summary-preview"],
+    ["Payment Methods", has(review.payments) ? review.payments : "", "summary-preview"],
+    ["Bonuses", has(review.bonuses) ? review.bonuses : "", "summary-preview"],
+  ].filter((r) => r[1]).map((r) => `<tr><th>${r[0]}</th><td${r[2] ? ` class="${r[2]}"` : ""}>${r[1]}</td></tr>`).join("\n");
   const reviewNavItems = [{ id: "summary", title: "Summary" }];
   if (has(review.overview)) reviewNavItems.push({ id: "overview", title: "Overview" });
   if (has(review.games)) reviewNavItems.push({ id: "games", title: "Games" });
@@ -1191,7 +1205,7 @@ export async function renderReview(request, env, slug, ctx = null) {
   if (has(review.content)) reviewNavItems.push({ id: "more-details", title: "More details" });
   reviewNavItems.push(...reviewSections.nav);
   if (has(review.verdict)) reviewNavItems.push({ id: "verdict", title: "Verdict" });
-  reviewNavItems.push({ id: "pros-cons", title: "Pros & Cons" });
+  if (prosConsHtml) reviewNavItems.push({ id: "pros-cons", title: "Pros & Cons" });
   if (faqHtml) reviewNavItems.push({ id: "faq", title: "FAQ" });
 
   // casinoCardHtml and relatedCasinosHtml both depend on `casino`
@@ -1316,6 +1330,8 @@ export async function renderReview(request, env, slug, ctx = null) {
     faq_html: faqHtml,
     pros_html: prosHtml,
     cons_html: consHtml,
+    pros_cons_html: prosConsHtml,
+    summary_rows_html: summaryRowsHtml,
     casino_card_html: casinoCardHtml,
     casino_slug: review.casino_slug || "",
     geo_country: countryFullName(geoCountry),
@@ -4325,6 +4341,13 @@ export async function renderContentLandingPage(request, env, slug) {
     renderer.loadDynamicSeo("content_landing_page", slug),
   ]);
 
+  let lpSections = { html: "", nav: [], faq: [] };
+  try { lpSections = await renderSections(env.DB, await getReviewBlocksForSlug(env.DB, landingPagesDB.landingBlocksKey(page.slug))); } catch (err) { console.error("landing sections failed:", err); }
+  let lpAuthor = null;
+  try { lpAuthor = page.author_id ? await authors.getAuthorById(env.DB, page.author_id) : null; } catch { /* byline is optional */ }
+  const lpNav = renderSectionNav(eligibleItems.length ? [{ id: "landing-items", title: page.title.length > 28 ? "Top picks" : page.title }, ...lpSections.nav] : lpSections.nav);
+  const lpByline = lpAuthor ? `<p class="lp-byline">By <a href="/en/author/${encodeURIComponent(lpAuthor.slug)}">${escapeHtml(lpAuthor.name)}</a>${page.updated_at ? ` &middot; Updated <time datetime="${escapeHtml(String(page.updated_at).slice(0, 10))}">${escapeHtml(String(page.updated_at).slice(0, 10))}</time>` : ""}</p>` : "";
+
   const linkPrefix = page.content_type === "custom" ? `/en/custom/${page.custom_type_slug}` : page.content_type === "sportsbook" ? "/en/sportsbook" : "/en/affiliate-partner";
 
   const listSchema = {
@@ -4339,6 +4362,10 @@ export async function renderContentLandingPage(request, env, slug) {
     category: page.title,
     description: page.description || "",
     casino_cards: buildContentItemCards(eligibleItems, page.content_type, linkPrefix, geoData),
+    landing_nav_html: lpNav,
+    landing_byline_html: lpByline,
+    landing_sections_html: lpSections.html,
+    landing_faq_schema_html: faqSchemaScript(lpSections.faq),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,

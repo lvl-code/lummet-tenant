@@ -36,17 +36,17 @@ const GROUPS = [
     map: (r) => ({ title: r.title, url: reviewPublicUrl(r), image: r.image, meta: [r.subject, rating(r.rating)].filter(Boolean).join(" · "), date: r.updated_at || r.created_at, badge: TYPE_LABEL[r.reviewed_content_type] }) },
   { key: "research", label: "Research", noun: "research item", sql: {
     from: `FROM research_items ri LEFT JOIN media_library m ON m.id = ri.og_image WHERE ri.author_id = ? AND ri.published = 1 AND ri.status != 'draft'`,
-    cols: `ri.type, ri.slug, ri.title, ri.excerpt, ri.updated_at, ri.created_at, COALESCE(m.thumbnail_url, m.url) AS image`, order: `COALESCE(ri.updated_at, ri.created_at)` },
-    map: (r) => ({ title: r.title, image: r.image, url: `/en/research/${encodeURIComponent(r.type)}/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.updated_at || r.created_at, badge: String(r.type || "").replace(/[-_]/g, " ") }) },
+    cols: `ri.type, ri.slug, ri.title, ri.excerpt, ri.updated_at, ri.created_at, COALESCE(m.url, m.thumbnail_url) AS image, m.thumbnail_url AS image_alt`, order: `COALESCE(ri.updated_at, ri.created_at)` },
+    map: (r) => ({ title: r.title, image: r.image, image_alt: r.image_alt, url: `/en/research/${encodeURIComponent(r.type)}/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.updated_at || r.created_at, badge: String(r.type || "").replace(/[-_]/g, " ") }) },
   { key: "news", label: "News and articles", noun: "article", sql: {
     from: `FROM news n LEFT JOIN media_library m ON m.id = n.featured_image
            WHERE n.author_id = ? AND n.published = 1 AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))`,
-    cols: `n.slug, n.title, n.excerpt, n.created_at, n.updated_at, COALESCE(m.thumbnail_url, m.url) AS image`, order: `n.created_at` },
-    map: (r) => ({ title: r.title, url: `/en/news/${encodeURIComponent(r.slug)}`, image: r.image, excerpt: clip(r.excerpt, 140), date: r.created_at }) },
+    cols: `n.slug, n.title, n.excerpt, n.created_at, n.updated_at, COALESCE(m.url, m.thumbnail_url) AS image, m.thumbnail_url AS image_alt`, order: `n.created_at` },
+    map: (r) => ({ title: r.title, url: `/en/news/${encodeURIComponent(r.slug)}`, image: r.image, image_alt: r.image_alt, excerpt: clip(r.excerpt, 140), date: r.created_at }) },
   { key: "updates", label: "Platform updates", noun: "update", sql: {
     from: `FROM platform_updates pu LEFT JOIN media_library m ON m.id = pu.featured_image WHERE pu.author_id = ? AND pu.published = 1`,
-    cols: `pu.slug, pu.title, pu.excerpt, pu.published_at, pu.created_at, COALESCE(m.thumbnail_url, m.url) AS image`, order: `COALESCE(pu.published_at, pu.created_at)` },
-    map: (r) => ({ title: r.title, image: r.image, url: `/en/updates/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.published_at || r.created_at }) },
+    cols: `pu.slug, pu.title, pu.excerpt, pu.published_at, pu.created_at, COALESCE(m.url, m.thumbnail_url) AS image, m.thumbnail_url AS image_alt`, order: `COALESCE(pu.published_at, pu.created_at)` },
+    map: (r) => ({ title: r.title, image: r.image, image_alt: r.image_alt, url: `/en/updates/${encodeURIComponent(r.slug)}`, excerpt: clip(r.excerpt, 140), date: r.published_at || r.created_at }) },
   { key: "content", label: "Sportsbooks, partners and more", noun: "listing", sql: {
     from: `FROM content_items ci LEFT JOIN media_library lm ON lm.id = ci.logo_media_id WHERE ci.author_id = ? AND ci.published = 1 AND ci.status = 'published'`,
     cols: `ci.content_type, ci.custom_type_slug, ci.slug, ci.name, ci.rating, lm.url AS image, ci.updated_at, ci.created_at`, order: `COALESCE(ci.updated_at, ci.created_at)` },
@@ -86,7 +86,8 @@ export async function getAuthorHub(db, authorId) {
 }
 
 function card(it) {
-  const img = it.image ? `<span class="ah-card__img"><img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>` : "";
+  const alt = it.image_alt && it.image_alt !== it.image ? ` data-alt="${esc(it.image_alt)}"` : "";
+  const img = it.image ? `<span class="ah-card__img"><img src="${esc(it.image)}"${alt} alt="" loading="lazy" onerror="var a=this.getAttribute('data-alt');if(a&&this.src.indexOf(a)<0){this.removeAttribute('data-alt');this.src=a}else{this.parentNode.remove()}"></span>` : "";
   const badge = it.badge ? `<span class="ah-card__badge">${esc(it.badge)}</span>` : "";
   return `<li class="ah-card"><a href="${esc(it.url)}">${img}<span class="ah-card__body">${badge}<strong>${esc(it.title)}</strong>${it.meta ? `<span class="ah-card__meta">${esc(it.meta)}</span>` : ""}${it.excerpt ? `<span class="ah-card__text">${esc(it.excerpt)}</span>` : ""}${day(it.date) ? `<time datetime="${esc(day(it.date))}">${esc(day(it.date))}</time>` : ""}</span></a></li>`;
 }

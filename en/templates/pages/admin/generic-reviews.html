@@ -60,8 +60,9 @@
               </select>
             </label>
             <label>Item
-              <input type="search" id="grItemFilter" placeholder="Filter items…" aria-label="Filter items">
-              <select name="reviewed_content_id" id="grItem"><option value="">Loading items...</option></select>
+              <input type="search" id="grItemSearch" placeholder="Search by name…" aria-label="Search the item to review" autocomplete="off">
+              <input type="hidden" name="reviewed_content_id" id="grItem" value="">
+              <span class="gr-picked" id="grItemPicked" aria-live="polite">Nothing chosen yet.</span>
             </label>
           </div>
         </fieldset>
@@ -91,10 +92,10 @@
 
         <fieldset class="gr-card">
           <legend>Sections</legend>
-          <p class="muted">Extra titled sections shown on the review page, in this order, after the main content. Each one has the full editor, with pictures, links and the page and item picker.</p>
+          <p class="muted">Titled sections shown on the review page after the main content, in this order. Every section with a title also becomes a tab in the review's sticky top bar. Pick a type: text, FAQ, images with text, payment methods, picked items (casinos, reviews, news, research, updates, pages…), cards, callouts or key figures.</p>
           <div class="gr-presets" id="grPresets" aria-label="Quick add"></div>
           <div id="grSections" class="gr-sections"></div>
-          <button type="button" class="btn btn--ghost" id="grAddSection">+ Add section</button>
+          <button type="button" class="btn btn--ghost" id="grAddSection" aria-haspopup="menu">+ Add section</button>
         </fieldset>
 
         <fieldset class="gr-card">

@@ -9,6 +9,8 @@
 // can change), so a deleted or unpublished item simply stops showing and nothing breaks.
 //   research: "type/slug"        custom type: "typeSlug/slug"        media: the media id
 
+import { REVIEW_WITH_TYPE_SQL, reviewPublicUrl } from "./review-urls.js";
+
 const CARD_LIMIT = 48;
 
 export const SOURCE_KEYS = [
@@ -348,8 +350,8 @@ export async function searchLinks(db, source, { q = "", limit = 20, customType =
     return rows.map((r) => ({ title: str(r.title, 120), url: `/en/${r.slug}`, kind: "page" }));
   }
   if (source === "review") {
-    const rows = await all(db, `SELECT slug, title FROM reviews WHERE published = 1 AND (LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(slug) LIKE ? ESCAPE '\\') ORDER BY title ASC LIMIT ?`, like(needle), like(needle), n);
-    return rows.map((r) => ({ title: str(r.title, 120), url: `/en/review/${r.slug}`, kind: "review" }));
+    const rows = await all(db, `${REVIEW_WITH_TYPE_SQL} WHERE r.published = 1 AND (LOWER(r.title) LIKE ? ESCAPE '\\' OR LOWER(r.slug) LIKE ? ESCAPE '\\') ORDER BY r.title ASC LIMIT ?`, like(needle), like(needle), n);
+    return rows.map((r) => ({ title: str(r.title, 120), url: reviewPublicUrl(r), kind: "review" })).filter((r) => r.url);
   }
   if (source === "media") return [];
   const items = await searchSource(db, source, { q: needle, limit: n, customType });

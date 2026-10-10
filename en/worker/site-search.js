@@ -5,6 +5,7 @@
 // Only published content is returned. Titles that start with the words typed come first.
 
 import { searchSource } from "./component-sources.js";
+import { REVIEW_WITH_TYPE_SQL, reviewPublicUrl } from "./review-urls.js";
 
 export const SEARCH_GROUPS = [
   { key: "casino", label: "Casinos" },
@@ -57,10 +58,11 @@ const FINDERS = {
     }));
   },
   async review(db, q, n) {
-    const found = await rows(db, `SELECT slug, title FROM reviews
-      WHERE published = 1 AND (LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(slug) LIKE ? ESCAPE '\\')
-      ORDER BY title ASC LIMIT ?`, like(q), like(q), n * 3);
-    return found.map((r) => ({ title: clean(r.title, 140), url: `/en/review/${r.slug}`, image: "", meta: "" }));
+    const found = await rows(db, `${REVIEW_WITH_TYPE_SQL}
+      WHERE r.published = 1 AND (LOWER(r.title) LIKE ? ESCAPE '\\' OR LOWER(r.slug) LIKE ? ESCAPE '\\')
+      ORDER BY r.title ASC LIMIT ?`, like(q), like(q), n * 3);
+    return found.map((r) => ({ r, url: reviewPublicUrl(r) })).filter((x) => x.url)
+      .map(({ r, url }) => ({ title: clean(r.title, 140), url, image: "", meta: "" }));
   },
   async research(db, q, n) {
     const found = await rows(db, `SELECT type, slug, title, excerpt FROM research_items

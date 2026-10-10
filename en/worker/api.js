@@ -54,7 +54,7 @@ import * as customTypesDB from "./database/custom-types.js";
 import * as comparisonsDB from "./database/comparisons.js";
 import * as landingPagesDB from "./database/content-landing-pages.js";
 import * as genericReviewsDB from "./database/generic-reviews.js";
-import { cleanSections } from "./generic-review-sections.js";
+import { cleanSections, describeBlock } from "./generic-review-sections.js";
 import { isReservedSlug } from "./reserved-slugs.js";
 import { getContentTypeEnablement, updateContentTypeEnablement } from "./content-types.js";
 
@@ -260,7 +260,7 @@ if (path === "/api/v1/public/reviews/list") {
     SELECT r.*, c.name as casino_name, c.logo as casino_logo
     FROM reviews r
     LEFT JOIN casinos c ON c.slug = r.casino_slug
-    WHERE r.published = 1
+    WHERE r.published = 1 AND (r.reviewed_content_type IS NULL OR r.reviewed_content_type = 'casino')
     ORDER BY r.created_at DESC
   `).all();
   return json({ reviews: result.results });
@@ -407,7 +407,7 @@ if (path === "/api/v1/public/reviews/geo") {
     SELECT r.*, c.name as casino_name, c.logo as casino_logo, c.slug as casino_slug
     FROM reviews r
     LEFT JOIN casinos c ON c.slug = r.casino_slug
-    WHERE r.published = 1
+    WHERE r.published = 1 AND (r.reviewed_content_type IS NULL OR r.reviewed_content_type = 'casino')
     ORDER BY r.created_at DESC
   `).all();
 
@@ -1513,7 +1513,7 @@ if (path === "/api/v1/generic-review/get" && request.method === "GET") {
   if (!review) return failure("Review not found", 404);
   if (!(await itemAccess.canAccessItem(env.DB, user, "reviews", "read", review))) return failure("Review not found", 404);
   const sections = await reviewBlocksDB.getReviewBlocks(env.DB, review.slug);
-  return json({ success: true, review, sections: sections.map((b) => ({ id: b.id, title: b.title, content: b.content, position: b.position })) });
+  return json({ success: true, review, sections: sections.map(describeBlock) });
 }
 
 if (path === "/api/v1/generic-review/delete" && request.method === "POST") {
@@ -1563,7 +1563,7 @@ if (path === "/api/v1/reviews/list") {
   const { condition, params } = await itemAccess.getAccessibleWhereClause(
     env.DB, user, 'reviews', 'read', ''
   );
-  const whereParts = ['published = 1'];
+  const whereParts = ['published = 1', "(reviewed_content_type IS NULL OR reviewed_content_type = 'casino')"];
   if (condition) whereParts.push(condition);
   const whereClause = 'WHERE ' + whereParts.join(' AND ');
 

@@ -295,3 +295,7 @@ items without rules are shown (without an availability badge). The old test that
 ## 18. Review summary card (v19.2)
 
 The casino review "Review Summary" table is now a card: a rating block with star fill and score, a facts row (Casino, Reviewed by, Updated) and tiles for Best for, License, Payment methods and Bonuses. Long entries show a 150-character preview with a "Read more / Show less" toggle. Empty fields are skipped; the card disappears when nothing is filled. The hide/show checkbox for the summary still works. No migrations, no deletions.
+
+## 19. Summary card on generic reviews (v19.3)
+
+Sportsbook, affiliate-partner and custom reviews now use the same summary card as casino reviews: rating with star fill, then Item/Product, Reviewed by and Updated. Facts with no value are skipped. No migrations, no deletions.

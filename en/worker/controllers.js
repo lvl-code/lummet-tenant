@@ -5264,6 +5264,17 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
     : expectedReviewedContentType === "affiliate_partner" ? "affiliatePartnerReview"
     : "customReview";
 
+  // Summary card (same look as casino reviews): rating, then the facts that exist.
+  const gsRating = Math.max(0, Math.min(5, Number(displayRating) || 0));
+  const gsUpdated = (review.updated_at || review.created_at) ? new Date(review.updated_at || review.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "";
+  const gsFacts = [
+    reviewedItem?.name ? [expectedReviewedContentType === "custom" ? "Product" : "Item", escapeHtml(reviewedItem.name)] : null,
+    author?.name ? ["Reviewed by", escapeHtml(author.name)] : null,
+    gsUpdated ? ["Updated", escapeHtml(gsUpdated)] : null,
+  ].filter(Boolean).map((f) => `<div class="rs-fact"><dt>${f[0]}</dt><dd>${f[1]}</dd></div>`).join("");
+  const gsRatingBlock = gsRating > 0 ? `<div class="rs-rating" aria-label="Rating ${gsRating.toFixed(1)} out of 5"><span class="rs-stars" style="--r:${gsRating}" aria-hidden="true">★★★★★</span><strong>${gsRating.toFixed(1)}</strong><span>/ 5</span></div>` : "";
+  const summaryCardHtml = (gsFacts || gsRatingBlock) ? `<div class="rs-top">${gsRatingBlock}${gsFacts ? `<dl class="rs-facts">${gsFacts}</dl>` : ""}</div>` : "";
+
   const html = await renderer.render("generic-review.html", {
     title: escapeHtml(review.title),
     content: toRichHtml(review.content || ""),
@@ -5277,6 +5288,7 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
     reviewed_at: review.created_at ? new Date(review.created_at).toLocaleDateString() : "",
     updated_at: review.updated_at ? new Date(review.updated_at).toLocaleDateString() : "",
     rating_display: ratingDisplay,
+    summary_card_html: summaryCardHtml,
     reviewed_item_label: expectedReviewedContentType === "custom" ? "Product" : "Item",
     reviewed_item_name: reviewedItem.name,
     reviewed_item_card_html: buildReviewedItemCardHtml(reviewedItem, site.url(linkUrl)),

@@ -114,6 +114,14 @@ describe('API + public page', () => {
     html = await (await renderGenericReview(new Request('https://site.test/en/sportsbook/review/rv'), env, 'sportsbook', 'rv', null)).text();
     assert.match(html, /<p>Line one<\/p>\n<p>Line two<\/p>/);
   });
+
+  test('generic review summary is a card with rating and facts, not a table', async () => {
+    await create({ rating: 4 });
+    const html = await (await renderGenericReview(new Request('https://site.test/en/sportsbook/review/rv'), env, 'sportsbook', 'rv', null)).text();
+    assert.match(html, /class="review-summary rs-card" id="summary"/);
+    assert.match(html, /class="rs-top"/); assert.match(html, /<dt>Item<\/dt><dd>SB<\/dd>/);
+    assert.doesNotMatch(html, /review-summary-table/);
+  });
 });
 
 describe('typed sections on the public page, and one public address', () => {

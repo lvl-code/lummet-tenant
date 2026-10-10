@@ -43,46 +43,57 @@
     {{{summary_rows_html}}}
 </div>
   {{#if overview}}
-  <h2 id="overview">Overview</h2>
-  <p>{{overview}}</p>
+  <section class="rv-sec rv-sec--overview" id="overview">
+    <h2>Overview</h2>
+    <div class="rv-sec__body rv-rich">{{overview}}</div>
+  </section>
   {{/if}}
 
   {{#if games}}
-  <h2 id="games">Games</h2>
-  <p>{{games}}</p>
+  <section class="rv-sec rv-sec--games" id="games">
+    <h2>Games</h2>
+    <div class="rv-sec__body rv-rich">{{games}}</div>
+  </section>
   {{/if}}
 
   {{#if bonuses}}
-  <h2 id="bonuses">Bonuses</h2>
-  <p>{{bonuses}}</p>
+  <section class="rv-sec rv-sec--bonuses" id="bonuses">
+    <h2>Bonuses</h2>
+    <div class="rv-sec__body rv-rich">{{bonuses}}</div>
+  </section>
   {{/if}}
 
   {{#if payments}}
-  <h2 id="payments">Payment Methods</h2>
-  <p>{{payments}}</p>
+  <section class="rv-sec rv-sec--payments" id="payments">
+    <h2>Payment Methods</h2>
+    <div class="rv-sec__body rv-rich">{{payments}}</div>
+  </section>
   {{/if}}
 
   {{#if licenses}}
-  <h2 id="licensing">Licensing</h2>
-  <p>{{licenses}}</p>
+  <section class="rv-sec rv-sec--licensing" id="licensing">
+    <h2>Licensing</h2>
+    <div class="rv-sec__body rv-rich">{{licenses}}</div>
+  </section>
   {{/if}}
 
   {{#if content}}
-  <section id="more-details">
+  <section class="rv-sec rv-sec--more" id="more-details">
     <h2>More Details</h2>
-    {{content}}
+    <div class="rv-sec__body rv-rich">{{content}}</div>
   </section>
   {{/if}}
 
   {{{review_blocks_html}}}
 
-  {}
   {{components_content_top}}
   {{components_content_bottom}}
 
   {{#if verdict}}
-  <h2 id="verdict">Verdict</h2>
-  <p>{{verdict}}</p>
+  <section class="rv-sec rv-sec--verdict" id="verdict">
+    <h2>Verdict</h2>
+    <div class="rv-sec__body rv-rich">{{verdict}}</div>
+  </section>
   {{/if}}
 <!--
   <h2 id="overview">Overview</h2>
@@ -113,14 +124,14 @@
   {{{pros_cons_html}}}
 
   {{#if faq_html}}
-  <section id="faq">
+  <section class="rv-sec rv-sec--faq" id="faq">
     <h2>Frequently Asked Questions</h2>
-    {{faq_html}}
+    <div class="rv-sec__body rv-rich">{{faq_html}}</div>
   </section>
   {{/if}}
 
   {{#if related_casinos_html}}
-  <section id="related-casinos" class="related-casinos">
+  <section id="related-casinos" class="related-casinos rv-sec rv-sec--related">
     <h2>Related Casinos</h2>
     <div class="casino-grid">
       {{{related_casinos_html}}}

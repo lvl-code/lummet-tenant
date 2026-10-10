@@ -303,3 +303,7 @@ Sportsbook, affiliate-partner and custom reviews now use the same summary card a
 ## 20. Summary card colours (v19.4)
 
 The summary card (casino and generic reviews) now has fixed colours: white background, dark text, light-grey tiles, amber stars and a "Read more" link. It no longer follows the site theme, so it stays readable in dark mode. CSS only; no migrations, no deletions.
+
+## 21. Enterprise section cards (v19.5)
+
+Review fields and sections (Overview, Games, Bonuses, Payment Methods, Licensing, More Details, Verdict, FAQ, related casinos, typed sections, Pros & Cons, scoring) now render as white cards: coloured accent edge, icon chip, title with divider, readable body text, check-mark lists, numbered steps, styled tables and quotes. The verdict has a gold highlight; pros and cons are green and red cards. Casino and generic reviews share it. Fixed light colours, so it reads on any theme. Removed a stray `{}` that was printed on casino reviews. Markup keeps all existing section ids, so the navigation bar and jump links are unchanged. No migrations, no deletions.

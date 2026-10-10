@@ -38,20 +38,20 @@
         </div>
 
         {{#if criteria_scores_html}}
-        <div class="info-block" id="scoring">
+        <div class="info-block rv-sec rv-sec--scoring" id="scoring">
           <h2>How We Scored It</h2>
           {{{criteria_scores_html}}}
         </div>
         {{/if}}
 
-        <div class="info-block" id="overview">
+        <div class="info-block rv-sec rv-sec--overview" id="overview">
           <h2>Overview</h2>
-          {{{content}}}
+          <div class="rv-sec__body rv-rich">{{{content}}}</div>
         </div>
 
         {{{sections_html}}}
 
-        <div class="info-block" id="pros-cons">
+        <div class="info-block rv-sec rv-sec--proscons" id="pros-cons">
           <h2>Pros &amp; Cons</h2>
           <div class="pros-cons-grid">
             <div class="pros"><h3>Pros</h3>{{{pros_html}}}</div>
@@ -60,9 +60,9 @@
         </div>
 
         {{#if verdict}}
-        <div class="info-block" id="verdict">
+        <div class="info-block rv-sec rv-sec--verdict" id="verdict">
           <h2>Verdict</h2>
-          <p>{{verdict}}</p>
+          <div class="rv-sec__body rv-rich"><p>{{verdict}}</p></div>
         </div>
         {{/if}}
       </div>

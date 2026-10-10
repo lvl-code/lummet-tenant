@@ -115,6 +115,13 @@ describe('API + public page', () => {
     assert.match(html, /<p>Line one<\/p>\n<p>Line two<\/p>/);
   });
 
+  test('generic review parts use the section card look', async () => {
+    await create({ verdict: 'Great' });
+    const html = await (await renderGenericReview(new Request('https://site.test/en/sportsbook/review/rv'), env, 'sportsbook', 'rv', null)).text();
+    assert.match(html, /class="info-block rv-sec rv-sec--overview" id="overview"/);
+    assert.match(html, /rv-sec--verdict" id="verdict"/);
+  });
+
   test('generic review summary is a card with rating and facts, not a table', async () => {
     await create({ rating: 4 });
     const html = await (await renderGenericReview(new Request('https://site.test/en/sportsbook/review/rv'), env, 'sportsbook', 'rv', null)).text();

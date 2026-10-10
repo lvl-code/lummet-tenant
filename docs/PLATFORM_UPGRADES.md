@@ -277,3 +277,11 @@ Applies to reviews of sportsbooks, affiliate partners and custom content (casino
 ### v18.9 note: author-page pictures
 News, research and update cards on the author page now try the full picture first and fall back to the thumbnail (before, a missing
 thumbnail file made the picture vanish).
+
+## 16. Casino review form: show boxes on every field, tabs that always open the form (v19.0)
+
+- Every field of the casino review form (Overview, Games, Bonuses, Payments, Licensing, Additional content, Verdict, Pros, Cons, FAQ)
+  has a **Show on page** checkbox and a **Fold** button; the top of the form has **Show all / Hide all**. Unticked parts disappear
+  from the public page and the sticky top bar. Saved straight away when editing, or right after creating a new review.
+- The **+ Add / edit review** tab and the **+ Add review** button both open the form panel from any tab, every time
+  (before, the tab showed an empty page because the form lives in the slide-in panel).

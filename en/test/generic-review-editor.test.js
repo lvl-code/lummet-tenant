@@ -332,7 +332,9 @@ describe('v18.8: hidden sections, hidden page parts, author look, tabs', () => {
   });
   test('reviews screen has three tabs; count tiles and nav share one jump', () => {
     const t = read('templates/pages/admin/reviews.html');
-    for (const n of ['list', 'edit', 'sections']) { assert.match(t, new RegExp(`data-rv-tab="${n}"`)); assert.match(t, new RegExp(`data-rv-panel="${n}"`)); }
+    for (const n of ['list', 'edit', 'sections']) assert.match(t, new RegExp(`data-rv-tab="${n}"`));
+    for (const n of ['list', 'sections']) assert.match(t, new RegExp(`data-rv-panel="${n}"`));
+    assert.match(read('static/js/review-field-toggles.js'), /Show on page/); assert.match(read('templates/layout/base.html'), /review-field-toggles\.js/);
     assert.match(t, /id="rsParts"/); assert.match(read('templates/layout/base.html'), /review-tabs\.js/);
     assert.match(read('static/js/section-nav.js'), /a\.ah-stat/); assert.match(read('static/js/section-builder.js'), /sb-show/);
   });

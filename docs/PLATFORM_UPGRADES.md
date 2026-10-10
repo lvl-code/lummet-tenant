@@ -285,3 +285,9 @@ thumbnail file made the picture vanish).
   from the public page and the sticky top bar. Saved straight away when editing, or right after creating a new review.
 - The **+ Add / edit review** tab and the **+ Add review** button both open the form panel from any tab, every time
   (before, the tab showed an empty page because the form lives in the slide-in panel).
+
+## 17. Landing pages show their picked and automatic items (v19.1)
+
+An item with no country rules counted as "blocked everywhere", so a landing page (`/en/best/...`) with hand-picked or automatic
+items showed none of them. Now only an item that has country rules and is blocked in the visitor's country is left out;
+items without rules are shown (without an availability badge). The old test that encoded the previous default was updated.

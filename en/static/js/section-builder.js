@@ -252,7 +252,7 @@
     var menu = null;
 
     function readCards() {
-      return cards.map(function (c) { return { title: c.titleInput.value, type: c.type, data: c.api.read(), open: !c.node.classList.contains("is-collapsed") }; });
+      return cards.map(function (c) { return { title: c.titleInput.value, type: c.type, data: c.api.read(), hidden: !c.show.checked, open: !c.node.classList.contains("is-collapsed") }; });
     }
     function destroyCards() { cards.forEach(function (c) { (c.api.editors || []).forEach(dropEditor); }); cards = []; }
 
@@ -270,13 +270,18 @@
 
     function buildCard(s, i, n) {
       var T = TYPES[s.type] || TYPES.rich;
-      var node = el("div", "gr-section sb-card" + (s.open === false ? " is-collapsed" : ""));
+      var node = el("div", "gr-section sb-card" + (s.open === false ? " is-collapsed" : "") + (s.hidden ? " is-off" : ""));
       var head = el("div", "gr-section__head");
       var num = el("span", "gr-section__num", String(i + 1));
       var badge = el("span", "sb-type", T.icon + " " + T.label); badge.title = T.help;
       var title = input(s.title, "Section title", 120); title.className = "gr-section__title"; title.setAttribute("aria-label", "Section " + (i + 1) + " title");
       title.addEventListener("input", onChange);
       head.appendChild(num); head.appendChild(badge); head.appendChild(title);
+      var showLab = el("label", "sb-show"); showLab.title = "Show this section on the page and in its top bar";
+      var show = document.createElement("input"); show.type = "checkbox"; show.checked = !s.hidden; show.setAttribute("aria-label", "Show section " + (i + 1) + " on the page");
+      show.addEventListener("change", function () { node.classList.toggle("is-off", !show.checked); onChange(); });
+      showLab.appendChild(show); showLab.appendChild(el("span", null, "Show"));
+      head.appendChild(showLab);
       var tg = btn(s.open === false ? "+" : "–", "gr-icon", function () { var c = node.classList.toggle("is-collapsed"); tg.textContent = c ? "+" : "–"; tg.title = c ? "Expand" : "Collapse"; }, s.open === false ? "Expand" : "Collapse");
       var up = btn("↑", "gr-icon", function () { restructure(function (cur) { var x = cur.splice(i, 1)[0]; cur.splice(i - 1, 0, x); }); }, "Move section " + (i + 1) + " up"); up.disabled = i === 0;
       var down = btn("↓", "gr-icon", function () { restructure(function (cur) { var x = cur.splice(i, 1)[0]; cur.splice(i + 1, 0, x); }); }, "Move section " + (i + 1) + " down"); down.disabled = i === n - 1;
@@ -286,7 +291,7 @@
       var body = el("div", "gr-section__body");
       var api = T.mount(body, s.data || T.blank(), onChange);
       node.appendChild(head); node.appendChild(body);
-      cards.push({ node: node, type: s.type in TYPES ? s.type : "rich", titleInput: title, api: api });
+      cards.push({ node: node, type: s.type in TYPES ? s.type : "rich", titleInput: title, show: show, api: api });
       return node;
     }
 
@@ -328,8 +333,8 @@
     }
 
     return {
-      load: function (list) { render((list || []).map(function (s) { var type = TYPES[s.type] ? s.type : "rich"; return { title: s.title || "", type: type, data: s.data || TYPES[type].blank(), open: false }; })); },
-      read: function () { return readCards().map(function (c) { return { title: c.title.trim(), type: c.type, data: c.data }; }); },
+      load: function (list) { render((list || []).map(function (s) { var type = TYPES[s.type] ? s.type : "rich"; return { title: s.title || "", type: type, data: s.data || TYPES[type].blank(), hidden: !!s.hidden, open: false }; })); },
+      read: function () { return readCards().map(function (c) { return { title: c.title.trim(), type: c.type, data: c.data, hidden: !!c.hidden }; }); },
       count: function () { return cards.length; },
       destroy: function () { destroyCards(); root.textContent = ""; },
       types: TYPES

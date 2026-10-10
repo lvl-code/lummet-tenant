@@ -55,6 +55,7 @@ import * as comparisonsDB from "./database/comparisons.js";
 import * as landingPagesDB from "./database/content-landing-pages.js";
 import * as genericReviewsDB from "./database/generic-reviews.js";
 import { cleanSections, describeBlock } from "./generic-review-sections.js";
+import { REVIEW_PARTS, getHiddenParts, setHiddenParts, clearHiddenParts } from "./review-visibility.js";
 import { isReservedSlug } from "./reserved-slugs.js";
 import { getContentTypeEnablement, updateContentTypeEnablement } from "./content-types.js";
 
@@ -2503,6 +2504,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
 
       const { deleteReview } = await import("./database/reviews.js");
       await deleteReview(env.DB, body.slug);
+      await clearHiddenParts(env.DB, body.slug);
       return success();
     }
 
@@ -2771,7 +2773,7 @@ async function requireAdAdmin(request, env) {
       const reviewSlug = url.searchParams.get("review_slug");
       if (!reviewSlug) return failure("review_slug is required");
       const blocks = await reviewBlocksDB.getReviewBlocks(env.DB, reviewSlug);
-      return json({ blocks, sections: blocks.map(describeBlock) });
+      return json({ blocks, sections: blocks.map(describeBlock), parts: REVIEW_PARTS, hidden_parts: [...(await getHiddenParts(env.DB, reviewSlug))] });
     }
 
     if (path === "/api/v1/review-blocks/create" && request.method === "POST") {
@@ -2798,6 +2800,8 @@ async function requireAdAdmin(request, env) {
     if (path === "/api/v1/review-blocks/sync" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["review_slug"]);
+      if (body.hidden_parts !== undefined) await setHiddenParts(env.DB, body.review_slug, body.hidden_parts);
+      if (body.blocks === undefined && body.sections === undefined) return success();
       let toSave = body.blocks;
       if (body.sections !== undefined) {
         const cleaned = cleanSections(body.sections);

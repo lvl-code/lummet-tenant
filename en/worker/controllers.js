@@ -29,6 +29,8 @@ import * as nrAnalytics from "./newsroom-analytics.js";
 import * as nrSearch from "./newsroom-search.js";
 import { sanitizeHtml } from "./sanitize.js";
 import { toRichHtml, renderSections, faqSchemaScript, buildReviewNav, renderSectionNav } from "./generic-review-sections.js";
+import { getHiddenParts } from "./review-visibility.js";
+import { loadAuthorStyleSettings, buildAuthorStyle } from "./author-style.js";
 import { getAuthorHub, renderAuthorHub } from "./author-hub.js";
 import { isCasinoReview, CASINO_REVIEWS_SQL, reviewPublicUrl, REVIEW_WITH_TYPE_SQL } from "./review-urls.js";
 import * as platformUpdates from "./database/platform-updates.js";
@@ -1107,6 +1109,18 @@ export async function renderReview(request, env, slug, ctx = null) {
 
   const renderer = new Renderer(env, request);
 
+  // Parts switched off in the editor: their content and their tab are both left out.
+  const hiddenParts = await getHiddenParts(env.DB, slug);
+  if (hiddenParts.has("overview")) review.overview = "";
+  if (hiddenParts.has("games")) review.games = "";
+  if (hiddenParts.has("bonuses")) review.bonuses = "";
+  if (hiddenParts.has("payments")) review.payments = "";
+  if (hiddenParts.has("licensing")) review.licenses = "";
+  if (hiddenParts.has("more-details")) review.content = "";
+  if (hiddenParts.has("verdict")) review.verdict = "";
+  if (hiddenParts.has("pros-cons")) { review.pros = "[]"; review.cons = "[]"; }
+  if (hiddenParts.has("faq")) review.faq_json = "[]";
+
   let pros = [], cons = [];
 
   try {
@@ -1196,7 +1210,7 @@ export async function renderReview(request, env, slug, ctx = null) {
     ["Payment Methods", has(review.payments) ? review.payments : "", "summary-preview"],
     ["Bonuses", has(review.bonuses) ? review.bonuses : "", "summary-preview"],
   ].filter((r) => r[1]).map((r) => `<tr><th>${r[0]}</th><td${r[2] ? ` class="${r[2]}"` : ""}>${r[1]}</td></tr>`).join("\n");
-  const reviewNavItems = [{ id: "summary", title: "Summary" }];
+  const reviewNavItems = hiddenParts.has("summary") ? [] : [{ id: "summary", title: "Summary" }];
   if (has(review.overview)) reviewNavItems.push({ id: "overview", title: "Overview" });
   if (has(review.games)) reviewNavItems.push({ id: "games", title: "Games" });
   if (has(review.bonuses)) reviewNavItems.push({ id: "bonuses", title: "Bonuses" });
@@ -1337,7 +1351,8 @@ export async function renderReview(request, env, slug, ctx = null) {
     geo_country: countryFullName(geoCountry),
     geo_status: geoStatus,
     geo_flag: geoFlag,
-    related_casinos_html: relatedCasinosHtml
+    related_casinos_html: hiddenParts.has("related-casinos") ? "" : relatedCasinosHtml,
+    summary_hidden_attr: hiddenParts.has("summary") ? " hidden" : ""
   }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));
 
   return new Response(html, {
@@ -6834,6 +6849,7 @@ export async function renderAuthor(request, env, slug) {
   const renderer = new Renderer(env, request);
 
   // Independent of each other — fetch concurrently.
+  const ahStyle = buildAuthorStyle(await loadAuthorStyleSettings(env.DB));
   const [site, content, stats, allComponents, dynamicSeo, nrFlags, hubGroups] = await Promise.all([
     getSiteContext(request, env),
     authors.getAuthorContent(env.DB, author.id),
@@ -6933,6 +6949,7 @@ export async function renderAuthor(request, env, slug) {
     author_facts_html: nrTax
       ? `<link rel="stylesheet" href="/static/css/newsroom.css">${nrRender.renderAuthorFacts(author, stats.news)}`
       : "",
+    author_style_html: ahStyle,
     author_stats_html: hub.stats_html,
     author_nav_html: renderSectionNav(hub.nav, "Everything published by " + author.name),
     author_sections_html: hub.sections_html || '<p class="muted ah-empty">Nothing published yet.</p>',

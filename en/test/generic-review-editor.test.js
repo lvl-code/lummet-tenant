@@ -45,7 +45,7 @@ describe('sections helpers', () => {
   test('typed sections round-trip and are cleaned', () => {
     const faq = cleanSections([{ title: 'FAQ', type: 'faq', data: { items: [{ q: ' Q1 ', a: 'A1' }, { q: '', a: 'x' }], junk: 1 } }]).sections[0];
     assert.match(faq.content, /^lmsec:/);
-    assert.deepEqual(parseSection(faq.content), { type: 'faq', data: { items: [{ q: 'Q1', a: 'A1' }], open_first: false } });
+    assert.deepEqual(parseSection(faq.content), { type: 'faq', data: { items: [{ q: 'Q1', a: 'A1' }], open_first: false }, hidden: false });
     assert.equal(serializeSection('rich', { html: '<p>x</p>' }), '<p>x</p>');           // default style stays plain HTML
     assert.match(serializeSection('rich', { html: '<p>x</p>', size: 'l' }), /^lmsec:/);
     assert.match(cleanSections([{ title: 'x', type: 'nope', data: {} }]).error, /Unknown section type/);
@@ -283,5 +283,57 @@ describe('landing pages: form, sections, author, public page', () => {
     const hub = await getAuthorHub(db, a.id);
     const research = hub.find((g) => g.key === 'research');
     assert.equal(research.items[0].image, '/media/r.png');
+  });
+});
+
+describe('v18.8: hidden sections, hidden page parts, author look, tabs', () => {
+  let db, env, call;
+  beforeEach(async () => {
+    db = createTestDb(); applyMigrations(db);
+    env = { DB: db, ASSETS: { fetch: async (r) => { const f = join(ROOT, new URL(r.url).pathname); return existsSync(f) ? new Response(readFileSync(f, 'utf-8')) : new Response('nf', { status: 404 }); } } };
+    call = (m, p, b) => handleAPI(makeReq(m, `https://x.com${p}`, b), env, p.split('?')[0], admin);
+    await db.prepare(`INSERT INTO casinos (slug, name, website_url, affiliate_url, published, status) VALUES ('c1','Casino One','https://c','https://c/a',1,'published')`).run();
+    await db.prepare(`INSERT INTO reviews (casino_slug, slug, title, content, published, verdict, overview, bonuses, pros) VALUES ('c1','c1-review','Casino One Review','<p>Body text</p>',1,'Solid','<p>Over</p>','<p>Bonus text</p>','["Fast"]')`).run();
+  });
+  const page = async () => (await renderReview(new Request('https://site.test/en/review/c1-review'), env, 'c1-review', null)).text();
+  test('a section switched off disappears with its tab, and comes back', () => {
+    const c = cleanSections([{ title: 'Off', type: 'faq', data: { items: [{ q: 'q', a: 'a' }] }, hidden: true }]).sections[0];
+    assert.equal(parseSection(c.content).hidden, true);
+    assert.equal(cleanSections([{ title: 'Off', content: c.content, hidden: false }]).sections[0].content.includes('"hidden"'), false);
+  });
+  test('hidden sections and hidden page parts are left out of the page and the top bar', async () => {
+    await call('POST', '/api/v1/review-blocks/sync', { review_slug: 'c1-review', sections: [
+      { title: 'Shown one', type: 'faq', data: { items: [{ q: 'Legit?', a: 'Yes' }] } },
+      { title: 'Secret one', type: 'rich', data: { html: '<p>Hidden words</p>' }, hidden: true },
+    ] });
+    let html = await page();
+    assert.match(html, /Shown one/); assert.doesNotMatch(html, /Secret one|Hidden words/);
+    assert.match(html.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0], />Bonuses</);
+    const r = await (await call('POST', '/api/v1/review-blocks/sync', { review_slug: 'c1-review', hidden_parts: ['bonuses', 'verdict', 'pros-cons', 'nonsense'] })).json();
+    assert.ok(r.success);
+    html = await page();
+    const nav = html.match(/<nav class="sn-nav"[\s\S]*?<\/nav>/)[0];
+    assert.doesNotMatch(nav, />Bonuses<|>Verdict<|Pros/); assert.doesNotMatch(html, /Bonus text/); assert.match(html, /Shown one/);
+    const list = await (await call('GET', '/api/v1/review-blocks/list?review_slug=c1-review')).json();
+    assert.deepEqual(list.hidden_parts.sort(), ['bonuses', 'pros-cons', 'verdict']); assert.ok(list.parts.length >= 10);
+    assert.equal(list.sections[1].hidden, true);
+    await call('POST', '/api/v1/review-blocks/sync', { review_slug: 'c1-review', hidden_parts: [] });
+    assert.match(await page(), /Bonus text/);
+  });
+  test('author look: only strict colours reach the page', async () => {
+    const { buildAuthorStyle } = await import('../worker/author-style.js');
+    const css = buildAuthorStyle({ ah_card_bg: '#112233', ah_accent: 'red;}</style><script>', ah_radius: '99', ah_shadow: 'soft', ah_stat_bg: 'rgba(1,2,3,.5)' });
+    assert.match(css, /--ah-card-bg:#112233/); assert.match(css, /--ah-stat-bg:rgba\(1,2,3,.5\)/); assert.match(css, /--ah-shadow:/);
+    assert.doesNotMatch(css, /script|red|--ah-radius/);
+    assert.equal(buildAuthorStyle({}), '');
+    const t = read('templates/pages/admin/authors.html'); assert.match(t, /id="ahForm"/);
+    assert.match(read('templates/layout/base.html'), /author-appearance-admin\.js/);
+    assert.match(read('templates/pages/author.html'), /author_style_html/);
+  });
+  test('reviews screen has three tabs; count tiles and nav share one jump', () => {
+    const t = read('templates/pages/admin/reviews.html');
+    for (const n of ['list', 'edit', 'sections']) { assert.match(t, new RegExp(`data-rv-tab="${n}"`)); assert.match(t, new RegExp(`data-rv-panel="${n}"`)); }
+    assert.match(t, /id="rsParts"/); assert.match(read('templates/layout/base.html'), /review-tabs\.js/);
+    assert.match(read('static/js/section-nav.js'), /a\.ah-stat/); assert.match(read('static/js/section-builder.js'), /sb-show/);
   });
 });

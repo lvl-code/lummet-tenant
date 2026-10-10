@@ -6,18 +6,65 @@
 //   - a thin reading-progress line, and edge fades when the bar scrolls sideways
 (function () {
   "use strict";
-  var navs = document.querySelectorAll("nav.sn-nav[data-sn]");
-  if (!navs.length) return;
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var jumpTimer = null;
 
-  function headerHeight() {
+  function stickyHeaderHeight() {
     var h = document.querySelector(".site-header");
     if (!h) return 0;
     var pos = getComputedStyle(h).position;
     if (pos !== "sticky" && pos !== "fixed") return 0;
-    var r = h.getBoundingClientRect();
-    return Math.max(0, Math.round(r.height));
+    return Math.max(0, Math.round(h.getBoundingClientRect().height));
   }
+  // Space the sticky bars take at the top of the screen (site header + the section bar when there is one).
+  function offsetNow() {
+    var bar = document.querySelector("nav.sn-nav[data-sn]:not([hidden])");
+    return stickyHeaderHeight() + (bar ? Math.round(bar.getBoundingClientRect().height) : 0) + 14;
+  }
+  // Go to a heading and STAY there: one clean scroll, then a few corrections while pictures above finish loading.
+  function jumpTo(el) {
+    window.clearInterval(jumpTimer);
+    var root = document.documentElement;
+    function place(instant) {
+      var y = Math.max(0, Math.round(el.getBoundingClientRect().top + window.pageYOffset - offsetNow()));
+      if (instant || reduce) { var prev = root.style.scrollBehavior; root.style.scrollBehavior = "auto"; window.scrollTo(0, y); root.style.scrollBehavior = prev; }
+      else window.scrollTo({ top: y, behavior: "smooth" });
+    }
+    place(false);
+    var stop = Date.now() + 2200, settleFrom = Date.now() + 700;
+    function release() { window.clearInterval(jumpTimer); ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (t) { window.removeEventListener(t, release, true); }); }
+    jumpTimer = window.setInterval(function () {
+      if (Date.now() > stop) { release(); return; }
+      if (Date.now() < settleFrom) return; // let the smooth scroll finish first
+      if (Math.abs(el.getBoundingClientRect().top - offsetNow()) > 3) {
+        var atEnd = window.innerHeight + window.pageYOffset >= root.scrollHeight - 2;
+        if (!atEnd) place(true);
+      }
+    }, 150);
+    ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (t) { window.addEventListener(t, release, { capture: true, passive: true }); });
+  }
+  window.LummetJump = jumpTo;
+
+  // Count tiles (author page) and any other in-page link that asks for it
+  document.addEventListener("click", function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest("a.ah-stat[href^='#'], a[data-jump]");
+    if (!a) return;
+    var id = decodeURIComponent((a.getAttribute("href") || "").slice(1));
+    var el = id && document.getElementById(id);
+    if (!el) return;
+    e.preventDefault();
+    var det = el.querySelector && el.querySelector("details.ah-more");
+    jumpTo(el);
+    try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch (err) {}
+    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+    try { el.focus({ preventScroll: true }); } catch (err) {}
+  });
+
+  var navs = document.querySelectorAll("nav.sn-nav[data-sn]");
+  if (!navs.length) return;
+
+  function headerHeight() { return stickyHeaderHeight(); }
 
   navs.forEach(function (nav) {
     var track = nav.querySelector(".sn-nav__track");
@@ -71,7 +118,7 @@
         if (!el) return;
         e.preventDefault();
         pinned = items.filter(function (x) { return x.a === a; })[0] || null; setActive(pinned);
-        el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+        jumpTo(el);
         try { history.replaceState(null, "", "#" + el.id); } catch (err) {}
         if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
         try { el.focus({ preventScroll: true }); } catch (err) {}

@@ -260,3 +260,16 @@ Applies to reviews of sportsbooks, affiliate partners and custom content (casino
   `get` returns `sections`. Slugs are checked and duplicates refused. Deleting a page deletes its sections.
 - **Author page**: research, platform updates and country pages now show their pictures when they have one.
 - **Casino review**: the Pros & Cons tab and block, and every empty row of the Summary table, are left out when nothing was entered.
+
+## 15. Show/hide checkboxes, reviews tabs, author look, clean jumps (v18.8)
+
+- **Show checkbox on every section** (all builders: reviews, generic reviews, landing pages). Off = the section's content and its
+  tab in the sticky bar are both left out. Stored as `hidden:true` inside the section.
+- **Casino review page parts** (Summary, Overview, Games, Bonuses, Payments, Licensing, More details, Verdict, Pros and cons, FAQ,
+  Related casinos) can be switched off per review in the new **Sections & page parts** tab. Stored in the settings table under
+  `review_hidden:<slug>`, so no migration. `review-blocks/list` returns `parts` and `hidden_parts`; `review-blocks/sync` accepts `hidden_parts`.
+- **Casino Reviews screen** has three tabs (All reviews, Add / edit review, Sections & page parts) and a Sections button on each row.
+- **Author page look**: colours of count tiles, sections and cards, corner roundness and shadow are set in Authors > Author page look
+  (settings `ah_*`, strict colour values only). Defaults are solid and clearly visible.
+- **Count tiles and the top bar** share one jump: a single smooth scroll to the exact heading, corrected while pictures load, no hover wobble.
+- Dropdowns and pickers in the admin are solid white with dark text.

@@ -10,16 +10,27 @@
     window.dispatchEvent(new Event("resize")); // editors that started hidden size themselves now
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  Array.prototype.forEach.call(tabs, function (t) { t.addEventListener("click", function () { show(t.getAttribute("data-rv-tab")); }); });
+  // The add/edit form lives in the slide-in panel (admin-add-panel.js), so its tab and the "+ Add review" button
+  // both just open that panel, from any tab, every time.
+  function openForm() {
+    var add = document.querySelector(".ap-add");
+    if (add) add.click(); else if (window.cancelReviewEdit) { /* panel script missing: the form is on the page */ }
+  }
+  Array.prototype.forEach.call(tabs, function (t) {
+    t.addEventListener("click", function () {
+      var name = t.getAttribute("data-rv-tab");
+      if (name === "edit") { show("list", true); openForm(); } else show(name);
+    });
+  });
   // Edit buttons in the list switch to the form
   var body = document.getElementById("reviewsTableBody");
   if (body) body.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("button");
-    if (b && /editReview/.test(b.getAttribute("onclick") || "")) { var h = document.getElementById("rvEditHeading"); if (h) h.textContent = "Edit review"; setTimeout(function () { show("edit"); }, 60); }
+    if (b && /editReview/.test(b.getAttribute("onclick") || "")) { var h = document.getElementById("rvEditHeading"); if (h) h.textContent = "Edit review"; }
   });
   var cancel = document.getElementById("reviewCancelEdit");
-  if (cancel) cancel.addEventListener("click", function () { var h = document.getElementById("rvEditHeading"); if (h) h.textContent = "Add Review"; show("list"); });
+  if (cancel) cancel.addEventListener("click", function () { var h = document.getElementById("rvEditHeading"); if (h) h.textContent = "Add Review"; });
   window.ReviewTabs = { show: show, sections: function (slug) { show("sections"); if (window.ReviewSections) window.ReviewSections.open(slug); } };
   var start = (location.hash || "").replace("#", "");
-  if (/^(list|edit|sections)$/.test(start)) show(start, true);
+  if (/^(list|sections)$/.test(start)) show(start, true);
 })();

@@ -260,3 +260,13 @@ html { scroll-behavior: smooth; }
 .sn-nav__progress { background: #2563eb; }
 .sn-nav::before { background: linear-gradient(90deg, #ffffff, transparent); }
 .sn-nav::after { background: linear-gradient(270deg, #ffffff, transparent); }
+
+/* ---- owner-set look (settings rl_*, emitted by the page as CSS variables) ---- */
+.review-body .rv-sec { background: var(--rl-card-bg, #ffffff); color: var(--rl-card-text, #1f2937); border-color: var(--rl-border, #e5e7eb); border-radius: var(--rl-radius, 18px); box-shadow: var(--rl-shadow, 0 1px 2px rgba(15,23,42,.05), 0 10px 30px rgba(15,23,42,.07)); }
+.review-body .rv-sec--verdict { background: linear-gradient(135deg, #fffbeb 0%, var(--rl-card-bg, #ffffff) 60%); }
+.review-body .rv-sec > h2, .review-body .rv-sec h3, .review-body .rv-sec h4, .review-body .rv-sec strong { color: var(--rl-heading, #0f172a); }
+.review-body .rv-sec__body, .review-body .review-section__body { color: var(--rl-card-text, #1f2937); }
+.review-body .rv-sec a:not(.rv-pick, .rv-card__cta) { color: var(--rl-accent, #1d4ed8); }
+.sn-nav .sn-nav__link.is-active { background: var(--rl-accent, #2563eb); }
+.sn-nav__progress { background: var(--rl-accent, #2563eb); }
+.review-body .rs-card, .review-summary.rs-card { border-radius: var(--rl-radius, 16px); }

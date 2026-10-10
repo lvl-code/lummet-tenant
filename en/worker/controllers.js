@@ -31,6 +31,7 @@ import { sanitizeHtml } from "./sanitize.js";
 import { toRichHtml, renderSections, faqSchemaScript, buildReviewNav, renderSectionNav } from "./generic-review-sections.js";
 import { getHiddenParts } from "./review-visibility.js";
 import { loadAuthorStyleSettings, buildAuthorStyle } from "./author-style.js";
+import { loadReviewStyleSettings, buildReviewStyle } from "./review-style.js";
 import { getAuthorHub, renderAuthorHub } from "./author-hub.js";
 import { isCasinoReview, CASINO_REVIEWS_SQL, reviewPublicUrl, REVIEW_WITH_TYPE_SQL } from "./review-urls.js";
 import * as platformUpdates from "./database/platform-updates.js";
@@ -1323,8 +1324,10 @@ export async function renderReview(request, env, slug, ctx = null) {
   });
 };
 
+  const reviewStyleHtml = buildReviewStyle(await loadReviewStyleSettings(env.DB));
   const html = await renderer.render("review.html", {
     ...review,
+    review_style_html: reviewStyleHtml,
     // {{vars}} are not HTML-escaped by the template engine.
     title: escapeHtml(review.title),
     content: reviewDisplayContent,
@@ -5275,7 +5278,9 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
   const gsRatingBlock = gsRating > 0 ? `<div class="rs-rating" aria-label="Rating ${gsRating.toFixed(1)} out of 5"><span class="rs-stars" style="--r:${gsRating}" aria-hidden="true">★★★★★</span><strong>${gsRating.toFixed(1)}</strong><span>/ 5</span></div>` : "";
   const summaryCardHtml = (gsFacts || gsRatingBlock) ? `<div class="rs-top">${gsRatingBlock}${gsFacts ? `<dl class="rs-facts">${gsFacts}</dl>` : ""}</div>` : "";
 
+  const reviewStyleHtml = buildReviewStyle(await loadReviewStyleSettings(env.DB));
   const html = await renderer.render("generic-review.html", {
+    review_style_html: reviewStyleHtml,
     title: escapeHtml(review.title),
     content: toRichHtml(review.content || ""),
     sections_html: sectionsOut.html,

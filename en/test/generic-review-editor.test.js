@@ -115,6 +115,28 @@ describe('API + public page', () => {
     assert.match(html, /<p>Line one<\/p>\n<p>Line two<\/p>/);
   });
 
+  test('owner-set review look reaches the page; bad colours do not', async () => {
+    await create({});
+    const url = 'https://site.test/en/sportsbook/review/rv';
+    const page = async () => (await renderGenericReview(new Request(url), env, 'sportsbook', 'rv', null)).text();
+    let html = await page();
+    assert.doesNotMatch(html, /--rl-accent/);
+    const put = (k, v) => db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind(k, v).run();
+    await put('rl_accent', '#e11d48'); await put('rl_card_bg', 'red;}</style><script>x()</script>'); await put('rl_radius', '8'); await put('rl_shadow', 'strong'); await put('rl_mode', 'single');
+    html = await page();
+    assert.match(html, /--rl-accent:#e11d48/); assert.match(html, /--rl-radius:8px/); assert.match(html, /--rl-shadow:0 2px 4px/);
+    assert.match(html, /--rv-accent:#e11d48/);
+    assert.doesNotMatch(html, /x\(\)|--rl-card-bg/);
+    await put('rl_mode', 'multi');
+    assert.doesNotMatch(await page(), /--rv-accent:#e11d48/);
+  });
+
+  test('admin reviews screen has the review look form', async () => {
+    const t = read('templates/pages/admin/reviews.html');
+    assert.match(t, /id="rlForm"/); assert.match(t, /id="rlPreview"/);
+    assert.match(read('templates/layout/base.html'), /review-look-admin\.js/);
+  });
+
   test('generic review parts use the section card look', async () => {
     await create({ verdict: 'Great' });
     const html = await (await renderGenericReview(new Request('https://site.test/en/sportsbook/review/rv'), env, 'sportsbook', 'rv', null)).text();

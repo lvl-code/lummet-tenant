@@ -311,3 +311,7 @@ Review fields and sections (Overview, Games, Bonuses, Payment Methods, Licensing
 ## 22. White section bar (v19.6)
 
 The sticky section bar (casino reviews, generic reviews, author pages, landing pages) is now white with a soft shadow, dark tab text, a blue active tab and a blue progress line, matching the section cards. CSS only; no migrations, no deletions.
+
+## 23. Review page look settings (v19.7)
+
+Admin, Reviews, "All reviews" tab, bottom: **Review page look**. Pick the accent (active tab, progress line, links, icons, check marks), card background, card text, heading and border colours, corner roundness (0–32 px), card shadow (none / soft / strong), and whether each part keeps its own colour or all parts share the accent. A live preview shows the result; Save publishes it to casino, sportsbook, partner and custom review pages (settings keys `rl_*`). Only strict `#rrggbb` colours are accepted; anything else is ignored. "Back to defaults" restores the standard look. No migrations, no deletions.

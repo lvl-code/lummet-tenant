@@ -728,3 +728,14 @@ body.hh-preview-body .hh-preview-off { padding: 24px; text-align: center; font-s
 .rf-fold { border: 1px solid rgba(127,127,127,.4); background: transparent; color: inherit; border-radius: 8px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
 .form-group.is-off { opacity: .6; }
 .form-group.is-folded > :not(.rf-head):not(label) { display: none; }
+
+/* ---- review page look preview (admin) ---- */
+.rl-preview { display: grid; gap: 12px; padding: 14px; border: 1px dashed rgba(127,127,127,.5); border-radius: 12px; background: #f6f7f9; }
+.rl-preview__bar { display: flex; gap: 6px; padding: 7px; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; width: max-content; max-width: 100%; overflow-x: auto; }
+.rl-preview__bar span { padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 14px; color: #374151; }
+.rl-preview__bar .rl-preview__on { background: var(--rl-accent); color: #fff; }
+.rl-preview__card { padding: 20px 22px; background: var(--rl-card-bg); color: var(--rl-card-text); border: 1px solid var(--rl-border); border-radius: var(--rl-radius); box-shadow: var(--rl-shadow); border-left: 5px solid var(--rl-accent); }
+.rl-preview__card h3 { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; color: var(--rl-heading); }
+.rl-preview__icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: rgba(127,127,127,.12); }
+.rl-preview__card p { margin: 0; }
+.rl-preview__card a { color: var(--rl-accent); text-decoration: underline; }

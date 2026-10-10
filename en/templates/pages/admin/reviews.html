@@ -19,6 +19,30 @@
       </tbody>
     </table>
 
+    <h2 style="margin-top:40px" id="rlTitle">Review page look</h2>
+    <p class="muted" style="margin-bottom:12px">Colours and shape of the section cards, the sticky section bar and links on every review page (casino, sportsbook, partner and custom). The preview updates as you change things; press Save to publish.</p>
+    <form id="rlForm" class="admin-form gr-card ah-admin" novalidate>
+      <div class="ah-admin__grid" id="rlFields"></div>
+      <div class="gr-row">
+        <label>Corner roundness <input type="range" id="rlRadius" min="0" max="32" step="1" value="18"> <span class="gr-count" id="rlRadiusVal">18 px</span></label>
+        <label>Card shadow
+          <select id="rlShadow"><option value="soft">Soft</option><option value="none">None</option><option value="strong">Strong</option></select>
+        </label>
+        <label>Section colours
+          <select id="rlMode"><option value="multi">Each part its own colour</option><option value="single">One accent for all parts</option></select>
+        </label>
+      </div>
+      <div class="rl-preview" id="rlPreview" aria-label="Preview">
+        <div class="rl-preview__bar"><span>Summary</span><span class="rl-preview__on">Overview</span><span>Games</span></div>
+        <div class="rl-preview__card"><h3><span class="rl-preview__icon">📋</span>Overview</h3><p>Sample text of a review section with a <a href="#" onclick="return false">link</a>.</p></div>
+      </div>
+      <div id="rlAlert" class="alert" style="display:none"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button type="submit" class="btn btn--primary btn--lg">Save look</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="rlReset">Back to defaults</button>
+      </div>
+    </form>
+
     </div>
     <div>
     <h2 style="margin-top:10px" id="rvEditHeading">Add Review</h2>

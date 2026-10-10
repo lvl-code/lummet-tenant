@@ -57,7 +57,8 @@ async function loadReviewsTable() {
         <td>${r.country_code || "Global"}</td>
         <td>★ ${r.rating || "N/A"}</td>
         <td class="table-actions">
-          <button class="btn btn--ghost btn--sm" onclick="editReview('${r.slug}')">Edit</button>
+ <button class="btn btn--ghost btn--sm" onclick="editReview('${r.slug}')">Edit</button>
+          <button class="btn btn--ghost btn--sm" onclick="window.ReviewTabs && ReviewTabs.sections('${r.slug}')">Sections</button>
           <a href="/en/review/${r.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
           <button class="btn btn--danger btn--sm" onclick="deleteReview('${r.slug}')">Delete</button>
         </td>

@@ -4,6 +4,12 @@
     <div class="admin-header">
       <h1>Reviews</h1>
     </div>
+    <div class="rv-tabs" role="tablist" aria-label="Reviews">
+      <button type="button" class="rv-tab is-on" role="tab" data-rv-tab="list" aria-selected="true">All reviews</button>
+      <button type="button" class="rv-tab" role="tab" data-rv-tab="edit" aria-selected="false">Add / edit review</button>
+      <button type="button" class="rv-tab" role="tab" data-rv-tab="sections" aria-selected="false">Sections &amp; page parts</button>
+    </div>
+    <div class="rv-panel" data-rv-panel="list">
     <table class="admin-table">
       <thead>
         <tr><th>Title</th><th>Casino</th><th>Country</th><th>Rating</th><th>Actions</th></tr>
@@ -13,7 +19,9 @@
       </tbody>
     </table>
 
-    <h2 style="margin-top:30px">Add Review</h2>
+    </div>
+    <div class="rv-panel" data-rv-panel="edit" hidden>
+    <h2 style="margin-top:10px" id="rvEditHeading">Add Review</h2>
     <form id="reviewForm" class="admin-form">
       <input type="hidden" name="id" id="reviewId" value="">
       <div class="form-row">
@@ -151,7 +159,9 @@
         <button type="button" class="btn btn--ghost btn--lg" id="reviewCancelEdit" style="display:none" onclick="cancelReviewEdit()">Cancel Edit</button>
       </div>
     </form>
-    <h2 style="margin-top:40px" id="rsTitle">Review sections</h2>
+    </div>
+    <div class="rv-panel" data-rv-panel="sections" hidden>
+    <h2 style="margin-top:10px" id="rsTitle">Review sections</h2>
     <p class="muted" style="margin-bottom:16px">Build the sections of a casino review: text, FAQ, images with text, payment methods, picked items (casinos, reviews, news, research, pages and more), cards, callouts and key figures. Each section becomes a tab in the sticky bar on the public review.</p>
     <div class="form-group" style="margin-bottom:16px">
       <label for="rsReviewSearch">Review</label>
@@ -159,6 +169,11 @@
       <input type="hidden" id="rsReviewSlug">
     </div>
     <div id="rsPanel" hidden>
+      <fieldset class="gr-card rs-parts">
+        <legend>Page parts: tick what shows</legend>
+        <p class="muted">Untick a part to hide its content and its tab in the sticky bar. Parts left empty are never shown anyway.</p>
+        <div class="rs-parts__grid" id="rsParts"></div>
+      </fieldset>
       <div class="gr-presets" id="rsPresets" aria-label="Quick add"></div>
       <div id="rsSections" class="gr-sections"></div>
       <button type="button" class="btn btn--ghost" id="rsAdd" aria-haspopup="menu">+ Add section</button>
@@ -211,6 +226,7 @@
           <button type="button" class="btn btn--ghost btn--lg" id="reviewBlockCancelEdit" style="display:none" onclick="cancelReviewBlockEdit()">Cancel Edit</button>
         </div>
       </form>
+    </div>
     </div>
   </div>
 </div>

@@ -127,3 +127,4 @@ html { scroll-behavior: smooth; }
 .lp-byline { margin: 6px 0 0; font-size: .9rem; opacity: .8; }
 .lp-byline a { text-decoration: underline; }
 #landing-items { scroll-margin-top: calc(var(--sn-top, 0px) + var(--sn-h, 56px) + 14px); }
+.review-summary[hidden] { display: none; }

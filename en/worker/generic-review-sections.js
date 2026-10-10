@@ -111,17 +111,17 @@ export function parseSection(content) {
   if (s.startsWith(PREFIX)) {
     try {
       const j = JSON.parse(s.slice(PREFIX.length));
-      if (j && SECTION_TYPES.includes(j.type)) return { type: j.type, data: CLEANERS[j.type](j) };
+      if (j && SECTION_TYPES.includes(j.type)) return { type: j.type, data: CLEANERS[j.type](j), hidden: j.hidden === true };
     } catch { /* fall through: treat as text */ }
   }
-  return { type: "rich", data: { html: s, size: "m", align: "left", width: "full" } };
+  return { type: "rich", data: { html: s, size: "m", align: "left", width: "full" }, hidden: false };
 }
 
 /** { type, data } -> the text kept in review_blocks.content */
-export function serializeSection(type, data) {
+export function serializeSection(type, data, hidden = false) {
   const clean = CLEANERS[type](data || {});
-  if (type === "rich" && clean.size === "m" && clean.align === "left" && clean.width === "full") return clean.html;
-  return PREFIX + JSON.stringify({ type, ...clean });
+  if (!hidden && type === "rich" && clean.size === "m" && clean.align === "left" && clean.width === "full") return clean.html;
+  return PREFIX + JSON.stringify({ type, ...clean, ...(hidden ? { hidden: true } : {}) });
 }
 
 /**
@@ -135,17 +135,18 @@ export function cleanSections(input) {
   for (const raw of input) {
     if (!raw || typeof raw !== "object") continue;
     const title = String(raw.title == null ? "" : raw.title).trim();
-    let type = "rich", data;
+    let type = "rich", data, hidden = false;
     if (raw.type && raw.data !== undefined) {
       if (!SECTION_TYPES.includes(raw.type)) return { error: `Unknown section type "${String(raw.type).slice(0, 30)}".` };
       type = raw.type; data = CLEANERS[type](raw.data && typeof raw.data === "object" ? raw.data : {});
     } else {
-      const parsed = parseSection(raw.content); type = parsed.type; data = parsed.data;
+      const parsed = parseSection(raw.content); type = parsed.type; data = parsed.data; hidden = parsed.hidden;
     }
+    if (raw.hidden !== undefined) hidden = raw.hidden === true || raw.hidden === 1 || raw.hidden === "1";
     if (isEmptyData(type, data)) { if (!title) continue; }
     if (!title) return { error: "Every section needs a title." };
     if (title.length > MAX_SECTION_TITLE) return { error: `Section titles can be at most ${MAX_SECTION_TITLE} characters.` };
-    const content = serializeSection(type, data);
+    const content = serializeSection(type, data, hidden);
     if (content.length > MAX_SECTION_CONTENT * 2) return { error: `"${title}" is too long.` };
     out.push({ title, content });
   }
@@ -155,8 +156,8 @@ export function cleanSections(input) {
 
 /** For the editor: a stored block -> { id, title, position, type, data, content } */
 export function describeBlock(b) {
-  const { type, data } = parseSection(b.content);
-  return { id: b.id, title: b.title, position: b.position, type, data, content: b.content };
+  const { type, data, hidden } = parseSection(b.content);
+  return { id: b.id, title: b.title, position: b.position, type, data, hidden: !!hidden, content: b.content };
 }
 
 // ---------------------------------------------------------------- public rendering
@@ -258,7 +259,8 @@ export async function renderSections(db, blocks) {
   const parts = [];
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
-    const { type, data } = parseSection(b.content);
+    const { type, data, hidden } = parseSection(b.content);
+    if (hidden) continue; // switched off in the editor: no content and no tab
     const body = await renderBody(db, type, data);
     if (!body) continue;
     const id = sectionAnchor(b.title, i);

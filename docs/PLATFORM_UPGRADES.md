@@ -217,3 +217,27 @@ Applies to reviews of sportsbooks, affiliate partners and custom content (casino
 - **Safer.** Body and sections pass through the shared HTML sanitizer when the page is rendered. The slug is checked (lowercase letters, numbers, dashes) and duplicates get a clear message. An empty body (including only spaces/`&nbsp;`) is refused. Deleting a review now also deletes its sections, so a later review reusing the slug does not inherit them.
 - **Editing comforts.** Sticky bar with Save, "Unsaved changes" indicator, Ctrl/Cmd+S, leave-page warning, slug filled from the title on new reviews, item filter, SEO length counters.
 - **API.** `generic-review/create` and `/update` accept `sections: [{title, content}]` (omitted on update = unchanged); `generic-review/get` returns `sections`. No migration: sections use the existing `review_blocks` table.
+
+## 12. Review sections of every kind, a sticky section bar, one public address, author hub (v18.5)
+
+- **One public address per review.** Reviews of sportsbooks, affiliate partners and custom content live only at
+  `/en/sportsbook/review/…`, `/en/affiliate-partner/review/…` and `/en/custom/{type}/review/…`. `/en/review/{slug}`,
+  the `/en/review` list, the public review APIs, the weekly digest and the casino-only lists no longer show them. An old
+  `/en/review/{slug}` link to a published generic review answers with a 301 to the real address (an unpublished one is a 404).
+  Site search, the page picker and the sitemap use each review's real address.
+- **Section types** (dashboard, generic review editor, "+ Add section"): Text (with size, alignment and width), FAQ,
+  Images + text (one picture or a 2-4 column gallery, frame, shape, size, text before or after), Payment methods (pick one
+  by one, "select all shown", "clear shown", search), Picked items (casinos, reviews, news, research, updates, authors,
+  sportsbooks, partners, custom content, pages, as cards, grid, list or compact list, plus pages and links by address),
+  Cards & grid (picture, title, text, link, 1-4 columns), Callout (info, tip, warning, good news) and Key figures. Sections
+  are stored in `review_blocks` (no migration): plain HTML as before, typed ones as `lmsec:` + JSON, all validated on save
+  and escaped or sanitized on the page. FAQ sections also add FAQPage markup.
+- **Tables** inside review text and sections scroll sideways inside their own box; pictures and videos never overflow.
+- **Sticky section bar** on review pages: Summary, How we scored it, Overview, every section you added, Pros & Cons,
+  Verdict. It stays under the site header, highlights the section being read, scrolls itself on phones, jumps smoothly to a
+  section, and has a thin reading-progress line. The same bar is used on author pages.
+- **Search-and-choose fields.** The item a generic review is about, and the casino slug on the casino review form, are
+  found by typing (arrow keys, Enter, Esc); the casino field refuses a slug that is not a real casino.
+- **Author page** now shows what the author published, with counts: casino reviews, other reviews, research, news,
+  platform updates, sportsbooks/partners/custom listings, comparisons, country and category pages, best-of lists and pages.
+  Only content that is live is counted; groups with nothing are left out; each shows the first six, then "Show more".

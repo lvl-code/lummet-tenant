@@ -28,7 +28,9 @@ import * as nrHome from "./newsroom-home.js";
 import * as nrAnalytics from "./newsroom-analytics.js";
 import * as nrSearch from "./newsroom-search.js";
 import { sanitizeHtml } from "./sanitize.js";
-import { toRichHtml, renderSectionsHtml } from "./generic-review-sections.js";
+import { toRichHtml, renderSections, faqSchemaScript, buildReviewNav, renderSectionNav } from "./generic-review-sections.js";
+import { getAuthorHub, renderAuthorHub } from "./author-hub.js";
+import { isCasinoReview, CASINO_REVIEWS_SQL, reviewPublicUrl, REVIEW_WITH_TYPE_SQL } from "./review-urls.js";
 import * as platformUpdates from "./database/platform-updates.js";
 import * as seoPages from "./database/seo-pages.js";
 import { logClick }
@@ -1072,6 +1074,18 @@ function buildReviewCasinoCards(casinoList, geoData = null, bonusOverrides = {})
 export async function renderReview(request, env, slug, ctx = null) {
   const review = await reviews.getReview(env.DB, slug);
   if (!review) return render404(request, env);
+  // reviews of sportsbooks / partners / custom content have their own path; not reachable here
+  if (!isCasinoReview(review)) {
+    // it used to answer here; send old links (and search engines) to the real address
+    let customTypeSlug = null;
+    if (review.reviewed_content_type === "custom" && review.reviewed_content_id) {
+      const ci = await env.DB.prepare("SELECT custom_type_slug FROM content_items WHERE id = ?").bind(review.reviewed_content_id).first();
+      customTypeSlug = ci && ci.custom_type_slug;
+    }
+    const target = review.published ? reviewPublicUrl({ ...review, custom_type_slug: customTypeSlug }) : null;
+    if (!target) return render404(request, env);
+    return new Response(null, { status: 301, headers: { Location: target } });
+  }
 
   // Analytics (Phase: page-view instrumentation). Cheap edge-provided
   // country only -- no geoEngine.process() call here since reviews
@@ -5137,8 +5151,8 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
     reviewCriteria.getCriteriaScores(env.DB, review.id),
   ]);
 
-  let sectionBlocks = [];
-  try { sectionBlocks = await getReviewBlocksForSlug(env.DB, review.slug); } catch { sectionBlocks = []; }
+  let sectionsOut = { html: "", nav: [], faq: [] };
+  try { sectionsOut = await renderSections(env.DB, await getReviewBlocksForSlug(env.DB, review.slug)); } catch (err) { console.error("review sections failed:", err); }
 
   const breakdown = reviewCriteria.buildScoreBreakdown(templates, scores);
   const computedRating = reviewCriteria.computeWeightedRating(templates, scores);
@@ -5173,7 +5187,12 @@ export async function renderGenericReview(request, env, expectedReviewedContentT
   const html = await renderer.render("generic-review.html", {
     title: escapeHtml(review.title),
     content: toRichHtml(review.content || ""),
-    sections_html: renderSectionsHtml(sectionBlocks),
+    sections_html: sectionsOut.html,
+    faq_schema_html: faqSchemaScript(sectionsOut.faq),
+    review_nav_html: renderSectionNav(buildReviewNav({
+      hasScoring: !!buildCriteriaScoresHtml(breakdown), sections: sectionsOut.nav,
+      hasVerdict: !!review.verdict, hasProsCons: true
+    }), "Sections of this review"),
     verdict: review.verdict || "",
     reviewed_at: review.created_at ? new Date(review.created_at).toLocaleDateString() : "",
     updated_at: review.updated_at ? new Date(review.updated_at).toLocaleDateString() : "",
@@ -5443,7 +5462,7 @@ export async function renderReviewList(request, env) {
 
   const [site, reviewList, allComponents, dynamicSeo] = await Promise.all([
     getSiteContext(request, env),
-    env.DB.prepare("SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC").all(),
+    env.DB.prepare(`SELECT * FROM reviews WHERE published = 1 AND ${CASINO_REVIEWS_SQL} ORDER BY created_at DESC`).all(),
     renderer.renderAllComponents("review_list", "review_list"),
     renderer.loadDynamicSeo("review_list", "review_list"),
   ]);
@@ -6773,14 +6792,16 @@ export async function renderAuthor(request, env, slug) {
   const renderer = new Renderer(env, request);
 
   // Independent of each other — fetch concurrently.
-  const [site, content, stats, allComponents, dynamicSeo, nrFlags] = await Promise.all([
+  const [site, content, stats, allComponents, dynamicSeo, nrFlags, hubGroups] = await Promise.all([
     getSiteContext(request, env),
     authors.getAuthorContent(env.DB, author.id),
     authors.getAuthorStats(env.DB, author.id),
     renderer.renderAllComponents("author", slug),
     renderer.loadDynamicSeo("author", slug),
     newsroom.getNewsFlags(env.DB).catch(() => ({})),
+    getAuthorHub(env.DB, author.id).catch(() => []),
   ]);
+  const hub = renderAuthorHub(hubGroups, author.name);
 
   // Build review cards
   // NEW: fetch casino logo/name for review cards
@@ -6870,6 +6891,10 @@ export async function renderAuthor(request, env, slug) {
     author_facts_html: nrTax
       ? `<link rel="stylesheet" href="/static/css/newsroom.css">${nrRender.renderAuthorFacts(author, stats.news)}`
       : "",
+    author_stats_html: hub.stats_html,
+    author_nav_html: renderSectionNav(hub.nav, "Everything published by " + author.name),
+    author_sections_html: hub.sections_html || '<p class="muted ah-empty">Nothing published yet.</p>',
+    author_total: hub.total,
     review_cards: reviewCards,
     news_cards: newsCards || '<p class="muted">No articles yet.</p>',
     page_list: pageList || '<li class="muted">No pages yet.</li>',

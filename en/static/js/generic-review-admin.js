@@ -11,18 +11,14 @@
   var $ = function (id) { return document.getElementById(id); };
   var listView = $("grListView"), editView = $("grEditView"), form = $("grForm");
   var alertEl = $("grAlert"), stateEl = $("grState");
-  var MAX_SECTIONS = 30;
-  var PRESETS = ["Overview", "Features", "Bonuses & promotions", "Payments", "Mobile experience", "Customer support", "Security & licensing", "FAQ"];
 
   var mode = "list";          // list | new | edit
   var editId = null;
   var current = null;          // loaded review (edit)
-  var sections = [];           // [{key,title,content,open}]
-  var keySeq = 0;
+  var builder = null;          // the typed section builder
   var dirty = false;
   var saving = false;
   var slugTouched = false;
-  var itemsCache = [];
 
   function clientEscape(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function show(kind, msg) { alertEl.className = "alert alert--" + kind; alertEl.textContent = msg; alertEl.style.display = "block"; if (kind === "error") alertEl.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
@@ -76,29 +72,36 @@
     }).catch(function () {});
   }
 
-  function loadItems(selectedId) {
-    var sel = $("grItem");
-    sel.innerHTML = '<option value="">Loading...</option>';
-    return api("content-items/list?content_type=" + encodeURIComponent($("grType").value)).then(function (d) {
-      itemsCache = (d && d.items) || [];
-      renderItemOptions(selectedId);
-    }).catch(function () { sel.innerHTML = '<option value="">Failed to load items</option>'; });
+  // The reviewed item is found by searching, not by scrolling a long list.
+  var itemPicker = null;
+  function setPickedItem(it) {
+    $("grItem").value = it ? it.value : "";
+    $("grItemPicked").textContent = it ? "Reviewing: " + it.label + " (" + it.sub + ")" : "Nothing chosen yet.";
+    $("grItemPicked").classList.toggle("is-set", !!it);
   }
-  function renderItemOptions(selectedId) {
-    var sel = $("grItem"), q = $("grItemFilter").value.trim().toLowerCase();
-    var keep = selectedId || sel.value;
-    var rows = itemsCache.filter(function (i) { return !q || (i.name + " " + i.slug).toLowerCase().indexOf(q) !== -1; });
-    sel.innerHTML = rows.length
-      ? rows.map(function (i) { return '<option value="' + Number(i.id) + '">' + clientEscape(i.name) + " (" + clientEscape(i.slug) + ")</option>"; }).join("")
-      : '<option value="">' + (itemsCache.length ? "No match" : "No items of this type yet -- create one first") + "</option>";
-    if (keep) sel.value = String(keep);
+  function itemSearch(q) {
+    var u = "content-items/list?content_type=" + encodeURIComponent($("grType").value) + "&page=1&per_page=15" + (q ? "&search=" + encodeURIComponent(q) : "");
+    return api(u).then(function (d) {
+      return ((d && d.items) || []).map(function (i) { return { value: String(i.id), label: i.name, sub: i.slug + (i.status && i.status !== "published" ? " · " + i.status : "") }; });
+    });
+  }
+  function initItemPicker() {
+    if (itemPicker) return;
+    itemPicker = EntityPicker.attach($("grItemSearch"), { search: itemSearch, onPick: setPickedItem, onType: function () { setPickedItem(null); } });
+  }
+  function preselectItem(type, id) {
+    return api("content-items/list?content_type=" + encodeURIComponent(type)).then(function (d) {
+      var it = ((d && d.items) || []).filter(function (i) { return Number(i.id) === id; })[0];
+      if (it) { $("grItemSearch").value = it.name; setPickedItem({ value: String(it.id), label: it.name, sub: it.slug }); }
+    }).catch(function () {});
   }
 
   function resetForm() {
     form.reset();
     slugTouched = false;
     $("grSlug").disabled = false;
-    sections = [];
+    setPickedItem(null);
+    if (builder) builder.load([]);
   }
 
   // ---------- add ----------
@@ -110,11 +113,11 @@
     $("grSave").textContent = "Create review";
     hideAlert(); showEditor();
     if (r.type && ["sportsbook", "affiliate_partner", "custom"].indexOf(r.type) !== -1) $("grType").value = r.type;
-    $("grItemFilter").value = "";
-    loadItems(r.item ? parseInt(r.item, 10) : null);
+    initItemPicker();
+    if (r.item && parseInt(r.item, 10) > 0) preselectItem($("grType").value, parseInt(r.item, 10));
     loadAuthors();
     setEditorContent("");
-    renderSections();
+    snapshot();
     setDirty(false);
     document.title = "Add review";
   }
@@ -140,14 +143,16 @@
       form.elements.published.checked = !!current.published;
       form.elements.seo_title.value = current.seo_title || ""; form.elements.seo_description.value = current.seo_description || ""; form.elements.seo_keywords.value = current.seo_keywords || "";
       setEditorContent(legacyToHtml(current.content || ""));
-      sections = (d.sections || []).map(function (s) { return { key: ++keySeq, title: s.title || "", content: legacyToHtml(s.content || ""), open: false }; });
-      renderSections();
+      builder.load((d.sections || []).map(function (s) {
+        if (s.type === "rich" && s.data) s.data.html = legacyToHtml(s.data.html || "");
+        return { title: s.title || "", type: s.type, data: s.data };
+      }));
       var prefix = { sportsbook: "/en/sportsbook/review/", affiliate_partner: "/en/affiliate-partner/review/" }[current.reviewed_content_type];
       var v = $("grView");
       if (prefix && current.published) { v.href = prefix + encodeURIComponent(current.slug); v.hidden = false; } else v.hidden = true;
       updateCounts();
       return loadAuthors(current.author_id);
-    }).then(function () { setDirty(false); document.title = "Edit review"; }).catch(function () { show("error", "Failed to load review."); });
+    }).then(function () { snapshot(); setDirty(false); document.title = "Edit review"; }).catch(function () { show("error", "Failed to load review."); });
   }
 
   // plain text from before the rich editor -> paragraphs (the page does the same when it renders)
@@ -182,91 +187,8 @@
     if (window.RichEditor && RichEditor.isReady("gr-content")) return RichEditor.get("gr-content") || "";
     return $("grContent").value;
   }
-  function destroyEditors() {
-    sections.forEach(function (s) { try { if (window.RichEditor && RichEditor.isReady(editorId(s.key))) RichEditor.destroy(editorId(s.key)); } catch (e) {} });
-  }
+  function destroyEditors() { if (builder) builder.destroy(); }
 
-  // ---------- sections builder ----------
-  function collectSections() {
-    var cards = $("grSections").querySelectorAll(".gr-section");
-    Array.prototype.forEach.call(cards, function (card) {
-      var s = sections.filter(function (x) { return String(x.key) === card.dataset.key; })[0];
-      if (!s) return;
-      s.title = card.querySelector(".gr-section__title").value;
-      var id = editorId(s.key), ta = card.querySelector("textarea");
-      s.content = window.RichEditor && RichEditor.isReady(id) ? (RichEditor.get(id) || "") : ta.value;
-      s.open = !card.classList.contains("is-collapsed");
-    });
-  }
-
-  function renderSections() {
-    var box = $("grSections");
-    box.textContent = "";
-    if (!sections.length) {
-      var empty = document.createElement("p"); empty.className = "muted gr-empty"; empty.textContent = "No sections yet. Add one below, or use a quick-add chip.";
-      box.appendChild(empty);
-    }
-    sections.forEach(function (s, i) {
-      var card = document.createElement("div");
-      card.className = "gr-section" + (s.open ? "" : " is-collapsed"); card.dataset.key = s.key;
-      var head = document.createElement("div"); head.className = "gr-section__head";
-      var num = document.createElement("span"); num.className = "gr-section__num"; num.textContent = String(i + 1);
-      var title = document.createElement("input"); title.type = "text"; title.className = "gr-section__title"; title.placeholder = "Section title"; title.maxLength = 120; title.value = s.title; title.setAttribute("aria-label", "Section " + (i + 1) + " title");
-      head.appendChild(num); head.appendChild(title);
-      [["up", "↑", "Move up"], ["down", "↓", "Move down"], ["dup", "⧉", "Duplicate"], ["toggle", s.open ? "–" : "+", s.open ? "Collapse" : "Expand"], ["del", "✕", "Remove"]].forEach(function (a) {
-        var b = document.createElement("button"); b.type = "button"; b.className = "gr-icon" + (a[0] === "del" ? " gr-icon--danger" : ""); b.dataset.act = a[0]; b.textContent = a[1]; b.title = a[2]; b.setAttribute("aria-label", a[2] + " section " + (i + 1));
-        if ((a[0] === "up" && i === 0) || (a[0] === "down" && i === sections.length - 1)) b.disabled = true;
-        head.appendChild(b);
-      });
-      var body = document.createElement("div"); body.className = "gr-section__body";
-      var ta = document.createElement("textarea"); ta.rows = 8; ta.value = s.content;
-      ta.setAttribute("data-rich-editor", ""); ta.setAttribute("data-editor-id", editorId(s.key)); ta.setAttribute("data-editor-folder", "reviews"); ta.setAttribute("data-editor-height", "320");
-      body.appendChild(ta);
-      card.appendChild(head); card.appendChild(body); box.appendChild(card);
-    });
-    $("grAddSection").disabled = sections.length >= MAX_SECTIONS;
-    refreshPresets();
-  }
-
-  // structural changes: read everything first, drop the old editors, rebuild
-  function restructure(fn) {
-    collectSections(); destroyEditors(); fn(); renderSections(); setDirty(true);
-  }
-  function addSection(title) {
-    if (sections.length >= MAX_SECTIONS) return;
-    restructure(function () { sections.push({ key: ++keySeq, title: title || "", content: "", open: true }); });
-    var last = $("grSections").querySelector(".gr-section:last-child .gr-section__title");
-    if (last) { last.focus(); last.scrollIntoView({ block: "center", behavior: "smooth" }); }
-  }
-  function refreshPresets() {
-    var used = sections.map(function (s) { return s.title.trim().toLowerCase(); });
-    var box = $("grPresets"); box.textContent = "";
-    PRESETS.forEach(function (p) {
-      if (used.indexOf(p.toLowerCase()) !== -1) return;
-      var b = document.createElement("button"); b.type = "button"; b.className = "gr-chip"; b.textContent = "+ " + p; b.dataset.preset = p; box.appendChild(b);
-    });
-  }
-  $("grSections").addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-act]"); if (!btn) return;
-    var card = btn.closest(".gr-section"), idx = -1;
-    sections.forEach(function (s, i) { if (String(s.key) === card.dataset.key) idx = i; });
-    if (idx < 0) return;
-    var act = btn.dataset.act;
-    if (act === "toggle") {
-      var open = card.classList.toggle("is-collapsed") === false;
-      btn.textContent = open ? "–" : "+"; btn.title = open ? "Collapse" : "Expand"; sections[idx].open = open; return;
-    }
-    if (act === "del") {
-      var t = card.querySelector(".gr-section__title").value.trim();
-      if (!confirm('Remove the section' + (t ? ' "' + t + '"' : "") + "?")) return;
-      restructure(function () { sections.splice(idx, 1); });
-    }
-    if (act === "up" && idx > 0) restructure(function () { var x = sections.splice(idx, 1)[0]; sections.splice(idx - 1, 0, x); });
-    if (act === "down" && idx < sections.length - 1) restructure(function () { var x = sections.splice(idx, 1)[0]; sections.splice(idx + 1, 0, x); });
-    if (act === "dup" && sections.length < MAX_SECTIONS) restructure(function () { var c = sections[idx]; sections.splice(idx + 1, 0, { key: ++keySeq, title: c.title + " (copy)", content: c.content, open: true }); });
-  });
-  $("grAddSection").addEventListener("click", function () { addSection(""); });
-  $("grPresets").addEventListener("click", function (e) { var b = e.target.closest("[data-preset]"); if (b) addSection(b.dataset.preset); });
 
   // ---------- form behaviour ----------
   form.addEventListener("input", function (e) {
@@ -276,8 +198,7 @@
     if (e.target.name === "seo_title" || e.target.name === "seo_description") updateCounts();
   });
   $("grSlug").addEventListener("blur", function () { this.value = slugify(this.value); });
-  $("grType").addEventListener("change", function () { $("grItemFilter").value = ""; loadItems(); });
-  $("grItemFilter").addEventListener("input", function () { renderItemOptions(); });
+  $("grType").addEventListener("change", function () { $("grItemSearch").value = ""; setPickedItem(null); });
   function updateCounts() {
     Array.prototype.forEach.call(form.querySelectorAll("[data-count-for]"), function (c) {
       var f = form.elements[c.dataset.countFor], n = f ? f.value.length : 0, good = parseInt(c.dataset.good, 10);
@@ -285,17 +206,16 @@
     });
   }
   // rich editors fire their own change events inside iframes; poll cheaply for dirtiness
-  var lastBody = "";
+  var lastSnap = "";
+  function snapshot() { lastSnap = getEditorContent() + "\u0001" + (builder ? JSON.stringify(builder.read()) : ""); }
   setInterval(function () {
-    if (editView.hidden || saving) return;
-    var now = getEditorContent();
-    if (lastBody && now !== lastBody) setDirty(true);
-    lastBody = now;
+    if (editView.hidden || saving || !lastSnap) return;
+    var now = getEditorContent() + "\u0001" + (builder ? JSON.stringify(builder.read()) : "");
+    if (now !== lastSnap) { lastSnap = now; setDirty(true); }
   }, 1500);
 
   // ---------- save ----------
   function payload() {
-    collectSections();
     var fd = new FormData(form);
     var lines = function (t) { return JSON.stringify((t || "").split("\n").map(function (s) { return s.trim(); }).filter(Boolean)); };
     var p = {
@@ -305,7 +225,7 @@
       author_id: fd.get("author_id") ? parseInt(fd.get("author_id"), 10) : null,
       published: fd.get("published") === "on",
       seo_title: fd.get("seo_title") || null, seo_description: fd.get("seo_description") || null, seo_keywords: fd.get("seo_keywords") || null,
-      sections: sections.map(function (s) { return { title: s.title.trim(), content: s.content }; })
+      sections: builder.read()
     };
     if (mode === "new") {
       p.reviewed_content_type = fd.get("reviewed_content_type");
@@ -320,8 +240,8 @@
       if (!p.reviewed_content_id) return "Pick the item being reviewed -- none available for this type yet.";
       if (!p.slug) return "The slug is required.";
     }
-    var emptyTitle = p.sections.some(function (s) { return !s.title && s.content.replace(/<[^>]*>/g, "").trim(); });
-    if (emptyTitle) return "A section has text but no title.";
+    var untitled = p.sections.filter(function (s) { return !s.title; });
+    if (untitled.length) return "Give every section a title — each one becomes a tab in the review's top bar.";
     return "";
   }
   function save() {
@@ -335,7 +255,7 @@
       if (!d.success) { stateEl.textContent = ""; return show("error", d.error || "Failed to save"); }
       setDirty(false);
       if (mode === "new") { show("success", "Review created."); setDirty(false); go("?edit=" + d.review.id, true); }
-      else { show("success", "Saved."); lastBody = getEditorContent(); }
+      else { show("success", "Saved."); snapshot(); }
     }).catch(function () { saving = false; $("grSave").disabled = false; stateEl.textContent = ""; show("error", "Network error. Try again."); });
   }
   $("grSave").addEventListener("click", save);
@@ -366,5 +286,7 @@
   });
   window.addEventListener("popstate", function () { setDirty(false); route(); });
 
+  builder = SectionBuilder.mount({ root: $("grSections"), addButton: $("grAddSection"), presets: $("grPresets"), onChange: function () { setDirty(true); } });
+  initItemPicker();
   route();
 })();

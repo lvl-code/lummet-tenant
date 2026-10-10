@@ -1165,13 +1165,13 @@ export async function renderReview(request, env, slug, ctx = null) {
   // concurrently instead of one-by-one. Also fetches the linked
   // casino exactly once (it was previously fetched twice — once
   // for the casino card, again for the schema/related-casinos).
-  const [site, author, casino, geoStatus, allComponents, reviewBlocksHtml, dynamicSeo, reviewDisplayContent] = await Promise.all([
+  const [site, author, casino, geoStatus, allComponents, reviewSections, dynamicSeo, reviewDisplayContent] = await Promise.all([
     getSiteContext(request, env),
     review.author_id ? authors.getAuthorById(env.DB, review.author_id) : Promise.resolve(null),
     review.casino_slug ? casinos.getCasino(env.DB, review.casino_slug) : Promise.resolve(null),
     review.casino_slug ? evaluateCasinoGeo(env, review.casino_slug, geoCountry) : Promise.resolve("allowed"),
     renderer.renderAllComponents("review", slug, ctx),
-    renderer.renderReviewBlocks(slug),
+    getReviewBlocksForSlug(env.DB, slug).then((b) => renderSections(env.DB, b)).catch((e) => { console.error("review sections failed:", e.message); return { html: "", nav: [], faq: [] }; }),
     renderer.loadDynamicSeo("review", slug),
     injectInlineAds(review.content || "", env, request, "review").catch(e => {
       console.error("Inline ad injection error (review):", e.message);
@@ -1180,6 +1180,19 @@ export async function renderReview(request, env, slug, ctx = null) {
   ]);
 
   const casinoName = casino?.name || "";
+  const reviewBlocksHtml = reviewSections.html;
+  const has = (v) => !!String(v || "").replace(/<[^>]*>/g, "").trim();
+  const reviewNavItems = [{ id: "summary", title: "Summary" }];
+  if (has(review.overview)) reviewNavItems.push({ id: "overview", title: "Overview" });
+  if (has(review.games)) reviewNavItems.push({ id: "games", title: "Games" });
+  if (has(review.bonuses)) reviewNavItems.push({ id: "bonuses", title: "Bonuses" });
+  if (has(review.payments)) reviewNavItems.push({ id: "payments", title: "Payments" });
+  if (has(review.licenses)) reviewNavItems.push({ id: "licensing", title: "Licensing" });
+  if (has(review.content)) reviewNavItems.push({ id: "more-details", title: "More details" });
+  reviewNavItems.push(...reviewSections.nav);
+  if (has(review.verdict)) reviewNavItems.push({ id: "verdict", title: "Verdict" });
+  reviewNavItems.push({ id: "pros-cons", title: "Pros & Cons" });
+  if (faqHtml) reviewNavItems.push({ id: "faq", title: "FAQ" });
 
   // casinoCardHtml and relatedCasinosHtml both depend on `casino`
   // above but not on each other, so they run together too.
@@ -1292,6 +1305,8 @@ export async function renderReview(request, env, slug, ctx = null) {
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
     review_blocks_html: reviewBlocksHtml,
+    review_nav_html: renderSectionNav(reviewNavItems),
+    faq_schema_html: faqSchemaScript(reviewSections.faq),
     seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
     seo_description: dynamicSeo.seo_description || review.seo_description || "",
     seo_keywords: dynamicSeo.seo_keywords || review.seo_keywords || "",

@@ -2753,7 +2753,7 @@ async function requireAdAdmin(request, env) {
       const reviewSlug = url.searchParams.get("review_slug");
       if (!reviewSlug) return failure("review_slug is required");
       const blocks = await reviewBlocksDB.getReviewBlocks(env.DB, reviewSlug);
-      return json({ blocks });
+      return json({ blocks, sections: blocks.map(describeBlock) });
     }
 
     if (path === "/api/v1/review-blocks/create" && request.method === "POST") {
@@ -2779,8 +2779,15 @@ async function requireAdAdmin(request, env) {
 
     if (path === "/api/v1/review-blocks/sync" && request.method === "POST") {
       const body = await request.json();
-      validate(body, ["review_slug", "blocks"]);
-      await reviewBlocksDB.syncReviewBlocks(env.DB, body.review_slug, body.blocks);
+      validate(body, ["review_slug"]);
+      let toSave = body.blocks;
+      if (body.sections !== undefined) {
+        const cleaned = cleanSections(body.sections);
+        if (cleaned.error) return failure(cleaned.error);
+        toSave = cleaned.sections;
+      }
+      if (!Array.isArray(toSave)) return failure("blocks or sections is required");
+      await reviewBlocksDB.syncReviewBlocks(env.DB, body.review_slug, toSave);
       return success();
     }
 

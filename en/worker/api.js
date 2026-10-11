@@ -734,6 +734,7 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
       "/api/v1/seo-pages": "seo_pages",
       "/api/v1/seo": "seo",
       "/api/v1/settings": "settings",
+      "/api/v1/geo-manager": null, // permissions are checked per item type inside the handler
       "/api/v1/geo": "casinos",
       "/api/v1/media": "media",
       "/api/v1/nav": "nav",
@@ -816,6 +817,11 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
 
 if (path === "/api/v1/dashboard") {
   return dashboardStatsAPI(request, env);
+}
+
+if (path.startsWith("/api/v1/geo-manager/")) {
+  const { handleGeoManager } = await import("./geo-manager.js");
+  return handleGeoManager(request, env, path, (resource, action) => permDB.checkPermission(userPermissions, resource, action));
 }
 
 

@@ -315,3 +315,16 @@ The sticky section bar (casino reviews, generic reviews, author pages, landing p
 ## 23. Review page look settings (v19.7)
 
 Admin, Reviews, "All reviews" tab, bottom: **Review page look**. Pick the accent (active tab, progress line, links, icons, check marks), card background, card text, heading and border colours, corner roundness (0–32 px), card shadow (none / soft / strong), and whether each part keeps its own colour or all parts share the accent. A live preview shows the result; Save publishes it to casino, sportsbook, partner and custom review pages (settings keys `rl_*`). Only strict `#rrggbb` colours are accepted; anything else is ignored. "Back to defaults" restores the standard look. No migrations, no deletions.
+
+## 24. Geo rules manager (v19.8)
+
+Admin, Reviews, new **Geo rules** tab. One screen for the country rules of casinos (`geo_rules`) and of sportsbooks, affiliate partners and custom content (`content_geo`). It uses the same tables and the same decision the public pages already make; nothing about how visitors are evaluated changes.
+
+- **List:** choose a type, search by name, see each item's mode (No rules, Allow-list, Block-list, Custom) and country count. "Show status in…" shows whether each item is available to visitors from a chosen country.
+- **Edit an item:** allow only the listed countries, block the listed countries (allow all others), or custom (allowed or blocked per country). Add countries one by one or with presets; casinos also get an optional bonus override per country. A "Check a visitor's country" box shows the result and the reason as you edit, before saving. Unsaved changes ask before you leave.
+- **Bulk:** select several items and set the same countries on all, copy another item's rules to them, or clear them (up to 200 at once, with confirmation).
+- **CSV:** export a type's rules and import a CSV (`item_key, country_code, status, bonus_override`). The file is fully checked first; if any row is wrong nothing changes. Items in the file get exactly the rules in it; other items are untouched.
+- **Presets:** one-click country groups (European Union, UK & Ireland, North America, Nordics, DACH by default). Edit, add or delete them (setting `geo_presets`).
+- **Safety:** country codes must exist, statuses are only allowed or blocked, no duplicates, at most 300 rules per item. An item with no rules is treated as not available (existing behaviour, stated on the screen). Casino rule changes clear the public casino cache. Permissions: casinos need casino rights, other types need content rights.
+
+API: `/api/v1/geo-manager/` meta, items, rules, export (GET); save, bulk, import, presets/save (POST). No migrations, no deletions.

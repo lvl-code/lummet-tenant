@@ -32,5 +32,5 @@
   if (cancel) cancel.addEventListener("click", function () { var h = document.getElementById("rvEditHeading"); if (h) h.textContent = "Add Review"; });
   window.ReviewTabs = { show: show, sections: function (slug) { show("sections"); if (window.ReviewSections) window.ReviewSections.open(slug); } };
   var start = (location.hash || "").replace("#", "");
-  if (/^(list|sections)$/.test(start)) show(start, true);
+  if (/^(list|sections|geo)$/.test(start)) show(start, true);
 })();

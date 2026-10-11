@@ -739,3 +739,32 @@ body.hh-preview-body .hh-preview-off { padding: 24px; text-align: center; font-s
 .rl-preview__icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: rgba(127,127,127,.12); }
 .rl-preview__card p { margin: 0; }
 .rl-preview__card a { color: var(--rl-accent); text-decoration: underline; }
+
+/* ---- Geo rules tab (admin) ---- */
+.gm-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; }
+.gm-select, .gm-input { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f172a; font: inherit; min-height: 40px; max-width: 100%; }
+.gm-input { min-width: 200px; flex: 1 1 200px; }
+.gm-alert { margin: 8px 0; }
+.gm-tablewrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+.gm-table { margin: 0; width: 100%; }
+.gm-table th, .gm-table td { vertical-align: middle; }
+.gm-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #e5e7eb; color: #374151; white-space: nowrap; }
+.gm-badge--ok { background: #dcfce7; color: #166534; } .gm-badge--bad { background: #fee2e2; color: #991b1b; }
+.gm-badge--warn { background: #ffedd5; color: #9a3412; } .gm-badge--mix { background: #e0e7ff; color: #3730a3; } .gm-badge--off { background: #f1f5f9; color: #64748b; }
+.gm-bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; padding: 10px 14px; border-radius: 12px; background: #eff6ff; border: 1px solid #bfdbfe; }
+.gm-card { margin: 14px 0; padding: 20px; background: #fff; color: #1f2937; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 6px 22px rgba(15,23,42,.08); display: grid; gap: 12px; }
+.gm-card h3, .gm-card h4 { margin: 0; color: #0f172a; }
+.gm-label { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #475569; }
+.gm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.gm-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.gm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gm-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: #e0e7ff; color: #312e81; font-size: 13px; font-weight: 600; }
+.gm-chip button { border: 0; background: rgba(49,46,129,.15); color: inherit; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; line-height: 1; }
+.gm-rules { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+.gm-rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f8fafc; }
+.gm-rule__name { flex: 1 1 160px; font-weight: 600; }
+.gm-testbox { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; border-radius: 12px; background: #f1f5f9; }
+.gm-test { flex: 1 1 240px; }
+.gm-importout { white-space: pre-wrap; font-size: 14px; }
+.gm-presetrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid #eef0f4; }
+@media (max-width: 640px) { .gm-card { padding: 14px; } .gm-input { min-width: 0; } }

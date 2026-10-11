@@ -7357,6 +7357,19 @@ export async function renderDashboardReports(request, env) {
   return renderAdminPage(request, env, "admin/reports.html");
 }
 
+const GEO_RULE_SECTIONS = {
+  rules: ["Rules", "See and edit the countries each item is available in."],
+  defaults: ["Default rules", "Choose what happens to items that are registered with no country rules."],
+  bulk: ["Bulk changes", "Change many items at once, with country codes typed or picked."],
+  "import-export": ["Import & export", "Move country rules in and out as a CSV file."],
+  presets: ["Presets", "One-click groups of countries used across the editors."],
+  lookup: ["Country lookup", "Pick a country and see which items its visitors can reach."],
+};
+export async function renderDashboardGeoRules(request, env, section = "rules") {
+  const sec = GEO_RULE_SECTIONS[section] ? section : "rules";
+  return renderAdminPage(request, env, "admin/geo-rules.html", { geo_section: sec, geo_section_title: GEO_RULE_SECTIONS[sec][0], geo_section_intro: GEO_RULE_SECTIONS[sec][1] });
+}
+
 export async function renderSitemapPage(request, env) {
   const renderer = new Renderer(env, request);
 

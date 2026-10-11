@@ -499,6 +499,8 @@ export function getRoute(request) {
   if (path === "/en/dashboard/analytics") return { type: "dashboardAnalytics" };
   if (path === "/en/dashboard/campaigns") return { type: "dashboardCampaigns" };
   if (path === "/en/dashboard/reports") return { type: "dashboardReports" };
+  if (path === "/en/dashboard/geo-rules") return { type: "dashboardGeoRules", section: "rules" };
+  { const gm = path.match(/^\/en\/dashboard\/geo-rules\/(defaults|bulk|import-export|presets|lookup)$/); if (gm) return { type: "dashboardGeoRules", section: gm[1] }; }
 
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };

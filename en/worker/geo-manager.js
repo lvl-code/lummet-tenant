@@ -77,6 +77,17 @@ export async function normalizeRules(db, raw) {
   return { rules };
 }
 
+/** "us, GB;de fr" -> {codes:["US","GB","DE","FR"], invalid:[...]} (two-letter codes, any of comma / semicolon / space). */
+export function parseCodes(input) {
+  const raw = Array.isArray(input) ? input : String(input ?? "").split(/[\s,;]+/);
+  const codes = []; const invalid = [];
+  for (const t of raw.map((x) => String(x).trim().toUpperCase()).filter(Boolean)) {
+    if (!/^[A-Z]{2}$/.test(t)) { invalid.push(t); continue; }
+    if (!codes.includes(t)) codes.push(t);
+  }
+  return { codes, invalid };
+}
+
 async function resolveItem(db, type, key) {
   if (type === "casino") {
     const row = await db.prepare("SELECT slug, name FROM casinos WHERE slug = ?").bind(String(key)).first();
@@ -181,6 +192,66 @@ async function importCsv(db, env, type, text, dryRun) {
   return { items: plan.length, rules: plan.reduce((n, p) => n + p.rules.length, 0), errors, applied: !dryRun && !errors.length };
 }
 
+// ---------- default rules for items registered without any ----------
+const DEFAULTS_KEY = "geo_defaults";
+export const DEFAULT_MODES = ["none", "everyone", "except"];
+const NO_DEFAULT = { mode: "none", countries: [] };
+
+export async function getDefaults(db) {
+  let saved = {};
+  try {
+    const row = await db.prepare("SELECT value FROM settings WHERE key = ?").bind(DEFAULTS_KEY).first();
+    if (row?.value) saved = JSON.parse(row.value) || {};
+  } catch { /* none */ }
+  const out = {};
+  for (const t of Object.keys(GEO_TYPES)) {
+    const d = saved[t];
+    out[t] = d && DEFAULT_MODES.includes(d.mode) ? { mode: d.mode, countries: Array.isArray(d.countries) ? d.countries : [] } : { ...NO_DEFAULT };
+  }
+  return out;
+}
+
+async function saveDefaults(db, raw) {
+  if (!raw || typeof raw !== "object") return { error: "defaults must be an object" };
+  const known = new Set((await loadCountries(db)).map((c) => c.code));
+  const current = await getDefaults(db);
+  for (const t of Object.keys(raw)) {
+    if (!GEO_TYPES[t]) return { error: `Unknown type: ${t}` };
+    const mode = String(raw[t]?.mode || "");
+    if (!DEFAULT_MODES.includes(mode)) return { error: `${GEO_TYPES[t].label}: mode must be none, everyone or except` };
+    const { codes, invalid } = parseCodes(raw[t]?.countries || []);
+    if (invalid.length) return { error: `${GEO_TYPES[t].label}: not a country code: ${invalid.join(", ")}` };
+    const unknown = codes.filter((c) => !known.has(c));
+    if (unknown.length) return { error: `${GEO_TYPES[t].label}: unknown country code(s): ${unknown.join(", ")}` };
+    if (mode === "except" && !codes.length) return { error: `${GEO_TYPES[t].label}: choose at least one country to exclude` };
+    current[t] = { mode, countries: mode === "except" ? codes : [] };
+  }
+  await db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(DEFAULTS_KEY, JSON.stringify(current)).run();
+  return { defaults: current };
+}
+
+/** The rule rows a default stands for. "everyone" = allowed in every country on file; "except" = a block-list. */
+async function rulesForDefault(db, def) {
+  if (def.mode === "everyone") return (await loadCountries(db)).map((c) => ({ country_code: c.code, status: "allowed", bonus_override: null }));
+  if (def.mode === "except") return def.countries.map((c) => ({ country_code: c, status: "blocked", bonus_override: null }));
+  return [];
+}
+
+/** Called when an item is registered. Gives it the default rules only if it has none. Never throws. */
+export async function applyDefaultToNewItem(db, env, type, key) {
+  try {
+    if (!GEO_TYPES[type]) return false;
+    const def = (await getDefaults(db))[type];
+    if (!def || def.mode === "none") return false;
+    const item = await resolveItem(db, type, key);
+    if (!item || (await readRules(db, type, item)).length) return false;
+    const rules = await rulesForDefault(db, def);
+    if (!rules.length) return false;
+    await writeRules(db, env, type, item, rules);
+    return true;
+  } catch { return false; }
+}
+
 // ---------- presets ----------
 async function loadPresets(db) {
   try {
@@ -219,7 +290,7 @@ export async function handleGeoManager(request, env, path, can) {
 
   if (method === "GET" && route === "meta") {
     const types = Object.entries(GEO_TYPES).filter(([, v]) => can(v.resource, "read")).map(([k, v]) => ({ key: k, label: v.label }));
-    return json({ types, countries: await loadCountries(db), presets: await loadPresets(db), max_rules: MAX_RULES });
+    return json({ types, countries: await loadCountries(db), presets: await loadPresets(db), defaults: await getDefaults(db), max_rules: MAX_RULES });
   }
   if (method === "GET" && route === "items") {
     const type = typeOf(url.searchParams.get("type")); if (!type) return fail("Unknown type");
@@ -240,6 +311,12 @@ export async function handleGeoManager(request, env, path, can) {
     return new Response(await exportCsv(db, type), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="geo-rules-${type}.csv"` } });
   }
   if (method === "GET" && route === "presets") return json({ presets: await loadPresets(db) });
+  if (method === "GET" && route === "defaults") {
+    const defs = await getDefaults(db);
+    const counts = {};
+    for (const t of Object.keys(GEO_TYPES)) if (can(GEO_TYPES[t].resource, "read")) counts[t] = (await listItems(db, t)).filter((i) => !i.total).length;
+    return json({ defaults: defs, no_rules: counts });
+  }
 
   if (method !== "POST") return fail("Not found", 404);
   let body; try { body = await request.json(); } catch { return fail("Invalid JSON"); }
@@ -248,6 +325,11 @@ export async function handleGeoManager(request, env, path, can) {
     if (!can("settings", "create") && !can("casinos", "update")) return fail("Forbidden", 403);
     const res = await savePresets(db, body.presets);
     return res.error ? fail(res.error) : json({ success: true, presets: res.presets });
+  }
+  if (route === "defaults/save") {
+    for (const t of Object.keys(body.defaults || {})) { if (GEO_TYPES[t] && !can(GEO_TYPES[t].resource, "update")) return fail(`Forbidden: you cannot change ${GEO_TYPES[t].label.toLowerCase()}`, 403); }
+    const res = await saveDefaults(db, body.defaults);
+    return res.error ? fail(res.error) : json({ success: true, defaults: res.defaults });
   }
   const type = typeOf(body.type); if (!type) return fail("Unknown type");
   const g = guard(type, "update"); if (g) return g;
@@ -261,33 +343,70 @@ export async function handleGeoManager(request, env, path, can) {
     return json({ success: true, summary: describeRules(norm.rules) });
   }
 
+  if (route === "defaults/apply") {
+    const def = (await getDefaults(db))[type];
+    if (def.mode === "none") return fail("The default for this type is \"not available\", so there is nothing to apply.");
+    const rules = await rulesForDefault(db, def);
+    if (!rules.length) return fail("No countries on file to build the default from.");
+    const targets = (await listItems(db, type)).filter((i) => !i.total);
+    if (!body.dry_run) for (const t of targets) { const item = await resolveItem(db, type, t.key); if (item) await writeRules(db, env, type, item, rules); }
+    return json({ success: true, items: targets.length, rules: rules.length, applied: !body.dry_run });
+  }
+
   if (route === "bulk") {
-    const keys = [...new Set((Array.isArray(body.keys) ? body.keys : []).map(String))];
-    if (!keys.length) return fail("Choose at least one item");
-    if (keys.length > MAX_BULK_ITEMS) return fail(`At most ${MAX_BULK_ITEMS} items at once`);
     const action = String(body.action || "");
-    let template = null;
+    // which items: an explicit list, or a whole group
+    let keys;
+    const scope = String(body.scope || "keys");
+    if (scope === "keys") {
+      keys = [...new Set((Array.isArray(body.keys) ? body.keys : []).map(String))];
+      if (!keys.length) return fail("Choose at least one item");
+      if (keys.length > MAX_BULK_ITEMS) return fail(`At most ${MAX_BULK_ITEMS} items at once when you pick them one by one; use "all items" for more`);
+    } else if (["all", "no_rules", "with_rules"].includes(scope)) {
+      const all = await listItems(db, type);
+      keys = all.filter((i) => scope === "all" || (scope === "no_rules" ? !i.total : !!i.total)).map((i) => i.key);
+      if (!keys.length) return fail("No items match that choice");
+    } else return fail("Unknown scope");
+
+    let template = null; let merge = "replace";
     if (action === "apply") {
       const status = body.mode === "allow" ? "allowed" : body.mode === "block" ? "blocked" : null;
       if (!status) return fail("Mode must be allow or block");
-      const norm = await normalizeRules(db, (Array.isArray(body.countries) ? body.countries : []).map((c) => ({ country_code: c, status })));
+      merge = ["replace", "add", "remove"].includes(body.merge) ? body.merge : "replace";
+      const parsed = parseCodes(body.codes !== undefined && body.codes !== "" ? body.codes : (Array.isArray(body.countries) ? body.countries : []));
+      if (parsed.invalid.length) return fail(`Not a two-letter country code: ${parsed.invalid.join(", ")}`);
+      const norm = await normalizeRules(db, parsed.codes.map((c) => ({ country_code: c, status })));
       if (norm.error) return fail(norm.error);
-      if (!norm.rules.length) return fail("Choose at least one country");
+      if (!norm.rules.length) return fail("Enter or choose at least one country");
       template = norm.rules;
     } else if (action === "copy") {
       const from = await resolveItem(db, type, body.from_key);
       if (!from) return fail("Source item not found", 404);
       template = (await readRules(db, type, from)).map((r) => ({ country_code: r.country_code, status: r.status, bonus_override: r.bonus_override }));
+    } else if (action === "default") {
+      const def = (await getDefaults(db))[type];
+      template = await rulesForDefault(db, def);
     } else if (action !== "clear") return fail("Unknown action");
-    let changed = 0;
+
+    let changed = 0, mixed = 0; const names = [];
     for (const k of keys) {
       const item = await resolveItem(db, type, k); if (!item) continue;
       let next = [];
-      if (template) next = template;
-      await writeRules(db, env, type, item, next);
+      if (template && merge === "replace") next = template;
+      else if (template) {
+        const cur = await readRules(db, type, item);
+        const codes = new Set(template.map((r) => r.country_code));
+        next = merge === "add"
+          ? [...cur.filter((r) => !codes.has(r.country_code)), ...template.map((r) => ({ ...r, bonus_override: cur.find((c) => c.country_code === r.country_code)?.bonus_override || r.bonus_override }))]
+          : cur.filter((r) => !codes.has(r.country_code));
+        if (next.length > MAX_RULES) return fail(`${item.name} would have more than ${MAX_RULES} rules`);
+      }
+      if (describeRules(next).mode === "mixed") mixed++;
+      if (names.length < 5) names.push(item.name);
+      if (!body.dry_run) await writeRules(db, env, type, item, next);
       changed++;
     }
-    return json({ success: true, changed });
+    return json({ success: true, changed, mixed, sample: names, applied: !body.dry_run });
   }
 
   if (route === "import") {

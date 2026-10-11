@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createTestDb, applyMigrations } from './support/d1-shim.js';
 import * as contentItems from '../worker/database/content-items.js';
 import { handleAPI } from '../worker/api.js';
-import { describeRules, evaluate, parseCsv, normalizeRules } from '../worker/geo-manager.js';
+import { describeRules, evaluate, parseCsv, normalizeRules, parseCodes } from '../worker/geo-manager.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -29,6 +29,11 @@ describe('rule meaning', () => {
     assert.equal(evaluate([r('US', 'blocked')], 'DE').status, 'allowed');   // block-list
     assert.equal(evaluate([r('US', 'blocked'), r('FR', 'allowed')], 'DE').status, 'blocked'); // mixed
     assert.equal(evaluate([r('US', 'blocked')], 'us').status, 'blocked');
+  });
+  test('country codes can be typed with commas, spaces or semicolons', () => {
+    assert.deepEqual(parseCodes('us, gb;de  fr,US'), { codes: ['US', 'GB', 'DE', 'FR'], invalid: [] });
+    assert.deepEqual(parseCodes('us, usa, 1x, '), { codes: ['US'], invalid: ['USA', '1X'] });
+    assert.deepEqual(parseCodes(''), { codes: [], invalid: [] });
   });
   test('csv parser handles quotes, commas and blank lines', () => {
     assert.deepEqual(parseCsv('a,b\n"x, y","he said ""hi"""\n\n'), [['a', 'b'], ['x, y', 'he said "hi"']]);
@@ -124,6 +129,68 @@ describe('geo manager API', () => {
     assert.equal((await call('POST', '/api/v1/geo-manager/presets/save', { presets: [{ name: 'x', countries: ['QQ'] }] })).status, 400);
   });
 
+  test('bulk: typed codes, add / remove / replace, scopes and dry run', async () => {
+    const b = (x) => call('POST', '/api/v1/geo-manager/bulk', { type: 'casino', ...x });
+    let r = await j(await b({ keys: ['c1', 'c2'], action: 'apply', mode: 'allow', codes: 'us, gb' }));
+    assert.equal(r.changed, 2);
+    r = await j(await b({ keys: ['c1'], action: 'apply', mode: 'allow', codes: 'de', merge: 'add' }));
+    assert.deepEqual((await j(await call('GET', '/api/v1/geo-manager/rules?type=casino&key=c1'))).rules.map((x) => x.country_code), ['DE', 'GB', 'US']);
+    r = await j(await b({ keys: ['c1'], action: 'apply', mode: 'allow', codes: 'gb', merge: 'remove' }));
+    assert.deepEqual((await j(await call('GET', '/api/v1/geo-manager/rules?type=casino&key=c1'))).rules.map((x) => x.country_code), ['DE', 'US']);
+    r = await j(await b({ keys: ['c1'], action: 'apply', mode: 'block', codes: 'fr', merge: 'add' }));
+    assert.equal(r.mixed, 1);                                          // allow-list plus a block now means "custom": the screen warns
+    const dry = await j(await b({ scope: 'all', action: 'clear', dry_run: true }));
+    assert.equal(dry.changed, 2); assert.equal(dry.applied, false);
+    assert.ok((await db.prepare('SELECT COUNT(*) n FROM geo_rules').first()).n > 0);
+    await b({ scope: 'all', action: 'clear' });
+    assert.equal((await db.prepare('SELECT COUNT(*) n FROM geo_rules').first()).n, 0);
+    await call('POST', '/api/v1/geo-manager/save', { type: 'casino', key: 'c1', rules: [{ country_code: 'US', status: 'allowed' }] });
+    r = await j(await b({ scope: 'no_rules', action: 'apply', mode: 'block', codes: 'DE' }));
+    assert.equal(r.changed, 1);                                        // only c2 had no rules
+    assert.equal((await call('POST', '/api/v1/geo-manager/bulk', { type: 'casino', keys: ['c1'], action: 'apply', mode: 'allow', codes: 'US, XYZ' })).status, 400);
+    assert.equal((await call('POST', '/api/v1/geo-manager/bulk', { type: 'casino', keys: ['c1'], action: 'apply', mode: 'allow', codes: 'ZZ' })).status, 400);
+    assert.equal((await b({ scope: 'weird', action: 'clear' })).status, 400);
+  });
+
+  test('defaults: stored per type, validated, applied to new items and to existing ones without rules', async () => {
+    let d = await j(await call('GET', '/api/v1/geo-manager/defaults'));
+    assert.equal(d.defaults.casino.mode, 'none'); assert.equal(d.no_rules.casino, 2);
+    const bad = (defaults) => call('POST', '/api/v1/geo-manager/defaults/save', { defaults });
+    assert.equal((await bad({ casino: { mode: 'sometimes' } })).status, 400);
+    assert.equal((await bad({ casino: { mode: 'except', countries: [] } })).status, 400);
+    assert.equal((await bad({ casino: { mode: 'except', countries: ['QQ'] } })).status, 400);
+    assert.equal((await bad({ nope: { mode: 'none' } })).status, 400);
+    // everyone for casinos, everyone except US/GB for sportsbooks
+    d = await j(await bad({ casino: { mode: 'everyone' }, sportsbook: { mode: 'except', countries: ['us', 'gb'] } }));
+    assert.equal(d.defaults.sportsbook.countries.join(), 'US,GB');
+    // a casino created through the API gets the "everyone" default (every country on file, allowed)
+    const created = await call('POST', '/api/v1/casino/create', { slug: 'c3', name: 'Casino Three', affiliate_url: 'https://c/a', website_url: 'https://c' });
+    assert.equal(created.status, 200);
+    const r3 = await j(await call('GET', '/api/v1/geo-manager/rules?type=casino&key=c3'));
+    assert.equal(r3.rules.length, 4); assert.ok(r3.rules.every((x) => x.status === 'allowed'));
+    const list = await j(await call('GET', '/api/v1/geo-manager/items?type=casino&country=DE'));
+    assert.equal(list.items.find((i) => i.key === 'c3').status_in, 'allowed');
+    // a content item registered with no rules gets the block-list default; one with its own rules keeps them
+    const sb2 = await call('POST', '/api/v1/content-item/create', { content_type: 'sportsbook', slug: 'sb2', name: 'SB2' });
+    const sb2id = (await j(sb2)).item?.id ?? (await db.prepare(`SELECT id FROM content_items WHERE slug='sb2'`).first()).id;
+    const rs = await j(await call('GET', `/api/v1/geo-manager/rules?type=sportsbook&key=${sb2id}`));
+    assert.deepEqual(rs.rules.map((x) => [x.country_code, x.status]), [['GB', 'blocked'], ['US', 'blocked']]);
+    await call('POST', '/api/v1/content-item/create', { content_type: 'sportsbook', slug: 'sb3', name: 'SB3', geo_rules: [{ country_code: 'DE', status: 'allowed' }] });
+    const sb3id = (await db.prepare(`SELECT id FROM content_items WHERE slug='sb3'`).first()).id;
+    assert.deepEqual((await j(await call('GET', `/api/v1/geo-manager/rules?type=sportsbook&key=${sb3id}`))).rules.map((x) => x.country_code), ['DE']);
+    // apply to existing items that have none: preview first, then for real
+    const pre = await j(await call('POST', '/api/v1/geo-manager/defaults/apply', { type: 'casino', dry_run: true }));
+    assert.equal(pre.items, 2); assert.equal(pre.applied, false);
+    const done = await j(await call('POST', '/api/v1/geo-manager/defaults/apply', { type: 'casino' }));
+    assert.equal(done.applied, true);
+    assert.equal((await db.prepare(`SELECT COUNT(*) n FROM geo_rules WHERE casino_slug='c1'`).first()).n, 4);
+    assert.equal((await call('POST', '/api/v1/geo-manager/defaults/apply', { type: 'affiliate_partner' })).status, 400); // that type's default is "not available"
+    // "none" puts things back: new items get no rules
+    await bad({ casino: { mode: 'none' } });
+    await call('POST', '/api/v1/casino/create', { slug: 'c4', name: 'Casino Four', affiliate_url: 'https://c/a', website_url: 'https://c' });
+    assert.equal((await db.prepare(`SELECT COUNT(*) n FROM geo_rules WHERE casino_slug='c4'`).first()).n, 0);
+  });
+
   test('a user without casino or content rights is refused', async () => {
     const editor = { user_id: 9, role: 'editor', email: 'e@test.com' };
     const r = await handleAPI(makeReq('POST', 'https://x.com/api/v1/geo-manager/save', { type: 'casino', key: 'c1', rules: [] }), env, '/api/v1/geo-manager/save', editor);
@@ -141,5 +208,34 @@ describe('Geo rules tab', () => {
   test('the script never writes server text as HTML', () => {
     const js = read('static/js/geo-rules-admin.js');
     assert.doesNotMatch(js, /innerHTML|insertAdjacentHTML|document\.write/);
+  });
+});
+
+describe('Geo Rules section (dedicated pages)', () => {
+  test('every page of the section is routed and rendered with the shared template', async () => {
+    const { getRoute } = await import('../worker/routes.js');
+    const r = (p) => getRoute(new Request('https://site.test' + p));
+    assert.deepEqual(r('/en/dashboard/geo-rules'), { type: 'dashboardGeoRules', section: 'rules' });
+    for (const s of ['defaults', 'bulk', 'import-export', 'presets', 'lookup']) assert.deepEqual(r('/en/dashboard/geo-rules/' + s), { type: 'dashboardGeoRules', section: s });
+    assert.notEqual(r('/en/dashboard/geo-rules/nope').type, 'dashboardGeoRules');
+    const t = read('templates/pages/admin/geo-rules.html');
+    for (const s of ['rules', 'defaults', 'bulk', 'import-export', 'presets', 'lookup']) assert.match(t, new RegExp(`data-gm-link="${s}"`));
+    assert.match(t, /id="gmRoot"[^>]*data-gm-section="\{\{geo_section\}\}"/);
+    const base = read('templates/layout/base.html');
+    assert.match(base, /geo-rules-admin\.js/); assert.match(base, /geo-rules-pages\.js/);
+    assert.ok(base.indexOf('geo-rules-admin.js') < base.indexOf('geo-rules-pages.js'));
+  });
+  test('the menu has a Geo Rules group right after Insights', () => {
+    const nav = read('templates/layout/admin-nav.html');
+    assert.ok(nav.indexOf('data-group="insights"') < nav.indexOf('data-group="geo"') && nav.indexOf('data-group="geo"') < nav.indexOf('data-group="audience"'));
+    for (const s of ['', '/defaults', '/bulk', '/import-export', '/presets', '/lookup']) assert.match(nav, new RegExp(`href="/en/dashboard/geo-rules${s}"`));
+  });
+  test('the pages script never writes server text as HTML', () => {
+    assert.doesNotMatch(read('static/js/geo-rules-pages.js'), /innerHTML|insertAdjacentHTML|document\.write/);
+  });
+  test('the dashboard page renders for an admin and is refused for visitors', async () => {
+    const { renderDashboardGeoRules } = await import('../worker/controllers.js');
+    const res = await renderDashboardGeoRules(new Request('https://site.test/en/dashboard/geo-rules/bulk'), { DB: createTestDb(), ASSETS: { fetch: async () => new Response('nf', { status: 404 }) } }, 'bulk');
+    assert.equal(res.status, 403);
   });
 });

@@ -62,6 +62,7 @@ import {
   renderDashboardAnalytics,
   renderDashboardCampaigns,
   renderDashboardReports,
+  renderDashboardGeoRules,
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
@@ -597,6 +598,8 @@ if (
         return renderDashboardCampaigns(request, env);
       case "dashboardReports":
         return renderDashboardReports(request, env);
+      case "dashboardGeoRules":
+        return renderDashboardGeoRules(request, env, route.section);
 
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);

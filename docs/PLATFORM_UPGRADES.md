@@ -328,3 +328,16 @@ Admin, Reviews, new **Geo rules** tab. One screen for the country rules of casin
 - **Safety:** country codes must exist, statuses are only allowed or blocked, no duplicates, at most 300 rules per item. An item with no rules is treated as not available (existing behaviour, stated on the screen). Casino rule changes clear the public casino cache. Permissions: casinos need casino rights, other types need content rights.
 
 API: `/api/v1/geo-manager/` meta, items, rules, export (GET); save, bulk, import, presets/save (POST). No migrations, no deletions.
+
+## 25. Geo Rules section (v19.9)
+
+A dedicated **Geo Rules** group in the admin menu, right after Insights, with six pages. Everything from v19.8 is kept (the Reviews tab still works and links to the full section). Nothing about how visitors are evaluated changes.
+
+- **Rules** (`/en/dashboard/geo-rules`): the list and editor from v19.8. The editor now also takes typed country codes ("US, GB; de fr"), and a link such as `?type=casino&edit=<key>` opens an item straight in the editor.
+- **Default rules** (`/defaults`): per type (casinos, sportsbooks, affiliate partners, custom) choose what an item gets when it is registered with no country rules: **not available** (today's behaviour, and the starting setting), **available to everyone** (allowed in every country on file) or **available to everyone except** a list (a block-list). It is applied when a casino or content item is created without its own rules; rules typed on the form always win, and clearing rules on an item later is still respected. "Apply to items without rules" gives the saved default to existing items that have none, with a count and a confirmation first. Stored in setting `geo_defaults`.
+- **Bulk changes** (`/bulk`): pick a type, pick the items (tick them, or all items, only items without rules, only items with rules), then set, add to, or remove from their countries, copy another item's rules, give them the type's default, or clear them. Countries can be picked, chosen from presets, or typed as codes separated by commas, spaces or semicolons, with live feedback on codes that are wrong or not on file. A preview shows how many items change; applying asks for confirmation. Mixing allowed and blocked countries is reported, since it makes a custom list.
+- **Import & export** (`/import-export`): CSV download per type; CSV import from a file or pasted text, checked fully first (nothing changes if any row is wrong).
+- **Presets** (`/presets`): add, edit and delete the one-click country groups.
+- **Country lookup** (`/lookup`): choose a country and see, for every type, which items its visitors can reach, filter by available or not, and jump to an item's rules.
+
+API additions under `/api/v1/geo-manager/`: `defaults` (GET), `defaults/save`, `defaults/apply`; `bulk` now accepts `codes`, `merge` (replace, add, remove), `scope` (keys, all, no_rules, with_rules), `dry_run` and the actions `copy`, `default`, `clear`. No migrations, no deletions.

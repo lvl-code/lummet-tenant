@@ -1169,6 +1169,7 @@ if (path === "/api/v1/content-item/create" && request.method === "POST") {
   }
   if (Array.isArray(body.category_ids)) await contentItemsDB.setContentItemCategories(env.DB, body.content_type, item.id, body.category_ids.map(Number).filter(Number.isInteger));
   if (geoCheck.rules) await contentItemsDB.setContentItemGeoRules(env.DB, body.content_type, item.id, geoCheck.rules);
+  if (!geoCheck.rules || !geoCheck.rules.length) { const { applyDefaultToNewItem } = await import("./geo-manager.js"); await applyDefaultToNewItem(env.DB, env, body.content_type, String(item.id)); }
   await logAudit(env.DB, { userId: user.user_id, action: "create", entityType: "content_item", entityId: item.id, metadata: { content_type: body.content_type, slug: body.slug, name: body.name } });
   return success({ item });
 }
@@ -5363,6 +5364,7 @@ async function createCasino(request, env, user) {
   // SECURITY: set ownership server-side, never trust body.created_by
   body.created_by = user.user_id;
   const casinoId = await casinos.createCasino(env.DB, body);
+  { const { applyDefaultToNewItem } = await import("./geo-manager.js"); await applyDefaultToNewItem(env.DB, env, "casino", body.slug); }
   if (Array.isArray(body.category_ids)) {
     await casinos.setCasinoCategories(
       env.DB,

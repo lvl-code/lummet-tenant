@@ -22,7 +22,7 @@
   }
   function toast(kind, msg) {
     var box = root.querySelector(".gm-alert");
-    if (!box) return;
+    if (!box) { box = el("div", { class: "gm-alert alert", style: "display:none", role: "status" }); root.insertBefore(box, root.firstChild); }
     box.className = "gm-alert alert alert--" + kind; box.textContent = msg; box.style.display = "block";
     clearTimeout(toast.t); toast.t = setTimeout(function () { box.style.display = "none"; }, 6000);
   }
@@ -138,6 +138,34 @@
   function closeModal() { root.querySelector("#gmPanelSlot").textContent = ""; }
   var cancelBtn = function () { return el("button", { type: "button", class: "btn btn--ghost", text: "Cancel", onclick: closeModal }); };
 
+  // "us, gb;de fr" -> {codes, invalid, unknown}; used by every country box on the screens.
+  function parseCodes(text) {
+    var codes = [], invalid = [], unknown = [], known = {};
+    (state.meta.countries || []).forEach(function (c) { known[c.code] = true; });
+    String(text || "").split(/[\s,;]+/).map(function (x) { return x.trim().toUpperCase(); }).filter(Boolean).forEach(function (t) {
+      if (!/^[A-Z]{2}$/.test(t)) { invalid.push(t); return; }
+      if (!known[t]) { unknown.push(t); return; }
+      if (codes.indexOf(t) < 0) codes.push(t);
+    });
+    return { codes: codes, invalid: invalid, unknown: unknown };
+  }
+  // text box for typed codes with live feedback; onAdd(codes) is called when the user presses Add
+  function codesBox(onAdd, label) {
+    var ta = el("textarea", { class: "gm-input gm-codes", rows: "2", placeholder: "Type country codes separated by commas, e.g. US, GB, DE", "aria-label": label || "Country codes" });
+    var msg = el("small", { class: "muted gm-codesmsg" });
+    function check() {
+      var r = parseCodes(ta.value); msg.textContent = "";
+      if (!ta.value.trim()) return r;
+      var bits = [r.codes.length + " valid"]; if (r.invalid.length) bits.push("not codes: " + r.invalid.join(", ")); if (r.unknown.length) bits.push("not on file: " + r.unknown.join(", "));
+      msg.textContent = bits.join(" · "); return r;
+    }
+    ta.addEventListener("input", check);
+    var add = el("button", { type: "button", class: "btn btn--ghost btn--sm", text: "Add these codes", onclick: function () {
+      var r = check(); if (r.invalid.length || r.unknown.length) return toast("error", "Fix the codes marked above first."); if (!r.codes.length) return;
+      onAdd(r.codes); ta.value = ""; msg.textContent = "";
+    } });
+    return { node: el("div", { class: "gm-codeswrap" }, [ta, msg, add]), value: function () { return ta.value; }, check: check };
+  }
   function picker(initial) {
     // a country multi-picker with presets; returns {node, get()}
     var set = {}; (initial || []).forEach(function (c) { set[c] = true; });
@@ -156,17 +184,22 @@
     }));
     presets.appendChild(el("button", { type: "button", class: "btn btn--ghost btn--sm", text: "Clear", onclick: function () { set = {}; paint(); } }));
     paint();
-    return { node: el("div", {}, [sel, presets, chips]), get: function () { return Object.keys(set); } };
+    var cb = codesBox(function (codes) { codes.forEach(function (c) { set[c] = true; }); paint(); });
+    return { node: el("div", {}, [sel, cb.node, presets, chips]), get: function () { return Object.keys(set); }, add: function (codes) { codes.forEach(function (c) { set[c] = true; }); paint(); } };
   }
   function modeSelect() {
     var s = el("select", { class: "gm-select" }, [el("option", { value: "allow", text: "Allow only these countries" }), el("option", { value: "block", text: "Block these countries (allow all others)" })]);
     return s;
   }
+  function mergeSelect() {
+    return el("select", { class: "gm-select", "aria-label": "How to combine" }, [el("option", { value: "replace", text: "Replace the existing countries" }), el("option", { value: "add", text: "Add to the existing countries" }), el("option", { value: "remove", text: "Remove from the existing countries" })]);
+  }
   function showBulkApply() {
-    var keys = Object.keys(state.selected), m = modeSelect(), p = picker([]);
-    modal("Set countries for " + keys.length + " item(s)", el("div", {}, [el("p", { class: "muted", text: "This replaces the existing country rules of the selected items." }), m, p.node]), [
+    var keys = Object.keys(state.selected), m = modeSelect(), mg = mergeSelect(), p = picker([]);
+    modal("Set countries for " + keys.length + " item(s)", el("div", { class: "gm-stack" }, [mg, m, p.node]), [
       el("button", { type: "button", class: "btn btn--primary", text: "Apply to selected", onclick: function () {
-        api("bulk", { type: state.type, keys: keys, action: "apply", mode: m.value, countries: p.get() }).then(function (d) { done(d, "Updated " + (d.changed || 0) + " item(s)."); });
+        if (!p.get().length) return toast("error", "Choose or type at least one country.");
+        api("bulk", { type: state.type, keys: keys, action: "apply", mode: m.value, merge: mg.value, countries: p.get() }).then(function (d) { done(d, "Updated " + (d.changed || 0) + " item(s)." + (d.mixed ? " " + d.mixed + " now mix allowed and blocked countries." : "")); });
       } }), cancelBtn()]);
   }
   function showBulkCopy() {
@@ -246,6 +279,10 @@
       if (!e.rules.some(function (r) { return r.country_code === addSel.value; })) e.rules.push({ country_code: addSel.value, status: curMode === "block" ? "blocked" : "allowed", bonus_override: "" });
       addSel.value = ""; repaint();
     });
+    var typed = codesBox(function (codes) {
+      codes.forEach(function (c) { if (!e.rules.some(function (r) { return r.country_code === c; })) e.rules.push({ country_code: c, status: curMode === "block" ? "blocked" : "allowed", bonus_override: "" }); });
+      repaint();
+    });
     var presets = el("div", { class: "gm-presets" }, (state.meta.presets || []).map(function (p) {
       return el("button", { type: "button", class: "btn btn--ghost btn--sm", title: p.countries.join(", "), text: "+ " + p.name, onclick: function () {
         p.countries.forEach(function (c) { if (!e.rules.some(function (r) { return r.country_code === c; })) e.rules.push({ country_code: c, status: curMode === "block" ? "blocked" : "allowed", bonus_override: "" }); });
@@ -265,6 +302,7 @@
     card.appendChild(modeSel);
     card.appendChild(el("label", { class: "gm-label", text: "Countries" }));
     card.appendChild(el("div", { class: "gm-addrow" }, [addSel]));
+    card.appendChild(typed.node);
     card.appendChild(presets);
     card.appendChild(list);
     card.appendChild(el("div", { class: "gm-testbox" }, [el("strong", { text: "Check a visitor's country" }), testSel, testOut]));
@@ -324,15 +362,28 @@
   }
 
   // load on first view of the tab
+  var metaP = null;
+  function loadMeta() {
+    if (!metaP) metaP = api("meta").then(function (m) {
+      if (m.error) throw new Error(m.error);
+      state.meta = m; if (m.types.length && !m.types.some(function (t) { return t.key === state.type; })) state.type = m.types[0].key;
+      return m;
+    });
+    return metaP;
+  }
   function boot() {
     if (state.loaded) return; state.loaded = true;
-    api("meta").then(function (m) {
-      if (m.error) { root.textContent = m.error; state.loaded = false; return; }
-      state.meta = m; if (m.types.length && !m.types.some(function (t) { return t.key === state.type; })) state.type = m.types[0].key;
+    loadMeta().then(function (m) {
       if (!m.types.length) { root.textContent = "You do not have access to any geo rules."; return; }
-      load();
-    }).catch(function () { state.loaded = false; root.textContent = "Could not load. Reload the page and try again."; });
+      var q = new URLSearchParams(location.search), want = q.get("edit");
+      if (want && q.get("type") && m.types.some(function (t) { return t.key === q.get("type"); })) state.type = q.get("type");
+      return load().then(function () { if (want) { var it = state.items.filter(function (i) { return i.key === want; })[0]; if (it) openEditor(it); } });
+    }).catch(function (e) { state.loaded = false; root.textContent = (e && e.message) || "Could not load. Reload the page and try again."; });
   }
+  // The other sections of the dedicated page use these (see geo-rules-pages.js).
+  window.GeoRulesKit = { el: el, api: api, state: state, loadMeta: loadMeta, countryOptions: countryOptions, badge: badge, picker: picker, codesBox: codesBox, parseCodes: parseCodes, cname: cname, toast: toast, MODE_LABEL: MODE_LABEL, evaluate: evaluate, modeOf: modeOf, root: root };
+  var gmSection = root.getAttribute("data-gm-section") || "rules";
+  if (root.hasAttribute("data-gm-page") && gmSection === "rules") boot();
   Array.prototype.forEach.call(document.querySelectorAll("[data-rv-tab='geo']"), function (t) { t.addEventListener("click", boot); });
   if ((location.hash || "") === "#geo") boot();
   window.addEventListener("beforeunload", function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ""; } });

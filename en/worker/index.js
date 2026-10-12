@@ -93,6 +93,7 @@ import {
   renderDashboardSettings,
   renderDashboardHeaderHero,
   renderDashboardAI,
+  renderDashboardAiStudio,
   renderCategoryList,
   renderPaymentMethodList,
   renderPaymentMethod,
@@ -533,6 +534,8 @@ if (
         return renderDashboardHeaderHero(request, env);
       case "dashboardAI":
         return renderDashboardAI(request, env);
+      case "dashboardAiStudio":
+        return renderDashboardAiStudio(request, env);
       case "dashboardCategories":
         return renderDashboardCategories(request, env);
       case "dashboardPaymentMethods":

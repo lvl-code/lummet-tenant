@@ -6562,6 +6562,9 @@ export async function renderDashboardHeaderHero(request, env) {
 export async function renderDashboardAI(request, env) {
   return renderAdminPage(request, env, "admin/ai.html");
 }
+export async function renderDashboardAiStudio(request, env) {
+  return renderAdminPage(request, env, "admin/ai-studio.html");
+}
 
 async function renderUserPage(request, env, template) {
   const user = await getCurrentUser(request, env);

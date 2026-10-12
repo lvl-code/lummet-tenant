@@ -1,0 +1,277 @@
+// AI Studio (admin). Picks a tool, collects what it needs, shows the result for editing, and saves drafts only.
+// All text goes in with textContent, never as HTML.
+(function () {
+  "use strict";
+  var root = document.getElementById("asRoot");
+  if (!root) return;
+  var API = "/api/v1/ai-studio/";
+  var S = { meta: null, task: null, group: null, item: null, items: [], research: null, result: null, edit: null, busy: false };
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "class") n.className = attrs[k]; else if (k === "text") n.textContent = attrs[k];
+      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]); else n.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function api(path, body) {
+    var opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+    return fetch(API + path, opt).then(function (r) { return r.json().then(function (d) { d._status = r.status; return d; }); })
+      .catch(function () { return { error: "Network problem. Try again.", _status: 0 }; });
+  }
+  function say(kind, msg) {
+    var b = root.querySelector(".as-alert");
+    if (!b) { b = el("div", { class: "as-alert alert", role: "status" }); root.insertBefore(b, root.firstChild); }
+    b.className = "as-alert alert alert--" + kind; b.textContent = msg; b.style.display = "block";
+    window.scrollTo({ top: root.offsetTop, behavior: "smooth" });
+  }
+  var $ = function (id) { return document.getElementById(id); };
+  var GROUPS = ["Content", "Research", "News", "Language", "SEO"];
+  var NEEDS_TEXT = { translate: "Text or HTML to translate", rewrite: "Text to improve", summarize: "Text to summarise", headlines: "Article or summary", social_posts: "Article or summary", suggest_tags: "Article text", seo_pack: "Page text",
+    research_draft: "Notes and pasted source text (optional)", research_claims: "Text to take claims from", research_factcheck: "The draft to check", research_brief: "Text to summarise", news_article: "Notes or source text (optional)" };
+  var NEEDS_TOPIC = { research_draft: "Topic", news_article: "Story brief", seo_pack: "Page title (optional)" };
+  var NEEDS_URLS = { research_draft: 1, research_claims: 1, research_factcheck: 1, research_brief: 1, news_article: 1 };
+
+  function taskInfo(id) { return (S.meta.tasks || []).filter(function (t) { return t.id === id; })[0]; }
+
+  function labelled(label, ctl, hint) { return el("label", { class: "as-field" }, [el("span", { class: "as-label", text: label }), ctl, hint ? el("small", { class: "muted", text: hint }) : null]); }
+
+  // ---------- item picker ----------
+  function picker(multi, onPick, types) {
+    var wrap = el("div", { class: "as-picker" });
+    var type = el("select", { class: "gm-select", "aria-label": "Type" });
+    types.forEach(function (t) { type.appendChild(el("option", { value: t[0], text: t[1] })); });
+    var q = el("input", { class: "gm-input", type: "search", placeholder: "Search by name", "aria-label": "Search" });
+    var list = el("select", { class: "gm-select", "aria-label": "Results" });
+    var timer;
+    function load() {
+      api("items?type=" + encodeURIComponent(type.value) + "&q=" + encodeURIComponent(q.value)).then(function (d) {
+        list.textContent = "";
+        // nothing is chosen until the editor chooses it, so a save can never land on an item they did not pick
+        list.appendChild(el("option", { value: "", text: (d.items || []).length ? "Choose..." : (d.error || "Nothing found") }));
+        (d.items || []).forEach(function (it) { list.appendChild(el("option", { value: it.key, text: it.name })); });
+      });
+    }
+    type.addEventListener("change", load);
+    q.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(load, 250); });
+    list.addEventListener("change", function () { if (!multi && list.value) onPick({ type: type.value, key: list.value, name: list.options[list.selectedIndex].text }); });
+    wrap.appendChild(type); wrap.appendChild(q); wrap.appendChild(list);
+    if (multi) wrap.appendChild(el("button", { type: "button", class: "btn btn--small", text: "Add", onclick: function () { if (list.value) onPick({ type: type.value, key: list.value, name: list.options[list.selectedIndex].text }); } }));
+    load();
+    return wrap;
+  }
+  var ITEM_TYPES = [["casino", "Casino"], ["sportsbook", "Sportsbook"], ["affiliate_partner", "Affiliate partner"], ["custom", "Custom content"]];
+
+  // ---------- screens ----------
+  function render() {
+    root.textContent = "";
+    var tabs = el("nav", { class: "rv-tabs gm-subnav", "aria-label": "AI Studio" }, [
+      el("button", { type: "button", class: "rv-tab" + (S.view !== "audit" ? " is-on" : ""), text: "Tools", onclick: function () { S.view = "tools"; render(); } }),
+      el("button", { type: "button", class: "rv-tab" + (S.view === "audit" ? " is-on" : ""), text: "Content audit", onclick: function () { S.view = "audit"; render(); } })
+    ]);
+    root.appendChild(tabs);
+    if (!S.meta.available) root.appendChild(el("div", { class: "alert alert--warning", text: "The AI service is not connected on this site, so tools cannot generate text. The content audit still works." }));
+    if (S.view === "audit") return renderAudit();
+    renderTools();
+  }
+
+  function renderTools() {
+    var groups = GROUPS.filter(function (g) { return (S.meta.tasks || []).some(function (t) { return t.group === g; }); });
+    if (!S.group) S.group = groups[0];
+    root.appendChild(el("div", { class: "as-groups" }, groups.map(function (g) {
+      return el("button", { type: "button", class: "as-chip" + (g === S.group ? " is-on" : ""), text: g, onclick: function () { S.group = g; S.task = null; S.result = null; render(); } });
+    })));
+    var cards = el("div", { class: "as-cards" });
+    (S.meta.tasks || []).filter(function (t) { return t.group === S.group; }).forEach(function (t) {
+      cards.appendChild(el("button", { type: "button", class: "as-card" + (S.task === t.id ? " is-on" : ""), onclick: function () { S.task = t.id; S.result = null; S.item = null; S.items = []; S.research = null; render(); } }, [
+        el("strong", { text: t.label }), el("span", { class: "muted", text: t.help })
+      ]));
+    });
+    root.appendChild(cards);
+    if (!S.task) { root.appendChild(el("p", { class: "muted", text: "Pick a tool above." })); return; }
+    root.appendChild(renderForm(taskInfo(S.task)));
+    if (S.result) root.appendChild(renderResult());
+  }
+
+  function renderForm(t) {
+    var f = el("div", { class: "gm-card as-form" }, [el("h3", { text: t.label }), el("p", { class: "muted", text: t.help })]);
+    if (t.needs.indexOf("item") >= 0) {
+      f.appendChild(labelled("Item", picker(false, function (it) { S.item = it; var s = $("asPicked"); if (s) s.textContent = "Selected: " + it.name; }, ITEM_TYPES)));
+      f.appendChild(el("div", { id: "asPicked", class: "muted", text: S.item ? "Selected: " + S.item.name : "" }));
+    }
+    if (t.needs.indexOf("items") >= 0) {
+      f.appendChild(labelled("Items to compare (2 to 4)", picker(true, function (it) {
+        if (S.items.length < 4 && !S.items.some(function (x) { return x.key === it.key && x.type === it.type; })) S.items.push(it);
+        drawChips();
+      }, ITEM_TYPES)));
+      f.appendChild(el("div", { id: "asChips", class: "as-chips" })); setTimeout(drawChips, 0);
+    }
+    if (NEEDS_TOPIC[t.id]) f.appendChild(labelled(NEEDS_TOPIC[t.id], el("input", { id: "asTopic", class: "gm-input", type: "text", maxlength: "300" })));
+    if (t.id === "research_draft") {
+      var rt = el("select", { id: "asRType", class: "gm-select" });
+      ["report", "country", "regulator", "topic", "development", "legislation", "licence"].forEach(function (x) { rt.appendChild(el("option", { value: x, text: x })); });
+      rt.value = "topic";
+      f.appendChild(labelled("Research type", rt));
+    }
+    if (t.id === "research_draft" || t.id === "item_review") f.appendChild(labelled("Country (optional)", el("input", { id: "asCountry", class: "gm-input", type: "text", maxlength: "40", placeholder: "e.g. Kenya" })));
+    if (t.id === "translate") f.appendChild(labelled("Language", el("input", { id: "asLang", class: "gm-input", type: "text", maxlength: "40", value: "French" })));
+    if (t.id === "rewrite") {
+      var m = el("select", { id: "asMode", class: "gm-select" });
+      (S.meta.rewrite_modes || []).forEach(function (x) { m.appendChild(el("option", { value: x, text: x })); });
+      f.appendChild(labelled("How to improve it", m));
+    }
+    if (NEEDS_TEXT[t.id]) f.appendChild(labelled(NEEDS_TEXT[t.id], el("textarea", { id: "asText", class: "as-text", rows: "8", maxlength: "12000" })));
+    if (NEEDS_URLS[t.id]) f.appendChild(labelled("Web addresses to read (up to 3, one per line)", el("textarea", { id: "asUrls", class: "as-text", rows: "3", placeholder: "https://..." }), "The page text is read by the server, summarised by the AI, and never saved unless you save a draft."));
+    if (t.id === "research_factcheck") {
+      f.appendChild(labelled("Compare with saved claims of a research item (optional)", picker(false, function (it) { S.research = it; }, [["research", "Research item"]])));
+    }
+    f.appendChild(el("div", { class: "as-actions" }, [
+      el("button", { type: "button", id: "asRun", class: "btn btn--primary", text: S.busy ? "Working..." : "Generate", onclick: run })
+    ]));
+    return f;
+  }
+  function drawChips() {
+    var box = $("asChips"); if (!box) return; box.textContent = "";
+    S.items.forEach(function (it, n) { box.appendChild(el("span", { class: "gm-chip as-chip2" }, [it.name + " ", el("button", { type: "button", "aria-label": "Remove " + it.name, text: "x", onclick: function () { S.items.splice(n, 1); drawChips(); } })])); });
+  }
+  var val = function (id) { var n = $(id); return n ? n.value : ""; };
+
+  function run() {
+    if (S.busy) return;
+    var t = taskInfo(S.task), input = {};
+    if (t.needs.indexOf("item") >= 0 && !S.item) { say("warning", "Choose an item first."); return; }
+    if (t.needs.indexOf("items") >= 0 && S.items.length < 2) { say("warning", "Add at least two items to compare."); return; }
+    if (S.item) input.item = { type: S.item.type, key: S.item.key };
+    if (S.items.length) input.items = S.items.map(function (x) { return { type: x.type, key: x.key }; });
+    input.text = val("asText"); input.topic = val("asTopic"); input.country = val("asCountry");
+    if (val("asLang")) input.language = val("asLang"); if (val("asMode")) input.mode = val("asMode"); if (val("asRType")) input.research_type = val("asRType");
+    var urls = val("asUrls").split(/\s+/).filter(Boolean); if (urls.length) input.urls = urls.slice(0, 3);
+    if (S.research && t.id === "research_factcheck") input.research_item_id = Number(S.research.key);
+    S.busy = true; S.result = null; var b = $("asRun"); if (b) { b.textContent = "Working..."; b.disabled = true; }
+    api("run", { task: S.task, input: input }).then(function (d) {
+      S.busy = false;
+      if (d.error || d.success === false) { say("error", d.error || "That did not work."); render(); return; }
+      if (!d.generated) { say("warning", d.message || "Nothing was generated."); if (d.source_errors && d.source_errors.length) say("warning", d.message + " " + d.source_errors.map(function (e) { return e.error; }).join(" ")); render(); return; }
+      S.result = d; S.edit = JSON.parse(JSON.stringify(d.data || {})); render();
+      var r = document.querySelector(".as-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  // ---------- results ----------
+  function field(label, key, multi) {
+    var c = multi ? el("textarea", { class: "as-text", rows: "5" }) : el("input", { class: "gm-input", type: "text" });
+    c.value = S.edit[key] || ""; c.addEventListener("input", function () { S.edit[key] = c.value; });
+    return labelled(label, c);
+  }
+  function copyBtn(getText) {
+    return el("button", { type: "button", class: "btn", text: "Copy", onclick: function () {
+      var t = getText();
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { say("success", "Copied."); }, function () { say("warning", "Could not copy. Select the text and copy it."); });
+      else say("warning", "Could not copy. Select the text and copy it.");
+    } });
+  }
+  function save(target, payload, okMsg) {
+    api("apply", { target: target, payload: payload }).then(function (d) {
+      if (d.error || d.success === false) say("error", d.error || "Could not save."); else say("success", okMsg(d));
+    });
+  }
+  function renderResult() {
+    var r = S.result, t = S.task;
+    var box = el("div", { class: "gm-card as-result" }, [el("h3", { text: "Result" }), el("p", { class: "muted", text: "Review and edit before using it. Nothing has been saved or published." })]);
+    if (r.sources && r.sources.length) box.appendChild(el("p", { class: "muted", text: "Read: " + r.sources.map(function (s) { return s.url; }).join(", ") }));
+    if (r.source_errors && r.source_errors.length) box.appendChild(el("p", { class: "muted", text: "Could not read: " + r.source_errors.map(function (s) { return s.url + " (" + s.error + ")"; }).join("; ") }));
+    var actions = el("div", { class: "as-actions" });
+    if (r.kind === "text") {
+      var ta = el("textarea", { class: "as-text as-out", rows: "16" }); ta.value = r.text; ta.addEventListener("input", function () { r.text = ta.value; });
+      box.appendChild(ta); actions.appendChild(copyBtn(function () { return r.text; }));
+    } else if (t === "item_description") {
+      ["title", "excerpt", "seo_title", "seo_description", "seo_keywords"].forEach(function (k) { box.appendChild(field(k.replace("_", " "), k, false)); });
+      box.appendChild(field("description", "description", true));
+      if (S.item) actions.appendChild(el("button", { type: "button", class: "btn btn--primary", text: "Save to " + S.item.name, onclick: function () {
+        if (!window.confirm("Fill these fields on " + S.item.name + "? Existing values in them will be replaced. It stays published or unpublished as it is.")) return;
+        save("item_fields", { type: S.item.type, key: S.item.key, fields: S.edit }, function (d) { return "Saved " + d.saved + " field(s)."; });
+      } }));
+      actions.appendChild(copyBtn(function () { return JSON.stringify(S.edit, null, 2); }));
+    } else if (t === "item_faqs") {
+      (S.edit || []).forEach(function (q) { box.appendChild(el("div", { class: "as-faq" }, [el("strong", { text: q.q }), el("p", { text: q.a })])); });
+      actions.appendChild(copyBtn(function () { return S.edit.map(function (q) { return "Q: " + q.q + "\nA: " + q.a; }).join("\n\n"); }));
+    } else if (t === "news_article") {
+      ["title", "excerpt", "tags", "seo_title", "seo_description"].forEach(function (k) { box.appendChild(field(k.replace("_", " "), k, false)); });
+      box.appendChild(field("content", "content", true));
+      actions.appendChild(el("button", { type: "button", class: "btn btn--primary", text: "Save as unpublished news draft", onclick: function () { save("news_draft", S.edit, function (d) { return "Saved as a draft: " + d.slug + ". Find it under News."; }); } }));
+    } else if (t === "research_draft") {
+      ["title", "subtitle", "excerpt", "seo_title", "seo_description"].forEach(function (k) { box.appendChild(field(k.replace("_", " "), k, false)); });
+      (S.edit.sections || []).forEach(function (s, n) {
+        var h = el("input", { class: "gm-input", type: "text" }); h.value = s.title; h.addEventListener("input", function () { s.title = h.value; });
+        var b = el("textarea", { class: "as-text", rows: "6" }); b.value = s.body; b.addEventListener("input", function () { s.body = b.value; });
+        box.appendChild(el("div", { class: "as-sec" }, [labelled("Section " + (n + 1) + " heading", h), labelled("Text", b)]));
+      });
+      actions.appendChild(el("button", { type: "button", class: "btn btn--primary", text: "Save as research draft", onclick: function () {
+        var p = JSON.parse(JSON.stringify(S.edit)); p.type = val("asRType") || "topic";
+        save("research_draft", p, function (d) { return "Saved as a draft (not published): " + d.slug + ". Find it under Research."; });
+      } }));
+    } else if (t === "research_claims") {
+      var chosen = {}; (S.edit || []).forEach(function (c, n) { chosen[n] = true; });
+      (S.edit || []).forEach(function (c, n) {
+        var cb = el("input", { type: "checkbox", checked: "checked" }); cb.addEventListener("change", function () { chosen[n] = cb.checked; });
+        box.appendChild(el("label", { class: "as-claim" }, [cb, el("span", { text: " [" + c.claim_type + "] " + c.claim_text })]));
+      });
+      box.appendChild(labelled("Save the ticked claims to this research item", picker(false, function (it) { S.research = it; }, [["research", "Research item"]]), "They are saved as unverified."));
+      actions.appendChild(el("button", { type: "button", class: "btn btn--primary", text: "Save ticked claims", onclick: function () {
+        if (!S.research) { say("warning", "Pick the research item first."); return; }
+        var claims = (S.edit || []).filter(function (c, n) { return chosen[n]; });
+        save("research_claims", { research_item_id: Number(S.research.key), claims: claims }, function (d) { return "Saved " + d.saved + " unverified claim(s)."; });
+      } }));
+    } else if (t === "research_factcheck") {
+      box.appendChild(el("p", { class: "gm-badge " + (S.edit.verdict === "ok" ? "gm-badge--ok" : "gm-badge--warn"), text: S.edit.verdict === "ok" ? "No problems found" : "Needs work" }));
+      (S.edit.issues || []).forEach(function (i) { box.appendChild(el("div", { class: "as-faq" }, [el("strong", { text: i.statement }), el("p", { text: i.problem + (i.suggestion ? ": " + i.suggestion : "") })])); });
+    } else if (t === "research_brief") {
+      box.appendChild(el("p", { text: S.edit.summary }));
+      box.appendChild(el("strong", { text: "Key points" })); box.appendChild(el("ul", {}, (S.edit.key_points || []).map(function (x) { return el("li", { text: x }); })));
+      box.appendChild(el("strong", { text: "Still unanswered" })); box.appendChild(el("ul", {}, (S.edit.open_questions || []).map(function (x) { return el("li", { text: x }); })));
+    } else if (t === "social_posts") {
+      ["x", "linkedin", "facebook", "telegram"].forEach(function (k) { box.appendChild(field(k, k, true)); });
+    } else if (t === "seo_pack") {
+      ["seo_title", "seo_description", "seo_keywords"].forEach(function (k) { box.appendChild(field(k.replace("_", " "), k, false)); });
+      actions.appendChild(copyBtn(function () { return JSON.stringify(S.edit, null, 2); }));
+    } else if (Array.isArray(S.edit)) {
+      box.appendChild(el("ul", {}, S.edit.map(function (x) { return el("li", { text: String(x) }); })));
+      actions.appendChild(copyBtn(function () { return S.edit.join("\n"); }));
+    } else {
+      box.appendChild(el("pre", { class: "as-pre", text: JSON.stringify(S.edit, null, 2) }));
+    }
+    box.appendChild(actions);
+    return box;
+  }
+
+  // ---------- audit ----------
+  function renderAudit() {
+    var card = el("div", { class: "gm-card" }, [el("h3", { text: "Content audit" }), el("p", { class: "muted", text: "Published items that are missing basics. This check does not use the AI." })]);
+    root.appendChild(card);
+    api("audit").then(function (d) {
+      if (d.error) { card.appendChild(el("p", { text: d.error })); return; }
+      if (!d.total) card.appendChild(el("p", { text: "Nothing is missing. Good." }));
+      (d.groups || []).forEach(function (g) {
+        if (!g.items.length) return;
+        card.appendChild(el("h4", { text: g.label + " (" + g.items.length + ")" }));
+        card.appendChild(el("ul", {}, g.items.map(function (it) {
+          var li = el("li", {}, [it.name + " "]);
+          if (/^(casino|sportsbook|affiliate_partner|custom)$/.test(it.type) && /seo|thin/.test(g.key)) {
+            li.appendChild(el("button", { type: "button", class: "btn btn--small", text: "Write copy", onclick: function () {
+              S.view = "tools"; S.group = "Content"; S.task = "item_description"; S.item = { type: it.type, key: it.key, name: it.name }; S.result = null; render();
+            } }));
+          }
+          return li;
+        })));
+      });
+    });
+  }
+
+  S.view = "tools";
+  api("meta").then(function (m) {
+    if (m.error || !m.tasks) { root.textContent = m.error || "AI Studio is not available for your role."; return; }
+    S.meta = m; render();
+  });
+})();

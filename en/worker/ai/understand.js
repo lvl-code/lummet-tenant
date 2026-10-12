@@ -20,6 +20,8 @@ const SCHEMA_DESCRIPTION = `Database tables and columns:
 - payment_methods: name, slug, method_type (card/ewallet/crypto/bank/other), description — joined to casinos via casino_payment_methods
 - nav_items: label, url, location (header/footer/etc) — the site's menu/navigation structure
 - components / page_components: homepage sections and other reusable public page blocks (type, title)
+- content_items: sportsbooks, affiliate partners and custom listings (content_type, name, title, excerpt, description, rating, license)
+- research_items: published research (type report/country/regulator/topic/development/legislation/licence; title, excerpt, country)
 - seo_pages: country-specific guide pages (page_type='country_custom', /en/country/:code/:slug) and category×country hub pages (page_type='category_country', /en/category/:slug/:code)`;
 
 export function buildUnderstandPrompt(site) {
@@ -119,7 +121,7 @@ export async function understand(env, message, conversationHistory = [], request
 }
 
 function normalizePlan(plan) {
-  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta', 'payment_methods', 'nav_items', 'components', 'seo_pages'];
+  const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta', 'payment_methods', 'nav_items', 'components', 'seo_pages', 'content_items', 'research_items'];
 
   return {
     intent: plan.intent || 'general',

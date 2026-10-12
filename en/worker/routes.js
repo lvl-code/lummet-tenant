@@ -467,6 +467,7 @@ export function getRoute(request) {
   if (path === "/en/dashboard/settings") return { type: "dashboardSettings" };
   if (path === "/en/dashboard/header-hero") return { type: "dashboardHeaderHero" };
   if (path === "/en/dashboard/ai") return { type: "dashboardAI" };
+  if (path === "/en/dashboard/ai-studio") return { type: "dashboardAiStudio" };
   if (path === "/en/category") return { type: "categoryList" };
   if (path === "/en/country") return { type: "countryList" };
   if (path === "/en/dashboard/categories") return { type: "dashboardCategories" };

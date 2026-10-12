@@ -341,3 +341,26 @@ A dedicated **Geo Rules** group in the admin menu, right after Insights, with si
 - **Country lookup** (`/lookup`): choose a country and see, for every type, which items its visitors can reach, filter by available or not, and jump to an item's rules.
 
 API additions under `/api/v1/geo-manager/`: `defaults` (GET), `defaults/save`, `defaults/apply`; `bulk` now accepts `codes`, `merge` (replace, add, remove), `scope` (keys, all, no_rules, with_rules), `dry_run` and the actions `copy`, `default`, `clear`. No migrations, no deletions.
+
+## 26. AI Studio and a wider public assistant (v20.0)
+
+**What the AI could not do before.** The admin AI tools (reviews, SEO, FAQs, schema, outlines, rewrites) were written only for casinos, ignored sportsbooks, affiliate partners, custom content, research and news, could not translate or summarise, could not read a source, broke when the model wrapped its JSON in a code fence, and the public Lummet AI never looked at sportsbooks, partners, custom items or research at all.
+
+**AI Studio** (`/en/dashboard/ai-studio`, Administration menu; the older AI Generator stays). Sixteen tools in five groups. Results are shown for review and editing; **nothing is published by the AI**.
+
+- **Content:** item copy and SEO fields, full review, and FAQs for any casino, sportsbook, affiliate partner or custom item (written only from the item's saved facts, including custom fields and payment methods); compare 2 to 4 items.
+- **Research:** research draft (type, topic, notes, pasted text and up to 3 web addresses), extract checkable claims, fact-check a draft against sources and saved claims, source brief with key points and open questions.
+- **News:** article draft, 8 headline options, social posts for X, LinkedIn, Facebook and Telegram.
+- **Language:** translate (keeps HTML, links and numbers), rewrite (readability, SEO, clarity, tone, expand, shorten, simplify, compliance clean-up), summarise.
+- **SEO:** SEO title, description and keywords for any text, and tag suggestions.
+- **Content audit** (no AI): published casinos, items, news and research that lack SEO, descriptions or excerpts, are overdue for review, or still have unverified claims, with a "Write copy" shortcut.
+
+**Saving** is limited to: a news article as an **unpublished** draft marked AI-generated; a research item as a **draft** (never published); claims as **unverified**; and SEO/description fields on an item you chose (publish status is never touched; item-level access is checked). Model text is escaped before it becomes page HTML.
+
+**Safety.** The model is told to use only the supplied facts. Pasted text and fetched pages are passed as data, with instructions inside them ignored. Web addresses are checked before reading: only http/https, no private or numeric addresses, no credentials, standard ports, redirects re-checked, 8 s timeout, size limits. Each tool needs the matching permission (casinos, content items, research, news); model calls are limited to 40 per user per 15 minutes; every generation is logged in `ai_generations`.
+
+**Public assistant.** It now also finds published sportsbooks, affiliate partners and custom items (only those the visitor's country may see, using the same geo rules as the listing pages; items with no rules are never shown) and published research (quoting only **verified** claims), with links that pass the existing URL guard. The query planner knows the two new tables.
+
+**Fixes.** Admin AI answers are parsed even when wrapped in code fences or extra text.
+
+API: `/api/v1/ai-studio/` meta, items, audit (GET); run, apply, fetch (POST). No migrations, no deletions.

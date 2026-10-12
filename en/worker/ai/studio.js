@@ -606,6 +606,41 @@ export async function auditContent(db, { limit = 25 } = {}) {
   return { groups: out, total: out.reduce((n, g) => n + g.items.length, 0) };
 }
 
+// ---------- history (who did what; no prompts, no generated text) ----------
+
+export const HISTORY_KEEP_DAYS = 365;
+
+/** Best effort: never throws, and does nothing if migration 0062 has not been applied. */
+export async function recordHistory(db, user, e) {
+  try {
+    const uid = user?.user_id || user?.id || null;
+    await db.prepare(`INSERT INTO ai_studio_history (user_id, user_label, kind, task, target, item_type, item_key, outcome, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(uid, clip(user?.name || user?.email || (uid ? `user ${uid}` : ""), 120), e.kind, e.task || null, e.target || null,
+        e.item_type ? clip(e.item_type, 40) : null, e.item_key ? clip(e.item_key, 120) : null, e.outcome === "failed" ? "failed" : "ok", clip(e.detail, 240) || null).run();
+    if (e.kind === "save") {
+      const cutoff = new Date(Date.now() - HISTORY_KEEP_DAYS * 86400000).toISOString().slice(0, 19).replace("T", " ");
+      await db.prepare(`DELETE FROM ai_studio_history WHERE created_at < ?`).bind(cutoff).run();
+    }
+  } catch (_) { /* history is optional */ }
+}
+
+const isAllSeeing = (user) => user && (user.role === "admin" || user.role === "super_admin");
+
+/** Admins see everyone's history; everyone else sees only their own. */
+export async function readHistory(db, user, { kind = "", mine = false, before = 0, limit = 50 } = {}) {
+  try {
+    const where = [], params = [];
+    if (!isAllSeeing(user) || mine) { where.push("user_id = ?"); params.push(user?.user_id || user?.id || -1); }
+    if (kind === "generate" || kind === "save") { where.push("kind = ?"); params.push(kind); }
+    if (before > 0) { where.push("id < ?"); params.push(before); }
+    const lim = Math.min(Math.max(Number(limit) || 50, 1), 200);
+    const r = await db.prepare(`SELECT id, user_id, user_label, kind, task, target, item_type, item_key, outcome, detail, created_at FROM ai_studio_history ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id DESC LIMIT ${lim}`).bind(...params).all();
+    return { available: true, rows: r.results || [] };
+  } catch (_) {
+    return { available: false, rows: [] };
+  }
+}
+
 // ---------- HTTP handler ----------
 
 const json = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -664,6 +699,12 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
     return fail("Unknown type");
   }
 
+  if (method === "GET" && route === "history") {
+    if (!["news", "casinos", "content_items", "research"].some((r) => can(r, "create"))) return fail("Forbidden", 403);
+    const h = await readHistory(env.DB, user, { kind: url.searchParams.get("kind") || "", mine: url.searchParams.get("mine") === "1", before: Number(url.searchParams.get("before")) || 0, limit: Number(url.searchParams.get("limit")) || 50 });
+    return json({ success: true, everyone: !!isAllSeeing(user), ...h });
+  }
+
   if (method === "GET" && route === "audit") {
     if (!["news", "casinos", "content_items", "research"].some((r) => can(r, "read"))) return fail("Forbidden", 403);
     return json({ success: true, ...(await auditContent(env.DB)) });
@@ -686,6 +727,7 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
     const who = `studio:${user?.user_id || user?.id || "anon"}`;
     if (!(await underLimit(env.DB, who))) return fail("Too many AI requests. Try again in a few minutes.", 429);
     const res = await runTask(env, request, body.task, body.input, { fetchImpl });
+    { const it = body.input && body.input.item; await recordHistory(env.DB, user, { kind: "generate", task: body.task, item_type: it && it.type, item_key: it && it.key, outcome: res.generated ? "ok" : "failed", detail: res.generated ? "" : (res.reason || "") }); }
     if (res.generated) { try { await logAIGeneration(env.DB, `studio_${body.task}`, clip(body.input && body.input.item && body.input.item.key || body.input && body.input.topic || "", 80) || "-", `AI Studio: ${task.label}`, MODEL); } catch (_) { /* log is best effort */ } }
     return json({ success: true, ...res });
   }
@@ -693,6 +735,7 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
   if (method === "POST" && route === "apply") {
     let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
     const r = await applyResult(env.DB, user, can, body && body.target, body && body.payload);
+    { const p = (body && body.payload) || {}; await recordHistory(env.DB, user, { kind: "save", target: body && body.target, item_type: p.type || (body && body.target === "research_claims" ? "research" : ""), item_key: p.key || r.slug || (p.research_item_id ? String(p.research_item_id) : ""), outcome: r.ok ? "ok" : "failed", detail: r.ok ? (r.saved != null ? `saved ${r.saved}` : "draft created") : r.error }); }
     if (!r.ok) return fail(r.error, r.status || 400);
     return json({ success: true, ...r });
   }

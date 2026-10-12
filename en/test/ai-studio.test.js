@@ -10,7 +10,7 @@ import { handleAPI } from '../worker/api.js';
 import { retrieve, buildContextString } from '../worker/ai/retrieval.js';
 import {
   parseJsonLoose, textToHtml, checkUrl, fetchSourceText, stripHtml, runTask, listTasks, TASKS,
-  applyResult, auditContent, handleAiStudio
+  applyResult, auditContent, handleAiStudio, recordHistory, readHistory
 } from '../worker/ai/studio.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -277,5 +277,69 @@ describe('wiring', () => {
     const js = read('static/js/ai-studio.js');
     assert.ok(!/innerHTML|insertAdjacentHTML|document\.write/.test(js), 'ai-studio.js must not write HTML strings');
     assert.match(read('worker/api.js'), /"\/api\/v1\/ai-studio": null/);
+  });
+});
+
+describe('history', () => {
+  let db, env, asUser;
+  beforeEach(async () => {
+    db = createTestDb(); applyMigrations(db);
+    env = { DB: db, AI: { run: async () => ({ response: '["tag"]' }) } };
+    await db.prepare(`INSERT INTO casinos (slug,name,website_url,affiliate_url,published,status) VALUES ('c1','Casino One','https://c','https://c/a',1,'published')`).run();
+    asUser = (user, can = allow) => (m, p, b) => handleAiStudio(makeReq(m, `https://x.com${p}`, b), env, p.split('?')[0], can, user);
+  });
+  const j = (r) => r.json();
+  const editor = { user_id: 7, role: 'editor', name: 'Eve' };
+
+  test('tools run and saves are recorded without prompts or generated text', async () => {
+    const call = asUser(admin);
+    await call('POST', '/api/v1/ai-studio/run', { task: 'suggest_tags', input: { text: 'secret article text' } });
+    await call('POST', '/api/v1/ai-studio/run', { task: 'translate', input: {} });  // fails: no text
+    await call('POST', '/api/v1/ai-studio/apply', { target: 'news_draft', payload: { title: 'Story', content: 'Body' } });
+    await call('POST', '/api/v1/ai-studio/apply', { target: 'item_fields', payload: { type: 'casino', key: 'nope', fields: { seo_title: 'x' } } });
+    const rows = (await j(await call('GET', '/api/v1/ai-studio/history'))).rows;
+    assert.equal(rows.length, 4);
+    assert.deepEqual(rows.map((r) => [r.kind, r.task || r.target, r.outcome]), [['save', 'item_fields', 'failed'], ['save', 'news_draft', 'ok'], ['generate', 'translate', 'failed'], ['generate', 'suggest_tags', 'ok']]);
+    assert.equal(rows[1].item_key, 'story'); assert.equal(rows[2].detail, 'missing_text'); assert.equal(rows[3].user_label, 'Ada');
+    assert.ok(!JSON.stringify(rows).includes('secret article text'));
+  });
+
+  test('admins see everyone, others only their own; filters work', async () => {
+    await recordHistory(db, admin, { kind: 'generate', task: 'headlines' });
+    await recordHistory(db, editor, { kind: 'save', target: 'news_draft', item_key: 'a' });
+    await recordHistory(db, editor, { kind: 'generate', task: 'rewrite' });
+    const asAdmin = await j(await asUser(admin)('GET', '/api/v1/ai-studio/history'));
+    assert.equal(asAdmin.rows.length, 3); assert.equal(asAdmin.everyone, true);
+    assert.equal((await j(await asUser(admin)('GET', '/api/v1/ai-studio/history?mine=1'))).rows.length, 1);
+    assert.equal((await j(await asUser(admin)('GET', '/api/v1/ai-studio/history?kind=save'))).rows.length, 1);
+    const asEditor = await j(await asUser(editor)('GET', '/api/v1/ai-studio/history'));
+    assert.deepEqual(asEditor.rows.map((r) => r.user_id), [7, 7]); assert.equal(asEditor.everyone, false);
+    assert.equal((await asUser(editor, deny)('GET', '/api/v1/ai-studio/history')).status, 403);
+  });
+
+  test('paging works and old records are purged on save', async () => {
+    for (let n = 0; n < 5; n++) await recordHistory(db, admin, { kind: 'generate', task: 't' + n });
+    const first = await readHistory(db, admin, { limit: 2 });
+    assert.equal(first.rows.length, 2);
+    const next = await readHistory(db, admin, { limit: 10, before: first.rows[1].id });
+    assert.equal(next.rows.length, 3);
+    await db.prepare(`INSERT INTO ai_studio_history (kind, task, created_at) VALUES ('generate', 'ancient', '2020-01-01 00:00:00')`).run();
+    await recordHistory(db, admin, { kind: 'save', target: 'news_draft' });
+    assert.equal((await db.prepare(`SELECT COUNT(*) n FROM ai_studio_history WHERE task = 'ancient'`).first()).n, 0);
+  });
+
+  test('without the table nothing breaks: tools still work and history says it is off', async () => {
+    await db.prepare('DROP TABLE ai_studio_history').run();
+    const call = asUser(admin);
+    const run = await j(await call('POST', '/api/v1/ai-studio/run', { task: 'suggest_tags', input: { text: 'x' } }));
+    assert.equal(run.generated, true);
+    const h = await j(await call('GET', '/api/v1/ai-studio/history'));
+    assert.equal(h.available, false); assert.deepEqual(h.rows, []);
+  });
+
+  test('migration and page are present', () => {
+    assert.match(read('migrations/0062_ai_studio_history.sql'), /CREATE TABLE IF NOT EXISTS ai_studio_history/);
+    assert.match(read('static/js/ai-studio.js'), /api\("history\?kind="/);
+    assert.ok(!/innerHTML/.test(read('static/js/ai-studio.js')));
   });
 });

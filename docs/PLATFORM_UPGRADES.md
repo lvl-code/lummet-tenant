@@ -364,3 +364,9 @@ API additions under `/api/v1/geo-manager/`: `defaults` (GET), `defaults/save`, `
 **Fixes.** Admin AI answers are parsed even when wrapped in code fences or extra text.
 
 API: `/api/v1/ai-studio/` meta, items, audit (GET); run, apply, fetch (POST). No migrations, no deletions.
+
+## 27. AI Studio history (v20.1)
+
+AI Studio has a new **History** tab: when each tool was run and what was saved, by whom, with a one-line result (OK or Failed and why). Admins see everyone's history and can limit it to their own; other roles see only their own. Filter by tools run or things saved. Only the tool name, target item or slug, user and outcome are stored; **prompts and generated text are never stored**. Records older than 365 days are removed when something is saved.
+
+Needs **migration 0062_ai_studio_history.sql** (one new table, nothing existing touched). Until it is applied AI Studio works as before and the tab says history is not switched on. API: `GET /api/v1/ai-studio/history` (`kind`, `mine`, `before`, `limit`).

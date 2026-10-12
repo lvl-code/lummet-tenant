@@ -25,6 +25,8 @@ import { createResearchItem, getResearchItemById } from "../database/research.js
 import { createClaim } from "../database/research-claims.js";
 import { updateContentItem } from "../database/content-items.js";
 import { canAccessItem } from "../database/item-access.js";
+import { rateGate } from "./rate.js";
+import { feedbackSummary, listFeedback, setReviewed } from "./feedback.js";
 
 export const MODEL = "@cf/zai-org/glm-4.7-flash";
 export const MAX_FIELD = 12000;
@@ -646,21 +648,7 @@ export async function readHistory(db, user, { kind = "", mine = false, before = 
 const json = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 const fail = (m, status = 400, extra = {}) => json({ success: false, error: m, ...extra }, status);
 
-async function underLimit(db, who) {
-  try {
-    const since = new Date(Date.now() - RATE_WINDOW_MIN * 60 * 1000).toISOString();
-    const row = await db.prepare(`SELECT COUNT(*) AS c FROM ai_rate_limits WHERE ip_hash = ? AND created_at >= ?`).bind(who, since).first();
-    if ((row?.c || 0) >= RATE_MAX) return false;
-    // the table's key is (ip_hash, created_at): add 3 random digits after the milliseconds so two calls at the
-    // same instant do not collide and go uncounted (the string still sorts and compares as a timestamp)
-    for (let n = 0; n < 6; n++) {
-      const stamp = new Date().toISOString().slice(0, -1) + String(Math.floor(Math.random() * 1000)).padStart(3, "0") + "Z";
-      const res = await db.prepare(`INSERT OR IGNORE INTO ai_rate_limits (ip_hash, created_at) VALUES (?, ?)`).bind(who, stamp).run();
-      if (res?.meta?.changes !== 0) break;
-    }
-  } catch (_) { /* table missing: do not block editors */ }
-  return true;
-}
+const underLimit = (db, who) => rateGate(db, who, RATE_MAX, RATE_WINDOW_MIN);
 
 function canUseTask(task, can) {
   if (task.resource === "item") return can("casinos", "create") || can("content_items", "create");
@@ -675,7 +663,7 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
 
   if (method === "GET" && route === "meta") {
     const tasks = listTasks().filter((t) => canUseTask(TASKS[t.id], can));
-    return json({ available: !!env.AI, model: MODEL, tasks, item_types: ITEM_TYPES, research_types: RESEARCH_TYPES, rewrite_modes: Object.keys(REWRITE_MODES), rate: { max: RATE_MAX, window_minutes: RATE_WINDOW_MIN } });
+    return json({ available: !!env.AI, model: MODEL, tasks, item_types: ITEM_TYPES, research_types: RESEARCH_TYPES, rewrite_modes: Object.keys(REWRITE_MODES), rate: { max: RATE_MAX, window_minutes: RATE_WINDOW_MIN }, feedback: !!isAllSeeing(user) });
   }
 
   if (method === "GET" && route === "items") {
@@ -703,6 +691,20 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
     if (!["news", "casinos", "content_items", "research"].some((r) => can(r, "create"))) return fail("Forbidden", 403);
     const h = await readHistory(env.DB, user, { kind: url.searchParams.get("kind") || "", mine: url.searchParams.get("mine") === "1", before: Number(url.searchParams.get("before")) || 0, limit: Number(url.searchParams.get("limit")) || 50 });
     return json({ success: true, everyone: !!isAllSeeing(user), ...h });
+  }
+
+  // answer feedback from the public chat: admins only (it contains visitors' questions)
+  if (route === "feedback" || route === "feedback/review") {
+    if (!isAllSeeing(user)) return fail("Forbidden", 403);
+    if (method === "GET" && route === "feedback") {
+      const [summary, list] = await Promise.all([feedbackSummary(env.DB, Number(url.searchParams.get("days")) || 30),
+        listFeedback(env.DB, { rating: url.searchParams.get("rating") || "down", reviewed: url.searchParams.get("reviewed") || "", before: Number(url.searchParams.get("before")) || 0 })]);
+      return json({ success: true, summary, ...list });
+    }
+    if (method === "POST" && route === "feedback/review") {
+      let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
+      return (await setReviewed(env.DB, body && body.id, !!(body && body.reviewed))) ? json({ success: true }) : fail("Not found", 404);
+    }
   }
 
   if (method === "GET" && route === "audit") {

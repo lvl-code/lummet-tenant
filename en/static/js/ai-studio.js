@@ -70,12 +70,14 @@
     var tabs = el("nav", { class: "rv-tabs gm-subnav", "aria-label": "AI Studio" }, [
       el("button", { type: "button", class: "rv-tab" + (S.view !== "audit" ? " is-on" : ""), text: "Tools", onclick: function () { S.view = "tools"; render(); } }),
       el("button", { type: "button", class: "rv-tab" + (S.view === "audit" ? " is-on" : ""), text: "Content audit", onclick: function () { S.view = "audit"; render(); } }),
-      el("button", { type: "button", class: "rv-tab" + (S.view === "history" ? " is-on" : ""), text: "History", onclick: function () { S.view = "history"; render(); } })
+      el("button", { type: "button", class: "rv-tab" + (S.view === "history" ? " is-on" : ""), text: "History", onclick: function () { S.view = "history"; render(); } }),
+      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "feedback" ? " is-on" : ""), text: "Chat feedback", onclick: function () { S.view = "feedback"; render(); } }) : null
     ]);
     root.appendChild(tabs);
     if (!S.meta.available) root.appendChild(el("div", { class: "alert alert--warning", text: "The AI service is not connected on this site, so tools cannot generate text. The content audit still works." }));
     if (S.view === "audit") return renderAudit();
     if (S.view === "history") return renderHistory();
+    if (S.view === "feedback" && S.meta.feedback) return renderFeedback();
     renderTools();
   }
 
@@ -246,6 +248,43 @@
     }
     box.appendChild(actions);
     return box;
+  }
+
+  // ---------- chat feedback (admins) ----------
+  var REASON_LABEL = { wrong: "Incorrect", missing: "Missing info", unclear: "Unclear", other: "Something else" };
+  function renderFeedback() {
+    var card = el("div", { class: "gm-card" }, [el("h3", { text: "Lummet AI chat feedback" }), el("p", { class: "muted", text: "Thumbs from visitors on the public chat. Question and answer text is kept only for thumbs-down, for 180 days. Nothing identifying is stored." })]);
+    root.appendChild(card);
+    var show = el("select", { class: "gm-select", "aria-label": "Show" }, [el("option", { value: "0", text: "Not reviewed yet" }), el("option", { value: "", text: "All thumbs-down" }), el("option", { value: "1", text: "Reviewed" })]);
+    var bar = el("div", { class: "gm-toolbar" }, [show]), sum = el("div", { class: "as-chips" }), body = el("div", {});
+    card.appendChild(sum); card.appendChild(bar); card.appendChild(body);
+    function load() {
+      body.textContent = ""; sum.textContent = "";
+      api("feedback?rating=down&reviewed=" + encodeURIComponent(show.value)).then(function (d) {
+        if (d.error) { body.appendChild(el("p", { text: d.error })); return; }
+        var m = d.summary || {};
+        if (!m.available) { body.appendChild(el("p", { class: "muted", text: "Feedback is not switched on for this site yet. Apply migration 0063_ai_feedback.sql to turn it on." })); return; }
+        var total = m.up + m.down, pct = total ? Math.round(m.up * 100 / total) : null;
+        [["Last " + m.days + " days", total + " ratings"], ["Helpful", m.up + (pct === null ? "" : " (" + pct + "%)")], ["Not helpful", String(m.down)], ["Waiting for review", String(m.unreviewed_down)]].forEach(function (x) {
+          sum.appendChild(el("span", { class: "gm-chip as-chip2" }, [x[0] + ": ", el("strong", { text: x[1] })]));
+        });
+        (m.reasons || []).forEach(function (r) { sum.appendChild(el("span", { class: "gm-badge gm-badge--warn", text: (REASON_LABEL[r.reason] || r.reason) + " " + r.n })); });
+        if (!d.rows.length) { body.appendChild(el("p", { class: "muted", text: "Nothing here." })); return; }
+        d.rows.forEach(function (r) {
+          var done = !!r.reviewed;
+          var btn = el("button", { type: "button", class: "btn btn--small", text: done ? "Mark as not reviewed" : "Mark reviewed", onclick: function () {
+            api("feedback/review", { id: r.id, reviewed: !done }).then(function (x) { if (x.error) say("error", x.error); else load(); });
+          } });
+          body.appendChild(el("div", { class: "as-faq" }, [
+            el("strong", { text: "Q: " + (r.question || "(not kept)") }),
+            el("p", { text: "A: " + (r.answer || "") }),
+            el("p", { class: "muted", text: [String(r.created_at || "").slice(0, 16), r.country, r.reason ? (REASON_LABEL[r.reason] || r.reason) : null].filter(Boolean).join(" - ") }),
+            btn
+          ]));
+        });
+      });
+    }
+    show.addEventListener("change", load); load();
   }
 
   // ---------- history ----------

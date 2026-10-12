@@ -1,0 +1,59 @@
+name: D1 Migrate - run one migration file on every site database
+
+# Run from the GitHub Actions tab or:  gh workflow run d1-migrate-file.yml -f file=0063_ai_feedback.sql
+# Applies en/migrations/<file> to every site database on BOTH Cloudflare accounts.
+# Migration files are written with IF NOT EXISTS, so running one twice is harmless.
+# A database that fails shows as a red job; the others still run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Migration file name inside en/migrations, e.g. 0063_ai_feedback.sql"
+        required: true
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { account: first, db: freewin-db }
+          - { account: first, db: lummet-db }
+          - { account: first, db: levelcasino-db }
+          - { account: first, db: clustercasino-db }
+          - { account: first, db: neuroodds-db }
+          - { account: first, db: legendodds-db }
+          - { account: first, db: brilliantodds-db }
+          - { account: second, db: freewin-db }
+          - { account: second, db: lummet-db }
+          - { account: second, db: clustercasino-db }
+          - { account: second, db: neuroodds-db }
+          - { account: second, db: legendodds-db }
+          - { account: second, db: blucca-db }
+          - { account: second, db: brilliantodds-db }
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check the file name
+        env:
+          FILE: ${{ inputs.file }}
+        run: |
+          if ! [[ "$FILE" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]]; then echo "Not a valid migration file name: $FILE"; exit 1; fi
+          if ! [ -f "en/migrations/$FILE" ]; then echo "en/migrations/$FILE does not exist"; exit 1; fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply ${{ inputs.file }} to ${{ matrix.account }} account / ${{ matrix.db }}
+        working-directory: en
+        env:
+          FILE: ${{ inputs.file }}
+          CLOUDFLARE_API_TOKEN: ${{ matrix.account == 'second' && secrets.SECOND_CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ matrix.account == 'second' && secrets.SECOND_CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler@4 d1 execute "${{ matrix.db }}" --remote --file="migrations/$FILE"

@@ -510,7 +510,8 @@ if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POS
   const PUBLIC_AI_PATHS = [
     "/api/v1/ai/chat",
     "/api/v1/ai/chat/stream",
-    "/api/v1/ai/chat/clear"
+    "/api/v1/ai/chat/clear",
+    "/api/v1/ai/feedback"
   ];
 
   if (!user && !PUBLIC_AI_PATHS.includes(path)) {
@@ -1886,6 +1887,12 @@ if (path === "/api/v1/ai/chat" && request.method === "POST") {
     // ── LUMMET AI STREAMING CHAT ──
 if (path === "/api/v1/ai/chat/stream" && request.method === "POST") {
   return handleChatStream(request, env, user);
+}
+
+// ── LUMMET AI ANSWER FEEDBACK (thumbs up / down) ──
+if (path === "/api/v1/ai/feedback" && request.method === "POST") {
+  const { handleFeedback } = await import("./ai/feedback.js");
+  return handleFeedback(request, env);
 }
 
 // ── LUMMET AI CLEAR CONVERSATION ──

@@ -370,3 +370,15 @@ API: `/api/v1/ai-studio/` meta, items, audit (GET); run, apply, fetch (POST). No
 AI Studio has a new **History** tab: when each tool was run and what was saved, by whom, with a one-line result (OK or Failed and why). Admins see everyone's history and can limit it to their own; other roles see only their own. Filter by tools run or things saved. Only the tool name, target item or slug, user and outcome are stored; **prompts and generated text are never stored**. Records older than 365 days are removed when something is saved.
 
 Needs **migration 0062_ai_studio_history.sql** (one new table, nothing existing touched). Until it is applied AI Studio works as before and the tab says history is not switched on. API: `GET /api/v1/ai-studio/history` (`kind`, `mine`, `before`, `limit`).
+
+## 28. Chat feedback and a one-tap migration workflow (v20.2)
+
+**Thumbs on Lummet AI answers.** After each successful answer on the public chat, visitors see "Was this helpful?" with a thumbs up and a thumbs down. A thumbs down offers four quick reasons (Incorrect, Missing info, Unclear, Something else). Only the latest answer can be rated; a visitor can change their mind (the same answer is never counted twice). No login is needed, and rating is limited to 30 per visitor per 15 minutes.
+
+**Privacy.** Nothing identifying is stored (no user id, no IP). For a thumbs down the question and answer are copied from the saved conversation on the server, never from the browser, so they cannot be forged; a thumbs up stores only the count. Rows are removed after 180 days. If migration 0063 is not applied the chat is unaffected and the thumbs simply do nothing.
+
+**Admin view.** AI Studio, **Chat feedback** tab (admins only, because it contains visitors' questions): ratings in the last 30 days, the share that found answers helpful, how many thumbs-downs still wait for review, the most common reasons, and the list of rated-down questions with the answer given. "Mark reviewed" tidies the list.
+
+**Migration workflow.** `.github/workflows/d1-migrate-file.yml` runs one migration file on every site database on both Cloudflare accounts (14 jobs; one failing does not stop the others): `gh workflow run d1-migrate-file.yml -f file=0063_ai_feedback.sql`. The file name is checked (`NNNN_name.sql`, must exist in `en/migrations`) and reaches the shell only through an environment variable. Needs the existing secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SECOND_CLOUDFLARE_API_TOKEN`, `SECOND_CLOUDFLARE_ACCOUNT_ID`). Migration 0062 (AI Studio history) and 0063 are both safe to run twice.
+
+API: `POST /api/v1/ai/feedback` (public); `GET /api/v1/ai-studio/feedback`, `POST /api/v1/ai-studio/feedback/review` (admins). Rate limiting for AI Studio and feedback now share one small helper that no longer loses counts when two requests land in the same millisecond. Needs **migration 0063_ai_feedback.sql**. No deletions.

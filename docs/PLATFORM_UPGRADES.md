@@ -410,3 +410,11 @@ API (admins): `GET /api/v1/ai-studio/feedback/digest`.
 ## 31. Draft a fix from the digest (v20.5)
 
 Each topic in the chat-quality digest where the site **has content** now has its own **Draft a fix** button. It works on the topic's most recent thumbs-down question and uses exactly the flow from section 29: coverage check, a short FAQ drafted from the site's material alone, edit, then **Save as draft FAQ** (switched off until you turn it on under Draft FAQs). Topics where the site has nothing keep **Start a research draft**. No new route, no migration; only admins see it.
+
+## 32. One public chat, two entrances (v21.0)
+
+The floating widget (`/en/api/v1/ai/*`) and the dedicated page on the `lummet.<domain>` subdomain (`en/lummet/index.html`, routed by `worker/lummet/router.js`) now run through the **same server handlers** (`worker/ai/api.js`, `worker/ai/feedback.js`). Anything built for the chat applies to both: the sportsbooks, partners, custom items and research it can talk about, geo rules, the free-message limit and sign-in prompt, rate limits, 24-hour memory, and thumbs feedback.
+
+What changed on the subdomain: the chat, streaming chat, clear-chat and feedback endpoints are the widget's own handlers (before, the subdomain kept a separate copy, which had drifted: no feedback, a different default country, no clear). The page gained the same thumbs row as the widget (same wording and reasons), and **+ New Chat** clears the saved conversation on the server. Feedback from both entrances lands in the same table and appears in AI Studio's Chat feedback tab and digest. The legacy paths `/api/chat`, `/api/chat/stream` stay; `/api/chat/clear` and `/api/feedback` are new. The admin panel on the page and its `/api/admin/*` routes are unchanged. No migration; nothing removed.
+
+A test (`test/lummet-subdomain-parity.test.js`) sends the same question through both entrances and fails if their answers, memory, feedback or limits differ, or if the page's feedback wording drifts from the widget's.

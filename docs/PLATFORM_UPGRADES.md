@@ -382,3 +382,15 @@ Needs **migration 0062_ai_studio_history.sql** (one new table, nothing existing 
 **Migration workflow.** `.github/workflows/d1-migrate-file.yml` runs one migration file on every site database on both Cloudflare accounts (14 jobs; one failing does not stop the others): `gh workflow run d1-migrate-file.yml -f file=0063_ai_feedback.sql`. The file name is checked (`NNNN_name.sql`, must exist in `en/migrations`) and reaches the shell only through an environment variable. Needs the existing secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SECOND_CLOUDFLARE_API_TOKEN`, `SECOND_CLOUDFLARE_ACCOUNT_ID`). Migration 0062 (AI Studio history) and 0063 are both safe to run twice.
 
 API: `POST /api/v1/ai/feedback` (public); `GET /api/v1/ai-studio/feedback`, `POST /api/v1/ai-studio/feedback/review` (admins). Rate limiting for AI Studio and feedback now share one small helper that no longer loses counts when two requests land in the same millisecond. Needs **migration 0063_ai_feedback.sql**. No deletions.
+
+## 29. Fix a badly rated chat answer (v20.3)
+
+In AI Studio, **Chat feedback** tab, every thumbs-down now has **Draft a fix**. It works in three honest steps:
+
+1. **Coverage check:** it runs the same lookup the public chat uses on the visitor's question and shows what the site actually has (casinos, reviews, news, pages, FAQs, sportsbooks/partners/custom items, research).
+2. **Nothing found:** the AI is not called and no answer is invented. The page says the site has nothing on the topic and offers "Start a research draft on this", with the question already filled in.
+3. **Something found:** the AI drafts a 2-4 sentence FAQ answer from that material alone, plus a one-line guess at why the earlier answer failed. It may also say the material does not answer the question. Links in the draft are removed unless they came from the site's own content.
+
+**Saving:** "Save as draft FAQ" adds a row to the FAQ list switched **off** (`is_active = 0`), so nothing goes live unreviewed, and marks the feedback item reviewed. Below the list, **Draft FAQs** shows the switched-off FAQs with **Switch on** (the public chat can then use it, because the chat already reads active FAQs), **Delete** (only while switched off) and a duplicate-question check. Admins only. Every draft and FAQ change is recorded in History. No migrations, no deletions.
+
+API (admins): `POST /api/v1/ai-studio/feedback/fix`, `GET .../feedback/faqs`, `POST .../feedback/faq` (`activate`, `deactivate`, `delete`); save target `faq_draft`.

@@ -808,3 +808,5 @@ body.hh-preview-body .hh-preview-off { padding: 24px; text-align: center; font-s
 .as-sec { display: grid; gap: 8px; padding-top: 6px; border-top: 1px solid #e5e7eb; }
 .as-claim { display: block; padding: 6px 0; }
 .as-pre { white-space: pre-wrap; background: #f1f5f9; padding: 12px; border-radius: 10px; color: #0f172a; }
+.as-fix { display: grid; gap: 8px; margin-top: 8px; }
+.as-faqs { display: grid; gap: 8px; margin-top: 8px; }

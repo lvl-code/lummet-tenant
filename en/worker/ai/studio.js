@@ -26,6 +26,7 @@ import { createClaim } from "../database/research-claims.js";
 import { updateContentItem } from "../database/content-items.js";
 import { canAccessItem } from "../database/item-access.js";
 import { rateGate } from "./rate.js";
+import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls } from "./retrieval.js";
 import { feedbackSummary, listFeedback, setReviewed } from "./feedback.js";
 
 export const MODEL = "@cf/zai-org/glm-4.7-flash";
@@ -571,6 +572,18 @@ export async function applyResult(db, user, can, target, p) {
     return { ok: true, saved: Object.keys(upd).length };
   }
 
+  if (target === "faq_draft") {
+    if (!(user && (user.role === "admin" || user.role === "super_admin"))) return deny("Only admins can add chat FAQs.");
+    const question = clip(p.question, 240), answer = clip(p.answer, 900);
+    if (!question || !answer) return bad("A question and an answer are needed.");
+    const dup = await db.prepare(`SELECT id FROM faqs WHERE LOWER(question) = LOWER(?) LIMIT 1`).bind(question).first();
+    if (dup) return bad("An FAQ with this question already exists.");
+    const r = await db.prepare(`INSERT INTO faqs (question, answer, is_active) VALUES (?, ?, 0)`).bind(question, answer).run();
+    if (p.feedback_id) { try { await db.prepare(`UPDATE ai_feedback SET reviewed = 1 WHERE id = ?`).bind(Number(p.feedback_id)).run(); } catch (_) { /* optional */ } }
+    await logAIGeneration(db, "faq_draft", String(r?.meta?.last_row_id || ""), "AI Studio saved an inactive FAQ from chat feedback", MODEL);
+    return { ok: true, id: r?.meta?.last_row_id || null, saved: 1 };
+  }
+
   return bad("Unknown save target.");
 }
 
@@ -606,6 +619,51 @@ export async function auditContent(db, { limit = 25 } = {}) {
     `SELECT r.type, r.slug, r.title FROM research_items r WHERE r.id IN (SELECT research_item_id FROM research_claims WHERE status = 'unverified') ORDER BY r.updated_at DESC LIMIT ?`,
     (r) => ({ type: "research", key: `${r.type}/${r.slug}`, name: r.title }));
   return { groups: out, total: out.reduce((n, g) => n + g.items.length, 0) };
+}
+
+// ---------- fixing a badly rated chat answer ----------
+
+const COVERAGE_KEYS = [["casinos", "casinos"], ["reviews", "reviews"], ["news", "news articles"], ["pages", "pages"], ["faqs", "FAQs"], ["contentItems", "sportsbooks / partners / custom items"], ["researchItems", "research items"], ["platformUpdates", "platform updates"]];
+
+/**
+ * Admin only. Looks at what the site actually has on the visitor's question (the same lookup the public chat uses),
+ * and, only if there is something to go on, drafts a short FAQ answer from that material alone.
+ * Returns {covered:false} without calling the model when the site has nothing on the topic.
+ */
+export async function draftFeedbackFix(env, request, feedbackId, { sessionRetrieve = retrieve } = {}) {
+  const row = await env.DB.prepare(`SELECT id, rating, reason, question, answer, country FROM ai_feedback WHERE id = ?`).bind(Number(feedbackId)).first().catch(() => null);
+  if (!row) return { ok: false, status: 404, error: "That feedback item was not found." };
+  if (!row.question) return { ok: false, status: 400, error: "No question text was kept for this item." };
+  const site = await getSiteContext(request, env);
+  const context = await sessionRetrieve(env, row.question, row.country || "RW", null, [], request);
+  const found = COVERAGE_KEYS.map(([k, label]) => ({ label, n: (context[k] || []).length })).filter((x) => x.n > 0);
+  if (!found.length) {
+    return { ok: true, covered: false, coverage: [], question: row.question, advice: "The site has nothing on this topic, so the chat had nothing to answer from. Write the content first (a research draft or a news article); the chat will then find it." };
+  }
+  if (!env.AI) return { ok: false, status: 503, error: "The AI service is not connected on this site." };
+  const ctxStr = buildContextString(context, row.country || "RW", site);
+  let text;
+  try {
+    text = await ask(env,
+      secs(site, "an FAQ editor", 'A visitor was unhappy with the chat\'s answer. Using ONLY the context, write a short, accurate FAQ entry for their question. Return ONLY JSON: {"answerable":true,"diagnosis":"one sentence on why the earlier answer probably failed","question":"the question in general form","answer":"2-4 sentences, no links"}. If the context does not actually answer the question, return {"answerable":false,"diagnosis":"..."}.'),
+      `<facts>\n${clip(ctxStr, 6000)}\n</facts>\nVisitor question: ${row.question}\nEarlier answer: ${clip(row.answer, 600)}\nVisitor said the problem was: ${row.reason || "not stated"}`,
+      { temperature: 0.2, max_tokens: 500 });
+  } catch (_) { return { ok: false, status: 502, error: "The AI service did not answer. Try again." }; }
+  const d = parseJsonLoose(text);
+  if (!d || typeof d !== "object") return { ok: false, status: 502, error: "The AI answer could not be read. Try again." };
+  const base = { ok: true, coverage: found, diagnosis: clip(d.diagnosis, 400) };
+  if (d.answerable === false || !d.answer) return { ...base, covered: true, answerable: false, question: row.question, advice: "The site has related content, but it does not answer this question directly. Add the missing facts to the item or write new content." };
+  let answer = clip(d.answer, 900);
+  try { answer = sanitizeAnswerUrls(answer, extractContextUrls(ctxStr), site.url("/en/")); } catch (_) { /* keep text */ }
+  return { ...base, covered: true, answerable: true, question: clip(d.question, 240) || row.question, answer };
+}
+
+/** FAQs written by AI Studio start switched OFF (is_active = 0) so nothing goes live unreviewed. */
+export async function listDraftFaqs(db) {
+  try {
+    const r = await db.prepare(`SELECT id, question, answer, created_at FROM faqs WHERE is_active = 0 ORDER BY id DESC LIMIT 50`).all();
+    return r.results || [];
+  } catch (_) { return []; }
 }
 
 // ---------- history (who did what; no prompts, no generated text) ----------
@@ -694,12 +752,34 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
   }
 
   // answer feedback from the public chat: admins only (it contains visitors' questions)
-  if (route === "feedback" || route === "feedback/review") {
+  if (route === "feedback" || route.startsWith("feedback/")) {
     if (!isAllSeeing(user)) return fail("Forbidden", 403);
     if (method === "GET" && route === "feedback") {
       const [summary, list] = await Promise.all([feedbackSummary(env.DB, Number(url.searchParams.get("days")) || 30),
         listFeedback(env.DB, { rating: url.searchParams.get("rating") || "down", reviewed: url.searchParams.get("reviewed") || "", before: Number(url.searchParams.get("before")) || 0 })]);
       return json({ success: true, summary, ...list });
+    }
+    if (method === "POST" && route === "feedback/fix") {
+      let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
+      if (!(await underLimit(env.DB, `studio:${user?.user_id || user?.id || "anon"}`))) return fail("Too many AI requests. Try again in a few minutes.", 429);
+      const r = await draftFeedbackFix(env, request, body && body.id);
+      await recordHistory(env.DB, user, { kind: "generate", task: "feedback_fix", item_type: "chat_feedback", item_key: String(body && body.id || ""), outcome: r.ok ? "ok" : "failed", detail: r.ok ? "" : r.error });
+      return r.ok ? json({ success: true, ...r }) : fail(r.error, r.status || 400);
+    }
+    if (method === "GET" && route === "feedback/faqs") return json({ success: true, faqs: await listDraftFaqs(env.DB) });
+    if (method === "POST" && route === "feedback/faq") {
+      let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
+      const id = Number(body && body.id);
+      const row = await env.DB.prepare(`SELECT id, is_active FROM faqs WHERE id = ?`).bind(id).first().catch(() => null);
+      if (!row) return fail("Not found", 404);
+      if (body.action === "delete") {
+        if (row.is_active) return fail("Switch it off before deleting it.", 400);
+        await env.DB.prepare(`DELETE FROM faqs WHERE id = ?`).bind(id).run();
+      } else if (body.action === "activate" || body.action === "deactivate") {
+        await env.DB.prepare(`UPDATE faqs SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(body.action === "activate" ? 1 : 0, id).run();
+      } else return fail("Unknown action");
+      await recordHistory(env.DB, user, { kind: "save", target: `faq_${body.action}`, item_type: "faq", item_key: String(id), outcome: "ok" });
+      return json({ success: true });
     }
     if (method === "POST" && route === "feedback/review") {
       let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }

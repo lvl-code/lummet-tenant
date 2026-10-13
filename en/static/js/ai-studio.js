@@ -112,7 +112,7 @@
       }, ITEM_TYPES)));
       f.appendChild(el("div", { id: "asChips", class: "as-chips" })); setTimeout(drawChips, 0);
     }
-    if (NEEDS_TOPIC[t.id]) f.appendChild(labelled(NEEDS_TOPIC[t.id], el("input", { id: "asTopic", class: "gm-input", type: "text", maxlength: "300" })));
+    if (NEEDS_TOPIC[t.id]) { var topicIn = el("input", { id: "asTopic", class: "gm-input", type: "text", maxlength: "300" }); if (S.prefill && S.prefill.topic) { topicIn.value = String(S.prefill.topic).slice(0, 300); S.prefill = null; } f.appendChild(labelled(NEEDS_TOPIC[t.id], topicIn)); }
     if (t.id === "research_draft") {
       var rt = el("select", { id: "asRType", class: "gm-select" });
       ["report", "country", "regulator", "topic", "development", "legislation", "licence"].forEach(function (x) { rt.appendChild(el("option", { value: x, text: x })); });
@@ -275,16 +275,59 @@
           var btn = el("button", { type: "button", class: "btn btn--small", text: done ? "Mark as not reviewed" : "Mark reviewed", onclick: function () {
             api("feedback/review", { id: r.id, reviewed: !done }).then(function (x) { if (x.error) say("error", x.error); else load(); });
           } });
+          var panel = el("div", { class: "as-fix" });
+          var fixBtn = r.question ? el("button", { type: "button", class: "btn btn--small btn--primary", text: "Draft a fix", onclick: function () { draftFix(r, panel, fixBtn); } }) : null;
           body.appendChild(el("div", { class: "as-faq" }, [
             el("strong", { text: "Q: " + (r.question || "(not kept)") }),
             el("p", { text: "A: " + (r.answer || "") }),
             el("p", { class: "muted", text: [String(r.created_at || "").slice(0, 16), r.country, r.reason ? (REASON_LABEL[r.reason] || r.reason) : null].filter(Boolean).join(" - ") }),
-            btn
+            el("div", { class: "as-actions" }, [fixBtn, btn]), panel
           ]));
         });
       });
     }
     show.addEventListener("change", load); load();
+    var faqBox = el("div", { class: "as-faqs" }); card.appendChild(faqBox); loadDraftFaqs(faqBox);
+  }
+
+  function draftFix(r, panel, btn) {
+    btn.disabled = true; btn.textContent = "Looking..."; panel.textContent = "";
+    api("feedback/fix", { id: r.id }).then(function (d) {
+      btn.disabled = false; btn.textContent = "Draft a fix";
+      if (d.error || d.success === false) { say("error", d.error || "Could not draft a fix."); return; }
+      panel.appendChild(el("div", { class: "as-chips" }, (d.coverage || []).map(function (c) { return el("span", { class: "gm-chip as-chip2", text: c.n + " " + c.label }); }).concat(d.coverage && d.coverage.length ? [] : [el("span", { class: "gm-badge gm-badge--bad", text: "Nothing on this topic" })])));
+      if (d.diagnosis) panel.appendChild(el("p", { class: "muted", text: "Why it probably failed: " + d.diagnosis }));
+      if (!d.answerable) {
+        panel.appendChild(el("p", { text: d.advice || "No answer could be drafted from what the site has." }));
+        panel.appendChild(el("button", { type: "button", class: "btn btn--small", text: "Start a research draft on this", onclick: function () { S.prefill = { topic: d.question || r.question }; S.view = "tools"; S.group = "Research"; S.task = "research_draft"; S.result = null; render(); } }));
+        return;
+      }
+      var q = el("input", { class: "gm-input", type: "text", maxlength: "240" }); q.value = d.question;
+      var a = el("textarea", { class: "as-text", rows: "4", maxlength: "900" }); a.value = d.answer;
+      panel.appendChild(labelled("FAQ question", q)); panel.appendChild(labelled("FAQ answer (edit freely; check it against the site before turning it on)", a));
+      panel.appendChild(el("button", { type: "button", class: "btn btn--primary btn--small", text: "Save as draft FAQ (not live yet)", onclick: function () {
+        save("faq_draft", { question: q.value, answer: a.value, feedback_id: r.id }, function () { return "Saved. Turn it on under Draft FAQs below when you are happy with it."; });
+        setTimeout(function () { var fb = root.querySelector(".as-faqs"); if (fb) loadDraftFaqs(fb); }, 600);
+      } }));
+    });
+  }
+
+  function loadDraftFaqs(box) {
+    box.textContent = "";
+    api("feedback/faqs").then(function (d) {
+      if (d.error || !(d.faqs || []).length) return;
+      box.appendChild(el("h4", { text: "Draft FAQs (switched off, not used by the chat yet)" }));
+      d.faqs.forEach(function (f) {
+        var act = function (action, confirmText) { if (confirmText && !window.confirm(confirmText)) return; api("feedback/faq", { id: f.id, action: action }).then(function (x) { if (x.error) say("error", x.error); else { say("success", action === "activate" ? "Switched on. The chat can use it now." : "Done."); loadDraftFaqs(box); } }); };
+        box.appendChild(el("div", { class: "as-faq" }, [
+          el("strong", { text: f.question }), el("p", { text: f.answer }),
+          el("div", { class: "as-actions" }, [
+            el("button", { type: "button", class: "btn btn--small btn--primary", text: "Switch on", onclick: function () { act("activate", "Let the public chat use this FAQ?"); } }),
+            el("button", { type: "button", class: "btn btn--small", text: "Delete", onclick: function () { act("delete", "Delete this draft FAQ?"); } })
+          ])
+        ]));
+      });
+    });
   }
 
   // ---------- history ----------

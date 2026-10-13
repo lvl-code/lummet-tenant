@@ -26,6 +26,7 @@ import { createClaim } from "../database/research-claims.js";
 import { updateContentItem } from "../database/content-items.js";
 import { canAccessItem } from "../database/item-access.js";
 import { rateGate } from "./rate.js";
+import { chatQualityDigest } from "./digest.js";
 import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls } from "./retrieval.js";
 import { feedbackSummary, listFeedback, setReviewed } from "./feedback.js";
 
@@ -765,6 +766,10 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
       const r = await draftFeedbackFix(env, request, body && body.id);
       await recordHistory(env.DB, user, { kind: "generate", task: "feedback_fix", item_type: "chat_feedback", item_key: String(body && body.id || ""), outcome: r.ok ? "ok" : "failed", detail: r.ok ? "" : r.error });
       return r.ok ? json({ success: true, ...r }) : fail(r.error, r.status || 400);
+    }
+    if (method === "GET" && route === "feedback/digest") {
+      if (!(await underLimit(env.DB, `studio:${user?.user_id || user?.id || "anon"}`))) return fail("Too many requests. Try again in a few minutes.", 429);
+      return json({ success: true, ...(await chatQualityDigest(env, request)) });
     }
     if (method === "GET" && route === "feedback/faqs") return json({ success: true, faqs: await listDraftFaqs(env.DB) });
     if (method === "POST" && route === "feedback/faq") {

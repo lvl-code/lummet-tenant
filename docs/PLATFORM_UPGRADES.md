@@ -394,3 +394,15 @@ In AI Studio, **Chat feedback** tab, every thumbs-down now has **Draft a fix**. 
 **Saving:** "Save as draft FAQ" adds a row to the FAQ list switched **off** (`is_active = 0`), so nothing goes live unreviewed, and marks the feedback item reviewed. Below the list, **Draft FAQs** shows the switched-off FAQs with **Switch on** (the public chat can then use it, because the chat already reads active FAQs), **Delete** (only while switched off) and a duplicate-question check. Admins only. Every draft and FAQ change is recorded in History. No migrations, no deletions.
 
 API (admins): `POST /api/v1/ai-studio/feedback/fix`, `GET .../feedback/faqs`, `POST .../feedback/faq` (`activate`, `deactivate`, `delete`); save target `faq_draft`.
+
+## 30. Weekly chat-quality digest (v20.4)
+
+At the top of AI Studio's **Chat feedback** tab (admins only) a digest answers "is the chat getting better, and what should we write next?":
+
+- **This week vs last week:** share of answers rated helpful, with the change in points.
+- **By country** (28 days): helpful share and thumbs-down count for the countries with the most complaints.
+- **Topics that keep getting thumbs-down** (28 days): the questions behind the thumbs-down are grouped by their most common meaningful word (filler words are ignored). For the top five topics the page also runs the same lookup the public chat uses and labels each **Site has content** (the chat should have answered; try Draft a fix) or **Site has nothing on this** (a content gap; **Start a research draft** opens the research tool with the question filled in).
+
+No AI model is called, nothing is stored and there is no migration; it only reads `ai_feedback` (v20.2). With no data or no table it simply shows nothing. Admin only because it shows visitors' questions. Rate-limited like the other AI Studio routes.
+
+API (admins): `GET /api/v1/ai-studio/feedback/digest`.

@@ -257,7 +257,9 @@
     root.appendChild(card);
     var show = el("select", { class: "gm-select", "aria-label": "Show" }, [el("option", { value: "0", text: "Not reviewed yet" }), el("option", { value: "", text: "All thumbs-down" }), el("option", { value: "1", text: "Reviewed" })]);
     var bar = el("div", { class: "gm-toolbar" }, [show]), sum = el("div", { class: "as-chips" }), body = el("div", {});
-    card.appendChild(sum); card.appendChild(bar); card.appendChild(body);
+    var digestBox = el("div", { class: "as-digest" });
+    card.appendChild(digestBox); card.appendChild(sum); card.appendChild(bar); card.appendChild(body);
+    loadDigest(digestBox);
     function load() {
       body.textContent = ""; sum.textContent = "";
       api("feedback?rating=down&reviewed=" + encodeURIComponent(show.value)).then(function (d) {
@@ -288,6 +290,33 @@
     }
     show.addEventListener("change", load); load();
     var faqBox = el("div", { class: "as-faqs" }); card.appendChild(faqBox); loadDraftFaqs(faqBox);
+  }
+
+  function loadDigest(box) {
+    box.textContent = "";
+    api("feedback/digest").then(function (d) {
+      if (d.error || !d.available) return;
+      var wk = function (w) { return w.up + w.down ? (w.helpful_pct + "% helpful (" + w.up + " up, " + w.down + " down)") : "no ratings"; };
+      var trend = d.trend === null ? "" : (d.trend > 0 ? " - up " + d.trend + " points" : d.trend < 0 ? " - down " + Math.abs(d.trend) + " points" : " - no change");
+      var c = el("div", { class: "as-faq" }, [
+        el("strong", { text: "This week: " + wk(d.this_week) + trend }),
+        el("p", { class: "muted", text: "Last week: " + wk(d.last_week) })
+      ]);
+      if ((d.by_country || []).length) c.appendChild(el("p", { class: "muted", text: "By country (28 days): " + d.by_country.map(function (x) { return x.country + " " + (x.helpful_pct === null ? "-" : x.helpful_pct + "%") + " (" + x.down + " down)"; }).join(", ") }));
+      box.appendChild(c);
+      if ((d.topics || []).length) {
+        box.appendChild(el("h4", { text: "Topics that keep getting thumbs-down (28 days)" }));
+        d.topics.forEach(function (t) {
+          var badge = t.site_has_content === false ? el("span", { class: "gm-badge gm-badge--bad", text: "Site has nothing on this" }) : t.site_has_content === true ? el("span", { class: "gm-badge gm-badge--warn", text: "Site has content" }) : null;
+          var row = el("div", { class: "as-faq" }, [
+            el("strong", { text: t.topic + " (" + t.count + ")" }), badge ? el("span", {}, [" ", badge]) : null,
+            el("ul", {}, t.examples.map(function (e) { return el("li", { text: e.question }); })),
+            t.site_has_content === false ? el("button", { type: "button", class: "btn btn--small", text: "Start a research draft", onclick: function () { S.prefill = { topic: t.examples[0].question }; S.view = "tools"; S.group = "Research"; S.task = "research_draft"; S.result = null; render(); } }) : null
+          ]);
+          box.appendChild(row);
+        });
+      }
+    });
   }
 
   function draftFix(r, panel, btn) {

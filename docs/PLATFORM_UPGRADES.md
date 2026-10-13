@@ -406,3 +406,7 @@ At the top of AI Studio's **Chat feedback** tab (admins only) a digest answers "
 No AI model is called, nothing is stored and there is no migration; it only reads `ai_feedback` (v20.2). With no data or no table it simply shows nothing. Admin only because it shows visitors' questions. Rate-limited like the other AI Studio routes.
 
 API (admins): `GET /api/v1/ai-studio/feedback/digest`.
+
+## 31. Draft a fix from the digest (v20.5)
+
+Each topic in the chat-quality digest where the site **has content** now has its own **Draft a fix** button. It works on the topic's most recent thumbs-down question and uses exactly the flow from section 29: coverage check, a short FAQ drafted from the site's material alone, edit, then **Save as draft FAQ** (switched off until you turn it on under Draft FAQs). Topics where the site has nothing keep **Start a research draft**. No new route, no migration; only admins see it.

@@ -308,9 +308,12 @@
         box.appendChild(el("h4", { text: "Topics that keep getting thumbs-down (28 days)" }));
         d.topics.forEach(function (t) {
           var badge = t.site_has_content === false ? el("span", { class: "gm-badge gm-badge--bad", text: "Site has nothing on this" }) : t.site_has_content === true ? el("span", { class: "gm-badge gm-badge--warn", text: "Site has content" }) : null;
+          var fixPanel = el("div", { class: "as-fix" });
+          var fixBtn = t.site_has_content === true && t.examples.length ? el("button", { type: "button", class: "btn btn--small btn--primary", text: "Draft a fix", onclick: function () { draftFix({ id: t.examples[0].id, question: t.examples[0].question }, fixPanel, fixBtn); } }) : null;
           var row = el("div", { class: "as-faq" }, [
             el("strong", { text: t.topic + " (" + t.count + ")" }), badge ? el("span", {}, [" ", badge]) : null,
             el("ul", {}, t.examples.map(function (e) { return el("li", { text: e.question }); })),
+            fixBtn, fixPanel,
             t.site_has_content === false ? el("button", { type: "button", class: "btn btn--small", text: "Start a research draft", onclick: function () { S.prefill = { topic: t.examples[0].question }; S.view = "tools"; S.group = "Research"; S.task = "research_draft"; S.result = null; render(); } }) : null
           ]);
           box.appendChild(row);

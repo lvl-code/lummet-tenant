@@ -66,6 +66,6 @@ describe('chat quality digest', () => {
     assert.equal((await get(editor)).status, 403);
     const r = await (await get(admin)).json(); assert.equal(r.success, true); assert.equal(r.available, true);
     const ui = read('static/js/ai-studio.js');
-    assert.match(ui, /feedback\/digest/); assert.ok(!/innerHTML/.test(ui));
+    assert.match(ui, /feedback\/digest/); assert.match(ui, /draftFix\(\{ id: t\.examples\[0\]\.id/); assert.ok(!/innerHTML/.test(ui));
   });
 });

@@ -137,7 +137,7 @@ import {
   getCurrentUser
 }
 from "./auth.js";
-import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync, runWeeklyDigest } from "./cron.js";
+import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync, runWeeklyDigest, runChatQualityReport } from "./cron.js";
 import { runScheduledHealthChecks } from "./tracking/health-check.js";
 import { runScheduledResearchSourceHealthChecks } from "./research/source-health.js";
 
@@ -888,6 +888,13 @@ case "sitemap-research":
         ctx.waitUntil(
             runWeeklyDigest(env).catch(() => {
                 // Never let a digest failure affect other scheduled tasks.
+            })
+        );
+
+        // Weekly Lummet AI chat-quality email to admins who opted in (AI Studio). Own 7-day cadence; a no-op when nobody opted in.
+        ctx.waitUntil(
+            runChatQualityReport(env).catch(() => {
+                // Never let a report failure affect other scheduled tasks.
             })
         );
 

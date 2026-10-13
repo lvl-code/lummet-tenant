@@ -433,3 +433,11 @@ AI Studio has a new **Content gaps** tab (admins only). It lists questions that 
 - **Mark as handled**: marks every question in the topic reviewed so it leaves the list.
 
 No AI model is called to build the list, nothing new is stored, no migration. API (admins): `GET /api/v1/ai-studio/feedback/gaps`, rate-limited like the other AI Studio routes. Covers ratings from both the widget and the lummet. page.
+
+## 35. Weekly chat-quality email to admins (v21.3)
+
+In AI Studio, Chat feedback tab, the digest has **Email me this report every week**, **Stop the weekly email** and **Send me one now**. It is **opt-in per admin**: nobody gets mail unless they turn it on for themselves, and only users who are still admin or super admin receive it. The email (about once every 7 days, checked by the existing 6-hourly schedule) contains this week against last week, the entrance comparison (when migration 0064 is in), the top thumbs-down topics, and the top three content gaps, with a link to AI Studio. Visitor questions are escaped. Nothing is sent when there is nothing to report, and no AI model is used.
+
+Needs the same email setup as the other site emails (`RESEND_API_KEY` and `RESEND_FROM_EMAIL`); without it **Send me one now** shows the error and nothing breaks. The list of opted-in admins is stored as user ids in the existing `settings` table (key `ai_chat_report_to`); the 7-day marker is in `system_settings` (`chat_quality_report_last_attempt_at`). No migration. This job is not part of the admin cron-health list.
+
+API (admins): `GET /api/v1/ai-studio/feedback/report` (your state), `POST` `{enabled}` (opt in or out for yourself) or `{send_now: true}` (sends only to you).

@@ -27,6 +27,7 @@ import { updateContentItem } from "../database/content-items.js";
 import { canAccessItem } from "../database/item-access.js";
 import { rateGate } from "./rate.js";
 import { chatQualityDigest, contentGaps } from "./digest.js";
+import { getRecipients, setRecipient, sendChatQualityReport } from "./report.js";
 import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls } from "./retrieval.js";
 import { feedbackSummary, listFeedback, setReviewed } from "./feedback.js";
 
@@ -774,6 +775,25 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
     if (method === "GET" && route === "feedback/gaps") {
       if (!(await underLimit(env.DB, `studio:${user?.user_id || user?.id || "anon"}`))) return fail("Too many requests. Try again in a few minutes.", 429);
       return json({ success: true, ...(await contentGaps(env, request)) });
+    }
+    // weekly chat-quality email: each admin turns it on or off for themselves; "send now" goes only to the person asking
+    if (route === "feedback/report") {
+      const uid = Number(user?.user_id || user?.id) || 0;
+      if (method === "GET") {
+        const ids = await getRecipients(env.DB);
+        return json({ success: true, enabled: ids.includes(uid), recipients: ids.length, email_ready: !!(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL) });
+      }
+      if (method === "POST") {
+        let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
+        if (body && body.send_now) {
+          if (!(await underLimit(env.DB, `studio:${uid || "anon"}`))) return fail("Too many requests. Try again in a few minutes.", 429);
+          const r = await sendChatQualityReport(env, request, { onlyUserId: uid });
+          return json({ success: true, ...r });
+        }
+        if (!uid) return fail("Sign in again.", 401);
+        await setRecipient(env.DB, uid, !!(body && body.enabled));
+        return json({ success: true, enabled: !!(body && body.enabled) });
+      }
     }
     if (method === "GET" && route === "feedback/faqs") return json({ success: true, faqs: await listDraftFaqs(env.DB) });
     if (method === "POST" && route === "feedback/faq") {

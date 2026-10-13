@@ -328,6 +328,28 @@
     var faqBox = el("div", { class: "as-faqs" }); card.appendChild(faqBox); loadDraftFaqs(faqBox);
   }
 
+  function loadReportToggle(box) {
+    box.textContent = "";
+    api("feedback/report").then(function (d) {
+      if (d.error) return;
+      var note = el("span", { class: "muted", text: d.email_ready ? "" : " Email sending is not set up on this site yet." });
+      var btn = el("button", { type: "button", class: "btn btn--small", text: d.enabled ? "Stop the weekly email" : "Email me this report every week", onclick: function () {
+        api("feedback/report", { enabled: !d.enabled }).then(function (x) { if (x.error) say("error", x.error); else { say("success", x.enabled ? "You will get the report every week." : "Weekly email stopped."); loadReportToggle(box); } });
+      } });
+      var now = el("button", { type: "button", class: "btn btn--small", text: "Send me one now", onclick: function () {
+        now.disabled = true;
+        api("feedback/report", { send_now: true }).then(function (x) {
+          now.disabled = false;
+          if (x.error) say("error", x.error);
+          else if (x.skipped) say("success", "Nothing sent: " + (x.reason || "nothing to report") + ".");
+          else if (x.failed) say("error", "Could not send: " + (x.error || "email problem") + ".");
+          else say("success", "Sent. Check your inbox.");
+        });
+      } });
+      box.appendChild(el("div", { class: "as-actions" }, [btn, now, note]));
+    });
+  }
+
   function loadDigest(box) {
     box.textContent = "";
     api("feedback/digest").then(function (d) {
@@ -342,6 +364,7 @@
       var SRC = { widget: "Floating widget", subdomain: "lummet. page" };
       if ((d.by_source || []).length) c.appendChild(el("p", { class: "muted", text: "By entrance (28 days): " + d.by_source.map(function (x) { return (SRC[x.source] || x.source) + " " + (x.helpful_pct === null ? "-" : x.helpful_pct + "%") + " helpful (" + (x.up + x.down) + " ratings)"; }).join(", ") }));
       box.appendChild(c);
+      var rb = el("div", {}); box.appendChild(rb); loadReportToggle(rb);
       if ((d.topics || []).length) {
         box.appendChild(el("h4", { text: "Topics that keep getting thumbs-down (28 days)" }));
         d.topics.forEach(function (t) {

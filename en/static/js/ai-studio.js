@@ -71,13 +71,15 @@
       el("button", { type: "button", class: "rv-tab" + (S.view !== "audit" ? " is-on" : ""), text: "Tools", onclick: function () { S.view = "tools"; render(); } }),
       el("button", { type: "button", class: "rv-tab" + (S.view === "audit" ? " is-on" : ""), text: "Content audit", onclick: function () { S.view = "audit"; render(); } }),
       el("button", { type: "button", class: "rv-tab" + (S.view === "history" ? " is-on" : ""), text: "History", onclick: function () { S.view = "history"; render(); } }),
-      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "feedback" ? " is-on" : ""), text: "Chat feedback", onclick: function () { S.view = "feedback"; render(); } }) : null
+      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "feedback" ? " is-on" : ""), text: "Chat feedback", onclick: function () { S.view = "feedback"; render(); } }) : null,
+      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "gaps" ? " is-on" : ""), text: "Content gaps", onclick: function () { S.view = "gaps"; render(); } }) : null
     ]);
     root.appendChild(tabs);
     if (!S.meta.available) root.appendChild(el("div", { class: "alert alert--warning", text: "The AI service is not connected on this site, so tools cannot generate text. The content audit still works." }));
     if (S.view === "audit") return renderAudit();
     if (S.view === "history") return renderHistory();
     if (S.view === "feedback" && S.meta.feedback) return renderFeedback();
+    if (S.view === "gaps" && S.meta.feedback) return renderGaps();
     renderTools();
   }
 
@@ -252,6 +254,40 @@
 
   // ---------- chat feedback (admins) ----------
   var REASON_LABEL = { wrong: "Incorrect", missing: "Missing info", unclear: "Unclear", other: "Something else" };
+  // ---------- content gaps: things visitors asked about that the site has nothing on ----------
+  function renderGaps() {
+    var card = el("div", { class: "gm-card" }, [el("h3", { text: "Content gaps" }), el("p", { class: "muted", text: "Questions that got a thumbs-down where the site has nothing on the topic (checked the same way the chat looks things up). Each one is something worth writing. Drafts are never published automatically." })]);
+    var body = el("div", {});
+    card.appendChild(body); root.appendChild(card);
+    function start(g, task, group) { S.prefill = { topic: g.examples[0].question }; S.view = "tools"; S.group = group; S.task = task; S.result = null; S.item = null; S.items = []; S.research = null; render(); }
+    function load() {
+      body.textContent = "";
+      body.appendChild(el("p", { class: "muted", text: "Checking..." }));
+      api("feedback/gaps").then(function (d) {
+        body.textContent = "";
+        if (d.error) { say("error", d.error); return; }
+        if (!d.available) { body.appendChild(el("p", { class: "muted", text: "Chat feedback is not set up on this site yet." })); return; }
+        if (!(d.gaps || []).length) { body.appendChild(el("p", { text: "No gaps found. Every topic that got a thumbs-down is already covered on the site." })); return; }
+        d.gaps.forEach(function (g) {
+          var markBtn = el("button", { type: "button", class: "btn btn--small", text: "Mark as handled", onclick: function () {
+            markBtn.disabled = true;
+            Promise.all((g.ids || []).map(function (id) { return api("feedback/review", { id: id, reviewed: true }); })).then(function () { say("success", "Marked as handled."); load(); });
+          } });
+          body.appendChild(el("div", { class: "as-faq" }, [
+            el("strong", { text: g.topic + " (" + g.count + " thumbs-down)" }),
+            el("ul", {}, g.examples.map(function (e) { return el("li", { text: e.question }); })),
+            el("div", { class: "as-actions" }, [
+              el("button", { type: "button", class: "btn btn--small btn--primary", text: "Research draft", onclick: function () { start(g, "research_draft", "Research"); } }),
+              el("button", { type: "button", class: "btn btn--small", text: "News article draft", onclick: function () { start(g, "news_article", "News"); } }),
+              markBtn
+            ])
+          ]));
+        });
+      });
+    }
+    load();
+  }
+
   function renderFeedback() {
     var card = el("div", { class: "gm-card" }, [el("h3", { text: "Lummet AI chat feedback" }), el("p", { class: "muted", text: "Thumbs from visitors on the public chat. Question and answer text is kept only for thumbs-down, for 180 days. Nothing identifying is stored." })]);
     root.appendChild(card);

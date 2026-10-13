@@ -31,7 +31,7 @@ export function groupTopics(questions, { max = 8 } = {}) {
     for (const x of pool) for (const w of x.words) counts.set(w, (counts.get(w) || 0) + 1);
     const [word, n] = [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0];
     const hit = pool.filter((x) => x.words.includes(word));
-    out.push({ topic: word, count: hit.length, examples: hit.slice(0, 3).map((x) => ({ id: x.q.id, question: String(x.q.question).slice(0, 200) })) });
+    out.push({ topic: word, count: hit.length, ids: hit.slice(0, 50).map((x) => x.q.id), examples: hit.slice(0, 3).map((x) => ({ id: x.q.id, question: String(x.q.question).slice(0, 200) })) });
     pool = pool.filter((x) => !x.words.includes(word));
     if (n < 1) break;
   }
@@ -76,5 +76,37 @@ export async function chatQualityDigest(env, request, { checkCoverage = true, co
     return { available: true, this_week: thisWeek, last_week: lastWeek, trend, by_country: byCountry, by_source: bySource, reasons, topics, questions_considered: qs.length };
   } catch (_) {
     return { available: false };
+  }
+}
+
+const COVER_KEYS = ["casinos", "reviews", "news", "pages", "faqs", "contentItems", "researchItems", "platformUpdates"];
+
+/** True when the same lookup the public chat uses finds anything on the site for this text. */
+export async function siteHas(env, request, text, retrieveFn = retrieve) {
+  const ctx = await retrieveFn(env, text, "RW", null, [], request);
+  return COVER_KEYS.some((k) => ((ctx && ctx[k]) || []).length > 0);
+}
+
+/**
+ * Content gaps: topics people got thumbs-down on (not yet marked handled, last 60 days) where the site has NOTHING
+ * for either the topic word or the question itself. Each one is a thing worth writing. No model call, nothing stored.
+ */
+export async function contentGaps(env, request, { limit = 8, retrieveFn = retrieve } = {}) {
+  const db = env.DB;
+  try {
+    const since = fmt(new Date(Date.now() - 60 * 86400000));
+    const qs = (await db.prepare(`SELECT id, question FROM ai_feedback WHERE rating = 'down' AND reviewed = 0 AND question IS NOT NULL AND created_at >= ? ORDER BY id DESC LIMIT 500`).bind(since).all()).results;
+    const gaps = [];
+    for (const t of groupTopics(qs, { max: limit + 4 })) {
+      if (gaps.length >= limit) break;
+      try {
+        const hasTopic = await siteHas(env, request, t.topic, retrieveFn);
+        const hasQuestion = hasTopic || await siteHas(env, request, t.examples[0].question, retrieveFn);
+        if (!hasQuestion) gaps.push(t);
+      } catch (_) { /* unknown: do not call it a gap */ }
+    }
+    return { available: true, gaps, questions_considered: qs.length };
+  } catch (_) {
+    return { available: false, gaps: [] };
   }
 }

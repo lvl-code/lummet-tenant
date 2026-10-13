@@ -424,3 +424,12 @@ A test (`test/lummet-subdomain-parity.test.js`) sends the same question through 
 Each thumbs rating now remembers whether it came from the **floating widget** or the **lummet.<domain> page**. The server decides this from the request address (a browser cannot claim a different one), and older ratings stay unlabelled. The chat-quality digest in AI Studio shows "By entrance (28 days)" with the helpful share and number of ratings for each, so you can see whether one performs worse.
 
 **Migration 0064** (`migrations/0064_ai_feedback_source.sql`) adds one nullable column, `ai_feedback.source`. It is purely additive. Run it once per site database (D1 console, or the `d1-migrate-file.yml` workflow with `file = 0064_ai_feedback_source.sql`); a second run reports "duplicate column name", which is harmless. Until it is run, ratings are still saved (without the entrance) and the digest simply omits the entrance line.
+
+## 34. Content gaps (v21.2)
+
+AI Studio has a new **Content gaps** tab (admins only). It lists questions that got a thumbs-down, not yet marked handled, from the last 60 days, grouped by topic, **where the site has nothing**: the same lookup the public chat uses finds nothing for the topic word and nothing for the question itself. Topics the site does cover are left out (those are for **Draft a fix** in the digest). Each gap offers:
+
+- **Research draft** and **News article draft**: opens that tool with the question already filled in. Nothing is published; saving creates drafts as before.
+- **Mark as handled**: marks every question in the topic reviewed so it leaves the list.
+
+No AI model is called to build the list, nothing new is stored, no migration. API (admins): `GET /api/v1/ai-studio/feedback/gaps`, rate-limited like the other AI Studio routes. Covers ratings from both the widget and the lummet. page.

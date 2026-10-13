@@ -55,6 +55,11 @@ export async function chatQualityDigest(env, request, { checkCoverage = true, co
 
     const byCountry = (await db.prepare(`SELECT country, SUM(rating = 'up') AS up, SUM(rating = 'down') AS down FROM ai_feedback WHERE created_at >= ? AND country IS NOT NULL GROUP BY country ORDER BY down DESC, up DESC LIMIT 6`).bind(d28).all()).results
       .map((r) => ({ country: r.country, up: r.up, down: r.down, helpful_pct: pct(r.up, r.down) }));
+    let bySource = [];
+    try {   // needs migration 0064; without it the entrance breakdown is simply left out
+      bySource = (await db.prepare(`SELECT source, SUM(rating = 'up') AS up, SUM(rating = 'down') AS down FROM ai_feedback WHERE created_at >= ? AND source IS NOT NULL GROUP BY source ORDER BY source`).bind(d28).all()).results
+        .map((r) => ({ source: r.source, up: r.up, down: r.down, helpful_pct: pct(r.up, r.down) }));
+    } catch (_) { bySource = []; }
     const reasons = (await db.prepare(`SELECT reason, COUNT(*) AS n FROM ai_feedback WHERE rating = 'down' AND reason IS NOT NULL AND created_at >= ? GROUP BY reason ORDER BY n DESC`).bind(d28).all()).results;
     const qs = (await db.prepare(`SELECT id, question FROM ai_feedback WHERE rating = 'down' AND question IS NOT NULL AND created_at >= ? ORDER BY id DESC LIMIT 400`).bind(d28).all()).results;
     const topics = groupTopics(qs);
@@ -68,7 +73,7 @@ export async function chatQualityDigest(env, request, { checkCoverage = true, co
         } catch (_) { /* leave unknown */ }
       }
     }
-    return { available: true, this_week: thisWeek, last_week: lastWeek, trend, by_country: byCountry, reasons, topics, questions_considered: qs.length };
+    return { available: true, this_week: thisWeek, last_week: lastWeek, trend, by_country: byCountry, by_source: bySource, reasons, topics, questions_considered: qs.length };
   } catch (_) {
     return { available: false };
   }

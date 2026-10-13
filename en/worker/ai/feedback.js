@@ -13,6 +13,11 @@ export const FEEDBACK_KEEP_DAYS = 180;
 const clip = (v, n) => String(v == null ? "" : v).trim().slice(0, n);
 const json = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
+/** Which entrance a request came from, decided by the server from the address: the lummet.<domain> page or the widget. */
+export function feedbackSource(request) {
+  try { return new URL(request.url).hostname.toLowerCase().startsWith("lummet.") ? "subdomain" : "widget"; } catch (_) { return "widget"; }
+}
+
 /** POST /api/v1/ai/feedback  { session_id, rating: 'up'|'down', reason? } -- public, like the chat itself. */
 export async function handleFeedback(request, env) {
   let body;
@@ -33,14 +38,21 @@ export async function handleFeedback(request, env) {
     if (at < 0) return json({ success: false, error: "Nothing to rate" }, 404);
     const answer = msgs[at], question = at > 0 && msgs[at - 1].role === "user" ? msgs[at - 1] : null;
     const down = rating === "down";
-    await env.DB.prepare(`
-      INSERT INTO ai_feedback (session_id, msg_ts, rating, reason, question, answer, country)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(session_id, msg_ts) DO UPDATE SET rating = excluded.rating, reason = excluded.reason,
-        question = excluded.question, answer = excluded.answer, country = excluded.country
-    `).bind(sessionId, Number(answer.ts) || 0, rating, down ? clip(body.reason, 200) || null : null,
+    const args = [sessionId, Number(answer.ts) || 0, rating, down ? clip(body.reason, 200) || null : null,
       down ? clip(question && question.content, 400) || null : null, down ? clip(answer.content, 900) : null,
-      clip(request.cf && request.cf.country, 2) || null).run();
+      clip(request.cf && request.cf.country, 2) || null];
+    const upsert = (cols, marks, extra) => env.DB.prepare(`
+      INSERT INTO ai_feedback (${cols})
+      VALUES (${marks})
+      ON CONFLICT(session_id, msg_ts) DO UPDATE SET rating = excluded.rating, reason = excluded.reason,
+        question = excluded.question, answer = excluded.answer, country = excluded.country${extra}
+    `);
+    try {
+      // migration 0064 adds `source`; until it is applied the plain insert below is used
+      await upsert("session_id, msg_ts, rating, reason, question, answer, country, source", "?, ?, ?, ?, ?, ?, ?, ?", ", source = excluded.source").bind(...args, feedbackSource(request)).run();
+    } catch (_) {
+      await upsert("session_id, msg_ts, rating, reason, question, answer, country", "?, ?, ?, ?, ?, ?, ?", "").bind(...args).run();
+    }
     if (down) {
       const cutoff = new Date(Date.now() - FEEDBACK_KEEP_DAYS * 86400000).toISOString().slice(0, 19).replace("T", " ");
       await env.DB.prepare(`DELETE FROM ai_feedback WHERE created_at < ?`).bind(cutoff).run();

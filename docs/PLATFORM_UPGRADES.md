@@ -418,3 +418,9 @@ The floating widget (`/en/api/v1/ai/*`) and the dedicated page on the `lummet.<d
 What changed on the subdomain: the chat, streaming chat, clear-chat and feedback endpoints are the widget's own handlers (before, the subdomain kept a separate copy, which had drifted: no feedback, a different default country, no clear). The page gained the same thumbs row as the widget (same wording and reasons), and **+ New Chat** clears the saved conversation on the server. Feedback from both entrances lands in the same table and appears in AI Studio's Chat feedback tab and digest. The legacy paths `/api/chat`, `/api/chat/stream` stay; `/api/chat/clear` and `/api/feedback` are new. The admin panel on the page and its `/api/admin/*` routes are unchanged. No migration; nothing removed.
 
 A test (`test/lummet-subdomain-parity.test.js`) sends the same question through both entrances and fails if their answers, memory, feedback or limits differ, or if the page's feedback wording drifts from the widget's.
+
+## 33. Which entrance a rating came from (v21.1)
+
+Each thumbs rating now remembers whether it came from the **floating widget** or the **lummet.<domain> page**. The server decides this from the request address (a browser cannot claim a different one), and older ratings stay unlabelled. The chat-quality digest in AI Studio shows "By entrance (28 days)" with the helpful share and number of ratings for each, so you can see whether one performs worse.
+
+**Migration 0064** (`migrations/0064_ai_feedback_source.sql`) adds one nullable column, `ai_feedback.source`. It is purely additive. Run it once per site database (D1 console, or the `d1-migrate-file.yml` workflow with `file = 0064_ai_feedback_source.sql`); a second run reports "duplicate column name", which is harmless. Until it is run, ratings are still saved (without the entrance) and the digest simply omits the entrance line.

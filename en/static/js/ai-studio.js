@@ -303,6 +303,8 @@
         el("p", { class: "muted", text: "Last week: " + wk(d.last_week) })
       ]);
       if ((d.by_country || []).length) c.appendChild(el("p", { class: "muted", text: "By country (28 days): " + d.by_country.map(function (x) { return x.country + " " + (x.helpful_pct === null ? "-" : x.helpful_pct + "%") + " (" + x.down + " down)"; }).join(", ") }));
+      var SRC = { widget: "Floating widget", subdomain: "lummet. page" };
+      if ((d.by_source || []).length) c.appendChild(el("p", { class: "muted", text: "By entrance (28 days): " + d.by_source.map(function (x) { return (SRC[x.source] || x.source) + " " + (x.helpful_pct === null ? "-" : x.helpful_pct + "%") + " helpful (" + (x.up + x.down) + " ratings)"; }).join(", ") }));
       box.appendChild(c);
       if ((d.topics || []).length) {
         box.appendChild(el("h4", { text: "Topics that keep getting thumbs-down (28 days)" }));

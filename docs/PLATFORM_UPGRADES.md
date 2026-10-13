@@ -441,3 +441,15 @@ In AI Studio, Chat feedback tab, the digest has **Email me this report every wee
 Needs the same email setup as the other site emails (`RESEND_API_KEY` and `RESEND_FROM_EMAIL`); without it **Send me one now** shows the error and nothing breaks. The list of opted-in admins is stored as user ids in the existing `settings` table (key `ai_chat_report_to`); the 7-day marker is in `system_settings` (`chat_quality_report_last_attempt_at`). No migration. This job is not part of the admin cron-health list.
 
 API (admins): `GET /api/v1/ai-studio/feedback/report` (your state), `POST` `{enabled}` (opt in or out for yourself) or `{send_now: true}` (sends only to you).
+
+## 36. Chat settings: tone, topics to decline, extra guidance (v21.4)
+
+AI Studio has a new **Chat settings** tab (admins only) with three optional settings for the public chat:
+
+- **Tone:** Friendly (the default, no change), Professional (no slang, jokes or emojis), or Concise (three sentences or a short list unless asked for more).
+- **Topics to politely decline:** up to 10 lines. The chat says briefly and kindly that it can't help with these here and offers to help with the site's content instead. The list is repeated right before the question so smaller models keep to it.
+- **Extra guidance:** up to 500 characters of style or scope guidance, passed to the model as quoted notes.
+
+They are stored in the existing `settings` table (`ai_chat_tone`, `ai_chat_decline`, `ai_chat_notes`) and read on every chat message by the one prompt builder that serves **both the floating widget and the lummet. page**, so both change together from the next message. The section sits **below** the built-in strict rules: it can make the chat shorter, more formal or more reserved, but cannot make it invent facts, links or sources. Nothing set means the prompt is unchanged. Saving is recorded in History as "Changed chat settings" (the text itself is not copied there); **Back to defaults** clears all three. Declining is done by the model, so it is reliable but not a hard filter; it is not a content-moderation system.
+
+No migration. API (admins): `GET` and `POST /api/v1/ai-studio/chat-rules`.

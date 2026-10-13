@@ -72,7 +72,8 @@
       el("button", { type: "button", class: "rv-tab" + (S.view === "audit" ? " is-on" : ""), text: "Content audit", onclick: function () { S.view = "audit"; render(); } }),
       el("button", { type: "button", class: "rv-tab" + (S.view === "history" ? " is-on" : ""), text: "History", onclick: function () { S.view = "history"; render(); } }),
       S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "feedback" ? " is-on" : ""), text: "Chat feedback", onclick: function () { S.view = "feedback"; render(); } }) : null,
-      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "gaps" ? " is-on" : ""), text: "Content gaps", onclick: function () { S.view = "gaps"; render(); } }) : null
+      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "gaps" ? " is-on" : ""), text: "Content gaps", onclick: function () { S.view = "gaps"; render(); } }) : null,
+      S.meta.feedback ? el("button", { type: "button", class: "rv-tab" + (S.view === "rules" ? " is-on" : ""), text: "Chat settings", onclick: function () { S.view = "rules"; render(); } }) : null
     ]);
     root.appendChild(tabs);
     if (!S.meta.available) root.appendChild(el("div", { class: "alert alert--warning", text: "The AI service is not connected on this site, so tools cannot generate text. The content audit still works." }));
@@ -80,6 +81,7 @@
     if (S.view === "history") return renderHistory();
     if (S.view === "feedback" && S.meta.feedback) return renderFeedback();
     if (S.view === "gaps" && S.meta.feedback) return renderGaps();
+    if (S.view === "rules" && S.meta.feedback) return renderRules();
     renderTools();
   }
 
@@ -254,6 +256,40 @@
 
   // ---------- chat feedback (admins) ----------
   var REASON_LABEL = { wrong: "Incorrect", missing: "Missing info", unclear: "Unclear", other: "Something else" };
+  // ---------- chat settings: tone, topics to decline, extra guidance (applies to the widget and the lummet. page) ----------
+  function renderRules() {
+    var card = el("div", { class: "gm-card" }, [el("h3", { text: "Chat settings" }), el("p", { class: "muted", text: "How Lummet AI should sound and what it should stay away from. This applies to the floating widget and the lummet. page alike, from the next message on. These settings sit below the chat's built-in rules: they cannot make it invent facts or links." })]);
+    root.appendChild(card);
+    var form = el("div", { class: "as-form" });
+    card.appendChild(form);
+    form.appendChild(el("p", { class: "muted", text: "Loading..." }));
+    api("chat-rules").then(function (d) {
+      form.textContent = "";
+      if (d.error) { say("error", d.error); return; }
+      var tone = el("select", { class: "gm-select", id: "asTone" }, Object.keys(d.tones).map(function (k) { var o = el("option", { value: k, text: d.tones[k] }); if (k === d.rules.tone) o.selected = true; return o; }));
+      var decline = el("textarea", { class: "as-text", id: "asDecline", rows: "5", maxlength: String(d.limits.declineLines * (d.limits.declineLen + 1)) });
+      decline.value = d.rules.decline.join("\n");
+      var notes = el("textarea", { class: "as-text", id: "asNotes", rows: "5", maxlength: String(d.limits.notes) });
+      notes.value = d.rules.notes;
+      form.appendChild(labelled("Tone", tone));
+      form.appendChild(labelled("Topics to politely decline (one per line, up to " + d.limits.declineLines + ")", decline));
+      form.appendChild(labelled("Extra guidance (up to " + d.limits.notes + " characters), for example: always mention that we do not accept deposits", notes));
+      var save = el("button", { type: "button", class: "btn btn--primary btn--small", text: "Save settings", onclick: function () {
+        save.disabled = true;
+        api("chat-rules", { tone: tone.value, decline: decline.value, notes: notes.value }).then(function (x) {
+          save.disabled = false;
+          if (x.error) say("error", x.error); else { say("success", "Saved. It applies from the next chat message."); decline.value = x.rules.decline.join("\n"); notes.value = x.rules.notes; tone.value = x.rules.tone; }
+        });
+      } });
+      var reset = el("button", { type: "button", class: "btn btn--small", text: "Back to defaults", onclick: function () {
+        if (!window.confirm("Clear tone, declined topics and extra guidance?")) return;
+        api("chat-rules", { tone: "friendly", decline: "", notes: "" }).then(function (x) { if (x.error) say("error", x.error); else { say("success", "Back to defaults."); renderRulesAgain(); } });
+      } });
+      form.appendChild(el("div", { class: "as-actions" }, [save, reset]));
+    });
+  }
+  function renderRulesAgain() { render(); }
+
   // ---------- content gaps: things visitors asked about that the site has nothing on ----------
   function renderGaps() {
     var card = el("div", { class: "gm-card" }, [el("h3", { text: "Content gaps" }), el("p", { class: "muted", text: "Questions that got a thumbs-down where the site has nothing on the topic (checked the same way the chat looks things up). Each one is something worth writing. Drafts are never published automatically." })]);
@@ -424,7 +460,7 @@
   }
 
   // ---------- history ----------
-  var TASK_LABEL = {}; var TARGET_LABEL = { news_draft: "Saved a news draft", research_draft: "Saved a research draft", research_claims: "Saved claims", item_fields: "Filled item fields" };
+  var TASK_LABEL = {}; var TARGET_LABEL = { news_draft: "Saved a news draft", research_draft: "Saved a research draft", research_claims: "Saved claims", item_fields: "Filled item fields", chat_rules: "Changed chat settings", faq_draft: "Saved a draft FAQ" };
   function renderHistory() {
     var card = el("div", { class: "gm-card" }, [el("h3", { text: "History" }), el("p", { class: "muted", text: "Who ran which tool and what was saved. Prompts and generated text are not stored." })]);
     root.appendChild(card);

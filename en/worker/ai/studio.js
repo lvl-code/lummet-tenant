@@ -28,6 +28,7 @@ import { canAccessItem } from "../database/item-access.js";
 import { rateGate } from "./rate.js";
 import { chatQualityDigest, contentGaps } from "./digest.js";
 import { getRecipients, setRecipient, sendChatQualityReport } from "./report.js";
+import { loadRules, saveRules, TONES, LIMITS } from "./house-rules.js";
 import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls } from "./retrieval.js";
 import { feedbackSummary, listFeedback, setReviewed } from "./feedback.js";
 
@@ -813,6 +814,18 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
     if (method === "POST" && route === "feedback/review") {
       let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
       return (await setReviewed(env.DB, body && body.id, !!(body && body.reviewed))) ? json({ success: true }) : fail("Not found", 404);
+    }
+  }
+
+  // owner preferences for the public chat (tone, topics to decline, extra guidance): admins only
+  if (route === "chat-rules") {
+    if (!isAllSeeing(user)) return fail("Forbidden", 403);
+    if (method === "GET") return json({ success: true, rules: await loadRules(env.DB), tones: TONES, limits: LIMITS });
+    if (method === "POST") {
+      let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
+      const rules = await saveRules(env.DB, body || {});
+      await recordHistory(env.DB, user, { kind: "save", target: "chat_rules", item_type: "chat", detail: `tone ${rules.tone}, ${rules.decline.length} declined topic(s), ${rules.notes ? "notes set" : "no notes"}` });
+      return json({ success: true, rules });
     }
   }
 

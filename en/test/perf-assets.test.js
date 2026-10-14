@@ -128,3 +128,27 @@ test("L1 cache: repeat reads skip KV, invalidate clears, copies are independent"
   const other = { CACHE: fakeKv() };
   assert.equal(await getCached(other, "z"), null);
 });
+
+import { PUBLIC_JSON_CACHE } from "../worker/static-assets.js";
+
+test("public sidebar/geo JSON is browser-cached; admin and other JSON is not", async () => {
+  const j = () => new Response("{}", { headers: { "content-type": "application/json" } });
+  for (const p of ["/en/api/v1/public/casinos/geo", "/en/api/v1/public/news/list", "/en/api/v1/public/categories/list",
+    "/en/api/v1/public/countries/list", "/en/api/v1/public/casino-reviews", "/en/api/v1/geo/check"]) {
+    const r = await finalizeResponse(new Request("https://x.test" + p + "?slug=a"), j());
+    assert.equal(r.headers.get("cache-control"), PUBLIC_JSON_CACHE, p);
+  }
+  for (const p of ["/en/api/v1/casino/1", "/en/api/v1/user/profile", "/en/api/v1/public/search", "/en/api/v1/ai/chat"]) {
+    const orig = j();
+    assert.equal(await finalizeResponse(new Request("https://x.test" + p), orig), orig, p);
+  }
+  const post = j();
+  assert.equal(await finalizeResponse(new Request("https://x.test/en/api/v1/geo/check", { method: "POST" }), post), post);
+});
+
+test("casino page asks for its own reviews only and does not repeat the geo request", () => {
+  const js = readFileSync(join(root, "static/js/casino.js"), "utf8");
+  assert.match(js, /casino-reviews\?casino_slug=/);
+  assert.doesNotMatch(js, /public\/reviews\/list/);
+  assert.doesNotMatch(js, /^\s*loadGeoInfo\(\);/m);
+});

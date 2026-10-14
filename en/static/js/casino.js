@@ -4,7 +4,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   loadCasinoReviews();
-  loadGeoInfo();
+  // The "Your Region" card is filled in by geo.js (same request, same markup).
 });
 
 // ---- Load reviews for this casino ----
@@ -15,7 +15,7 @@ async function loadCasinoReviews() {
   const slug = window.location.pathname.split("/").pop();
 
   try {
-    const res = await fetch(`/en/api/v1/public/reviews/list`);
+    const res = await fetch(`/en/api/v1/public/casino-reviews?casino_slug=${encodeURIComponent(slug)}`);
     const data = await res.json();
 
     const casinoReviews = (data.reviews || []).filter(

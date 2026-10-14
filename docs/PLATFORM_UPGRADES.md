@@ -485,3 +485,13 @@ Both go in `wrangler.jsonc`; try one at a time and revert if anything looks wron
 
 1. `"placement": { "mode": "smart" }` at the top level. Cloudflare may run the Worker nearer your D1 database, which cuts the round-trip cost of database-heavy requests (dashboard, chat) and can slightly slow the rest. It needs traffic from several regions to take effect.
 2. In `assets`, change `"run_worker_first": true` to `["/*", "!/static/*"]` so static files are served by Cloudflare directly without waking the Worker. Then the Worker no longer adds the cache headers or `?v=` handling to `/static/*` responses, so also add a file `en/_headers` containing `/static/*` followed by an indented line `Cache-Control: public, max-age=300, stale-while-revalidate=86400`. That is a shorter cache than the Worker gives versioned files today, so it trades some repeat-visit speed for lower Worker use; skip it unless Worker request counts are a problem.
+
+## 40. Speed: fewer requests and database calls per visit (v22.2)
+
+Measured by counting queries per page (warm cache): a casino page 9, a review 15, a news article 8, one chat message 14.
+
+- **Browser caches the sidebar and geo lists.** Every public page fetched four to six small JSON lists on load (top casinos, news, categories, countries, geo status). They are now kept by the browser for 2 minutes (`private`, because some depend on the visitor's country), so moving between pages repeats none of those requests. Admin and other API responses are untouched.
+- **Casino page asks for its own reviews only.** It used to download every review in full and filter in the browser; it now requests `/api/v1/public/casino-reviews?casino_slug=` which returns just title, rating and a 200-character excerpt. The "Your Region" box was filled by two scripts making the same request; one request remains.
+- **Chat.** Old rate-limit rows are cleaned up on about 1 message in 20 instead of every message; the limit check itself is unchanged.
+
+No migration. Remaining per-message chat queries are the conversation load/save, rate limit and free-tier checks, and retrieval; they are left as they are because each is needed for correctness.

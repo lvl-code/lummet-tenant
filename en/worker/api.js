@@ -271,9 +271,13 @@ if (path === "/api/v1/public/casino-reviews") {
   const url = new URL(request.url);
   const casinoSlug = url.searchParams.get("casino_slug");
   if (!casinoSlug) return json({ reviews: [] });
+  // Only what the casino page shows (title, rating, a short excerpt), not
+  // every full review body.
   const result = await env.DB.prepare(`
-    SELECT * FROM reviews
+    SELECT slug, title, rating, casino_slug, substr(content, 1, 200) AS content
+    FROM reviews
     WHERE casino_slug = ? AND published = 1
+      AND (reviewed_content_type IS NULL OR reviewed_content_type = 'casino')
     ORDER BY created_at DESC
   `).bind(casinoSlug).all();
   return json({ reviews: result.results });

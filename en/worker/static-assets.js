@@ -19,6 +19,12 @@ export function versionAssetUrls(html, version = ASSET_VERSION) {
   );
 }
 
+// Read-only JSON the public pages fetch on every load (sidebar lists, geo
+// status). The browser keeps them for 2 minutes, so moving between pages
+// repeats none of these requests. `private`: some depend on the visitor's country.
+const PUBLIC_JSON = /^\/(?:en\/)?api\/v1\/(?:public\/(?:casinos\/(?:geo|list)|news\/list|categories\/list|countries\/list|casino-reviews)|geo\/check)$/;
+export const PUBLIC_JSON_CACHE = "private, max-age=120, stale-while-revalidate=600";
+
 export async function finalizeResponse(request, response) {
   let url;
   try { url = new URL(request.url); } catch { return response; }
@@ -32,6 +38,11 @@ export async function finalizeResponse(request, response) {
   }
 
   const type = response.headers.get("content-type") || "";
+  if (response.status === 200 && type.includes("application/json") && PUBLIC_JSON.test(url.pathname) && !response.headers.get("cache-control")) {
+    const headers = new Headers(response.headers);
+    headers.set("cache-control", PUBLIC_JSON_CACHE);
+    return new Response(response.body, { status: 200, headers });
+  }
   if (response.status === 200 && type.includes("text/html")) {
     const html = await response.text();
     const headers = new Headers(response.headers);

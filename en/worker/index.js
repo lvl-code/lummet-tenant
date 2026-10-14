@@ -146,6 +146,7 @@ import { cleanupExpiredConversations } from "./ai/memory.js";
 import { handleLummetRequest } from "./lummet/router.js";
 import { getSiteContext } from "./site-context.js";
 import { finalizeResponse } from "./static-assets.js";
+import { cachedPage, isCacheableRequest, isContentWrite, bumpPageEpoch } from "./page-cache.js";
 import { confirmNewsletter, unsubscribeNewsletter } from "./newsletter.js";
 
 const appWorker = {
@@ -963,7 +964,17 @@ function maintenanceResponse() {
 export default {
   async fetch(request, env, ctx) {
     try {
-      return await finalizeResponse(request, await appWorker.fetch(request, env, ctx));
+      let response;
+      const routeType = request.method === "GET" ? getRoute(request).type : null;
+      if (routeType && isCacheableRequest(request, routeType)) {
+        response = await cachedPage(request, env, ctx, routeType, (c) => appWorker.fetch(request, env, c));
+      } else {
+        response = await appWorker.fetch(request, env, ctx);
+        if (isContentWrite(request, response.status)) {
+          ctx.waitUntil(bumpPageEpoch(env));
+        }
+      }
+      return await finalizeResponse(request, response);
     } catch (err) {
       console.error("Maintenance fallback triggered:", err && err.message ? err.message : err);
       return maintenanceResponse();

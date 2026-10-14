@@ -38,7 +38,19 @@ const VALID_EVENT_TYPES = new Set([
  * effort telemetry, not a request-blocking concern, mirroring the
  * existing logAudit() convention in database/audit.js.
  */
+// Page-cache support (worker/page-cache.js): while a page is being rendered
+// for the cache, the view events it fires are recorded so they can be replayed
+// on every cache hit. `suppress` records without writing (background refresh).
+let ALS = null;
+try { ({ AsyncLocalStorage: ALS } = await import("node:async_hooks")); } catch { ALS = null; }
+export const eventCapture = ALS ? new ALS() : null;
+
 export async function logEvent(db, event) {
+  const cap = eventCapture && eventCapture.getStore();
+  if (cap) {
+    cap.events.push(event);
+    if (cap.suppress) return null;
+  }
   if (!VALID_EVENT_TYPES.has(event.eventType)) {
     console.error(`analytics.logEvent: unknown event_type "${event.eventType}", dropped`);
     return null;

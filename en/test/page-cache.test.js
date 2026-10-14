@@ -1,0 +1,133 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { cachedPage, isCacheableRequest, isContentWrite, bumpPageEpoch } from "../worker/page-cache.js";
+import { logEvent } from "../worker/database/analytics.js";
+
+function kv() {
+  const store = new Map();
+  return { store,
+    async get(k) { return store.has(k) ? store.get(k) : null; },
+    async put(k, v) { store.set(k, v); },
+    async delete(k) { store.delete(k); } };
+}
+function db() {
+  const rows = [];
+  return { rows, prepare() { return { bind: (...v) => ({ run: async () => { rows.push(v); return {}; } }) }; } };
+}
+function ctx() { const p = []; return { p, waitUntil: (x) => p.push(x) }; }
+const req = (path = "/en/casino/x", init = {}, cf = { country: "RW", city: "Kigali" }) => {
+  const r = new Request("https://site.test" + path, init);
+  Object.defineProperty(r, "cf", { value: cf });
+  return r;
+};
+
+// a render that behaves like renderCasino: fires a view event, returns html
+function makeRender(env, request, counter) {
+  return async (c) => {
+    counter.n++;
+    const work = logEvent(env.DB, { eventType: "CASINO_VIEW", casinoId: 7, countryCode: "RW", city: "Kigali",
+      referrer: request.headers.get("referer") || null, landingPage: "/en/casino/x" });
+    if (c) c.waitUntil(work); else await work;
+    return new Response("<html>page</html>", { headers: { "Content-Type": "text/html", "Cache-Control": "public, s-maxage=60" } });
+  };
+}
+
+test("eligibility: GET, no query, content route, not lummet", () => {
+  assert.equal(isCacheableRequest(req(), "casino"), true);
+  assert.equal(isCacheableRequest(req("/en/casino/x?partial=1"), "casino"), true);
+  assert.equal(isCacheableRequest(req("/en/casino/x?geo=CA"), "casino"), false);
+  assert.equal(isCacheableRequest(req("/en/news?page=2"), "newsList"), false);
+  assert.equal(isCacheableRequest(req("/en/casino/x", { method: "POST" }), "casino"), false);
+  assert.equal(isCacheableRequest(req("/en/dashboard"), "dashboard"), false);
+  assert.equal(isCacheableRequest(req("/en/search"), "siteSearch"), false);
+  assert.equal(isCacheableRequest(new Request("https://lummet.site.test/en/casino/x"), "casino"), false);
+});
+
+test("a hit skips the renderer but still records the view with the visitor's own details", async () => {
+  const env = { CACHE: kv(), DB: db() }; const n = { n: 0 };
+  const r1 = req("/en/casino/x", { headers: { referer: "https://google.com/" } });
+  const c1 = ctx();
+  const res1 = await cachedPage(r1, env, c1, "casino", makeRender(env, r1, n));
+  await Promise.all(c1.p);
+  assert.equal(await res1.text(), "<html>page</html>");
+  assert.equal(n.n, 1);
+  assert.equal(env.DB.rows.length, 1);
+
+  const r2 = req("/en/casino/x", { headers: { referer: "https://bing.com/" } }, { country: "KE", city: "Nairobi" });
+  const c2 = ctx();
+  const res2 = await cachedPage(r2, env, c2, "casino", makeRender(env, r2, n));
+  await Promise.all(c2.p);
+  assert.equal(res2.headers.get("x-page-cache"), null, "first KE visit is a miss");
+  assert.equal(n.n, 2, "KE has its own cache entry (country is part of the key)");
+
+  const r3 = req("/en/casino/x", { headers: { referer: "https://bing.com/" } });
+  const c3 = ctx();
+  const res3 = await cachedPage(r3, env, c3, "casino", makeRender(env, r3, n));
+  await Promise.all(c3.p);
+  assert.equal(res3.headers.get("x-page-cache"), "hit");
+  assert.equal(n.n, 2, "RW hit did not render");
+  assert.equal(env.DB.rows.length, 3, "every view is still counted");
+  const last = env.DB.rows[2];
+  assert.ok(last.includes("https://bing.com/"), "replay uses this visitor's referrer");
+  assert.ok(last.includes("CASINO_VIEW") && last.includes(7));
+  assert.equal(res3.headers.get("cache-control"), "public, s-maxage=60");
+});
+
+test("stale copy is served at once and refreshed in the background without double counting", async () => {
+  const env = { CACHE: kv(), DB: db() }; const n = { n: 0 };
+  const r = req();
+  let c = ctx();
+  await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
+  const key = [...env.CACHE.store.keys()].find((k) => k.startsWith("pc:"));
+  const e = JSON.parse(env.CACHE.store.get(key)); e.generatedAt -= 400 * 1000;
+  env.CACHE.store.set(key, JSON.stringify(e));
+  const rowsBefore = env.DB.rows.length;
+
+  c = ctx();
+  const res = await cachedPage(r, env, c, "casino", makeRender(env, r, n));
+  assert.equal(res.headers.get("x-page-cache"), "stale");
+  await Promise.all(c.p);
+  assert.equal(n.n, 2, "background refresh rendered once");
+  assert.equal(env.DB.rows.length, rowsBefore + 1, "one replayed view, refresh wrote none");
+  const e2 = JSON.parse(env.CACHE.store.get(key));
+  assert.equal(e2.events.length, 1, "refresh kept the recorded events");
+});
+
+test("non-200, unknown event fields and missing storage are never cached", async () => {
+  const env = { CACHE: kv(), DB: db() };
+  const c = ctx();
+  const res404 = await cachedPage(req("/en/casino/none"), env, c, "casino", async () => new Response("no", { status: 404, headers: { "content-type": "text/html" } }));
+  assert.equal(res404.status, 404);
+  assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:")).length, 0);
+
+  const odd = async (cx) => { const w = logEvent(env.DB, { eventType: "PAGE_VIEW", pageId: 1, metadata: { bot: 1 } }); if (cx) cx.waitUntil(w); return new Response("x", { headers: { "content-type": "text/html" } }); };
+  await cachedPage(req("/en/p"), env, ctx(), "page", odd);
+  assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:")).length, 0);
+
+  let calls = 0;
+  const plain = async () => { calls++; return new Response("x", { headers: { "content-type": "text/html" } }); };
+  await cachedPage(req(), { DB: db() }, ctx(), "casino", plain);
+  assert.equal(calls, 1);
+});
+
+test("an admin save retires every cached page; visitor writes do not", async () => {
+  const env = { CACHE: kv(), DB: db() }; const n = { n: 0 };
+  const r = req();
+  let c = ctx();
+  await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
+  c = ctx(); await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
+  assert.equal(n.n, 1);
+
+  const post = (p) => new Request("https://site.test" + p, { method: "POST" });
+  assert.equal(isContentWrite(post("/en/api/v1/casino/5"), 200), true);
+  assert.equal(isContentWrite(post("/en/api/v1/settings"), 200), true);
+  assert.equal(isContentWrite(post("/en/api/v1/casino/5"), 500), false);
+  assert.equal(isContentWrite(post("/en/api/v1/ai/chat"), 200), false);
+  assert.equal(isContentWrite(post("/en/api/v1/newsletter/subscribe"), 200), false);
+  assert.equal(isContentWrite(post("/en/api/v1/user/bookmark"), 200), false);
+  assert.equal(isContentWrite(new Request("https://site.test/en/api/v1/casino/5"), 200), false);
+
+  await bumpPageEpoch(env);
+  c = ctx(); await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
+  assert.equal(n.n, 2, "re-rendered after the epoch changed");
+});

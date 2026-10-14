@@ -468,3 +468,20 @@ Why pages felt slow: every public page loaded about 70 JavaScript files and 14 s
 - **Fewer repeat reads.** `worker/cache.js` keeps a short (15 s) in-memory copy in front of KV, cleared at once by `invalidate()` in the same isolate; active banners are cached for 30 s. A change made in the dashboard can take up to about 15-30 s to appear on public pages.
 
 No migration, nothing removed. Not changed: the 1.5 MB `static/images/elie.png` (not referenced by code; compress it before using it on a page).
+
+## 39. Speed, server side: page cache and faster chat (v22.1)
+
+- **Public page cache.** Content pages (casino, review, news, category, country, sportsbook, custom types, comparisons, authors, updates, lists and similar) are served from KV, one copy per country, instead of running about 15 database queries each time. Only anonymous GET requests with no query string and a 200 result are cached. A copy is served as-is for 5 minutes, then served once more while it is refreshed in the background, and is never kept longer than 15 minutes. The response carries `x-page-cache: hit` or `stale` when it came from the cache.
+- **Analytics are unchanged.** When a page is rendered for the cache, the view events it fires (casino view, offer view, ...) are recorded with it. Every cache hit replays them with that visitor's own country, city and referrer, so view counts stay complete. A page that fires anything unexpected is never cached. The background refresh records events but does not write them, so nothing is counted twice.
+- **Edits show at once.** Any successful admin save (any `/api/v1/` write other than visitor endpoints: auth, newsletter, user, analytics, ai, ai-studio, public, stats, report, search) changes a cache epoch, which retires every cached page. Changes made by the scheduler (scheduled publishing) appear within 5 to 15 minutes.
+- **Chat.** Greetings and thanks no longer call the model to be understood, and the same first question asked again within 10 minutes reuses its plan. Follow-ups always use the model.
+- **Fix.** The 30-second banner cache from v22.0 was below KV's 60-second minimum and was never stored; it is now 60 seconds.
+
+No migration. Code: `worker/page-cache.js`, `worker/ai/understand.js`.
+
+### Optional Cloudflare settings (not applied, not testable here)
+
+Both go in `wrangler.jsonc`; try one at a time and revert if anything looks wrong.
+
+1. `"placement": { "mode": "smart" }` at the top level. Cloudflare may run the Worker nearer your D1 database, which cuts the round-trip cost of database-heavy requests (dashboard, chat) and can slightly slow the rest. It needs traffic from several regions to take effect.
+2. In `assets`, change `"run_worker_first": true` to `["/*", "!/static/*"]` so static files are served by Cloudflare directly without waking the Worker. Then the Worker no longer adds the cache headers or `?v=` handling to `/static/*` responses, so also add a file `en/_headers` containing `/static/*` followed by an indented line `Cache-Control: public, max-age=300, stale-while-revalidate=86400`. That is a shorter cache than the Worker gives versioned files today, so it trades some repeat-visit speed for lower Worker use; skip it unless Worker request counts are a problem.

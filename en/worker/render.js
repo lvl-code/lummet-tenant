@@ -44,6 +44,21 @@ const CONTENT_FIELDS = new Set([
 
 
 
+// Public pages load only the scripts/styles they use; the dashboard and
+// the signed-in user area keep the full admin set. base.html wraps the
+// admin-only assets in <!--@full--> ... <!--@/full--> markers.
+export function needsAdminAssets(path) {
+  return /^\/en\/(dashboard|user)(\/|$)/.test(path || "");
+}
+
+export function selectAssetSet(html, path) {
+  if (!html) return html;
+  if (needsAdminAssets(path)) {
+    return html.replace(/<!--@\/?full-->\n?/g, "");
+  }
+  return html.replace(/<!--@full-->[\s\S]*?<!--@\/full-->\n?/g, "");
+}
+
 export class Renderer {
 
   constructor(env, request = null) {
@@ -482,7 +497,15 @@ replaceVariablesbackups(template, data = {}) {
   }
   async loadActiveBanners(country) {
     const { getActiveBanners } = await import("./database/banners.js");
-    const banners = await getActiveBanners(this.env.DB, country);
+    // Banners change rarely; a short cache saves a D1 query on every page
+    // view. Edits show up within ~30s (scheduled start/end dates too).
+    const { getCached, setCached } = await import("./cache.js");
+    const bannerKey = `public:banners:${country || "XX"}`;
+    let banners = await getCached(this.env, bannerKey);
+    if (!banners) {
+      banners = await getActiveBanners(this.env.DB, country);
+      await setCached(this.env, bannerKey, banners, 30);
+    }
     if (banners.length === 0) return [];
     return banners.map(banner => {
       const dismissible = banner.dismissible ? `<button class="banner-dismiss" onclick="this.parentElement.style.display='none';document.cookie='banner_${banner.id}=dismissed;max-age=86400;path=/'">&times;</button>` : "";
@@ -810,6 +833,7 @@ theme_layout_style: site.themeLayoutStyle,
       this.loadTemplate("layout/base.html"),
       this.buildSEO(data),
     ]);
+    base = selectAssetSet(base, this.getNormalizedPath());
     const schemas = [];
 
     schemas.push({

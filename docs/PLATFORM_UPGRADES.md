@@ -457,3 +457,14 @@ No migration. API (admins): `GET` and `POST /api/v1/ai-studio/chat-rules`.
 ## 37. Ask the chat: try settings before saving (v21.5)
 
 In AI Studio, Chat settings, **Try it before you save** sends one question through the real chat (understand, retrieve, prompt, model, link and geo-fact guards) using the settings currently in the boxes, saved or not, and shows the answer. Use it to check a tone, or to confirm a declined topic is declined. It is admin only and rate-limited like the other AI Studio tools; it saves no conversation, counts against no free-message limit, writes no feedback or history, and never saves the settings. No migration. API (admins): `POST /api/v1/ai-studio/chat-rules/preview` with `{message, rules}`.
+
+## 38. Speed: lean public pages, real caching, fewer repeat reads (v22.0)
+
+Why pages felt slow: every public page loaded about 70 JavaScript files and 14 stylesheets, most of them admin tools a visitor never uses, two of them blocking the page, and the service worker kept serving old copies of scripts after a release.
+
+- **Lean public pages.** Public pages now load 11 scripts and 12 stylesheets, all non-blocking. The dashboard and the signed-in user area (`/en/dashboard...`, `/en/user...`) keep the full set. `templates/layout/base.html` wraps the admin-only assets in `<!--@full-->` markers; `selectAssetSet` in `worker/render.js` strips or keeps them by path. A new admin script goes inside the markers.
+- **Versioned assets.** CSS/JS URLs are rewritten to `?v=<hash>` and served with `cache-control: public, max-age=31536000, immutable`, so a repeat visit downloads nothing and a release is picked up at once. Other static files get a day with stale-while-revalidate; `sw.js` is never cached. The hash lives in the generated `worker/asset-version.js`. **After changing any file in `static/css` or `static/js`, run `node scripts/asset-version.mjs`**; a test fails if it is out of date, so a forgotten run cannot ship.
+- **Service worker (v3).** No longer precaches; versioned files are cache-first, other static files stale-while-revalidate. Old caches are deleted on activate.
+- **Fewer repeat reads.** `worker/cache.js` keeps a short (15 s) in-memory copy in front of KV, cleared at once by `invalidate()` in the same isolate; active banners are cached for 30 s. A change made in the dashboard can take up to about 15-30 s to appear on public pages.
+
+No migration, nothing removed. Not changed: the 1.5 MB `static/images/elie.png` (not referenced by code; compress it before using it on a page).

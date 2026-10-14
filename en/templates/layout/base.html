@@ -56,15 +56,17 @@
   <link rel="stylesheet" href="/static/css/pagenav.css">
   <link rel="stylesheet" href="/static/css/hubsubnav.css">
   <link rel="stylesheet" href="/static/css/responsive.css">
-  <link rel="stylesheet" href="/static/css/dashboard.css">
   <link rel="stylesheet" href="/static/css/lummet-ai.css">
   <link rel="stylesheet" href="/static/css/authors.css">
   <link rel="stylesheet" href="/static/css/supportive.css">
   <link rel="stylesheet" href="/static/css/research.css">
-  <link rel="stylesheet" href="/static/css/dashboard-shell.css">
   <link rel="stylesheet" href="/static/css/header-hero.css">
   <link rel="stylesheet" href="/static/css/component-blocks.css">
   <link rel="stylesheet" href="/static/css/review-sections.css">
+<!--@full-->
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="/static/css/dashboard-shell.css">
+<!--@/full-->
   {{theme_css}}
   {{{hh_css}}}
 </head>
@@ -98,15 +100,24 @@
   <script defer src="/static/js/app.js"></script>
   <script defer src="/static/js/main.js"></script>
   <script defer src="/static/js/casino.js"></script>
+  <script defer src="/static/js/geo.js"></script>
+  <script defer src="/static/js/search.js"></script>
+  <script defer src="/static/js/anchor-scroll.js"></script>
+  <script defer src="/static/js/pagenav-ajax.js"></script>
+  <script defer src="/static/js/header-hero.js"></script>
+  <script defer src="/static/js/hero-media.js"></script>
+  <script defer src="/static/js/section-nav.js"></script>
+  <script defer src="/static/js/lummet-ai.js"></script>
+<!--@full-->
+  <script defer src="/static/js/media-library.js"></script>
+  <script defer src="/static/js/media-picker.js"></script>
+  <script>document.addEventListener("DOMContentLoaded",function(){if(window.MediaLibrary){MediaLibrary.init("#media-library-container");}});</script>
   <script defer src="/static/js/dashboard.js"></script>
   <script defer src="/static/js/admin.js"></script>
   <script defer src="/static/js/casino-admin.js"></script>
-  <script defer src="/static/js/geo.js"></script>
-  <script defer src="/static/js/search.js"></script>
   <script defer src="/static/js/component-admin.js"></script>
   <script defer src="/static/js/component-hero-admin.js"></script>
   <script defer src="/static/js/link-picker.js"></script>
-  <script defer src="/static/js/anchor-scroll.js"></script>
   <script defer src="/static/js/admin-add-panel.js"></script>
   <script defer src="/static/js/admin-list-search.js"></script>
   <script defer src="/static/js/comparison-design.js"></script>
@@ -115,12 +126,9 @@
   <script defer src="/static/js/media-admin.js"></script>
   <script defer src="/static/js/review-block-admin.js"></script>
   <script defer src="/static/js/nav-admin.js"></script>
-  <script defer src="/static/js/pagenav-ajax.js"></script>
   <script defer src="/static/js/permissions-admin.js"></script>
   <script defer src="/static/js/user-dashboard.js"></script>
   <script defer src="/static/js/admin-tools.js"></script>
-  <script defer src="/static/js/header-hero.js"></script>
-  <script defer src="/static/js/hero-media.js"></script>
   <script defer src="/static/js/header-hero-admin.js"></script>
   <script defer src="/static/js/subscriptions-admin.js"></script>
   <script defer src="/static/js/email-campaigns-admin.js"></script>
@@ -133,32 +141,20 @@
   <script defer src="/static/js/tracking-link-admin.js"></script>
   <script defer src="/static/js/admin-permissions.js"></script>
   <script defer src="/static/js/dashboard-shell.js"></script>
-          <script src="/static/js/media-library.js"></script>
-        <script src="/static/js/media-picker.js"></script>
-        <script>
-            // Initialize the media library when the page loads
-            document.addEventListener('DOMContentLoaded', function() {
-                if (window.MediaLibrary) {
-                    MediaLibrary.init('#media-library-container');
-                }
-            });
-        </script>
-  <script src="/static/js/rich-editor.js" defer></script>
-  <script src="/static/js/entity-picker.js" defer></script>
-  <script src="/static/js/section-builder.js" defer></script>
-  <script src="/static/js/review-sections-admin.js" defer></script>
-  <script src="/static/js/review-tabs.js" defer></script>
-  <script src="/static/js/review-field-toggles.js" defer></script>
-  <script src="/static/js/author-appearance-admin.js" defer></script>
-  <script src="/static/js/review-look-admin.js" defer></script>
-  <script src="/static/js/geo-rules-admin.js" defer></script>
-  <script src="/static/js/geo-rules-pages.js" defer></script>
-  <script src="/static/js/ai-studio.js" defer></script>
-  <script src="/static/js/generic-review-admin.js" defer></script>
-  <script src="/static/js/landing-page-admin.js" defer></script>
-  <script src="/static/js/section-nav.js" defer></script>
-
-  <script src="/static/js/lummet-ai.js" defer></script>
+  <script defer src="/static/js/rich-editor.js"></script>
+  <script defer src="/static/js/entity-picker.js"></script>
+  <script defer src="/static/js/section-builder.js"></script>
+  <script defer src="/static/js/review-sections-admin.js"></script>
+  <script defer src="/static/js/review-tabs.js"></script>
+  <script defer src="/static/js/review-field-toggles.js"></script>
+  <script defer src="/static/js/author-appearance-admin.js"></script>
+  <script defer src="/static/js/review-look-admin.js"></script>
+  <script defer src="/static/js/geo-rules-admin.js"></script>
+  <script defer src="/static/js/geo-rules-pages.js"></script>
+  <script defer src="/static/js/ai-studio.js"></script>
+  <script defer src="/static/js/generic-review-admin.js"></script>
+  <script defer src="/static/js/landing-page-admin.js"></script>
+<!--@/full-->
   
   <nav id="mobileBottomNav" class="mobile-bottom-nav">
     {{mobile_nav}}

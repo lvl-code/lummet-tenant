@@ -26,12 +26,12 @@ function countryName(code) {
 /**
  * Build the system prompt for Lummet AI — human-like personality
  */
-export async function buildSystemPrompt(context, country, intent, conversationHistory, request, env ) {
+export async function buildSystemPrompt(context, country, intent, conversationHistory, request, env, rulesOverride = null) {
   const site = await getSiteContext(request, env);
   const contextStr = buildContextString(context, country, site);
   const countryNameStr = countryName(country);
   // Owner preferences from AI Studio (tone, topics to decline, notes). Same prompt for the widget and the lummet. page.
-  const ownerSection = rulesPromptSection(await loadRules(env.DB), site.siteName);
+  const ownerSection = rulesPromptSection(rulesOverride || await loadRules(env.DB), site.siteName);
 
   return `You are Lummet AI, the AI assistant for ${site.siteName}  — an independent editorial online casino comparison platform. ${site.siteName} is NOT an online casino and does NOT provide gambling services.
 

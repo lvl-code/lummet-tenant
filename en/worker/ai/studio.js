@@ -29,6 +29,7 @@ import { rateGate } from "./rate.js";
 import { chatQualityDigest, contentGaps } from "./digest.js";
 import { getRecipients, setRecipient, sendChatQualityReport } from "./report.js";
 import { loadRules, saveRules, TONES, LIMITS } from "./house-rules.js";
+import { previewChat } from "./preview.js";
 import { retrieve, buildContextString, extractContextUrls, sanitizeAnswerUrls } from "./retrieval.js";
 import { feedbackSummary, listFeedback, setReviewed } from "./feedback.js";
 
@@ -827,6 +828,15 @@ export async function handleAiStudio(request, env, path, can, user, { fetchImpl 
       await recordHistory(env.DB, user, { kind: "save", target: "chat_rules", item_type: "chat", detail: `tone ${rules.tone}, ${rules.decline.length} declined topic(s), ${rules.notes ? "notes set" : "no notes"}` });
       return json({ success: true, rules });
     }
+  }
+
+  // "Ask the chat": a question through the real pipeline with the settings from the form (nothing saved or counted)
+  if (route === "chat-rules/preview" && method === "POST") {
+    if (!isAllSeeing(user)) return fail("Forbidden", 403);
+    let body; try { body = await request.json(); } catch (_) { return fail("Invalid JSON"); }
+    if (!(await underLimit(env.DB, `studio:${user?.user_id || user?.id || "anon"}`))) return fail("Too many AI requests. Try again in a few minutes.", 429);
+    const r = await previewChat(env, request, body && body.message, body && body.rules);
+    return r.ok ? json({ success: true, answer: r.answer, intent: r.intent }) : fail(r.error, r.status || 400);
   }
 
   if (method === "GET" && route === "audit") {

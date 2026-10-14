@@ -286,6 +286,22 @@
         api("chat-rules", { tone: "friendly", decline: "", notes: "" }).then(function (x) { if (x.error) say("error", x.error); else { say("success", "Back to defaults."); renderRulesAgain(); } });
       } });
       form.appendChild(el("div", { class: "as-actions" }, [save, reset]));
+      var q = el("input", { class: "gm-input", type: "text", id: "asTry", maxlength: "300", placeholder: "For example: Tell me about a casino, or ask about a topic you declined" });
+      var out = el("div", { class: "as-faq", hidden: "hidden" });
+      var tryBtn = el("button", { type: "button", class: "btn btn--small btn--primary", text: "Ask the chat", onclick: function () {
+        var text = q.value.trim(); if (!text) { say("error", "Type a question first."); return; }
+        tryBtn.disabled = true; tryBtn.textContent = "Asking...";
+        api("chat-rules/preview", { message: text, rules: { tone: tone.value, decline: decline.value, notes: notes.value } }).then(function (x) {
+          tryBtn.disabled = false; tryBtn.textContent = "Ask the chat";
+          out.textContent = ""; out.hidden = false;
+          if (x.error) { out.appendChild(el("p", { text: x.error })); return; }
+          out.appendChild(el("strong", { text: "Answer with the settings above (not saved)" }));
+          out.appendChild(el("p", { text: x.answer }));
+        });
+      } });
+      form.appendChild(el("h4", { text: "Try it before you save" }));
+      form.appendChild(el("p", { class: "muted", text: "Sends your question through the real chat with the settings in the boxes above, even if you have not saved them. Nothing is saved or counted." }));
+      form.appendChild(labelled("Question", q)); form.appendChild(el("div", { class: "as-actions" }, [tryBtn])); form.appendChild(out);
     });
   }
   function renderRulesAgain() { render(); }

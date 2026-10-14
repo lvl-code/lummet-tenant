@@ -453,3 +453,7 @@ AI Studio has a new **Chat settings** tab (admins only) with three optional sett
 They are stored in the existing `settings` table (`ai_chat_tone`, `ai_chat_decline`, `ai_chat_notes`) and read on every chat message by the one prompt builder that serves **both the floating widget and the lummet. page**, so both change together from the next message. The section sits **below** the built-in strict rules: it can make the chat shorter, more formal or more reserved, but cannot make it invent facts, links or sources. Nothing set means the prompt is unchanged. Saving is recorded in History as "Changed chat settings" (the text itself is not copied there); **Back to defaults** clears all three. Declining is done by the model, so it is reliable but not a hard filter; it is not a content-moderation system.
 
 No migration. API (admins): `GET` and `POST /api/v1/ai-studio/chat-rules`.
+
+## 37. Ask the chat: try settings before saving (v21.5)
+
+In AI Studio, Chat settings, **Try it before you save** sends one question through the real chat (understand, retrieve, prompt, model, link and geo-fact guards) using the settings currently in the boxes, saved or not, and shows the answer. Use it to check a tone, or to confirm a declined topic is declined. It is admin only and rate-limited like the other AI Studio tools; it saves no conversation, counts against no free-message limit, writes no feedback or history, and never saves the settings. No migration. API (admins): `POST /api/v1/ai-studio/chat-rules/preview` with `{message, rules}`.

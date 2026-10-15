@@ -253,9 +253,9 @@ async function renderHomeHtml(request, env) {
     renderer.renderAllComponents("homepage", "homepage"),
     renderer.loadDynamicSeo("homepage", "homepage"),
     reviews.getLatestReviews(env.DB, 6),
-    news.getAllNews(env.DB),
+    news.getLatestNews(env.DB, 4),
   ]);
-  const latestNews = allNews.slice(0, 4);
+  const latestNews = allNews;
 
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
@@ -352,49 +352,12 @@ async function renderHomeHtml(request, env) {
 // won't trigger a background refresh; the next miss/expiry will
 // re-render synchronously instead.
 export async function renderHome(request, env, ctx) {
-  const { getCachedPage, setCachedPage, tryAcquireRegenLock, CACHE_KEYS, PAGE_CACHE } =
-    await import("./cache.js");
-
-  const hostname = new URL(request.url).hostname;
-  const country = request.cf?.country || "XX";
-  const cacheKey = CACHE_KEYS.PAGE_HOME(hostname, country);
-
-  const cached = await getCachedPage(env, cacheKey);
-
-  if (cached) {
-    const ageSeconds = (Date.now() - cached.generatedAt) / 1000;
-
-    if (ageSeconds > PAGE_CACHE.FRESH_SECONDS && ctx?.waitUntil) {
-      ctx.waitUntil(regenerateHome(request, env, cacheKey));
-    }
-
-    return new Response(cached.html, { headers: cacheHeaders() });
-  }
-
-  // Nothing cached at all -- render synchronously, this visitor pays
-  // the D1 cost once, everyone else gets it from cache until it expires.
+  // Caching (per country, stale-while-revalidate, retired by admin saves, view
+  // events replayed) is done for every public page by worker/page-cache.js, which
+  // wraps this route in index.js. Rendering here is just rendering.
   const html = await renderHomeHtml(request, env);
-  await setCachedPage(env, cacheKey, html);
   return new Response(html, { headers: cacheHeaders() });
 }
-
-async function regenerateHome(request, env, cacheKey) {
-  const { setCachedPage, tryAcquireRegenLock } = await import("./cache.js");
-
-  const gotLock = await tryAcquireRegenLock(env, cacheKey);
-  if (!gotLock) return; // another request is already regenerating this exact page
-
-  try {
-    const html = await renderHomeHtml(request, env);
-    await setCachedPage(env, cacheKey, html);
-  } catch (err) {
-    // Regeneration failed (D1 still over quota, etc.) -- leave the
-    // existing stale copy in place; it keeps being served as-is
-    // until this succeeds or the KV entry's TTL runs out.
-    console.error("Home page background regeneration failed:", err.message);
-  }
-}
-
 
 // System 2 (Offers) integration: maps an offer_type to the short
 // label the existing bonus_title/bonus_value template slots expect

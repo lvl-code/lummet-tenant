@@ -508,3 +508,15 @@ No migration. Remaining per-message chat queries are the conversation load/save,
 How it works: about 1 in 10 public page views writes one row (path, cache state, milliseconds, country) to a new `perf_samples` table, after the response is sent, so it never slows a page. Rows older than 14 days are removed automatically. Times are server time, not the visitor's network. API (admins): `GET /api/v1/speed/summary`.
 
 **Migration `0065_perf_samples.sql` is needed on each site database.** Until it is applied the page says so and nothing is recorded; the site is unaffected either way.
+
+## 42. Instant home page and pages (v22.4)
+
+Cause found for the very slow home page and slow pages generally: the public news list sent **every published article in full, text included, to every visitor on every page** (sidebar and home both asked for it), and the home page's own server render also loaded every article's full text from the database just to show 4 headlines. With many articles that is megabytes per visit and a heavy database read on every uncached render.
+
+- **Short news list.** `/api/v1/public/news/list` now returns the latest 12 with a short excerpt (the first 300 characters of the text); `?q=` searches titles (up to 20). The home page reads only its 4 latest articles with a LIMIT query (`getLatestNews`) instead of all of them. A long list cached by an older version is trimmed on the way out.
+- **Home page uses the same cache as every other page** (section 39): per country, retired instantly by any admin save, view events replayed. It previously had its own separate cache that an admin save did not clear.
+- **A visitor never waits for a render that has happened before.** A cached page is served at once for up to a day, and refreshed in the background when older than 10 minutes. (Before, an unrefreshed copy vanished after 15 minutes to an hour, so on a quiet site almost every visitor waited for a cold render.) The refresh no longer writes a lock to KV, halving KV writes.
+- **Warm-up.** The scheduled job (every 6 hours) re-renders the home page and the pages and countries your visitors actually use (from the Speed samples, section 41), so even the first visitor after a quiet spell gets a cached page.
+- **See it.** Every cached-page response carries `Server-Timing: app;dur=<ms>, cache;desc="hit|stale|miss"`: browser Network tab, click the page request, Timing; or `curl -sD - https://your-domain/en | grep -i server-timing`.
+
+No migration (the warm-up uses Speed samples only if migration 0065 is applied). Not changed: the `/en/news` list page still loads every article for its first (uncached) render; it is cached like other pages.

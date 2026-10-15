@@ -15,13 +15,14 @@ import { eventCapture, logEvent } from "./database/analytics.js";
 import { geoEngine } from "./geo.js";
 
 export const PAGE_CACHE_CFG = {
-  FRESH_SECONDS: 300,  // serve without refreshing inside this window
-  KV_TTL: 900,         // a stale copy is never served longer than this
-  LOCK_TTL: 30,
+  FRESH_SECONDS: 600,  // serve without refreshing inside this window
+  KV_TTL: 86400,       // a stale copy is served instantly (and refreshed) for up to a day,
+                       // so a quiet site's visitors never wait for a cold render
+  LOCK_SECONDS: 30,
 };
 
 const CACHEABLE = new Set([
-  "casino", "casinoList", "review", "reviewList", "news", "newsList",
+  "home", "casino", "casinoList", "review", "reviewList", "news", "newsList",
   "category", "categoryList", "country", "countryList", "categoryCountryPage", "countryCustomPage",
   "sportsbook", "sportsbookReview", "sportsbookList",
   "affiliatePartner", "affiliatePartnerReview", "affiliatePartnerList",
@@ -145,12 +146,15 @@ async function store(env, key, entry) {
   catch (e) { console.error("page cache put failed:", e.message); }
 }
 
+// Refreshes are de-duplicated per isolate in memory (no KV write); an occasional
+// duplicate refresh in another isolate is harmless.
+const refreshing = new Map();
+
 async function refresh(request, env, key, render) {
-  const lock = `lock:${key}`;
-  try {
-    if (await env.CACHE.get(lock)) return;
-    await env.CACHE.put(lock, "1", { expirationTtl: PAGE_CACHE_CFG.LOCK_TTL });
-  } catch { /* uncoordinated refresh is harmless */ }
+  const until = refreshing.get(key);
+  if (until && until > Date.now()) return;
+  refreshing.set(key, Date.now() + PAGE_CACHE_CFG.LOCK_SECONDS * 1000);
+  if (refreshing.size > 500) refreshing.delete(refreshing.keys().next().value);
   try {
     const { response, events } = await renderCaptured(render, true);
     if (!response) return;
@@ -199,4 +203,53 @@ export async function cachedPage(request, env, ctx, routeType, render) {
     }
   }
   return response;
+}
+
+/**
+ * Scheduled warm-up: re-renders the home page and the pages visitors actually
+ * open (taken from the Speed samples, if migration 0065 is applied), for the
+ * countries they come from, so the first visitor after a quiet spell gets a
+ * cached page instead of waiting for a cold render. Best effort and bounded.
+ *
+ * makeRender(request) -> (ctx) => Promise<Response>
+ */
+export async function warmPublicPages(env, makeRender, { maxRenders = 12 } = {}) {
+  if (!env.CACHE || !env.DB || !eventCapture || !env.SITE_URL) return 0;
+  let origin;
+  try { origin = new URL(env.SITE_URL); } catch { return 0; }
+
+  const paths = new Set(["/en"]);
+  const countries = new Set(["RW"]);
+  try {
+    const p = await env.DB.prepare(
+      "SELECT path, COUNT(*) AS c FROM perf_samples WHERE at >= datetime('now','-7 days') GROUP BY path ORDER BY c DESC LIMIT 10"
+    ).all();
+    for (const r of p.results || []) if (r.path && r.path.startsWith("/en") && !r.path.startsWith("/en/dashboard")) paths.add(r.path);
+    const c = await env.DB.prepare(
+      "SELECT country, COUNT(*) AS c FROM perf_samples WHERE at >= datetime('now','-7 days') AND country IS NOT NULL GROUP BY country ORDER BY c DESC LIMIT 4"
+    ).all();
+    for (const r of c.results || []) if (/^[A-Z]{2}$/.test(r.country)) countries.add(r.country);
+  } catch { /* no samples yet: just the home page for the default country */ }
+
+  let done = 0;
+  const stamp = await epoch(env);
+  for (const path of paths) {
+    for (const country of countries) {
+      if (done >= maxRenders) return done;
+      try {
+        const request = new Request(origin.origin + path, { headers: { "user-agent": "page-cache-warmup" } });
+        Object.defineProperty(request, "cf", { value: { country, city: "Unknown" }, configurable: true });
+        const { getRoute } = await import("./routes.js");
+        const routeType = getRoute(request).type;
+        if (!isCacheableRequest(request, routeType)) continue;
+        const key = `pc:${stamp}:${origin.hostname}:${country}:${path}`;
+        refreshing.delete(key);
+        await refresh(request, env, key, makeRender(request));
+        done++;
+      } catch (e) {
+        console.error("warm-up failed for", path, e && e.message);
+      }
+    }
+  }
+  return done;
 }

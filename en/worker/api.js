@@ -313,16 +313,32 @@ if (path === "/api/v1/public/search") {
 }
 
 if (path === "/api/v1/public/news/list") {
-  let newsList = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
+  // A short list is all any public page shows (sidebar, home). Sending every
+  // article in full to every visitor made each page load megabytes heavier.
+  const q = (new URL(request.url).searchParams.get("q") || "").trim();
+  let newsList;
 
-  if (!newsList) {
-    newsList = await news.getAllNews(env.DB);
+  if (q) {
+    newsList = await news.getLatestNews(env.DB, 20, q);
+  } else {
+    newsList = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
 
-    await setCached(
-      env,
-      CACHE_KEYS.PUBLIC_NEWS,
-      newsList
-    );
+    if (!newsList) {
+      newsList = await news.getLatestNews(env.DB, 12);
+
+      await setCached(
+        env,
+        CACHE_KEYS.PUBLIC_NEWS,
+        newsList
+      );
+    }
+
+    // Also shrinks a longer list cached by an older version of this endpoint.
+    newsList = newsList.slice(0, 12).map((row) => (
+      row && typeof row.content === "string" && row.content.length > 300
+        ? { ...row, content: row.content.slice(0, 300) }
+        : row
+    ));
   }
 
   // Allow-list the public payload (drops created_by, ad_mode, ad_override_rules and any future private column).

@@ -79,7 +79,7 @@ test("stale copy is served at once and refreshed in the background without doubl
   let c = ctx();
   await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
   const key = [...env.CACHE.store.keys()].find((k) => k.startsWith("pc:"));
-  const e = JSON.parse(env.CACHE.store.get(key)); e.generatedAt -= 400 * 1000;
+  const e = JSON.parse(env.CACHE.store.get(key)); e.generatedAt -= 700 * 1000;
   env.CACHE.store.set(key, JSON.stringify(e));
   const rowsBefore = env.DB.rows.length;
 
@@ -130,4 +130,73 @@ test("an admin save retires every cached page; visitor writes do not", async () 
   await bumpPageEpoch(env);
   c = ctx(); await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
   assert.equal(n.n, 2, "re-rendered after the epoch changed");
+});
+
+import { warmPublicPages } from "../worker/page-cache.js";
+import { getLatestNews } from "../worker/database/news.js";
+import { createTestDb, applyMigrations } from "./support/d1-shim.js";
+
+test("warm-up renders home for the default country and the pages/countries visitors use, and refreshes stale entries", async () => {
+  const d = createTestDb(); applyMigrations(d);
+  await d.prepare("INSERT INTO perf_samples (path, route, state, ms, status, country) VALUES ('/en/casino/x', 'casino', 'miss', 900, 200, 'KE')").run();
+  const env = { CACHE: kv(), DB: d, SITE_URL: "https://site.test" };
+  const seen = [];
+  const n = await warmPublicPages(env, (request) => async () => {
+    seen.push(new URL(request.url).pathname + ":" + request.cf.country);
+    return new Response("<html>warm</html>", { headers: { "content-type": "text/html" } });
+  });
+  assert.ok(n >= 2);
+  assert.ok(seen.includes("/en:RW") && seen.includes("/en:KE") && seen.includes("/en/casino/x:KE"));
+  const keys = [...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:"));
+  assert.ok(keys.some((k) => k.endsWith(":RW:/en")));
+
+  // a later visitor gets it as a hit without rendering
+  const r = new Request("https://site.test/en"); Object.defineProperty(r, "cf", { value: { country: "RW" } });
+  let rendered = 0;
+  const res = await cachedPage(r, env, ctx(), "home", async () => { rendered++; return new Response("x"); });
+  assert.equal(res.headers.get("x-page-cache"), "hit");
+  assert.equal(rendered, 0);
+
+  assert.equal(await warmPublicPages({ CACHE: kv(), DB: d }, () => async () => new Response("x")), 0, "needs SITE_URL");
+});
+
+test("latest news query returns a short list without full article text", async () => {
+  const d = createTestDb(); applyMigrations(d);
+  for (let i = 0; i < 30; i++) {
+    await d.prepare("INSERT INTO news (slug, title, content, published, created_at) VALUES (?, ?, ?, 1, datetime('now', ?))").bind("s" + i, "Story " + i, "x".repeat(5000), `-${i} minutes`).run();
+  }
+  await d.prepare("INSERT INTO news (slug, title, content, published) VALUES ('draft', 'Draft', 'd', 0)").run();
+  const four = await getLatestNews(d, 4);
+  assert.equal(four.length, 4);
+  assert.equal(four[0].slug, "s0");
+  assert.ok(four.every((r) => r.content.length <= 300));
+  assert.ok(!four.some((r) => r.slug === "draft"));
+  const found = await getLatestNews(d, 20, "Story 2");
+  assert.ok(found.length >= 1 && found.every((r) => r.title.includes("Story 2")));
+  assert.equal((await getLatestNews(d, 500)).length, 30, "limit is capped and drafts excluded");
+});
+
+import { handleAPI } from "../worker/api.js";
+
+test("public news list is short and carries no full article text, even from an older cached long list", async () => {
+  const d = createTestDb(); applyMigrations(d);
+  for (let i = 0; i < 30; i++) {
+    await d.prepare("INSERT INTO news (slug, title, content, published, created_at) VALUES (?, ?, ?, 1, datetime('now', ?))").bind("s" + i, "Story " + i, "y".repeat(8000), `-${i} minutes`).run();
+  }
+  const env = { DB: d, CACHE: kv() };
+  const call = async (path) => handleAPI(new Request("https://site.test/en" + path), env, path.split("?")[0], null);
+
+  const body = await (await call("/api/v1/public/news/list")).json();
+  assert.equal(body.news.length, 12);
+  assert.ok(body.news.every((n) => n.content.length <= 300));
+  assert.ok(JSON.stringify(body).length < 20000, "payload stays small");
+
+  // a long, full-text list cached by an older version is trimmed on the way out
+  env.CACHE.store.set("public:news:latest", JSON.stringify(Array.from({ length: 40 }, (_, i) => ({ slug: "o" + i, title: "Old " + i, content: "z".repeat(9000) }))));
+  const old = await (await call("/api/v1/public/news/list")).json();
+  assert.equal(old.news.length, 12);
+  assert.ok(old.news.every((n) => n.content.length <= 300));
+
+  const q = await (await call("/api/v1/public/news/list?q=Story%203")).json();
+  assert.ok(q.news.length >= 1 && q.news.every((n) => n.title.includes("Story 3")));
 });

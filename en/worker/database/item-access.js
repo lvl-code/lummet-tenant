@@ -466,23 +466,4 @@ export async function getItemById(db, resource, id) {
 
 // ── Ownership Helpers ─────────────────────────────
 
-/**
- * Returns the owner column name for a resource.
- */
-export function getOwnerColumn(resource) {
-  const config = getResourceConfig(resource);
-  return config?.ownerColumn || null;
-}
 
-/**
- * Returns full ownership info for a resource.
- */
-export function getOwnershipInfo(resource) {
-  const config = getResourceConfig(resource);
-  if (!config) return null;
-  return {
-    ownerColumn: config.ownerColumn,
-    idColumn: config.idColumn,
-    slugColumn: config.slugColumn
-  };
-}

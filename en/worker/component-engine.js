@@ -233,16 +233,6 @@ export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug,
 }
 
 
-export async function renderAllInjectionPointsbackup(renderer, db, pageType, pageSlug) {
-  const points = ["top", "content_top", "content_bottom", "bottom", "sidebar"];
-  const result = {};
-
-  for (const point of points) {
-    result[point] = await renderPageComponents(renderer, db, pageType, pageSlug, point);
-  }
-
-  return result;
-}
 /**
  * Load review blocks for a review and render them.
  */

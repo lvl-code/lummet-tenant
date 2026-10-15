@@ -520,3 +520,15 @@ Cause found for the very slow home page and slow pages generally: the public new
 - **See it.** Every cached-page response carries `Server-Timing: app;dur=<ms>, cache;desc="hit|stale|miss"`: browser Network tab, click the page request, Timing; or `curl -sD - https://your-domain/en | grep -i server-timing`.
 
 No migration (the warm-up uses Speed samples only if migration 0065 is applied). Not changed: the `/en/news` list page still loads every article for its first (uncached) render; it is cached like other pages.
+
+## 43. Cleanup: backups, patch files, zips and dead code (v22.5)
+
+Housekeeping only; behaviour is unchanged.
+
+- **Removed files:** leftover `*.patch` files in the repo root, `*.backup`, `*.bak-*`, `*.save`, `*backup*.css/js` copies, `legacywrangler.jsonc.backup`, `wrangler.jsonc.bestall`, an unused old chat (`level-ai.js`, `ai-chat.css`), an unused template, and modules nothing imports (`worker/seo.js`, `worker/database.js`, `worker/bootstrap.js`, `worker/ai/context.js`, `worker/ai/search.js`, `worker/item-access-test.js`). Git history still holds all of them.
+- **Removed code:** functions whose names end in `backup` (including three old public news routes `/api/v1/newsbackup/list`, `/api/v1/newsbackup2/list`, `/api/v1/public/newsbackup/list`), functions no file references, unused imports, and long commented-out blocks in JS, CSS and templates.
+- **Moved, not deleted:** old change notes and a one-off SQL fix are now in `docs/history/`.
+- **Security note:** `docs/casinos/levelcasd1.sql` was a production database dump (it included sessions and password hashes). It is removed from the tree but stays in git history. Rotate admin passwords and invalidate sessions; if the repository was ever shared, purge it from history (for example with `git filter-repo`).
+- `test/production-snapshot.test.js` stays; it skips visibly when no snapshot is present.
+
+No migration.

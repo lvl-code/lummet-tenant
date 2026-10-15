@@ -96,30 +96,6 @@
     <div class="rv-sec__body rv-rich">{{verdict}}</div>
   </section>
   {{/if}}
-<!--
-  <h2 id="overview">Overview</h2>
-  <p>{{overview}}</p>
-
-  <h2 id="games">Games</h2>
-  <p>{{games}}</p>
-
-  <h2 id="bonuses">Bonuses</h2>
-  <p>{{bonuses}}</p>
-
-  <h2 id="payments">Payment Methods</h2>
-  <p>{{payments}}</p>
-
-  <h2 id="licensing">Licensing</h2>
-  <p>{{licenses}}</p>
-  <section id="more-details">
-    <h2>More Details</h2>
-    {{content}}
-  </section>
-  {{components_content_top}}
-  {{components_content_bottom}}
-  <h2 id="verdict">Verdict</h2>
-  <p>{{verdict}}</p>
--->
 </div>
 
   {{{pros_cons_html}}}
@@ -139,22 +115,6 @@
     </div>
   </section>
   {{/if}}
-<!--
-      <div id="pros-cons" class="review-pros-cons">
-        <div class="pros-cons-block pros">
-          <h3>Pros</h3>
-          {{pros_html}}
-        </div>
-        <div class="pros-cons-block cons">
-          <h3>Cons</h3>
-          {{cons_html}}
-        </div>
-      </div>
-      <section id="faq">
-        <h2>Frequently Asked Questions</h2>
-        {{faq_html}}
-      </section>
--->
 
     </div>
     <div class="review-cta">
@@ -165,56 +125,6 @@
     </div>
     {{components_bottom}}
   </div>
-<!--
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-    const links = document.querySelectorAll("#review-nav a");
-
-    links.forEach(link => {
-        link.addEventListener("click", e => {
-            e.preventDefault();
-
-            const target = document.querySelector(link.getAttribute("href"));
-
-            if(target){
-                target.scrollIntoView({
-                    behavior:"smooth",
-                    block:"start"
-                });
-            }
-        });
-    });
-
-    const sections = document.querySelectorAll(
-        "#overview,#games,#bonuses,#payments,#licensing,#more-details,#verdict,#pros-cons,#faq"
-    );
-
-    window.addEventListener("scroll", () => {
-
-        let current = "";
-
-        sections.forEach(section => {
-            const top = section.offsetTop - 140;
-
-            if(window.scrollY >= top){
-                current = section.id;
-            }
-        });
-
-        links.forEach(link=>{
-            link.classList.remove("active");
-
-            if(link.getAttribute("href")==="#"+current){
-                link.classList.add("active");
-            }
-        });
-
-    });
-
-});
-</script>
--->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -506,29 +416,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
-<!--
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const toc = document.getElementById("review-toc-list");
-    const headings = document.querySelectorAll(".review-content h2");
-
-    headings.forEach((heading, index) => {
-        if (!heading.id) {
-            heading.id = "section-" + index;
-        }
-
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-
-        a.href = "#" + heading.id;
-        a.textContent = heading.textContent;
-
-        li.appendChild(a);
-        toc.appendChild(li);
-    });
-});
-</script>
--->
   <!-- Sticky mobile CTA -->
   {{#if casino_slug}}
   <div class="mobile-sticky-cta" id="mobileStickyCta">
@@ -538,15 +425,6 @@ document.addEventListener("DOMContentLoaded", () => {
     <a href="/en/go/{{casino_slug}}" class="btn btn--primary mobile-cta-btn" rel="nofollow sponsored">Visit Casino</a>
   </div>
   {{/if}}
-<!--
-<script>
-document.querySelectorAll(".faq-question").forEach(btn => {
-    btn.addEventListener("click", () => {
-        btn.parentElement.classList.toggle("active");
-    });
-});
-</script>
--->
 <script>
 document.addEventListener("click", function(e) {
     if (e.target.classList.contains("faq-question")) {

@@ -51,10 +51,6 @@ async function loadComponentsTable() {
   }
 }
 
-function filterComponents(type) {
-  currentFilter = type;
-  loadComponentsTable();
-}
 
 async function deleteComponent(id) {
   if (!confirm("Delete this component? This also removes all page assignments.")) return;

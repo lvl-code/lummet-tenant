@@ -33,7 +33,7 @@ import { getHiddenParts } from "./review-visibility.js";
 import { loadAuthorStyleSettings, buildAuthorStyle } from "./author-style.js";
 import { loadReviewStyleSettings, buildReviewStyle } from "./review-style.js";
 import { getAuthorHub, renderAuthorHub } from "./author-hub.js";
-import { isCasinoReview, CASINO_REVIEWS_SQL, reviewPublicUrl, REVIEW_WITH_TYPE_SQL } from "./review-urls.js";
+import { isCasinoReview, CASINO_REVIEWS_SQL, reviewPublicUrl } from "./review-urls.js";
 import * as platformUpdates from "./database/platform-updates.js";
 import * as seoPages from "./database/seo-pages.js";
 import { logClick }
@@ -49,7 +49,6 @@ import { resolveRedirectTarget } from "./tracking/redirect.js";
 import { logEvent as logAnalyticsEvent } from "./database/analytics.js";
 import { resolveOfferForCasino, resolveOffersForCasinos } from "./offers/selection.js";
 import * as componentsDB from "./database/components.js";
-import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
 import { getSetting } from "./database/settings.js";
 import { headerHeroDefaultsForAdmin, jsonForScript } from "./header-hero.js";
@@ -196,46 +195,6 @@ function countryFullName(code) {
   return COUNTRY_NAMES[code] || code;
 }
 
-
-
-function buildBreadcrumbsbackup(path, data = {}) {
-  const crumbs = [{ label: "Home", url: "/en" }];
-
-  if (path === "casinoList") {
-    crumbs.push({ label: "All Casinos", url: "/en/casino" });
-  } else if (path === "casino" && data.name) {
-    crumbs.push({ label: "All Casinos", url: "/en/casino" });
-    crumbs.push({ label: data.name, url: null });
-  } else if (path === "reviewList") {
-    crumbs.push({ label: "All Reviews", url: "/en/review" });
-  } else if (path === "review" && data.title) {
-    crumbs.push({ label: "All Reviews", url: "/en/review" });
-    crumbs.push({ label: data.title, url: null });
-  } else if (path === "newsList") {
-    crumbs.push({ label: "News", url: "/en/news" });
-  } else if (path === "news" && data.title) {
-    crumbs.push({ label: "News", url: "/en/news" });
-    crumbs.push({ label: data.title, url: null });
-  } else if (path === "categoryList") {
-    crumbs.push({ label: "Categories", url: "/en/category" });
-  } else if (path === "category" && data.category) {
-    crumbs.push({ label: "Categories", url: "/en/category" });
-    crumbs.push({ label: data.category, url: null });
-  } else if (path === "countryList") {
-    crumbs.push({ label: "Countries", url: "/en/country" });
-  } else if (path === "country" && data.name) {
-    crumbs.push({ label: "Countries", url: "/en/country" });
-    crumbs.push({ label: data.name, url: null });
-  } else if (path === "dashboard") {
-    crumbs.push({ label: "Dashboard", url: null });
-  } else if (path === "page" && data.title) {
-    crumbs.push({ label: data.title, url: null });
-  } else if (path === "affiliate" && data.title) {
-    crumbs.push({ label: data.title, url: null });
-  }
-
-  return crumbs;
-}
 
 // The actual cold render -- everything renderHome used to do. This
 // still hits D1/casinos/reviews/news/components on every call; it's
@@ -1800,193 +1759,6 @@ export async function renderNews(request, env, slug, ctx = null) {
 }
 
 
-export async function renderNewsbackup(request, env, slug) {
-  const article = await news.getNews(env.DB, slug);
-  if (!article) return render404(request, env);
-
-  const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-
-  let author = null;
-
-  if (article.author_id) {
-    author = await authors.getAuthorById(
-      env.DB,
-      article.author_id
-    );
-  }
-
-  const allComponents =
-    await renderer.renderAllComponents("news", slug);
-
-  const reviewBlocksHtml =
-    await renderer.renderReviewBlocks(slug);
-
-  const dynamicSeo =
-    await renderer.loadDynamicSeo("news", slug);
-
-  const canonical =
-    dynamicSeo.canonical ||
-    site.url(`/en/news/${article.slug}`);
-
-  const description =
-    dynamicSeo.seo_description ||
-    article.seo_description ||
-    truncateText(article.content, 160);
-
-  const published =
-    toIsoDate(article.created_at);
-
-  const modified =
-    toIsoDate(
-      article.updated_at ||
-      article.created_at
-    );
-
-  const cleanArticleBody =
-    stripHtml(article.content || "");
-
-  const articleAuthorName =
-    author?.name ||
-    article.author ||
-    site.siteName;
-
-  const articleSchema = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-
-    "@id": `${canonical}#newsarticle`,
-
-    "url": canonical,
-
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": canonical
-    },
-
-    "headline": article.title,
-
-    "description": description,
-
-    "datePublished": published,
-
-    "dateModified": modified,
-
-    "author": {
-      "@type": "Person",
-      "name": articleAuthorName,
-      ...(author?.slug
-        ? {
-            "url": site.url(
-              `/en/author/${author.slug}`
-            )
-          }
-        : {})
-    },
-
-    "publisher": {
-      "@type": "Organization",
-      "name": site.siteName,
-      "url": site.origin,
-
-      ...(site.logoUrl
-        ? {
-            "logo": {
-              "@type": "ImageObject",
-              "url": site.logoUrl
-            }
-          }
-        : {})
-    },
-
-    "articleBody": cleanArticleBody,
-
-    "inLanguage": "en",
-
-    "isPartOf": {
-      "@type": "WebSite",
-      "name": site.siteName,
-      "url": site.origin
-    },
-
-    "articleSection": "News",
-
-    "wordCount": cleanArticleBody
-      ? cleanArticleBody.split(/\s+/).length
-      : 0
-  };
-
-  const html = await renderer.render(
-    "news.html",
-    {
-      ...article,
-
-      canonical,
-
-      author_name:
-        author?.name ||
-        article.author ||
-        "",
-
-      author_avatar:
-        author?.avatar_url ||
-        "",
-
-      author_role:
-        author?.role ||
-        "",
-
-      author_slug:
-        author?.slug ||
-        "",
-
-      components_top:
-        allComponents.top,
-
-      components_content_top:
-        allComponents.content_top,
-
-      components_content_bottom:
-        allComponents.content_bottom,
-
-      components_bottom:
-        allComponents.bottom,
-
-      components_sidebar:
-        allComponents.sidebar,
-
-      seo_title:
-        dynamicSeo.seo_title ||
-        article.seo_title ||
-        article.title,
-
-      seo_description:
-        description,
-
-      seo_keywords:
-        dynamicSeo.seo_keywords ||
-        article.seo_keywords ||
-        "",
-
-    },
-    articleSchema,
-    buildBreadcrumbs(
-      "news",
-      {
-        title: article.title
-      }
-    )
-  );
-
-  return new Response(
-    html,
-    {
-      headers: cacheHeaders()
-    }
-  );
-}
-
-
 // ============================================================
 // AD INJECTION ENGINE — Hybrid Mode
 // Pipeline: 1. Disable check → 2. Resolve manual markers
@@ -2406,8 +2178,6 @@ async function loadAdComponents(env) {
     return [];
   }
 }
-
-
 
 
 async function hashIP(ip){
@@ -2840,7 +2610,6 @@ export async function renderCategory(request, env, slug) {
     headers: cacheHeaders()
   });
 }
-
 
 
 // =====================================================
@@ -5338,22 +5107,6 @@ async function loadComparisonRowItems(db, comparisonItemRows) {
   return { items, customFieldValuesByItemKey };
 }
 
-function buildComparisonTableHtml(items, criteria, customFieldValuesByItemKey, linkPrefixFor) {
-  const headerCells = items.map(i => `<th>${escapeReviewText(i.name)}</th>`).join("");
-  const logoCells = items.map(i => `<td data-label="${escapeReviewText(i.name)}"><img src="${i.logo || '/static/images/default.png'}" alt="${escapeReviewText(i.name)}" style="max-height:40px" onerror="this.src='/static/images/default.png'"></td>`).join("");
-  const ratingCells = items.map(i => `<td data-label="${escapeReviewText(i.name)}">${i.rating ? i.rating.toFixed(1) + " / 5" : "—"}</td>`).join("");
-  const ctaCells = items.map(i => `<td data-label="${escapeReviewText(i.name)}"><a href="${linkPrefixFor(i)}/${i.slug}" class="btn btn--primary">View</a></td>`).join("");
-
-  const criteriaRows = criteria.map(c => {
-    const valueCells = items.map(i => {
-      const raw = resolveCriterionValue(i, c.key, customFieldValuesByItemKey);
-      return `<td data-label="${escapeReviewText(i.name)}">${formatCriterionCellValue(raw)}</td>`;
-    }).join("");
-    return `<tr><td>${escapeReviewText(c.label)}</td>${valueCells}</tr>`;
-  }).join("");
-
-  return { headerCells, logoCells, ratingCells, ctaCells, criteriaRows };
-}
 
 function renderComparisonHeaderCells(items, comparison, design = null) {
   return items.map((i) => {
@@ -5839,279 +5592,6 @@ export async function renderNewsList(request, env) {
 }
 
 
-export async function renderNewsListbackup(request, env) {
-  const renderer =
-    new Renderer(env, request);
-
-  const site =
-    await getSiteContext(request, env);
-
-  const newsList =
-    await news.getAllNews(env.DB);
-
-  const allComponents =
-    await renderer.renderAllComponents(
-      "news_list",
-      "news_list"
-    );
-
-  const dynamicSeo =
-    await renderer.loadDynamicSeo(
-      "news_list",
-      "news_list"
-    );
-
-  const newsListUrl =
-    dynamicSeo.canonical ||
-    site.url("/en/news");
-
-  const newsCards =
-    newsList.map(article => {
-
-      const description =
-        truncateText(
-          article.content,
-          120
-        );
-
-      return `
-        <a
-          href="${site.url(`/en/news/${article.slug}`)}"
-          class="news-card"
-        >
-          <h3>${article.title}</h3>
-
-          <p>${description}...</p>
-
-          ${
-            article.created_at
-              ? `
-                <time
-                  class="news-date"
-                  datetime="${toIsoDate(article.created_at)}"
-                >
-                  ${new Date(
-                    article.created_at
-                  ).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric"
-                  })}
-                </time>
-              `
-              : ""
-          }
-        </a>
-      `;
-    }).join("");
-
-  const listSchema = {
-    "@context": "https://schema.org",
-
-    "@type": "CollectionPage",
-
-    "@id": `${newsListUrl}#webpage`,
-
-    "url": newsListUrl,
-
-    "name":
-      dynamicSeo.seo_title ||
-      `${site.siteName} News`,
-
-    "description":
-      dynamicSeo.seo_description ||
-      `Latest news and updates from ${site.siteName}.`,
-
-    "isPartOf": {
-      "@type": "WebSite",
-
-      "@id":
-        `${site.origin}#website`,
-
-      "name":
-        site.siteName,
-
-      "url":
-        site.origin
-    },
-
-    "mainEntity": {
-      "@type": "ItemList",
-
-      "@id":
-        `${newsListUrl}#itemlist`,
-
-      "name":
-        `${site.siteName} News`,
-
-      "numberOfItems":
-        newsList.length,
-
-      "itemListOrder":
-        "https://schema.org/ItemListOrderDescending",
-
-      "itemListElement":
-        newsList.map(
-          (article, index) => {
-
-            const articleUrl =
-              site.url(
-                `/en/news/${article.slug}`
-              );
-
-            const published =
-              toIsoDate(
-                article.created_at
-              );
-
-            const modified =
-              toIsoDate(
-                article.updated_at ||
-                article.created_at
-              );
-
-            return {
-              "@type":
-                "ListItem",
-
-              "position":
-                index + 1,
-
-              "url":
-                articleUrl,
-
-              "item": {
-                "@type":
-                  "NewsArticle",
-
-                "@id":
-                  `${articleUrl}#newsarticle`,
-
-                "url":
-                  articleUrl,
-
-                "headline":
-                  article.title,
-
-                "description":
-                  article.seo_description ||
-                  truncateText(
-                    article.content,
-                    160
-                  ),
-
-                ...(published
-                  ? {
-                      "datePublished":
-                        published
-                    }
-                  : {}),
-
-                ...(modified
-                  ? {
-                      "dateModified":
-                        modified
-                    }
-                  : {}),
-
-                "author": {
-                  "@type":
-                    "Person",
-
-                  "name":
-                    article.author ||
-                    site.siteName
-                },
-
-                "publisher": {
-                  "@type":
-                    "Organization",
-
-                  "name":
-                    site.siteName,
-
-                  "url":
-                    site.origin,
-
-                  ...(site.logoUrl
-                    ? {
-                        "logo": {
-                          "@type":
-                            "ImageObject",
-
-                          "url":
-                            site.logoUrl
-                        }
-                      }
-                    : {})
-                }
-              }
-            };
-          }
-        )
-    }
-  };
-
-  const html =
-    await renderer.render(
-      "category.html",
-      {
-        canonical:
-          newsListUrl,
-
-        category:
-          dynamicSeo.seo_title ||
-          `${site.siteName} News`,
-
-        description:
-          dynamicSeo.seo_description ||
-          `Latest news and updates from ${site.siteName}.`,
-
-        casino_cards:
-          `<div class="news-grid">${newsCards}</div>`,
-
-        components_top:
-          allComponents.top,
-
-        components_content_top:
-          allComponents.content_top,
-
-        components_content_bottom:
-          allComponents.content_bottom,
-
-        components_bottom:
-          allComponents.bottom,
-
-        components_sidebar:
-          allComponents.sidebar,
-
-        seo_title:
-          dynamicSeo.seo_title ||
-          `${site.siteName} News`,
-
-        seo_description:
-          dynamicSeo.seo_description ||
-          `Latest news and updates from ${site.siteName}.`,
-
-        seo_keywords:
-          dynamicSeo.seo_keywords || ""
-      },
-
-      listSchema,
-
-      buildBreadcrumbs(
-        "newsList"
-      )
-    );
-
-  return new Response(
-    html,
-    {
-      headers: cacheHeaders()
-    }
-  );
-}
-
 export async function renderUpdatesList(request, env) {
   const renderer = new Renderer(env, request);
 
@@ -6414,7 +5894,6 @@ async function renderAdminPage(request, env, template, extraData = {}) {
     headers: { "Content-Type": "text/html" }
   });
 }
-
 
 
 export async function renderDashboardCasinos(request, env) {
@@ -6837,10 +6316,6 @@ export async function renderDashboardSeo(request, env) {
 }
 
 
-
-
-
-
 // ==================================
 // AUTHOR PROFILE PAGE
 // ==================================
@@ -6975,78 +6450,6 @@ export async function renderAuthor(request, env, slug) {
     og_image: author.avatar_url ? site.url(author.avatar_url) : site.ogImageUrl,
     og_image_alt: author.name,
     canonical: authorCanonical
-  }, authorSchema, buildBreadcrumbs("author", {author_name: author.name }));
-  return new Response(html, { headers: cacheHeaders() });
-}
-
-export async function renderAuthorbackup(request, env, slug) {
-  const author = await authors.getAuthor(env.DB, slug);
-  if (!author) return render404(request, env);
-
-  const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const content = await authors.getAuthorContent(env.DB, author.id);
-  const stats = await authors.getAuthorStats(env.DB, author.id);
-  const allComponents = await renderer.renderAllComponents("author", slug);
-  const dynamicSeo = await renderer.loadDynamicSeo("author", slug);
-
-  // Build review cards
-  const reviewCards = content.reviews.map(r => `
-    <div class="casino-card">
-      <div class="casino-card__body">
-        <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
-        <div class="casino-card__rating">★ ${r.rating ? r.rating + "/5" : "N/A"}</div>
-        <p class="muted">Updated: ${new Date(r.updated_at).toLocaleDateString()}</p>
-      </div>
-      <div class="casino-card__actions">
-        <a href="/en/review/${r.slug}" class="btn btn--primary">Read Review</a>
-      </div>
-    </div>
-  `).join("");
-
-  // Build news cards
-  const newsCards = content.news.map(n => `
-    <a href="/en/news/${n.slug}" class="news-card">
-      <h3>${n.title}</h3>
-      <p class="muted">${new Date(n.created_at).toLocaleDateString()}</p>
-    </a>
-  `).join("");
-
-  // Build page list
-  const pageList = content.pages.map(p => `
-    <li><a href="/en/${p.slug}">${p.title}</a> <span class="muted">— ${new Date(p.created_at).toLocaleDateString()}</span></li>
-  `).join("");
-
-  const authorSchema = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": author.name,
-    "description": author.bio || "",
-    "image": author.avatar_url || "",
-    "jobTitle": author.role || "Editor"
-  };
-
-  const html = await renderer.render("author.html", {
-    ...author,
-    author_name: author.name,
-    author_bio: author.bio || "",
-    author_avatar: author.avatar_url || site.logoUrl,
-    author_role: author.role || "Editor",
-    author_social: author.social_links || "",
-    review_cards: reviewCards,
-    news_cards: newsCards || '<p class="muted">No articles yet.</p>',
-    page_list: pageList || '<li class="muted">No pages yet.</li>',
-    review_count: stats.reviews,
-    news_count: stats.news,
-    page_count: stats.pages,
-    components_top: allComponents.top,
-    components_content_top: allComponents.content_top,
-    components_content_bottom: allComponents.content_bottom,
-    components_bottom: allComponents.bottom,
-    components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || author.name + " — " + site.siteName,
-    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
-    canonical: dynamicSeo.canonical || site.url(`/en/author/${slug}`)
   }, authorSchema, buildBreadcrumbs("author", {author_name: author.name }));
   return new Response(html, { headers: cacheHeaders() });
 }

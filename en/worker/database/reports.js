@@ -14,9 +14,7 @@
 
 import { getAccessibleIdCondition } from './item-access.js';
 import { logAudit } from './audit.js';
-import {
-  getDimensionPerformance, getTimeSeries, getGeoPerformance, computeKpis, safeDivide
-} from './analytics.js';
+import { getDimensionPerformance, getTimeSeries, getGeoPerformance, safeDivide } from './analytics.js';
 
 const REPORT_TYPES = [
   'executive_performance', 'affiliate_performance', 'partner_performance',

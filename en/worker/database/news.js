@@ -270,45 +270,6 @@ export async function createNews(db, data) {
   .run();
 }
 
-export async function createNewsbackup(db, data) {
-  const slug   = String(data.slug || "").trim();
-  const title  = String(data.title || "").trim();
-  const content = String(data.content || "");
-
-  if (!slug)   throw new Error("Slug is required.");
-  if (!title)  throw new Error("Title is required.");
-  if (!content.trim()) throw new Error("Content is required.");
-
-  const published = data.published !== undefined ? (data.published ? 1 : 0) : 1;
-  const publishedAt = data.published_at || (published ? new Date().toISOString() : null);
-
-  return await db.prepare(`
-    INSERT INTO news (
-      slug, title, content, author, author_id,
-      ai_generated, seo_title, seo_description,
-      published, featured_image, excerpt, tags,
-      published_at, created_by
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
-  .bind(
-    slug,
-    title,
-    content,
-    String(data.author || "Admin").trim(),
-    normalizeId(data.author_id),
-    data.ai_generated ? 1 : 0,
-    normalizeText(data.seo_title),
-    normalizeText(data.seo_description),
-    published,
-    normalizeId(data.featured_image),
-    normalizeText(data.excerpt),
-    normalizeText(data.tags),
-    publishedAt,
-    normalizeId(data.created_by)
-  )
-  .run();
-}
 
 export async function updateNews(db, oldSlug, data) {
   if (!oldSlug) throw new Error("Original slug is required.");
@@ -378,56 +339,6 @@ export async function updateNews(db, oldSlug, data) {
   .run();
 }
 
-export async function updateNewsbackup(db, oldSlug, data) {
-  if (!oldSlug) throw new Error("Original slug is required.");
-
-  const slug   = String(data.slug || "").trim();
-  const title  = String(data.title || "").trim();
-  const content = String(data.content || "");
-
-  if (!slug)   throw new Error("Slug is required.");
-  if (!title)  throw new Error("Title is required.");
-  if (!content.trim()) throw new Error("Content is required.");
-
-  const published = data.published !== undefined ? (data.published ? 1 : 0) : 1;
-
-  return await db.prepare(`
-    UPDATE news
-    SET
-      slug          = ?,
-      title         = ?,
-      content       = ?,
-      author        = ?,
-      author_id     = ?,
-      ai_generated  = ?,
-      seo_title     = ?,
-      seo_description = ?,
-      published     = ?,
-      featured_image = ?,
-      excerpt       = ?,
-      tags          = ?,
-      published_at  = ?,
-      updated_at    = CURRENT_TIMESTAMP
-    WHERE slug = ?
-  `)
-  .bind(
-    slug,
-    title,
-    content,
-    String(data.author || "Admin").trim(),
-    normalizeId(data.author_id),
-    data.ai_generated ? 1 : 0,
-    normalizeText(data.seo_title),
-    normalizeText(data.seo_description),
-    published,
-    normalizeId(data.featured_image),
-    normalizeText(data.excerpt),
-    normalizeText(data.tags),
-    data.published_at || null,
-    oldSlug
-  )
-  .run();
-}
 
 export async function deleteNews(db, slug) {
   // analytics_events.news_id -> news(id) has no ON DELETE action, so an

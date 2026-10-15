@@ -84,19 +84,6 @@ function initReviewForm() {
     const formData = new FormData(form);
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/review/update" : "/en/api/v1/review/create";
-  //  const payload = {
-    //  slug: formData.get("slug"),
-     // casino_slug: formData.get("casino_slug"),
-     // country_code: formData.get("country_code") || null,
-     // title: formData.get("title"),
-     // content: formData.get("content"),
-     // pros: formData.get("pros") ? formData.get("pros").split("\n").map((p) => p.trim()).filter(Boolean) : [],
-     // cons: formData.get("cons") ? formData.get("cons").split("\n").map((c) => c.trim()).filter(Boolean) : [],
-     // rating: parseFloat(formData.get("rating")) || 0,
-     // seo_title: formData.get("seo_title") || null,
-     // seo_description: formData.get("seo_description") || null,
-     // author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
-   // };
 
 const payload = {
   slug: formData.get("slug"),
@@ -240,41 +227,6 @@ async function loadNewsTable() {
   }
 }
 
-async function loadNewsTablebackup() {
-  const tbody = document.getElementById("newsTableBody");
-  if (!tbody) return;
-
-  try {
-    const res = await fetch("/en/api/v1/news/list");
-    const data = await res.json();
-    const news = data.news || [];
-
-    if (news.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="muted">No news articles yet.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = news
-      .map(
-        (n) => `
-      <tr>
-        <td><strong>${n.title}</strong></td>
-        <td>${n.author || "Admin"}</td>
-        <td>${new Date(n.created_at).toLocaleDateString()}</td>
-        <td class="table-actions">
-          <button class="btn btn--ghost btn--sm" onclick="editNews('${n.slug}')">Edit</button>
-          <a href="/en/news/${n.slug}" class="btn btn--ghost btn--sm" target="_blank">View</a>
-          <button class="btn btn--danger btn--sm" onclick="deleteNewsArticle('${n.slug}')">Delete</button>
-        </td>
-
-      </tr>
-    `
-      )
-      .join("");
-  } catch {
-    tbody.innerHTML = '<tr><td colspan="4" class="muted">Failed to load.</td></tr>';
-  }
-}
 
 function initNewsForm() {
   const form = document.getElementById("newsForm");
@@ -440,67 +392,6 @@ function clearNewsOgImage() {
   if (selectBtn) selectBtn.style.display = "";
 }
 
-
-function initNewsFormbackup() {
-  const form = document.getElementById("newsForm");
-  if (!form) return;
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const alertEl = document.getElementById("newsFormAlert");
-    if (alertEl) alertEl.style.display = "none";
-
-    const formData = new FormData(form);
-    const isEdit = formData.get("id") ? true : false;
-    const endpoint = isEdit ? "/en/api/v1/news/update" : "/en/api/v1/news/create";
-    const oldSlug = form.dataset.slug;
-    const payload = {
-      old_slug: form.dataset.slug,
-      slug: formData.get("slug"),
-      title: formData.get("title"),
-      content: formData.get("content"),
-      author: formData.get("author") || "Admin",
-      seo_title: formData.get("seo_title") || null,
-      seo_description: formData.get("seo_description") || null,
-      seo_keywords: formData.get("seo_keywords") || null,
-      author_id: formData.get("author_id") ? parseInt(formData.get("author_id")) : null,
-    };
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        form.dataset.slug = payload.slug;
-        if (alertEl) {
-          alertEl.className = "alert alert--success";
-          alertEl.textContent = isEdit ? "Article updated!" : "News article created!";
-          alertEl.style.display = "block";
-        }
-        form.reset();
-        form.querySelector("[name='id']").value = "";
-        document.getElementById("newsSubmitBtn").textContent = "Create Article";
-        document.getElementById("newsCancelEdit").style.display = "none";
-        loadNewsTable();
-      } else {
-        if (alertEl) {
-          alertEl.className = "alert alert--error";
-          alertEl.textContent = data.error || "Failed";
-          alertEl.style.display = "block";
-        }
-      }
-    } catch {
-      if (alertEl) {
-        alertEl.className = "alert alert--error";
-        alertEl.textContent = "Network error";
-        alertEl.style.display = "block";
-      }
-    }
-  });
-}
 
 // ============================================
 // PAGES
@@ -836,8 +727,6 @@ if (gpwaSealEnabled) {
 }
 
 
-
-
 // ------------------------------------------------------------
 // Compliance rows
 // ------------------------------------------------------------
@@ -991,12 +880,6 @@ function escapeHtmlAttribute(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
-
-
-
-
-
-
 
 
 // ============================================================
@@ -2174,8 +2057,6 @@ function collectHomepageSections() {
 }
 
 
-
-
 // ============================================================
 // THEME PRESETS
 // ============================================================
@@ -3090,7 +2971,6 @@ function initAIGenerator() {
     }
   });
 }
-
 
 
 // ============================================
@@ -4234,7 +4114,6 @@ function insertResearchTemplate(templateName) {
   researchSectionState.sections.push(...toAdd);
   renderResearchFormSections();
 }
-
 
 
 function initResearchForm() {
@@ -5621,35 +5500,6 @@ function toDatetimeLocal(value) {
 }
 
 
-async function editNewsbackup(slug) {
-  try {
-    const res = await fetch("/en/api/v1/news/list");
-    const data = await res.json();
-    const article = (data.news || []).find(n => n.slug === slug);
-    if (!article) return;
-    const form = document.getElementById("newsForm");
-    form.querySelector("[name='id']").value = article.id;
-    form.querySelector("[name='slug']").value = article.slug;
-    form.dataset.slug = article.slug;
-    form.querySelector("[name='author']").value = article.author || "Admin";
-    form.querySelector("[name='title']").value = article.title;
-    form.querySelector("[name='content']").value = article.content || "";
-    setTimeout(() => {
-      RichEditor.set("news-content", article.content || "");
-    }, 300);
-    form.querySelector("[name='seo_title']").value = article.seo_title || "";
-    form.querySelector("[name='seo_description']").value = article.seo_description || "";
-    form.querySelector("[name='seo_keywords']").value = article.seo_keywords || "";
-        // Set author dropdown
-    const authorSelect = form.querySelector("[name='author_id']");
-    if (authorSelect) authorSelect.value = article.author_id || "";
-
-    document.getElementById("newsSubmitBtn").textContent = "Update Article";
-    document.getElementById("newsCancelEdit").style.display = "";
-    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
-  } catch { alert("Failed to load article"); }
-}
-
 function cancelNewsEdit() {
   const form = document.getElementById("newsForm");
   form.reset();
@@ -5663,18 +5513,6 @@ function cancelNewsEdit() {
   document.getElementById("newsCancelEdit").style.display = "none";
   document.getElementById("newsFormTitle").textContent = "Add News Article";
 }
-
-
-function cancelNewsEdibackupt() {
-  const form = document.getElementById("newsForm");
-  form.reset();
-  form.querySelector("[name='id']").value = "";
-  document.getElementById("newsSubmitBtn").textContent = "Create Article";
-  document.getElementById("newsCancelEdit").style.display = "none";
-  RichEditor.set("news-content", "");
-}
-
-
 
 
 // ── Page Edit new ──
@@ -5824,54 +5662,6 @@ async function editPage(slug) {
 // ── Page Edit legacy ──
 
 
-async function editPagebackup(slug) {
-  try {
-    const res = await fetch("/en/api/v1/pages/list");
-    const data = await res.json();
-    const page = (data.pages || []).find(p => p.slug === slug);
-    if (!page) return;
-    const form = document.getElementById("pageForm");
-    form.querySelector("[name='id']").value = page.id;
-    form.querySelector("[name='slug']").value = page.slug;
-    form.querySelector("[name='type']").value = page.type || "page";
-    form.querySelector("[name='template']").value = page.template || "page";
-    form.querySelector("[name='title']").value = page.title;
-
-    let pageContent = page.content_json || "";
-
-    // Convert JSON content into plain editor content
-    if (typeof pageContent === "string") {
-      try {
-        pageContent = JSON.parse(pageContent);
-      } catch {
-        // Already plain text
-      }
-    }
-
-    if (pageContent && typeof pageContent === "object") {
-      pageContent = pageContent.text || "";
-    }
-
-    form.querySelector("[name='content_json']").value = pageContent;
-
-    setTimeout(() => {
-      if (window.RichEditor && typeof RichEditor.set === "function") {
-        RichEditor.set("page-content", pageContent || "");
-      }
-    }, 300);
-    form.querySelector("[name='seo_title']").value = page.seo_title || "";
-    form.querySelector("[name='seo_description']").value = page.seo_description || "";
-    form.querySelector("[name='seo_keywords']").value = page.seo_keywords || "";
-        // Set author dropdown
-    const authorSelect = form.querySelector("[name='author_id']");
-    if (authorSelect) authorSelect.value = page.author_id || "";
-
-    document.getElementById("pageSubmitBtn").textContent = "Update Page";
-    document.getElementById("pageCancelEdit").style.display = "";
-    window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
-  } catch { alert("Failed to load page"); }
-}
-
 function cancelPageEdit() {
   const form = document.getElementById("pageForm");
   form.reset();
@@ -5994,7 +5784,6 @@ function cancelCountryEdit() {
   state.countryCode = "";
   renderSeoSections("country");
 }
-
 
 
 /* =========================================================
@@ -6283,7 +6072,6 @@ async function savePaymentMethodCasinos() {
     if (statusEl) statusEl.textContent = "Network error";
   }
 }
-
 
 
 /* =========================================================
@@ -7051,29 +6839,6 @@ function showPlatformUpdateAlert(message, type = "error") {
     alertEl.style.display = "none";
   }, 5000);
 }
-function showPlatformUpdateAlertbackup(
-message,
-type = "error"
-) {
-
-const alertEl =
-document.getElementById(
-"platformUpdateFormAlert"
-);
-
-if (!alertEl) return;
-
-alertEl.className =
-type === "success"
-? "alert alert--success"
-: "alert alert--error";
-
-alertEl.textContent =
-message;
-
-alertEl.style.display =
-"block";
-}
 
 /* =========================================================
 DATETIME HELPER
@@ -7127,16 +6892,6 @@ function escapeJs(value) {
     .replace(/\n/g, "\\n");
 }
 
-function escapeHtmlbackup(value) {
-
-return String(value ?? "")
-.replace(/&/g, "&")
-.replace(/</g, "<")
-.replace(/>/g, ">")
-.replace(/"/g, '&quot;')
-.replace(/'/g, "'");
-}
-
 
 /* =========================================================
 INITIALIZE
@@ -7159,14 +6914,6 @@ if (
 
 }
 );
-
-
-
-
-
-
-
-
 
 
 // ============================================================

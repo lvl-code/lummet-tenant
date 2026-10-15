@@ -26,9 +26,6 @@ export async function getPublishedLandingPage(db, slug) {
   return db.prepare(`SELECT * FROM content_landing_pages WHERE slug = ? AND status = 'published' LIMIT 1`).bind(slug).first();
 }
 
-export async function getLandingPageById(db, id) {
-  return db.prepare(`SELECT * FROM content_landing_pages WHERE id = ? LIMIT 1`).bind(id).first();
-}
 
 export async function getLandingPageItemIds(db, landingPageId) {
   const result = await db.prepare(`SELECT content_id FROM content_landing_page_items WHERE landing_page_id = ? ORDER BY position ASC`).bind(landingPageId).all();

@@ -245,7 +245,6 @@ function resolveUrl(value, origin, fallback = "") {
 }
 
 
-
 export function buildSiteManifest(site, origin) {
   const manifest = {
     name:
@@ -332,7 +331,6 @@ function parseJson(value, fallback) {
     return fallback;
   }
 }
-
 
 
 function parseHomepageSections(value) {
@@ -539,7 +537,6 @@ heroOverlay:
     headerHero: parseHeaderHero(values),
 
 
-
     // ========================================================
     // THEME
     // ========================================================
@@ -631,7 +628,6 @@ heroOverlay:
     themeLayoutStyle:
       values.theme_layout_style ||
       DEFAULTS.themeLayoutStyle,
-
 
 
     footerDisclaimer:
@@ -1261,32 +1257,6 @@ ${configLines}
 }
 
 
-export function buildGaScriptbackup(siteSettings) {
-  const rawId =
-    String(siteSettings?.gaMeasurementId || "").trim();
-
-  // Only allow valid GA4 ("G-XXXXXXX") / UA ("UA-XXXXXXX-X") /
-  // GTM-style ids — letters, digits and dashes only — so nothing
-  // else can be injected into this inline script.
-  const isValid = /^[A-Za-z0-9-]{6,20}$/.test(rawId);
-
-  if (!isValid) {
-    return "";
-  }
-
-  const id = escapeHtml(rawId);
-
-  return `
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${id}');
-  </script>`;
-}
-
 // ------------------------------------------------------------
 // GPWA verification (seal + script)
 // Admin-pasted per tenant. Deliberately NOT run through
@@ -1353,8 +1323,6 @@ export function buildComplianceHtml(siteSettings) {
     })
     .join("\n");
 }
-
-
 
 
 // ============================================================

@@ -61,7 +61,6 @@ import { isReservedSlug } from "./reserved-slugs.js";
 import { getContentTypeEnablement, updateContentTypeEnablement } from "./content-types.js";
 
 
-
 import * as itemAccess from "./database/item-access.js";
 import { handleNewsroomApi, beforeNewsUpdate, afterNewsUpdate, slugRedirectHook, searchReindexHook } from "./newsroom-api.js";
 import { sanitizePublicNewsList } from "./newsroom-render.js";
@@ -79,7 +78,6 @@ import {
 } from "./database/item-access-api.js";
 
 
-import { aiAssistant } from "./ai/assistant.js";
 
 import {
   handleChat,
@@ -119,33 +117,9 @@ import { getCached, setCached, CACHE_KEYS, invalidateCasinos, invalidateNews, in
 import {
   deleteCached
 } from "./cache.js";
-import {
-    handleUpload,
-    handleDelete,
-    serveMedia,
-} from './media-upload.js';
-import {
-    createFolder,
-    getFolderById,
-    getFolderBySlug,
-    listFolders,
-    listRootFolders,
-    listChildFolders,
-    updateFolder,
-    deleteFolder,
-    buildFolderTree,
-    countMediaInFolder,
-} from './database/media_folders.js';
-import {
-    createMediaItem,
-    getMediaById,
-    searchMedia,
-    listMedia,
-    updateMediaItem,
-    deleteMediaItem,
-    countMedia,
-} from './database/media_library.js';
-
+import { handleUpload, handleDelete } from './media-upload.js';
+import { createFolder, getFolderById, getFolderBySlug, updateFolder, deleteFolder, buildFolderTree, countMediaInFolder } from './database/media_folders.js';
+import { getMediaById, searchMedia, listMedia, updateMediaItem } from './database/media_library.js';
 
 
 // =====================================================
@@ -344,19 +318,6 @@ if (path === "/api/v1/public/news/list") {
   // Allow-list the public payload (drops created_by, ad_mode, ad_override_rules and any future private column).
   return json({ news: sanitizePublicNewsList(newsList) });
 }
-if (path === "/api/v1/public/newsbackup/list") {
-  let news = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
-  if (!news) {
-    const result = await env.DB.prepare(`
-      SELECT * FROM news
-      WHERE published = 1
-      ORDER BY created_at DESC
-    `).all();
-    news = result.results || [];
-    await setCached(env, CACHE_KEYS.PUBLIC_NEWS, news);
-  }
-  return json({ news: sanitizePublicNewsList(news) });
-}
 
 if (path === "/api/v1/public/casinos/geo") {
   const country = request.cf?.country || null;
@@ -426,7 +387,6 @@ if (path === "/api/v1/public/casinos/geo") {
 
   return json({ casinos: geoCasinos, country });
 }
-
 
 
 if (path === "/api/v1/public/reviews/geo") {
@@ -1657,43 +1617,6 @@ if (path === "/api/v1/news/list") {
 }
 
 
-if (path === "/api/v1/newsbackup2/list") {
-  const { condition, params } = await itemAccess.getAccessibleWhereClause(
-    env.DB, user, 'news', 'read', ''
-  );
-  const whereParts = ['1=1'];
-//  const whereParts = ['n.published = 1'];
-  if (condition) whereParts.push(condition);
-  const whereClause = 'WHERE ' + whereParts.join(' AND ');
-
-  const result = await env.DB.prepare(
-    `SELECT n.*, m.url AS featured_image_url, m.thumbnail_url AS featured_image_thumbnail,
-            m.alt_text AS featured_image_alt, a.name AS author_name, a.slug AS author_slug,
-            a.avatar_url AS author_avatar, a.role AS author_role
-     FROM news n
-     LEFT JOIN media_library m ON m.id = n.featured_image
-     LEFT JOIN authors a ON a.id = n.author_id
-     ${whereClause}
-     ORDER BY COALESCE(n.published_at, n.created_at) DESC`
-  ).bind(...params).all();
-  return json({ news: result.results });
-}
-
-
-if (path === "/api/v1/newsbackup/list") {
-  const { condition, params } = await itemAccess.getAccessibleWhereClause(
-    env.DB, user, 'news', 'read', ''
-  );
-  const whereParts = ['published = 1'];
-  if (condition) whereParts.push(condition);
-  const whereClause = 'WHERE ' + whereParts.join(' AND ');
-
-  const result = await env.DB.prepare(
-    `SELECT * FROM news ${whereClause} ORDER BY created_at DESC`
-  ).bind(...params).all();
-  return json({ news: result.results });
-}
-
 // List pages
 if (path === "/api/v1/pages/list") {
   const { condition, params } = await itemAccess.getAccessibleWhereClause(
@@ -1983,7 +1906,6 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
     }
 
 
-
     // ==================================
     // PAYMENT METHODS CRUD
     // ==================================
@@ -2073,7 +1995,6 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       await paymentMethods.setCasinoPaymentMethods(env.DB, body.casino_id, body.payment_method_ids || []);
       return success();
     }
-
 
 
     // ==================================
@@ -2808,7 +2729,6 @@ async function requireAdAdmin(request, env) {
       return json({ error: e.message }, 403);
     }
   }
-
 
 
     // ==================================
@@ -5552,7 +5472,6 @@ async function updateReview(request, env, user) {
 }
 
 
-
 // =====================================================
 // PAGES
 // =====================================================
@@ -5758,9 +5677,6 @@ async function deleteNews(request, env, user) {
 }
 
 
-
-
-
 /* =========================================================
 PLATFORM UPDATES FUNCTIONS
 ========================================================= */
@@ -5784,7 +5700,6 @@ async function listPlatformUpdates(request, env, user) {
 
   return json({ success: true, updates: result.results || [] });
 }
-
 
 
 async function createPlatformUpdate(request, env, user) {

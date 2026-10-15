@@ -339,41 +339,6 @@
         ].join(' ');
     }
 
-    function getToolbarConfigbackup() {
-        return [
-            'undo redo',
-            '|',
-            'bold italic underline strikethrough',
-            '|',
-            'forecolor backcolor',
-            '|',
-            'fontsize select',
-            '|',
-            'blocks',
-            '|',
-            'alignleft aligncenter alignright alignjustify',
-            '|',
-            'bullist numlist outdent indent',
-            '|',
-            'table tabledelete tableprops tablecellprops tablerowprops tablemergecells tablesplitcells',
-            '|',
-            'image media link anchor',
-            '|',
-            'code blockquote hr',
-            '|',
-            'sup subscript superscript',
-            '|',
-            'emoticons charmap',
-            '|',
-            'removeformat',
-            '|',
-            'fullscreen preview',
-            '|',
-            'wordcount',
-            '|',
-            'customsourcecode'
-        ].join(' ');
-    }
 
     /**
      * Builds the TinyMCE menu bar configuration.

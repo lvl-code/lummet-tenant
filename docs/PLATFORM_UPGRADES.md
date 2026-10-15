@@ -495,3 +495,16 @@ Measured by counting queries per page (warm cache): a casino page 9, a review 15
 - **Chat.** Old rate-limit rows are cleaned up on about 1 message in 20 instead of every message; the limit check itself is unchanged.
 
 No migration. Remaining per-message chat queries are the conversation load/save, rate limit and free-tier checks, and retrieval; they are left as they are because each is needed for correctness.
+
+## 41. Speed check (v22.3)
+
+**Dashboard, Insights, Speed** (`/en/dashboard/speed`, admins only) shows how the public site is performing, from real visits:
+
+- **Served from cache:** the share of sampled page views answered from the page cache (v22.1). Higher is faster; a low number right after a deploy or an admin save is normal, because saving retires the cache.
+- **Cached page / Uncached page:** the typical server time (median) and the slowest 1 in 20 (95th percentile) for each.
+- **Slowest pages:** pages with at least 3 samples, slowest first. These are the ones to look at if the site feels slow.
+- **Asset version:** the hash behind the `?v=` on CSS and JS (section 38); it changes when a stylesheet or script changes.
+
+How it works: about 1 in 10 public page views writes one row (path, cache state, milliseconds, country) to a new `perf_samples` table, after the response is sent, so it never slows a page. Rows older than 14 days are removed automatically. Times are server time, not the visitor's network. API (admins): `GET /api/v1/speed/summary`.
+
+**Migration `0065_perf_samples.sql` is needed on each site database.** Until it is applied the page says so and nothing is recorded; the site is unaffected either way.

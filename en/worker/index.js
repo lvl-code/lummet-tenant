@@ -8,6 +8,7 @@ import {
   renderAuthor,
   renderAuthorList,
   renderDashboardAuthors,
+  renderDashboardSpeed,
   renderNews,
   renderCasino,
   renderSportsbook,
@@ -146,6 +147,7 @@ import { cleanupExpiredConversations } from "./ai/memory.js";
 import { handleLummetRequest } from "./lummet/router.js";
 import { getSiteContext } from "./site-context.js";
 import { finalizeResponse } from "./static-assets.js";
+import { recordSample } from "./perf.js";
 import { cachedPage, isCacheableRequest, isContentWrite, bumpPageEpoch } from "./page-cache.js";
 import { confirmNewsletter, unsubscribeNewsletter } from "./newsletter.js";
 
@@ -589,6 +591,8 @@ if (
         return renderDashboardCommercialTerms(request, env);
       case "dashboardPostbackConfigs":
         return renderDashboardPostbackConfigs(request, env);
+      case "dashboardSpeed":
+        return renderDashboardSpeed(request, env);
       case "dashboardImportHistory":
         return renderDashboardImportHistory(request, env);
       case "dashboardProviderAdapters":
@@ -967,7 +971,9 @@ export default {
       let response;
       const routeType = request.method === "GET" ? getRoute(request).type : null;
       if (routeType && isCacheableRequest(request, routeType)) {
+        const startedAt = Date.now();
         response = await cachedPage(request, env, ctx, routeType, (c) => appWorker.fetch(request, env, c));
+        recordSample(env, ctx, request, routeType, response, Date.now() - startedAt);
       } else {
         response = await appWorker.fetch(request, env, ctx);
         if (isContentWrite(request, response.status)) {

@@ -36,6 +36,7 @@ import { checkAndRecordLink } from "./tracking/health-check.js";
 import { resolveRedirectTarget } from "./tracking/redirect.js";
 import { logAudit } from "./database/audit.js";
 import * as analyticsDB from "./database/analytics.js";
+import { speedSummary } from "./perf.js";
 import * as reportsDB from "./database/reports.js";
 import * as alertsDB from "./database/alerts.js";
 import * as postbackConfigsDB from "./database/postback-configs.js";
@@ -189,6 +190,12 @@ if (path === "/api/v1/newsletter/subscribe" && request.method === "POST") {
   return subscribeNewsletter(request, env);
 }
 
+
+if (path === "/api/v1/speed/summary" && request.method === "GET") {
+  const denied = requireAdmin(user);
+  if (denied) return denied;
+  return json(await speedSummary(env));
+}
 
 if (path === "/api/v1/geo/check") {  
   const url = new URL(request.url);  

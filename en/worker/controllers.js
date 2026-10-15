@@ -7336,6 +7336,10 @@ export async function renderDashboardImportHistory(request, env) {
   return renderAdminPage(request, env, "admin/import-history.html");
 }
 
+export async function renderDashboardSpeed(request, env) {
+  return renderAdminPage(request, env, "admin/speed.html");
+}
+
 export async function renderDashboardProviderAdapters(request, env) {
   return renderAdminPage(request, env, "admin/provider-adapters.html");
 }

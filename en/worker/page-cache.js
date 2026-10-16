@@ -16,7 +16,7 @@ import { eventCapture, logEvent } from "./database/analytics.js";
 import { geoEngine } from "./geo.js";
 
 export const PAGE_CACHE_CFG = {
-  FRESH_SECONDS: 600,  // serve without refreshing inside this window
+  FRESH_SECONDS: 1800, // serve without refreshing inside this window (admin saves retire pages at once anyway)
   KV_TTL: 86400,       // (cache lifetime) a stale copy is served instantly (and refreshed) for up to a day,
                        // so a quiet site's visitors never wait for a cold render
   LOCK_SECONDS: 30,
@@ -173,8 +173,8 @@ function fromEntry(entry, state) {
 // Shown on every cached response as x-page-store, so a broken save is visible.
 export const pageStore = { last: "none" };
 
-async function store(env, key, entry) {
-  pageStore.last = await setLocal(env, key, entry, PAGE_CACHE_CFG.KV_TTL);
+async function store(env, key, entry, origin) {
+  pageStore.last = await setLocal(env, key, entry, PAGE_CACHE_CFG.KV_TTL, origin);
 }
 
 // Refreshes are de-duplicated per isolate in memory (no KV write); an occasional
@@ -182,6 +182,7 @@ async function store(env, key, entry) {
 const refreshing = new Map();
 
 async function refresh(request, env, key, render) {
+  if (pageStore.last === "failed") return; // saves are being refused: do not re-render for nothing
   const until = refreshing.get(key);
   if (until && until > Date.now()) return;
   refreshing.set(key, Date.now() + PAGE_CACHE_CFG.LOCK_SECONDS * 1000);
@@ -191,7 +192,7 @@ async function refresh(request, env, key, render) {
     if (!response) return;
     const html = await response.clone().text();
     const entry = toEntry(response, html, events);
-    if (entry) await store(env, key, entry);
+    if (entry) await store(env, key, entry, new URL(request.url).origin);
   } catch (e) {
     console.error("page cache refresh failed:", e.message);
   }
@@ -209,7 +210,7 @@ export async function cachedPage(request, env, ctx, routeType, render) {
   const geo = visitorGeo(request);
   const key = `pc:${await epoch(env)}:${url.hostname}:${geo.country || "XX"}:${url.pathname}${url.search}`;
 
-  const entry = await getLocal(env, key);
+  const entry = await getLocal(env, key, url.origin);
 
   if (entry && typeof entry.html === "string") {
     replayEvents(request, env, ctx, entry.events);
@@ -229,7 +230,7 @@ export async function cachedPage(request, env, ctx, routeType, render) {
     const html = await copy.text();
     const e = toEntry(response, html, events);
     if (e) {
-      const write = store(env, key, e);
+      const write = store(env, key, e, url.origin);
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(write); else await write;
     }
   }

@@ -74,9 +74,11 @@ export async function setCached(env, key, value, ttl = DEFAULT_TTL) {
 // does not exist (tests, workers.dev).
 // -----------------------------------------------------
 // Keys use the site's own domain: the Cache API belongs to a zone, so a made-up host may be ignored.
-function localKey(env, key) {
-  let origin = "https://local-cache.invalid";
-  try { if (env && env.SITE_URL) origin = new URL(env.SITE_URL).origin; } catch { /* keep default */ }
+function localKey(env, key, origin) {
+  if (!origin) {
+    origin = "https://local-cache.invalid";
+    try { if (env && env.SITE_URL) origin = new URL(env.SITE_URL).origin; } catch { /* keep default */ }
+  }
   return new Request(`${origin}/__local-cache/${encodeURIComponent(key)}`);
 }
 
@@ -95,11 +97,11 @@ function localCache() {
 export function hasLocalCache() { return !!localCache(); }
 export function _resetLocalState() { localState = "unknown"; probeMisses = 0; }
 
-export async function getLocal(env, key) {
+export async function getLocal(env, key, origin) {
   const c = localCache();
   try {
     if (c) {
-      const res = await c.match(localKey(env, key));
+      const res = await c.match(localKey(env, key, origin));
       if (res) return await res.json();
       if (localState === "ok" || !env.CACHE) return null;
       // not proven to work yet (or saved to KV while it was unproven): also look in KV
@@ -115,12 +117,12 @@ export async function getLocal(env, key) {
 }
 
 /** Returns "cache", "kv:no-cache-api", "kv:probe-failed" or "failed" so callers can report where it went. */
-export async function setLocal(env, key, value, ttl = DEFAULT_TTL) {
+export async function setLocal(env, key, value, ttl = DEFAULT_TTL, origin) {
   const c = localCache();
   try {
     const raw = JSON.stringify(value);
     if (c) {
-      const req = localKey(env, key);
+      const req = localKey(env, key, origin);
       await c.put(req, new Response(raw, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${ttl}` } }));
       if (localState !== "ok") {
         if (await c.match(req)) { localState = "ok"; probeMisses = 0; }

@@ -69,3 +69,26 @@ test("a failed save is reported, not hidden", async () => {
   const env = { CACHE: { async get() { return null; }, async put() { throw new Error("KV put() limit exceeded for the day."); } }, DB: db() };
   assert.equal(await setLocal(env, "k3", { c: 3 }, 60), "failed");
 });
+
+test("the Cache API key uses the visitor's own domain, and a refused save stops pointless background re-renders", async () => {
+  _resetLocalState();
+  const fc = fakeCaches(true); globalThis.caches = fc;
+  try {
+    const env = { CACHE: kv(), DB: db() }; const n = { n: 0 };
+    const c1 = ctx();
+    await cachedPage(req(), env, c1, "casino", render(n)); await Promise.all(c1.p);
+    assert.ok([...fc.m.keys()].every((u) => u.startsWith("https://site.test/")), "keys are on the site's own domain");
+  } finally { delete globalThis.caches; _resetLocalState(); }
+
+  // saves refused (e.g. KV daily limit): a stale page is served, but no re-render is started
+  const env2 = { CACHE: { async get(k) { return this.s && k.startsWith("pc:") && k !== "pc:epoch" ? this.s : null; }, async put() { throw new Error("limit"); }, s: null }, DB: db() };
+  const n2 = { n: 0 };
+  const c2 = ctx();
+  await cachedPage(req("/en/casino/q"), env2, c2, "casino", render(n2)); await Promise.all(c2.p);
+  assert.equal(pageStore.last, "failed");
+  env2.CACHE.s = JSON.stringify({ html: "<html>old</html>", type: "text/html", cc: "", events: [], generatedAt: Date.now() - 5000 * 1000 });
+  const c3 = ctx();
+  const res = await cachedPage(req("/en/casino/q"), env2, c3, "casino", render(n2)); await Promise.all(c3.p);
+  assert.equal(res.headers.get("x-page-cache"), "stale");
+  assert.equal(n2.n, 1, "no background re-render while saves fail");
+});

@@ -79,7 +79,7 @@ test("stale copy is served at once and refreshed in the background without doubl
   let c = ctx();
   await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
   const key = [...env.CACHE.store.keys()].find((k) => k.startsWith("pc:"));
-  const e = JSON.parse(env.CACHE.store.get(key)); e.generatedAt -= 700 * 1000;
+  const e = JSON.parse(env.CACHE.store.get(key)); e.generatedAt -= 2000 * 1000;
   env.CACHE.store.set(key, JSON.stringify(e));
   const rowsBefore = env.DB.rows.length;
 

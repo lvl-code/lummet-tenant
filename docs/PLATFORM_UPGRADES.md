@@ -554,3 +554,14 @@ Live headers after v22.6 showed two problems.
 - **Cache API fallback to KV after v22.6.** The first save is read back; the Cache API now uses your own domain in its keys (the cache belongs to a zone), a single missed read-back no longer switches it off, and `x-page-store` says `kv:probe-failed` or `kv:no-cache-api` when KV is used, so the cause is visible.
 
 No migration.
+
+## 46. Page cache: own-domain keys, gentler KV use (v22.8)
+
+Live headers after v22.7 showed pages with a banner were now cached, but Cloudflare's cache still did not keep them: `x-page-store` showed `kv:probe-failed` / `kv:no-cache-api`, and some hits took about 400 ms (a cold KV read).
+
+- **Cache keys now use the visitor's own domain** (the request's origin). `SITE_URL` is not set in the wrangler config, so v22.7 fell back to a made-up domain, which the Cache API may ignore.
+- **Pages stay fresh for 30 minutes** (was 10) before a background refresh. Admin saves still retire every page at once, so edits show immediately. While KV is the fallback this cuts its writes to a third.
+- **No pointless work when saves are refused:** if the last save failed, a stale page is still served but no background re-render is started.
+- If `x-page-store` still shows `kv:...` after this, `SITE_URL` also needs to be set as a variable for the Worker (the scheduled warm-up needs it too).
+
+No migration.

@@ -51,7 +51,7 @@ test("when the Cache API accepts but never returns a save (workers.dev), KV is u
   globalThis.caches = fakeCaches(false);
   try {
     const env = { CACHE: kv(), DB: db() };
-    assert.equal(await setLocal(env, "k1", { a: 1 }, 60), "kv:probe-failed");
+    assert.match(await setLocal(env, "k1", { a: 1 }, 60), /^kv:probe-failed\(/);
     assert.deepEqual(await getLocal(env, "k1"), { a: 1 });
     assert.equal(env.CACHE.puts, 1);
   } finally { delete globalThis.caches; _resetLocalState(); }
@@ -91,4 +91,18 @@ test("the Cache API key uses the visitor's own domain, and a refused save stops 
   const res = await cachedPage(req("/en/casino/q"), env2, c3, "casino", render(n2)); await Promise.all(c3.p);
   assert.equal(res.headers.get("x-page-cache"), "stale");
   assert.equal(n2.n, 1, "no background re-render while saves fail");
+});
+
+test("a save that becomes readable a moment later is still accepted as working", async () => {
+  _resetLocalState();
+  const m = new Map(); const visibleAt = new Map();
+  globalThis.caches = { default: {
+    async put(req, res) { m.set(req.url, await res.text()); visibleAt.set(req.url, Date.now() + 150); },
+    async match(req) { return m.has(req.url) && Date.now() >= visibleAt.get(req.url) ? new Response(m.get(req.url)) : undefined; },
+  } };
+  try {
+    const env = { CACHE: kv() };
+    assert.equal(await setLocal(env, "slow", { z: 1 }, 60, "https://site.test"), "cache");
+    assert.equal(env.CACHE.puts, 0);
+  } finally { delete globalThis.caches; _resetLocalState(); }
 });

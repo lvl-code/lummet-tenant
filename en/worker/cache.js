@@ -116,7 +116,7 @@ export async function getLocal(env, key, origin) {
   }
 }
 
-/** Returns "cache", "kv:no-cache-api", "kv:probe-failed" or "failed" so callers can report where it went. */
+/** Returns "cache", "kv:no-cache-api", "kv:probe-failed(host)" or "failed" so callers can report where it went. */
 export async function setLocal(env, key, value, ttl = DEFAULT_TTL, origin) {
   const c = localCache();
   try {
@@ -125,13 +125,21 @@ export async function setLocal(env, key, value, ttl = DEFAULT_TTL, origin) {
       const req = localKey(env, key, origin);
       await c.put(req, new Response(raw, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${ttl}` } }));
       if (localState !== "ok") {
-        if (await c.match(req)) { localState = "ok"; probeMisses = 0; }
+        // The read-back may run before the data centre has committed the save,
+        // so look up to three times (now, +100 ms, +300 ms) before deciding.
+        let seen = !!(await c.match(req));
+        for (const wait of [100, 200]) {
+          if (seen) break;
+          await new Promise((r) => setTimeout(r, wait));
+          seen = !!(await c.match(req));
+        }
+        if (seen) { localState = "ok"; probeMisses = 0; }
         else {
           probeMisses++;
           if (probeMisses >= 2) localState = "broken";
           if (env.CACHE) {
             await env.CACHE.put(key, raw, { expirationTtl: Math.max(60, ttl) });
-            return "kv:probe-failed";
+            return `kv:probe-failed(${new URL(req.url).host})`;
           }
           return "failed";
         }

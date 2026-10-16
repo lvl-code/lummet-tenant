@@ -565,3 +565,13 @@ Live headers after v22.7 showed pages with a banner were now cached, but Cloudfl
 - If `x-page-store` still shows `kv:...` after this, `SITE_URL` also needs to be set as a variable for the Worker (the scheduled warm-up needs it too).
 
 No migration.
+
+## 47. Page cache: patient read-back (v22.9)
+
+After v22.8, `x-page-store` still showed `kv:probe-failed`: Cloudflare accepted a save into its cache but the immediate read-back found nothing, so the site fell back to KV (and its 1,000 writes a day on the free plan).
+
+- The read-back now looks three times (now, +100 ms, +300 ms) before deciding that the cache does not keep pages, in case it only needs a moment.
+- When it still fails, the header says which domain was used: `kv:probe-failed(level.casino)`.
+- If it still fails, the cache is not available for that domain (for example a `workers.dev` address, or a zone setting that bypasses the cache), and the answer is to set `SITE_URL` and check how the domain is attached, or move to the Workers Paid plan (KV writes are then not a limit).
+
+No migration.

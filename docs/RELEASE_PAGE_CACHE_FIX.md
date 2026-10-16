@@ -21,7 +21,7 @@ Counted with `git diff --numstat` against v22.6, excluding the three generated f
 |---|---:|---:|---:|
 | **Total** | **5** | **100** | **23** |
 
-New: 0, modified: 5, deleted: 0. Tests: 1144 pass (full suite); focused set (3 files) 51 pass. Migrations: **none**.
+New: 0, modified: 5, deleted: 0. Tests: 1149 pass (full suite); focused set (3 files) 24 pass. Migrations: **none**.
 
 ## New files (0)
 

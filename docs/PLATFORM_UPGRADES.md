@@ -597,3 +597,14 @@ The live headers after v22.10 settled the question: `x-page-store: kv:probe-fail
 - Still limited by the free KV plan's 1,000 writes a day (page saves and refreshes). On the Workers Paid plan that limit is gone.
 
 No migration.
+
+## 51. Credential exposure clean-up (v22.13)
+
+A production database dump (`docs/casinos/levelcasd1.sql` and `.zip`: users, password hashes, sessions) was committed to git history in the past. It was removed from the files in v22.5 but stays in history until the history is rewritten.
+
+- **Migration 0066 (`0066_invalidate_sessions.sql`)** signs everybody out (`DELETE FROM sessions`) and cancels pending password-reset links (`DELETE FROM password_resets`). Run it once on every database. Users are kept.
+- **Old password hashes are upgraded at login.** An account whose hash is the old unsalted SHA-256 (no `:` in it) is rewritten as salted PBKDF2 right after a successful sign-in. Those old hashes are the ones that can be cracked fastest, so the people who hold them should change their password anyway.
+- **`docs/security/purge-history.sh`** removes the dump from the whole git history and drops the apply/revert noise commits. It makes a backup bundle first, refuses to run on uncommitted changes or unknown commits, and asks for typed confirmations (`PURGE`, then `PUSH`) before it force-pushes.
+- Still to do by hand: change admin passwords; replace anything secret stored in the database (check the Settings pages for API keys); regenerate postback endpoint tokens if you use conversion postbacks; ask GitHub Support to clear cached views of the old commits.
+
+Not changed: other tables that were in the dump (newsletter subscribers' emails, analytics) cannot be un-exposed; treat them as known to others.

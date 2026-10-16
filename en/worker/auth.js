@@ -178,7 +178,7 @@ export async function verifyPassword(password, storedHash) {
       .join("");
 
     if (legacyHash === storedHash) {
-      // TODO: Re-hash with PBKDF2 on next login
+      // (login() upgrades this hash to PBKDF2 right after a successful sign-in)
       return true;
     }
     return false;
@@ -266,6 +266,18 @@ export async function login(request, env) {
   if (!valid) {
     await logFailedAttempt(env, ipHash, "login");
     return json({ success: false, error: "Invalid credentials" }, 401);
+  }
+
+  // Old accounts may still hold an unsalted SHA-256 hash (no ":" in it). Now that the password
+  // is known to be right, replace it with a salted PBKDF2 hash. Best effort: a failure here
+  // must never stop the login.
+  if (!user.password_hash.includes(":")) {
+    try {
+      await env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+        .bind(await hashPassword(password), user.id).run();
+    } catch (e) {
+      console.error("password hash upgrade failed:", e.message);
+    }
   }
 
   const token = generateSessionToken();

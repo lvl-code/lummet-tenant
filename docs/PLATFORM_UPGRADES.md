@@ -575,3 +575,13 @@ After v22.8, `x-page-store` still showed `kv:probe-failed`: Cloudflare accepted 
 - If it still fails, the cache is not available for that domain (for example a `workers.dev` address, or a zone setting that bypasses the cache), and the answer is to set `SITE_URL` and check how the domain is attached, or move to the Workers Paid plan (KV writes are then not a limit).
 
 No migration.
+
+## 48. Page cache: say where a page came from (v22.10)
+
+After v22.9 the live headers could not show whether Cloudflare's cache or KV held a page: `x-page-store` only reports a save made in the same data centre that serves the request.
+
+- **`x-page-source`** on every cached response: `cache` (Cloudflare's cache, a few ms) or `kv` (global store, slower on a first read from a data centre).
+- **The first (miss) response now waits for its own save** (a few ms) so its `x-page-store` reports it: `cache`, `kv:probe-failed(host)`, `kv:no-cache-api` or `failed`.
+- Reading the result: `x-page-source: cache` on repeat visits means the free, write-unlimited cache works. `kv` means pages are served from KV: still fast once warm, but limited by the free plan's 1,000 writes a day.
+
+No migration.

@@ -97,23 +97,28 @@ function localCache() {
 export function hasLocalCache() { return !!localCache(); }
 export function _resetLocalState() { localState = "unknown"; probeMisses = 0; }
 
-export async function getLocal(env, key, origin) {
+/** Like getLocal, but also says where the value came from: "cache", "kv" or "miss". */
+export async function getLocalWithSource(env, key, origin) {
   const c = localCache();
   try {
     if (c) {
       const res = await c.match(localKey(env, key, origin));
-      if (res) return await res.json();
-      if (localState === "ok" || !env.CACHE) return null;
+      if (res) return { value: await res.json(), src: "cache" };
+      if (localState === "ok" || !env.CACHE) return { value: null, src: "miss" };
       // not proven to work yet (or saved to KV while it was unproven): also look in KV
       const raw = await env.CACHE.get(key);
-      return raw ? JSON.parse(raw) : null;
+      return raw ? { value: JSON.parse(raw), src: "kv" } : { value: null, src: "miss" };
     }
-    if (!env.CACHE) return null;
+    if (!env.CACHE) return { value: null, src: "miss" };
     const raw = await env.CACHE.get(key);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? { value: JSON.parse(raw), src: "kv" } : { value: null, src: "miss" };
   } catch {
-    return null;
+    return { value: null, src: "miss" };
   }
+}
+
+export async function getLocal(env, key, origin) {
+  return (await getLocalWithSource(env, key, origin)).value;
 }
 
 /** Returns "cache", "kv:no-cache-api", "kv:probe-failed(host)" or "failed" so callers can report where it went. */

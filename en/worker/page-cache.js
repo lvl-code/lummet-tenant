@@ -11,7 +11,7 @@
 //  - a page that fires anything unusual (extra fields) is never cached;
 //  - any successful admin save bumps an epoch, which instantly retires every
 //    cached page (see bumpPageEpoch).
-import { getCached, setCached, getLocal, setLocal } from "./cache.js";
+import { getCached, setCached, getLocalWithSource, setLocal } from "./cache.js";
 import { eventCapture, logEvent } from "./database/analytics.js";
 import { geoEngine } from "./geo.js";
 
@@ -163,8 +163,8 @@ function toEntry(response, html, events) {
   };
 }
 
-function fromEntry(entry, state) {
-  const headers = { "content-type": entry.type, "x-page-cache": state, "x-page-store": pageStore.last };
+function fromEntry(entry, state, src) {
+  const headers = { "content-type": entry.type, "x-page-cache": state, "x-page-store": pageStore.last, "x-page-source": src };
   if (entry.cc) headers["cache-control"] = entry.cc;
   return new Response(entry.html, { status: 200, headers });
 }
@@ -210,7 +210,7 @@ export async function cachedPage(request, env, ctx, routeType, render) {
   const geo = visitorGeo(request);
   const key = `pc:${await epoch(env)}:${url.hostname}:${geo.country || "XX"}:${url.pathname}${url.search}`;
 
-  const entry = await getLocal(env, key, url.origin);
+  const { value: entry, src } = await getLocalWithSource(env, key, url.origin);
 
   if (entry && typeof entry.html === "string") {
     replayEvents(request, env, ctx, entry.events);
@@ -218,7 +218,7 @@ export async function cachedPage(request, env, ctx, routeType, render) {
     if (age > PAGE_CACHE_CFG.FRESH_SECONDS && ctx && typeof ctx.waitUntil === "function") {
       ctx.waitUntil(refresh(request, env, key, (c) => render(c)));
     }
-    return fromEntry(entry, age > PAGE_CACHE_CFG.FRESH_SECONDS ? "stale" : "hit");
+    return fromEntry(entry, age > PAGE_CACHE_CFG.FRESH_SECONDS ? "stale" : "hit", src);
   }
 
   // miss: render normally (the visitor's own events are written as usual)
@@ -230,8 +230,8 @@ export async function cachedPage(request, env, ctx, routeType, render) {
     const html = await copy.text();
     const e = toEntry(response, html, events);
     if (e) {
-      const write = store(env, key, e, url.origin);
-      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(write); else await write;
+      // awaited (a few ms) so x-page-store on this response reports this save
+      await store(env, key, e, url.origin);
     }
   }
   try {

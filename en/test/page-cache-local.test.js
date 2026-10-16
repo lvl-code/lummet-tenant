@@ -34,7 +34,9 @@ test("pages are saved in the Cache API, not KV, so the free KV write limit is ne
   try {
     const env = { CACHE: kv(), DB: db() }; const n = { n: 0 };
     const c1 = ctx();
-    await cachedPage(req(), env, c1, "casino", render(n)); await Promise.all(c1.p);
+    const first = await cachedPage(req(), env, c1, "casino", render(n)); await Promise.all(c1.p);
+    assert.equal(first.headers.get("x-page-cache"), "miss");
+    assert.equal(first.headers.get("x-page-store"), "cache", "the miss response already reports where it was saved");
     assert.equal(n.n, 1);
     assert.equal(env.CACHE.puts, 0, "no KV write for the page");
     assert.equal(pageStore.last, "cache");
@@ -42,6 +44,7 @@ test("pages are saved in the Cache API, not KV, so the free KV write limit is ne
     const res = await cachedPage(req(), env, c2, "casino", render(n)); await Promise.all(c2.p);
     assert.equal(res.headers.get("x-page-cache"), "hit");
     assert.equal(res.headers.get("x-page-store"), "cache");
+    assert.equal(res.headers.get("x-page-source"), "cache", "the hit was read from the Cache API");
     assert.equal(n.n, 1, "second visit did not render");
   } finally { delete globalThis.caches; _resetLocalState(); }
 });

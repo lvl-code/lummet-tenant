@@ -57,7 +57,7 @@ test("a hit skips the renderer but still records the view with the visitor's own
   const c2 = ctx();
   const res2 = await cachedPage(r2, env, c2, "casino", makeRender(env, r2, n));
   await Promise.all(c2.p);
-  assert.equal(res2.headers.get("x-page-cache"), null, "first KE visit is a miss");
+  assert.equal(res2.headers.get("x-page-cache"), "miss", "first KE visit is a miss");
   assert.equal(n.n, 2, "KE has its own cache entry (country is part of the key)");
 
   const r3 = req("/en/casino/x", { headers: { referer: "https://bing.com/" } });
@@ -100,8 +100,9 @@ test("non-200, unknown event fields and missing storage are never cached", async
   assert.equal(res404.status, 404);
   assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:")).length, 0);
 
-  const odd = async (cx) => { const w = logEvent(env.DB, { eventType: "PAGE_VIEW", pageId: 1, metadata: { bot: 1 } }); if (cx) cx.waitUntil(w); return new Response("x", { headers: { "content-type": "text/html" } }); };
-  await cachedPage(req("/en/p"), env, ctx(), "page", odd);
+  const odd = async (cx) => { const w = logEvent(env.DB, { eventType: "PAGE_VIEW", pageId: 1, visitorHash: "abc123" }); if (cx) cx.waitUntil(w); return new Response("x", { headers: { "content-type": "text/html" } }); };
+  const oddRes = await cachedPage(req("/en/p"), env, ctx(), "page", odd);
+  assert.equal(oddRes.headers.get("x-page-cache"), "skip:event-field-visitorHash", "the header says why it was not cached");
   assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:")).length, 0);
 
   let calls = 0;
@@ -199,4 +200,22 @@ test("public news list is short and carries no full article text, even from an o
 
   const q = await (await call("/api/v1/public/news/list?q=Story%203")).json();
   assert.ok(q.news.length >= 1 && q.news.every((n) => n.title.includes("Story 3")));
+});
+
+test("a page with banner views (metadata with plain values) is cached; nested or visitor-specific metadata is not", async () => {
+  const env = { CACHE: kv(), DB: db() }; let calls = 0;
+  const banner = async (cx) => {
+    calls++;
+    const w = logEvent(env.DB, { eventType: "BANNER_VIEW", metadata: { componentId: 3, componentName: "Promo", pageType: "casino", pageSlug: "x" } });
+    if (cx) cx.waitUntil(w);
+    return new Response("<html>b</html>", { headers: { "content-type": "text/html" } });
+  };
+  const c1 = ctx(); await cachedPage(req(), env, c1, "casino", banner); await Promise.all(c1.p);
+  const c2 = ctx(); const res = await cachedPage(req(), env, c2, "casino", banner); await Promise.all(c2.p);
+  assert.equal(res.headers.get("x-page-cache"), "hit");
+  assert.equal(calls, 1);
+
+  const nested = async (cx) => { const w = logEvent(env.DB, { eventType: "BANNER_VIEW", metadata: { who: { id: 1 } } }); if (cx) cx.waitUntil(w); return new Response("n", { headers: { "content-type": "text/html" } }); };
+  const r3 = await cachedPage(req("/en/casino/y"), env, ctx(), "casino", nested);
+  assert.equal(r3.headers.get("x-page-cache"), "skip:event-field-metadata");
 });

@@ -51,7 +51,7 @@ test("when the Cache API accepts but never returns a save (workers.dev), KV is u
   globalThis.caches = fakeCaches(false);
   try {
     const env = { CACHE: kv(), DB: db() };
-    assert.equal(await setLocal(env, "k1", { a: 1 }, 60), "kv");
+    assert.equal(await setLocal(env, "k1", { a: 1 }, 60), "kv:probe-failed");
     assert.deepEqual(await getLocal(env, "k1"), { a: 1 });
     assert.equal(env.CACHE.puts, 1);
   } finally { delete globalThis.caches; _resetLocalState(); }
@@ -60,7 +60,7 @@ test("when the Cache API accepts but never returns a save (workers.dev), KV is u
 test("without the Cache API (tests, old runtimes) the KV path still works", async () => {
   _resetLocalState();
   const env = { CACHE: kv() };
-  assert.equal(await setLocal(env, "k2", { b: 2 }, 120), "kv");
+  assert.equal(await setLocal(env, "k2", { b: 2 }, 120), "kv:no-cache-api");
   assert.deepEqual(await getLocal(env, "k2"), { b: 2 });
 });
 

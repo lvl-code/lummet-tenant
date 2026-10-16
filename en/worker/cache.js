@@ -73,12 +73,18 @@ export async function setCached(env, key, value, ttl = DEFAULT_TTL) {
 // changing their key (the page cache). Falls back to KV where the Cache API
 // does not exist (tests, workers.dev).
 // -----------------------------------------------------
-const LOCAL_ORIGIN = "https://local-cache.invalid/";
+// Keys use the site's own domain: the Cache API belongs to a zone, so a made-up host may be ignored.
+function localKey(env, key) {
+  let origin = "https://local-cache.invalid";
+  try { if (env && env.SITE_URL) origin = new URL(env.SITE_URL).origin; } catch { /* keep default */ }
+  return new Request(`${origin}/__local-cache/${encodeURIComponent(key)}`);
+}
 
 // "unknown" until the first save has been read back. On a workers.dev address
 // the Cache API accepts a save but never returns it; then this isolate falls
 // back to KV instead of silently caching nothing.
 let localState = "unknown";
+let probeMisses = 0;
 
 function localCache() {
   if (localState === "broken") return null;
@@ -87,14 +93,18 @@ function localCache() {
 }
 
 export function hasLocalCache() { return !!localCache(); }
-export function _resetLocalState() { localState = "unknown"; }
+export function _resetLocalState() { localState = "unknown"; probeMisses = 0; }
 
 export async function getLocal(env, key) {
   const c = localCache();
   try {
     if (c) {
-      const res = await c.match(new Request(LOCAL_ORIGIN + encodeURIComponent(key)));
-      return res ? await res.json() : null;
+      const res = await c.match(localKey(env, key));
+      if (res) return await res.json();
+      if (localState === "ok" || !env.CACHE) return null;
+      // not proven to work yet (or saved to KV while it was unproven): also look in KV
+      const raw = await env.CACHE.get(key);
+      return raw ? JSON.parse(raw) : null;
     }
     if (!env.CACHE) return null;
     const raw = await env.CACHE.get(key);
@@ -104,26 +114,31 @@ export async function getLocal(env, key) {
   }
 }
 
-/** Returns "cache", "kv" or "failed" so callers can report where it went. */
+/** Returns "cache", "kv:no-cache-api", "kv:probe-failed" or "failed" so callers can report where it went. */
 export async function setLocal(env, key, value, ttl = DEFAULT_TTL) {
   const c = localCache();
   try {
     const raw = JSON.stringify(value);
     if (c) {
-      const req = new Request(LOCAL_ORIGIN + encodeURIComponent(key));
+      const req = localKey(env, key);
       await c.put(req, new Response(raw, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${ttl}` } }));
-      if (localState === "unknown") {
-        localState = (await c.match(req)) ? "ok" : "broken";
-        if (localState === "broken" && env.CACHE) {
-          await env.CACHE.put(key, raw, { expirationTtl: Math.max(60, ttl) });
-          return "kv";
+      if (localState !== "ok") {
+        if (await c.match(req)) { localState = "ok"; probeMisses = 0; }
+        else {
+          probeMisses++;
+          if (probeMisses >= 2) localState = "broken";
+          if (env.CACHE) {
+            await env.CACHE.put(key, raw, { expirationTtl: Math.max(60, ttl) });
+            return "kv:probe-failed";
+          }
+          return "failed";
         }
       }
       return "cache";
     }
     if (!env.CACHE) return "failed";
     await env.CACHE.put(key, raw, { expirationTtl: Math.max(60, ttl) });
-    return "kv";
+    return "kv:no-cache-api";
   } catch (e) {
     console.error("local cache put failed:", e.message);
     return "failed";

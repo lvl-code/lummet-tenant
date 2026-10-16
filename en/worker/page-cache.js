@@ -36,8 +36,21 @@ const CACHEABLE = new Set([
 // event fields a replay is allowed to carry; anything else => do not cache
 const EVENT_FIELDS = new Set([
   "eventType", "casinoId", "reviewId", "pageId", "newsId", "offerId", "contentItemId",
-  "countryCode", "city", "referrer", "landingPage",
+  "countryCode", "city", "referrer", "landingPage", "metadata",
 ]);
+
+// BANNER_VIEW carries { componentId, componentName, pageType, pageSlug }: the same for every
+// visitor, so safe to replay. Anything bigger or nested is not.
+function plainMetadata(m) {
+  if (m == null) return true;
+  if (typeof m !== "object" || Array.isArray(m)) return false;
+  let size = 0;
+  for (const v of Object.values(m)) {
+    if (v != null && typeof v === "object") return false;
+    size += String(v ?? "").length;
+  }
+  return size <= 1000;
+}
 
 // first path segment after /api/v1/ that visitors write to (never content)
 const VISITOR_API = new Set([
@@ -101,13 +114,27 @@ function replayEvents(request, env, ctx, events) {
   }
 }
 
-function cleanEvents(events) {
+// Name of the first thing that makes a set of events unsafe to replay, or null.
+function badEventField(events) {
   for (const e of events) {
     for (const k of Object.keys(e)) {
-      if (!EVENT_FIELDS.has(k) && e[k] !== undefined && e[k] !== null) return null;
+      if (e[k] === undefined || e[k] === null) continue;
+      if (!EVENT_FIELDS.has(k)) return k;
+      if (k === "metadata" && !plainMetadata(e[k])) return "metadata";
     }
   }
-  return events;
+  return null;
+}
+
+function cleanEvents(events) { return badEventField(events) ? null : events; }
+
+// Why a rendered response is not cached (shown in x-page-cache), or null if it can be.
+function skipReason(response, events) {
+  if (!response || response.status !== 200) return "skip:status";
+  const type = response.headers.get("content-type") || "";
+  if (!/text\/html|application\/json/.test(type)) return "skip:type";
+  const bad = badEventField(events);
+  return bad ? `skip:event-field-${bad}` : null;
 }
 
 // Renders once, recording the view events it fires. `suppress` = background
@@ -196,7 +223,8 @@ export async function cachedPage(request, env, ctx, routeType, render) {
   // miss: render normally (the visitor's own events are written as usual)
   const { response, events } = await renderCaptured(render.bind(null, ctx), false);
   if (!response) return render(ctx);
-  if (response.status === 200) {
+  const reason = response.status === 200 ? skipReason(response, events) : "skip:status";
+  if (response.status === 200 && !reason) {
     const copy = response.clone();
     const html = await copy.text();
     const e = toEntry(response, html, events);
@@ -205,7 +233,12 @@ export async function cachedPage(request, env, ctx, routeType, render) {
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(write); else await write;
     }
   }
-  return response;
+  try {
+    const out = new Response(response.body, response);
+    out.headers.set("x-page-cache", reason || "miss");
+    out.headers.set("x-page-store", pageStore.last);
+    return out;
+  } catch { return response; }
 }
 
 /**

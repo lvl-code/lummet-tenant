@@ -544,3 +544,13 @@ On the free Cloudflare plan, KV allows only 1,000 writes a day. Once that was us
 - Other KV caches (settings, navigation, related content) are unchanged; they write far less. If KV write errors still appear in the Worker logs, moving to the Workers Paid plan removes the limit entirely.
 
 No migration.
+
+## 45. Page cache fixes after the first live check (v22.7)
+
+Live headers after v22.6 showed two problems.
+
+- **Pages with a banner were never cached** (a casino page took 1-2 seconds on every visit). A banner records a view event with a small `metadata` block (component id and name, page type and slug); the cache treated any unknown field as unsafe and skipped the page. Plain `metadata` (values only, under 1,000 characters) is now allowed and replayed on every hit. Nested or visitor-specific fields still stop a page from being cached.
+- **The reason is now visible.** `x-page-cache` says `hit`, `stale`, `miss`, or `skip:...` (`skip:event-field-<name>`, `skip:status`, `skip:type`).
+- **Cache API fallback to KV after v22.6.** The first save is read back; the Cache API now uses your own domain in its keys (the cache belongs to a zone), a single missed read-back no longer switches it off, and `x-page-store` says `kv:probe-failed` or `kv:no-cache-api` when KV is used, so the cause is visible.
+
+No migration.

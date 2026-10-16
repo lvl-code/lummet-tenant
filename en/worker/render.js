@@ -499,12 +499,13 @@ replaceVariablesbackups(template, data = {}) {
     const { getActiveBanners } = await import("./database/banners.js");
     // Banners change rarely; a short cache saves a D1 query on every page
     // view. Edits show up within ~60s (scheduled start/end dates too).
-    const { getCached, setCached } = await import("./cache.js");
+    // Per-data-centre cache (no KV write on every refresh; see cache.js getLocal).
+    const { getLocal, setLocal } = await import("./cache.js");
     const bannerKey = `public:banners:${country || "XX"}`;
-    let banners = await getCached(this.env, bannerKey);
+    let banners = await getLocal(this.env, bannerKey);
     if (!banners) {
       banners = await getActiveBanners(this.env.DB, country);
-      await setCached(this.env, bannerKey, banners, 60);
+      await setLocal(this.env, bannerKey, banners, 60);
     }
     if (banners.length === 0) return [];
     return banners.map(banner => {

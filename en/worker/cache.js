@@ -65,6 +65,71 @@ export async function setCached(env, key, value, ttl = DEFAULT_TTL) {
   }
 }
 
+// -----------------------------------------------------
+// LOCAL (per data centre) CACHE
+// Cloudflare's Cache API: free and with no write limit, unlike KV (the free
+// KV plan allows only 1,000 writes a day). Each data centre has its own copy,
+// so use it only for things that may be a little old or that are retired by
+// changing their key (the page cache). Falls back to KV where the Cache API
+// does not exist (tests, workers.dev).
+// -----------------------------------------------------
+const LOCAL_ORIGIN = "https://local-cache.invalid/";
+
+// "unknown" until the first save has been read back. On a workers.dev address
+// the Cache API accepts a save but never returns it; then this isolate falls
+// back to KV instead of silently caching nothing.
+let localState = "unknown";
+
+function localCache() {
+  if (localState === "broken") return null;
+  try { return typeof caches !== "undefined" && caches.default ? caches.default : null; }
+  catch { return null; }
+}
+
+export function hasLocalCache() { return !!localCache(); }
+export function _resetLocalState() { localState = "unknown"; }
+
+export async function getLocal(env, key) {
+  const c = localCache();
+  try {
+    if (c) {
+      const res = await c.match(new Request(LOCAL_ORIGIN + encodeURIComponent(key)));
+      return res ? await res.json() : null;
+    }
+    if (!env.CACHE) return null;
+    const raw = await env.CACHE.get(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Returns "cache", "kv" or "failed" so callers can report where it went. */
+export async function setLocal(env, key, value, ttl = DEFAULT_TTL) {
+  const c = localCache();
+  try {
+    const raw = JSON.stringify(value);
+    if (c) {
+      const req = new Request(LOCAL_ORIGIN + encodeURIComponent(key));
+      await c.put(req, new Response(raw, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${ttl}` } }));
+      if (localState === "unknown") {
+        localState = (await c.match(req)) ? "ok" : "broken";
+        if (localState === "broken" && env.CACHE) {
+          await env.CACHE.put(key, raw, { expirationTtl: Math.max(60, ttl) });
+          return "kv";
+        }
+      }
+      return "cache";
+    }
+    if (!env.CACHE) return "failed";
+    await env.CACHE.put(key, raw, { expirationTtl: Math.max(60, ttl) });
+    return "kv";
+  } catch (e) {
+    console.error("local cache put failed:", e.message);
+    return "failed";
+  }
+}
+
 /**
  * Delete one or more cached keys
  */

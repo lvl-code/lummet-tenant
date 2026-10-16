@@ -1,8 +1,9 @@
 // =====================================================
 // PUBLIC PAGE CACHE (stale-while-revalidate, per country)
 // =====================================================
-// Serves a whole rendered public page from KV, so most visits cost one KV
-// read instead of ~15 D1 queries. Safe because:
+// Serves a whole rendered public page from the data centre's own cache (the
+// Cache API: free, no write limit; KV only where that does not exist), so
+// most visits cost one cache read instead of ~15 D1 queries. Safe because:
 //  - only anonymous GET requests with no query string are cached, only 200s;
 //  - the view events a page fires (CASINO_VIEW, OFFER_VIEW, ...) are recorded
 //    when it is rendered and replayed, with the visitor's own country, city
@@ -10,13 +11,13 @@
 //  - a page that fires anything unusual (extra fields) is never cached;
 //  - any successful admin save bumps an epoch, which instantly retires every
 //    cached page (see bumpPageEpoch).
-import { getCached, setCached } from "./cache.js";
+import { getCached, setCached, getLocal, setLocal } from "./cache.js";
 import { eventCapture, logEvent } from "./database/analytics.js";
 import { geoEngine } from "./geo.js";
 
 export const PAGE_CACHE_CFG = {
   FRESH_SECONDS: 600,  // serve without refreshing inside this window
-  KV_TTL: 86400,       // a stale copy is served instantly (and refreshed) for up to a day,
+  KV_TTL: 86400,       // (cache lifetime) a stale copy is served instantly (and refreshed) for up to a day,
                        // so a quiet site's visitors never wait for a cold render
   LOCK_SECONDS: 30,
 };
@@ -136,14 +137,17 @@ function toEntry(response, html, events) {
 }
 
 function fromEntry(entry, state) {
-  const headers = { "content-type": entry.type, "x-page-cache": state };
+  const headers = { "content-type": entry.type, "x-page-cache": state, "x-page-store": pageStore.last };
   if (entry.cc) headers["cache-control"] = entry.cc;
   return new Response(entry.html, { status: 200, headers });
 }
 
+// What the last save in this isolate did: "cache", "kv", "failed" or "none".
+// Shown on every cached response as x-page-store, so a broken save is visible.
+export const pageStore = { last: "none" };
+
 async function store(env, key, entry) {
-  try { await env.CACHE.put(key, JSON.stringify(entry), { expirationTtl: PAGE_CACHE_CFG.KV_TTL }); }
-  catch (e) { console.error("page cache put failed:", e.message); }
+  pageStore.last = await setLocal(env, key, entry, PAGE_CACHE_CFG.KV_TTL);
 }
 
 // Refreshes are de-duplicated per isolate in memory (no KV write); an occasional
@@ -178,8 +182,7 @@ export async function cachedPage(request, env, ctx, routeType, render) {
   const geo = visitorGeo(request);
   const key = `pc:${await epoch(env)}:${url.hostname}:${geo.country || "XX"}:${url.pathname}${url.search}`;
 
-  let entry = null;
-  try { const raw = await env.CACHE.get(key); entry = raw ? JSON.parse(raw) : null; } catch { entry = null; }
+  const entry = await getLocal(env, key);
 
   if (entry && typeof entry.html === "string") {
     replayEvents(request, env, ctx, entry.events);

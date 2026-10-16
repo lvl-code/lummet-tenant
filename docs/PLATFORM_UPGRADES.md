@@ -532,3 +532,15 @@ Housekeeping only; behaviour is unchanged.
 - `test/production-snapshot.test.js` stays; it skips visibly when no snapshot is present.
 
 No migration.
+
+## 44. Page cache moved off KV (v22.6)
+
+On the free Cloudflare plan, KV allows only 1,000 writes a day. Once that was used up, every page save failed silently: visitors kept getting the last saved copy (`x-page-cache: stale`) and each visit started a pointless background re-render.
+
+- **Pages and banners are now saved in the Cache API** (`worker/cache.js`: `getLocal` / `setLocal`): free and with no write limit. Each Cloudflare data centre keeps its own copy, so the first visitor in each data centre after a deploy or an admin save sees one normal render.
+- **Admin saves still retire every page at once.** The epoch that does this is still one small KV value (a write only when you save in the admin), so it is not affected by the page traffic.
+- **Fallback:** where the Cache API does not work (a `workers.dev` address accepts a save but never returns it) the first save is read back, and that isolate uses KV instead.
+- **`x-page-store` header** on cached responses shows what the last save did: `cache`, `kv`, `failed` or `none`. `failed` means saves are being refused.
+- Other KV caches (settings, navigation, related content) are unchanged; they write far less. If KV write errors still appear in the Worker logs, moving to the Workers Paid plan removes the limit entirely.
+
+No migration.

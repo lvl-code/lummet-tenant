@@ -82,15 +82,65 @@ export async function bumpPageEpoch(env) {
   if (!env.CACHE) return;
   try {
     // this isolate sees it at once; others within the short in-memory window
-    await setCached(env, EPOCH_KEY, String(Date.now()), 86400);
+    const e = String(Date.now());
+    await setCached(env, EPOCH_KEY, e, 86400);
+    const m = mem(env);
+    if (m) { m.epoch = e; m.epochExp = Date.now() + MEM_EPOCH_MS; m.pages.clear(); }
   } catch (e) {
     console.error("page epoch bump failed:", e.message);
   }
 }
 
+// In-isolate memory (per KV binding, so tests and tenants never share it).
+// Epoch: re-read at most every 30 s per isolate; the isolate that handles an admin save
+// sees it at once. Pages: a rendered page is kept for a few minutes, so a warm isolate answers
+// without any KV read (the key contains the epoch, so a retired page can never be served from here).
+const MEM_EPOCH_MS = 30000;
+const MEM_PAGE_MS = 300000;
+const MEM_PAGE_MAX = 30;
+const memories = new WeakMap();
+
+function mem(env) {
+  const kv = env && env.CACHE;
+  if (!kv || typeof kv !== "object") return null;
+  let m = memories.get(kv);
+  if (!m) { m = { epoch: null, epochExp: 0, pages: new Map(), origin: null }; memories.set(kv, m); }
+  return m;
+}
+
 async function epoch(env) {
+  const m = mem(env);
+  if (m && m.epoch !== null && m.epochExp > Date.now()) return m.epoch;
   const v = await getCached(env, EPOCH_KEY);
-  return v ? String(v) : "0";
+  const e = v ? String(v) : "0";
+  if (m) { m.epoch = e; m.epochExp = Date.now() + MEM_EPOCH_MS; }
+  return e;
+}
+
+/** Test hook: forget what this isolate holds in memory for a KV binding. */
+export function _clearPageMemory(env) {
+  const m = mem(env);
+  if (m) { m.epoch = null; m.epochExp = 0; m.pages.clear(); m.origin = null; }
+}
+
+function memPut(env, key, entry) {
+  const m = mem(env);
+  if (!m) return;
+  if (m.pages.size >= MEM_PAGE_MAX) m.pages.delete(m.pages.keys().next().value);
+  m.pages.set(key, { entry, exp: Date.now() + MEM_PAGE_MS });
+}
+
+// The scheduled warm-up has no request, and SITE_URL is not always set: remember the
+// site's origin from live traffic (one KV write, repeated only if it changes or after 30 days).
+const ORIGIN_KEY = "pc:origin";
+function rememberOrigin(env, ctx, origin) {
+  const m = mem(env);
+  if (!m || m.origin === origin || !ctx || typeof ctx.waitUntil !== "function") return;
+  m.origin = origin;
+  ctx.waitUntil((async () => {
+    try { if ((await getCached(env, ORIGIN_KEY)) !== origin) await setCached(env, ORIGIN_KEY, origin, 2592000); }
+    catch { /* best effort */ }
+  })());
 }
 
 function visitorGeo(request) {
@@ -174,6 +224,7 @@ function fromEntry(entry, state, src) {
 export const pageStore = { last: "none" };
 
 async function store(env, key, entry, origin) {
+  memPut(env, key, entry);
   pageStore.last = await setLocal(env, key, entry, PAGE_CACHE_CFG.KV_TTL, origin);
 }
 
@@ -210,7 +261,16 @@ export async function cachedPage(request, env, ctx, routeType, render) {
   const geo = visitorGeo(request);
   const key = `pc:${await epoch(env)}:${url.hostname}:${geo.country || "XX"}:${url.pathname}${url.search}`;
 
-  const { value: entry, src } = await getLocalWithSource(env, key, url.origin);
+  let entry = null, src = "miss";
+  const m = mem(env);
+  const held = m && m.pages.get(key);
+  if (held && held.exp > Date.now()) { entry = held.entry; src = "memory"; }
+  else {
+    if (held) m.pages.delete(key);
+    ({ value: entry, src } = await getLocalWithSource(env, key, url.origin));
+    if (entry && typeof entry.html === "string") memPut(env, key, entry);
+  }
+  rememberOrigin(env, ctx, url.origin);
 
   if (entry && typeof entry.html === "string") {
     replayEvents(request, env, ctx, entry.events);
@@ -230,8 +290,8 @@ export async function cachedPage(request, env, ctx, routeType, render) {
     const html = await copy.text();
     const e = toEntry(response, html, events);
     if (e) {
-      // awaited (a few ms) so x-page-store on this response reports this save
-      await store(env, key, e, url.origin);
+      const write = store(env, key, e, url.origin);
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(write); else await write;
     }
   }
   try {
@@ -251,9 +311,9 @@ export async function cachedPage(request, env, ctx, routeType, render) {
  * makeRender(request) -> (ctx) => Promise<Response>
  */
 export async function warmPublicPages(env, makeRender, { maxRenders = 12 } = {}) {
-  if (!env.CACHE || !env.DB || !eventCapture || !env.SITE_URL) return 0;
+  if (!env.CACHE || !env.DB || !eventCapture) return 0;
   let origin;
-  try { origin = new URL(env.SITE_URL); } catch { return 0; }
+  try { origin = new URL(env.SITE_URL || (await getCached(env, ORIGIN_KEY)) || ""); } catch { return 0; }
 
   const paths = new Set(["/en"]);
   const countries = new Set(["RW"]);

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cachedPage, isCacheableRequest, isContentWrite, bumpPageEpoch } from "../worker/page-cache.js";
+import { cachedPage, isCacheableRequest, isContentWrite, bumpPageEpoch, _clearPageMemory } from "../worker/page-cache.js";
 import { logEvent } from "../worker/database/analytics.js";
 
 function kv() {
@@ -78,9 +78,10 @@ test("stale copy is served at once and refreshed in the background without doubl
   const r = req();
   let c = ctx();
   await cachedPage(r, env, c, "casino", makeRender(env, r, n)); await Promise.all(c.p);
-  const key = [...env.CACHE.store.keys()].find((k) => k.startsWith("pc:"));
+  const key = [...env.CACHE.store.keys()].find((k) => k.startsWith("pc:") && k !== "pc:origin");
   const e = JSON.parse(env.CACHE.store.get(key)); e.generatedAt -= 2000 * 1000;
   env.CACHE.store.set(key, JSON.stringify(e));
+  _clearPageMemory(env);
   const rowsBefore = env.DB.rows.length;
 
   c = ctx();
@@ -98,12 +99,12 @@ test("non-200, unknown event fields and missing storage are never cached", async
   const c = ctx();
   const res404 = await cachedPage(req("/en/casino/none"), env, c, "casino", async () => new Response("no", { status: 404, headers: { "content-type": "text/html" } }));
   assert.equal(res404.status, 404);
-  assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:")).length, 0);
+  assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:") && k !== "pc:origin").length, 0);
 
   const odd = async (cx) => { const w = logEvent(env.DB, { eventType: "PAGE_VIEW", pageId: 1, visitorHash: "abc123" }); if (cx) cx.waitUntil(w); return new Response("x", { headers: { "content-type": "text/html" } }); };
   const oddRes = await cachedPage(req("/en/p"), env, ctx(), "page", odd);
   assert.equal(oddRes.headers.get("x-page-cache"), "skip:event-field-visitorHash", "the header says why it was not cached");
-  assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:")).length, 0);
+  assert.equal([...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:") && k !== "pc:origin").length, 0);
 
   let calls = 0;
   const plain = async () => { calls++; return new Response("x", { headers: { "content-type": "text/html" } }); };
@@ -148,7 +149,7 @@ test("warm-up renders home for the default country and the pages/countries visit
   });
   assert.ok(n >= 2);
   assert.ok(seen.includes("/en:RW") && seen.includes("/en:KE") && seen.includes("/en/casino/x:KE"));
-  const keys = [...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:"));
+  const keys = [...env.CACHE.store.keys()].filter((k) => k.startsWith("pc:") && k !== "pc:origin");
   assert.ok(keys.some((k) => k.endsWith(":RW:/en")));
 
   // a later visitor gets it as a hit without rendering

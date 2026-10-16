@@ -585,3 +585,15 @@ After v22.9 the live headers could not show whether Cloudflare's cache or KV hel
 - Reading the result: `x-page-source: cache` on repeat visits means the free, write-unlimited cache works. `kv` means pages are served from KV: still fast once warm, but limited by the free plan's 1,000 writes a day.
 
 No migration.
+
+## 49. Page cache: serve from memory, find the site address (v22.11)
+
+The live headers after v22.10 settled the question: `x-page-store: kv:probe-failed(level.casino)` and `x-page-source: kv`. Cloudflare's own cache does not keep pages on this domain (the cause could not be found from outside), so pages are served from KV. That works and is fast when warm (6-12 ms), but a first read in a data centre, or after KV's one-minute edge copy lapses, takes 200-400 ms.
+
+- **A warm isolate answers from its own memory** (`x-page-source: memory`): no KV read at all for up to 5 minutes per page (30 pages per isolate). Safe: the page key contains the admin-save epoch, so a retired page cannot come back from memory.
+- **The epoch is re-read at most every 30 seconds** per isolate (was every 15 s plus a KV read each time); the isolate that handles an admin save sees it at once and drops its memory.
+- **The first (miss) response no longer waits for its save** (the 22.10 wait is removed).
+- **The scheduled warm-up works without `SITE_URL`:** the site's address is remembered from live traffic (one KV write, repeated only if it changes or after 30 days). Before, with no `SITE_URL`, the warm-up did nothing.
+- Still limited by the free KV plan's 1,000 writes a day (page saves and refreshes). On the Workers Paid plan that limit is gone.
+
+No migration.

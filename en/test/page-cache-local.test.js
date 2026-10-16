@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cachedPage, pageStore } from "../worker/page-cache.js";
+import { cachedPage, pageStore, _clearPageMemory } from "../worker/page-cache.js";
 import { getLocal, setLocal, _resetLocalState } from "../worker/cache.js";
 import { logEvent } from "../worker/database/analytics.js";
 
@@ -36,15 +36,19 @@ test("pages are saved in the Cache API, not KV, so the free KV write limit is ne
     const c1 = ctx();
     const first = await cachedPage(req(), env, c1, "casino", render(n)); await Promise.all(c1.p);
     assert.equal(first.headers.get("x-page-cache"), "miss");
-    assert.equal(first.headers.get("x-page-store"), "cache", "the miss response already reports where it was saved");
+    assert.equal(pageStore.last, "cache", "the save (done after the response) went to the Cache API");
     assert.equal(n.n, 1);
-    assert.equal(env.CACHE.puts, 0, "no KV write for the page");
+    assert.deepEqual([...env.CACHE.store.keys()].filter((k) => k !== "pc:origin"), [], "no KV write for the page");
     assert.equal(pageStore.last, "cache");
     const c2 = ctx();
     const res = await cachedPage(req(), env, c2, "casino", render(n)); await Promise.all(c2.p);
     assert.equal(res.headers.get("x-page-cache"), "hit");
     assert.equal(res.headers.get("x-page-store"), "cache");
-    assert.equal(res.headers.get("x-page-source"), "cache", "the hit was read from the Cache API");
+    assert.equal(res.headers.get("x-page-source"), "memory", "a warm isolate answers from memory");
+    _clearPageMemory(env);
+    const c2b = ctx();
+    const res2 = await cachedPage(req(), env, c2b, "casino", render(n)); await Promise.all(c2b.p);
+    assert.equal(res2.headers.get("x-page-source"), "cache", "otherwise it is read from the Cache API");
     assert.equal(n.n, 1, "second visit did not render");
   } finally { delete globalThis.caches; _resetLocalState(); }
 });
@@ -89,6 +93,7 @@ test("the Cache API key uses the visitor's own domain, and a refused save stops 
   const c2 = ctx();
   await cachedPage(req("/en/casino/q"), env2, c2, "casino", render(n2)); await Promise.all(c2.p);
   assert.equal(pageStore.last, "failed");
+  _clearPageMemory(env2);
   env2.CACHE.s = JSON.stringify({ html: "<html>old</html>", type: "text/html", cc: "", events: [], generatedAt: Date.now() - 5000 * 1000 });
   const c3 = ctx();
   const res = await cachedPage(req("/en/casino/q"), env2, c3, "casino", render(n2)); await Promise.all(c3.p);
@@ -108,4 +113,27 @@ test("a save that becomes readable a moment later is still accepted as working",
     assert.equal(await setLocal(env, "slow", { z: 1 }, 60, "https://site.test"), "cache");
     assert.equal(env.CACHE.puts, 0);
   } finally { delete globalThis.caches; _resetLocalState(); }
+});
+
+test("a warm isolate serves a page from memory with no storage read, and an admin save retires it at once", async () => {
+  const { bumpPageEpoch } = await import("../worker/page-cache.js");
+  const env = { CACHE: kv(), DB: db() }; const n = { n: 0 };
+  const c1 = ctx(); await cachedPage(req(), env, c1, "casino", render(n)); await Promise.all(c1.p);
+  let reads = 0; const realGet = env.CACHE.get.bind(env.CACHE);
+  env.CACHE.get = async (k) => { reads++; return realGet(k); };
+  const c2 = ctx(); const res = await cachedPage(req(), env, c2, "casino", render(n)); await Promise.all(c2.p);
+  assert.equal(res.headers.get("x-page-source"), "memory");
+  assert.equal(reads, 0, "no KV read at all on a warm hit");
+  await bumpPageEpoch(env);
+  const c3 = ctx(); const res3 = await cachedPage(req(), env, c3, "casino", render(n)); await Promise.all(c3.p);
+  assert.equal(res3.headers.get("x-page-cache"), "miss", "retired by the admin save");
+  assert.equal(n.n, 2);
+});
+
+test("warm-up finds the site's address from live traffic when SITE_URL is not set", async () => {
+  const { warmPublicPages } = await import("../worker/page-cache.js");
+  const env = { CACHE: kv(), DB: db() };
+  assert.equal(await warmPublicPages(env, () => async () => new Response("x")), 0, "nothing known yet");
+  const c = ctx(); await cachedPage(req(), env, c, "casino", render({ n: 0 })); await Promise.all(c.p);
+  assert.equal(JSON.parse(env.CACHE.store.get("pc:origin")), "https://site.test");
 });

@@ -13,6 +13,9 @@ export function staticCacheControl(pathname, hasVersion) {
 
 export function versionAssetUrls(html, version = ASSET_VERSION) {
   if (!html || !version) return html;
+  // ES module parts are imported by path, so the import map carries their ?v= (maps "/static/js/x.js" to "/static/js/x.js?v=<hash>").
+  html = html.replace(/(<script type="importmap">)([\s\S]*?)(<\/script>)/g, (_, open, map, close) =>
+    open + map.replace(/:\s*"(\/static\/js\/[^"?#]+\.js)"/g, (__, path) => `: "${path}?v=${version}"`) + close);
   return html.replace(
     /\b(href|src)="(\/static\/(?:css|js)\/[^"?#]+\.(?:css|js))"/g,
     (_, attr, path) => `${attr}="${path}?v=${version}"`

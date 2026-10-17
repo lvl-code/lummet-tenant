@@ -181,7 +181,26 @@
   <script defer src="/static/js/tracking-link-admin.js"></script>
   <script defer src="/static/js/admin-permissions.js"></script>
   <script defer src="/static/js/dashboard-shell.js"></script>
-  <script defer src="/static/js/rich-editor.js"></script>
+  <!-- rich-editor.js is an ES module that imports static/js/rich-editor/*.js. The import map lets the worker add ?v=<hash> to each part (see versionAssetUrls), so a release never mixes old and new parts. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "/static/js/rich-editor/config.js": "/static/js/rich-editor/config.js",
+      "/static/js/rich-editor/utils.js": "/static/js/rich-editor/utils.js",
+      "/static/js/rich-editor/autosave.js": "/static/js/rich-editor/autosave.js",
+      "/static/js/rich-editor/image-upload.js": "/static/js/rich-editor/image-upload.js",
+      "/static/js/rich-editor/editor-config.js": "/static/js/rich-editor/editor-config.js",
+      "/static/js/rich-editor/image-dialog.js": "/static/js/rich-editor/image-dialog.js",
+      "/static/js/rich-editor/video.js": "/static/js/rich-editor/video.js",
+      "/static/js/rich-editor/ad-inserter.js": "/static/js/rich-editor/ad-inserter.js",
+      "/static/js/rich-editor/callout.js": "/static/js/rich-editor/callout.js",
+      "/static/js/rich-editor/internal-link.js": "/static/js/rich-editor/internal-link.js",
+      "/static/js/rich-editor/tinymce-init.js": "/static/js/rich-editor/tinymce-init.js",
+      "/static/js/rich-editor/api.js": "/static/js/rich-editor/api.js"
+    }
+  }
+  </script>
+  <script type="module" src="/static/js/rich-editor.js"></script>
   <script defer src="/static/js/entity-picker.js"></script>
   <script defer src="/static/js/section-builder.js"></script>
   <script defer src="/static/js/review-sections-admin.js"></script>

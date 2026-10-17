@@ -38,7 +38,7 @@ test("public pages load a lean, non-blocking asset set", () => {
   }
   assert.ok(!styles(pub).some((s) => /dashboard/.test(s)));
   for (const m of pub.matchAll(/<script\b([^>]*)>/g)) {
-    if (/src=/.test(m[1])) assert.match(m[1], /\bdefer\b|\basync\b/, `blocking script: ${m[0]}`);
+    if (/src=/.test(m[1])) assert.match(m[1], /\bdefer\b|\basync\b|type="module"/, `blocking script: ${m[0]}`);
   }
 });
 
@@ -151,4 +151,12 @@ test("casino page asks for its own reviews only and does not repeat the geo requ
   assert.match(js, /casino-reviews\?casino_slug=/);
   assert.doesNotMatch(js, /public\/reviews\/list/);
   assert.doesNotMatch(js, /^\s*loadGeoInfo\(\);/m);
+});
+
+test("versionAssetUrls also versions the import map of the rich editor parts", () => {
+  const html = '<script type="importmap">{"imports":{"/static/js/rich-editor/utils.js": "/static/js/rich-editor/utils.js"}}</script><script type="module" src="/static/js/rich-editor.js"></script>';
+  const out = versionAssetUrls(html, "abc");
+  assert.ok(out.includes('"/static/js/rich-editor/utils.js": "/static/js/rich-editor/utils.js?v=abc"'));
+  assert.ok(out.includes('"/static/js/rich-editor/utils.js":'), "the key (import specifier) stays unversioned");
+  assert.ok(out.includes('src="/static/js/rich-editor.js?v=abc"'));
 });

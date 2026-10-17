@@ -648,3 +648,14 @@ No migration, no change to any page, style or behaviour.
 - Cost: 12 more script requests on an admin page (cached for a year per release).
 
 No migration, no change to any page, style or behaviour.
+
+## 56. Rich editor split into ES modules (v22.18)
+
+`static/js/rich-editor.js` (1,927 lines, one closure of ~60 functions) is now an entry module plus 12 modules in `static/js/rich-editor/`. `base.html` loads it as `<script type="module">` with an import map; `versionAssetUrls` puts `?v=<hash>` on the map, so parts are versioned like every other asset. The public `RichEditor` API is unchanged. Layout, imports and how to add a part: `docs/ARCHITECTURE_RICH_EDITOR.md`.
+
+- Every top-level statement of the old file exists once in the new files, token for token (checked with a tokenizer); only `import`/`export` were added and the 4-space indent removed.
+- Headless Chromium, 60 admin pages (10 with an editor), old vs new with a stubbed TinyMCE: the same `RichEditor` API, the same 374 TinyMCE calls and options, the same globals, the same console messages.
+- Tests: new `test/rich-editor-structure.test.js` (5), a versioning test for the import map in `perf-assets`; `generic-review-editor.test.js` reads all parts through `test/support/rich-editor-source.js`.
+- Needs a browser with import maps (Chrome 89+, Firefox 108+, Safari 16.4+), which is also what TinyMCE 7 needs for the admin.
+
+No migration, no change to any page or behaviour.

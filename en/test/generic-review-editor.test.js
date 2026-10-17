@@ -13,6 +13,7 @@ import { searchSite } from '../worker/site-search.js';
 import { toRichHtml, cleanSections, renderSectionsHtml, renderSections, parseSection, serializeSection, buildReviewNav, renderSectionNav } from '../worker/generic-review-sections.js';
 import { getRoute } from '../worker/routes.js';
 import { getAuthorHub } from '../worker/author-hub.js';
+import { readRichEditorSource } from './support/rich-editor-source.js';
 const route = (p) => getRoute(new Request('https://site.test' + p));
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -268,7 +269,7 @@ describe('one dashboard route', () => {
     assert.match(js, /RichEditor\.init/); assert.match(js, /SectionBuilder\.mount/); assert.match(js, /EntityPicker\.attach/);
     assert.match(read('static/js/section-builder.js'), /data-rich-editor/);
     assert.match(read('templates/pages/admin/reviews.html'), /name="casino_slug"[^>]*data-entity="casino"/);
-    assert.match(read('static/js/rich-editor.js'), /lummetpick/);
+    assert.match(readRichEditorSource(), /lummetpick/);
     assert.match(read('templates/layout/base.html'), /generic-review-admin\.js/);
   });
 });

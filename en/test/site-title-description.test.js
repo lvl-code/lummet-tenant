@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { getSiteSettings } from '../worker/site-settings.js';
+import { readControllersSource } from './support/controllers-source.js';
 
 const fakeDb = (rows) => ({
   prepare: () => ({ all: async () => ({ results: rows }), bind() { return this; } })
@@ -24,7 +25,7 @@ test('admin settings form has a Site Title field', () => {
 });
 
 test('homepage title/description chain: override -> setting -> hardcoded', () => {
-  const src = readFileSync(new URL('../worker/controllers.js', import.meta.url), 'utf8');
+  const src = readControllersSource();
   assert.match(src, /seo_title: dynamicSeo\.seo_title \|\| site\.title \|\|/);
   assert.match(src, /seo_description: dynamicSeo\.seo_description \|\| site\.description \|\|/);
 });

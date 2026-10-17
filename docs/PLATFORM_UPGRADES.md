@@ -618,3 +618,13 @@ Not changed: other tables that were in the dump (newsletter subscribers' emails,
 - Tests that read the API source as text now read all the API files through `test/support/api-source.js`. New `test/api-structure.test.js` guards the layout (every group registered, one place per route, entry file small, files under 600 lines) and the behaviour above.
 
 No migration, no change to any page, style or script.
+
+## 53. Page controllers restructured into modules (v22.15)
+
+`worker/controllers.js` was 6,779 lines: 117 page functions and 87 helpers in one file. It is now a re-export file plus 25 files in `worker/controllers/` (one per area: casinos, reviews, news, research, dashboard, ...; four shared parts: `shared`, `ads`, `casino-cards`, `redirects`). Layout and how to change a page: `docs/ARCHITECTURE_CONTROLLERS.md`.
+
+- The code was moved without editing it. Every file imports exactly what it uses (linted: no undefined names; every module loads; the facade exports the same 117 names).
+- Checked on a seeded test database: 149 URLs, each fetched signed out and as admin (298 responses, 67 public pages and 131 admin responses with status 200): old and new are byte-identical.
+- Tests that read the controllers as source text now read all the files through `test/support/controllers-source.js`. New `test/controllers-structure.test.js` guards the layout (5 tests).
+
+No migration, no change to any page, style or script.

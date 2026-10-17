@@ -6,6 +6,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { readControllersSource } from './support/controllers-source.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf-8');
 const hrefs = (html) => [...html.matchAll(/<a\s+href="([^"]+)"/g)].map((m) => m[1]);
@@ -93,7 +94,7 @@ describe('user navigation', () => {
   });
 
   test('both user-page renderers supply user_nav', () => {
-    const src = read('worker/controllers.js');
+    const src = readControllersSource();
     assert.equal((src.match(/user_nav: userNav/g) || []).length, 2);
     assert.equal((src.match(/loadTemplate\("layout\/user-nav\.html"\)/g) || []).length, 2);
   });

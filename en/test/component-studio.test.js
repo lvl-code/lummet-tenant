@@ -166,6 +166,7 @@ describe('api routes declare what they use', () => {
 });
 
 import { handleAPI } from '../worker/api.js';
+import { readControllersSource } from './support/controllers-source.js';
 describe('real handleAPI() for the studio routes', () => {
   const admin = { user_id: 1, role: 'admin', email: 'a@test.com' };
   const req = (method, url, body) => ({ method, url, headers: new Headers(), json: async () => body });
@@ -266,7 +267,7 @@ describe('research citation links', () => {
     assert.ok(/research-footnotes li \{[^}]*scroll-margin-top: 0/.test(read('static/css/research.css')));
   });
   test('footnote ids match the numbers in the links', () => {
-    const c = read('worker/controllers.js');
+    const c = readControllersSource();
     assert.ok(c.includes('href="#research-source-${num}"') && c.includes('id="research-source-${i + 1}"'));
   });
 });

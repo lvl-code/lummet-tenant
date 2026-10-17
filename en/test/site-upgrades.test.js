@@ -52,7 +52,7 @@ describe('site-wide search', () => {
 });
 
 describe('research home', () => {
-  const c = read('worker/controllers.js');
+  const c = readControllersSource();
   test('lists every published item with a sort choice and keeps featured separate', () => {
     assert.ok(c.includes('getPublishedResearchItems(env.DB, { limit: 5000 })'));
     assert.ok(c.includes('RESEARCH_SORTS') && c.includes('sortResearchItems'));
@@ -190,6 +190,7 @@ describe('comparison design and custom values', () => {
 
 import { cleanSections, renderComparisonSections } from '../worker/comparison-design.js';
 import { loadRelatedValues } from '../worker/comparison-fields.js';
+import { readControllersSource } from './support/controllers-source.js';
 
 describe('comparison sections, related fields, remove item', () => {
   test('sections: only known blocks, plain text, safe links', () => {
@@ -243,7 +244,7 @@ describe('comparison sections, related fields, remove item', () => {
     assert.ok(t.more.some((r) => r.key === 'categories'));
   });
   test('public page can remove an item for the visit', () => {
-    const c = read('worker/controllers.js');
+    const c = readControllersSource();
     assert.ok(c.includes('cmp-remove') && read('static/js/comparison.js').includes('cmp-restore'));
     assert.ok(read('templates/pages/comparison.html').includes('sections_html'));
   });

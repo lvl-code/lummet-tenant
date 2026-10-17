@@ -17,6 +17,7 @@ import * as contentItems from '../worker/database/content-items.js';
 import * as analytics from '../worker/database/analytics.js';
 import { renderSportsbook, renderSportsbookList, renderAffiliatePartner } from '../worker/controllers.js';
 import { handleAPI } from '../worker/api.js';
+import { readDashboardSource } from './support/dashboard-js-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const makeReq = (method, url, body) => ({ method, url, headers: new Headers(), json: async () => body });
@@ -296,7 +297,7 @@ describe('admin UI wiring for categories + GEO rules', () => {
     }
   });
   test('dashboard.js defines the helpers and guards against wiping data when a list fails to load', () => {
-    const js = read('static/js/dashboard.js');
+    const js = readDashboardSource();
     for (const fn of ['loadCategoryCheckboxes', 'initGeoRuleEditor', 'readGeoRules', 'addGeoRuleRow']) assert.match(js, new RegExp(`function ${fn}\\b`));
     assert.match(js, /dataset\.loaded === "1"/);   // categories only sent if they loaded
     assert.match(js, /geoRulesToSend !== null/);   // geo only sent if countries loaded

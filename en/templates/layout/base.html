@@ -112,7 +112,20 @@
   <script defer src="/static/js/media-library.js"></script>
   <script defer src="/static/js/media-picker.js"></script>
   <script>document.addEventListener("DOMContentLoaded",function(){if(window.MediaLibrary){MediaLibrary.init("#media-library-container");}});</script>
-  <script defer src="/static/js/dashboard.js"></script>
+  <!-- dashboard.js was split into static/js/dashboard/*.js; the order below is the original order, keep it -->
+  <script defer src="/static/js/dashboard/init.js"></script>
+  <script defer src="/static/js/dashboard/generic-review-edit.js"></script>
+  <script defer src="/static/js/dashboard/content-landing-pages.js"></script>
+  <script defer src="/static/js/dashboard/list-pager.js"></script>
+  <script defer src="/static/js/dashboard/stats.js"></script>
+  <script defer src="/static/js/dashboard/casinos.js"></script>
+  <script defer src="/static/js/dashboard/content-items.js"></script>
+  <script defer src="/static/js/dashboard/content-item-form-parts.js"></script>
+  <script defer src="/static/js/dashboard/custom-types.js"></script>
+  <script defer src="/static/js/dashboard/comparisons.js"></script>
+  <script defer src="/static/js/dashboard/edit-forms.js"></script>
+  <script defer src="/static/js/dashboard/content-type-settings.js"></script>
+  <script defer src="/static/js/dashboard/generic-reviews.js"></script>
   <!-- admin.js was split into static/js/admin/*.js; the order below is the original order, keep it -->
   <script defer src="/static/js/admin/init.js"></script>
   <script defer src="/static/js/admin/reviews.js"></script>

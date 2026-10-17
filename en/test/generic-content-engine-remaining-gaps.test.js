@@ -19,6 +19,7 @@ import * as genericReviewsDb from '../worker/database/generic-reviews.js';
 import { handleAffiliateRedirect } from '../worker/controllers.js';
 import { renderContentLandingPage, handleContentTrackedRedirect } from '../worker/controllers.js';
 import { handleAPI } from '../worker/api.js';
+import { readDashboardSource } from './support/dashboard-js-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -382,7 +383,7 @@ describe('Editorial Pick picker: UI wiring (gap #8 -- backend unchanged, same ed
     }
   });
   test('dashboard.js defines the single-select picker', () => {
-    assert.match(read('static/js/dashboard.js'), /function initEditorialPickPicker\b/);
+    assert.match(readDashboardSource(), /function initEditorialPickPicker\b/);
   });
 
   test('end-to-end: editorial pick still saves correctly through the real API (hidden input is what gets submitted)', async () => {
@@ -409,7 +410,7 @@ describe('admin UI wiring smoke tests', () => {
       assert.match(t, /id="heroMediaId"/, f);
       assert.match(t, /name="tracking_url"/, f);
     }
-    const js = read('static/js/dashboard.js');
+    const js = readDashboardSource();
     assert.match(js, /function openContentItemMediaPicker\b/);
     assert.match(js, /function setContentItemMedia\b/);
   });

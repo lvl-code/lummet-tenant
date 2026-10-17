@@ -101,7 +101,7 @@ describe('comparison fields', () => {
     const res = await handleAPI(req, { DB: db }, '/api/v1/comparison/fields', { user_id: 1, role: 'admin' });
     const d = await res.json();
     assert.ok(d.success && d.fields.some((f) => f.key === 'license'));
-    assert.ok(read('static/js/dashboard.js').includes('criterion-pick'));
+    assert.ok(readDashboardSource().includes('criterion-pick'));
     assert.ok(read('templates/pages/comparison.html').includes('more_rows_html'));
   });
 });
@@ -182,7 +182,7 @@ describe('comparison design and custom values', () => {
   });
   test('editor is wired into both forms and the top save bar exists', () => {
     for (const f of ['comparison-create', 'comparison-edit']) assert.ok(read(`templates/pages/admin/${f}.html`).includes('id="cmpDesign"'));
-    assert.ok(read('static/js/dashboard.js').includes('mountComparisonDesign'));
+    assert.ok(readDashboardSource().includes('mountComparisonDesign'));
     assert.ok(read('static/js/admin-add-panel.js').includes('ap-bar'));
     assert.ok(read('templates/pages/comparison.html').includes('design_style'));
   });
@@ -191,6 +191,7 @@ describe('comparison design and custom values', () => {
 import { cleanSections, renderComparisonSections } from '../worker/comparison-design.js';
 import { loadRelatedValues } from '../worker/comparison-fields.js';
 import { readControllersSource } from './support/controllers-source.js';
+import { readDashboardSource } from './support/dashboard-js-source.js';
 
 describe('comparison sections, related fields, remove item', () => {
   test('sections: only known blocks, plain text, safe links', () => {

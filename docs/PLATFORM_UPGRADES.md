@@ -638,3 +638,13 @@ No migration, no change to any page, style or script.
 - Cost: 26 more script requests on an admin page (cached for a year per release).
 
 No migration, no change to any page, style or behaviour.
+
+## 55. Dashboard script split into files (v22.17)
+
+`static/js/dashboard.js` (1,995 lines, 52 functions) is now 13 plain scripts in `static/js/dashboard/`, loaded by `base.html` in the original place and order. The files joined in order are identical to the old file. Layout and order rules: `docs/ARCHITECTURE_DASHBOARD_JS.md`.
+
+- Checked in headless Chromium on 59 admin pages: the old file and the 13 parts define the same 439 global functions on every page, no page error, all 71 inline handlers resolve.
+- Tests that read the script as text now read all the parts (`test/support/dashboard-js-source.js`). New `test/dashboard-js-structure.test.js` (5 tests).
+- Cost: 12 more script requests on an admin page (cached for a year per release).
+
+No migration, no change to any page, style or behaviour.

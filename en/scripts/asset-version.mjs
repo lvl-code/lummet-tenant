@@ -15,16 +15,18 @@ const OUT = join(root, "worker", "asset-version.js");
 
 export function computeAssetVersion(base = root) {
   const h = createHash("sha256");
-  for (const dir of ["css", "js"]) {
-    const full = join(base, "static", dir);
-    if (!existsSync(full)) continue;
-    for (const name of readdirSync(full).sort()) {
-      if (!/\.(css|js)$/.test(name)) continue;
-      h.update(`${dir}/${name}\0`);
-      h.update(readFileSync(join(full, name)));
+  const walk = (rel) => {
+    const full = join(base, "static", rel);
+    if (!existsSync(full)) return;
+    for (const entry of readdirSync(full, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+      if (entry.isDirectory()) { walk(`${rel}/${entry.name}`); continue; }
+      if (!/\.(css|js)$/.test(entry.name)) continue;
+      h.update(`${rel}/${entry.name}\0`);
+      h.update(readFileSync(join(full, entry.name)));
       h.update("\0");
     }
-  }
+  };
+  for (const dir of ["css", "js"]) walk(dir);
   return h.digest("hex").slice(0, 10);
 }
 

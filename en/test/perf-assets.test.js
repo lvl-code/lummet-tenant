@@ -51,7 +51,7 @@ test("dashboard keeps every admin script and style", () => {
   }
   assert.ok(styles(full).some((s) => s.includes("dashboard-shell")));
   // media-library/picker must be defined before scripts that use them
-  assert.ok(js.indexOf("/static/js/media-picker.js") < js.indexOf("/static/js/admin.js"));
+  assert.ok(js.indexOf("/static/js/media-picker.js") < js.indexOf("/static/js/admin/init.js"));
 });
 
 test("every referenced script and stylesheet exists", () => {

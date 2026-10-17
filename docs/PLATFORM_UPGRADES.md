@@ -628,3 +628,13 @@ No migration, no change to any page, style or script.
 - Tests that read the controllers as source text now read all the files through `test/support/controllers-source.js`. New `test/controllers-structure.test.js` guards the layout (5 tests).
 
 No migration, no change to any page, style or script.
+
+## 54. Admin script split into files (v22.16)
+
+`static/js/admin.js` (8,051 lines, 202 functions) is now 27 plain scripts in `static/js/admin/`, loaded by `base.html` in the original place and order. The files joined in order are identical to the old file. `scripts/asset-version.mjs` also hashes sub-folders now. Layout, order rules and sizes: `docs/ARCHITECTURE_ADMIN_JS.md`.
+
+- Checked in headless Chromium on 59 admin pages (dashboard, lists, forms, research, settings): the old single file and the 27 parts define the same global functions on every page (439), no page error, no unresolved inline handler.
+- Tests that read the admin script as text now read all the parts (`test/support/admin-js-source.js`). New `test/admin-js-structure.test.js` (5 tests: file list and order, nothing orphaned, plain scripts, same functions and listeners when run one after another).
+- Cost: 26 more script requests on an admin page (cached for a year per release).
+
+No migration, no change to any page, style or behaviour.

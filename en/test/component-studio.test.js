@@ -151,7 +151,7 @@ describe('shared link picker', () => {
   });
   test('those fields exist in the pages the picker targets', () => {
     assert.ok(read('templates/pages/admin/nav.html').includes('name="url"'));
-    const admin = read('static/js/admin.js');
+    const admin = readAdminSource();
     assert.ok(admin.includes('section-button-url') && admin.includes('card-url'));
   });
 });
@@ -167,6 +167,7 @@ describe('api routes declare what they use', () => {
 
 import { handleAPI } from '../worker/api.js';
 import { readControllersSource } from './support/controllers-source.js';
+import { readAdminSource } from './support/admin-js-source.js';
 describe('real handleAPI() for the studio routes', () => {
   const admin = { user_id: 1, role: 'admin', email: 'a@test.com' };
   const req = (method, url, body) => ({ method, url, headers: new Headers(), json: async () => body });
@@ -205,7 +206,7 @@ describe('real handleAPI() for the studio routes', () => {
 
 describe('Choose from Media on picture-address fields', () => {
   const lp = read('static/js/link-picker.js');
-  const admin = read('static/js/admin.js');
+  const admin = readAdminSource();
   const fields = {
     'templates/pages/admin/authors.html': ['avatar_url'],
     'templates/pages/admin/casino-create.html': ['name="logo"'],

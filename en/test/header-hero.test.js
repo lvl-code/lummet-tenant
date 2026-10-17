@@ -14,6 +14,7 @@ import { getSiteSettings } from '../worker/site-settings.js';
 import { Renderer } from '../worker/render.js';
 import { readApiSource } from './support/api-source.js';
 import { readControllersSource } from './support/controllers-source.js';
+import { readAdminSource } from './support/admin-js-source.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -314,7 +315,7 @@ describe('saving', () => {
   });
 
   test('saving the general Settings page can no longer switch the hero off', () => {
-    const js = read('static/js/admin.js');
+    const js = readAdminSource();
     assert.match(js, /if \(heroEnabled\) \{\s*payload\.site_hero_enabled/);
     const html = read('templates/pages/admin/settings.html');
     assert.doesNotMatch(html, /name="site_hero_/);

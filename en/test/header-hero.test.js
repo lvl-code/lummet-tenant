@@ -12,6 +12,7 @@ import {
 } from '../worker/header-hero.js';
 import { getSiteSettings } from '../worker/site-settings.js';
 import { Renderer } from '../worker/render.js';
+import { readApiSource } from './support/api-source.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -306,7 +307,7 @@ describe('saving', () => {
   });
 
   test('the save endpoint routes the body through the sanitizer', () => {
-    const api = read('worker/api.js');
+    const api = readApiSource();
     assert.match(api, /sanitizeHeaderHeroInput\(body\)/);
     assert.match(api, /requireRole\(user, "editor"\)/);
   });

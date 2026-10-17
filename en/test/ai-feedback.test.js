@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createTestDb, applyMigrations } from './support/d1-shim.js';
 import { handleAPI } from '../worker/api.js';
 import { handleAiStudio } from '../worker/ai/studio.js';
+import { readApiSource } from './support/api-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -103,7 +104,7 @@ describe('wiring', () => {
     assert.match(read('static/css/lummet-ai.css'), /\.lummet-fb-btn/);
   });
   test('public path list, route and migration exist', () => {
-    const api = read('worker/api.js');
+    const api = readApiSource();
     assert.match(api, /"\/api\/v1\/ai\/chat\/clear",\s*"\/api\/v1\/ai\/feedback"/);
     assert.match(read('migrations/0063_ai_feedback.sql'), /CREATE TABLE IF NOT EXISTS ai_feedback/);
     assert.ok(!/user_id|ip_hash/.test(read('migrations/0063_ai_feedback.sql').replace(/--.*$/gm, '')), 'nothing identifying is stored');

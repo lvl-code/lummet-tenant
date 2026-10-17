@@ -9,6 +9,7 @@ import {
 import { searchSource, resolvePicks, latestItems, searchLinks, isValidKey } from '../worker/component-sources.js';
 import { renderComponent } from '../worker/component-engine.js';
 import { Renderer } from '../worker/render.js';
+import { readApiSource } from './support/api-source.js';
 
 let db;
 before(async () => {
@@ -115,7 +116,7 @@ describe('wiring', () => {
     assert.ok(!/insertAdjacentHTML|document\.write/.test(js));
   });
   test('API wires preview, search, resolve and checks settings on save', () => {
-    const api = read('worker/api.js');
+    const api = readApiSource();
     for (const s of ['/api/v1/component/preview', '/api/v1/component/pick-search', '/api/v1/component/pick-resolve']) assert.ok(api.includes(s), s);
     assert.ok(/"\/api\/v1\/component\/pick-search":\s*"components"/.test(api));
     assert.equal((api.match(/cleanComponentSettings\(body\.type/g) || []).length, 2);
@@ -132,7 +133,7 @@ describe('older types preview', () => {
     assert.ok(text.includes('Hello'));
   });
   test('the preview route accepts the older types', () => {
-    const api = read('worker/api.js');
+    const api = readApiSource();
     assert.ok(api.includes('PREVIEW_OLD') && api.includes('new Renderer(env, request)'));
   });
 });
@@ -157,7 +158,7 @@ describe('shared link picker', () => {
 
 describe('api routes declare what they use', () => {
   test('pick-search builds its own url object', () => {
-    const api = read('worker/api.js');
+    const api = readApiSource();
     const i = api.indexOf('if (path === "/api/v1/component/pick-search"');
     const block = api.slice(i, api.indexOf('pick-resolve', i));
     assert.ok(block.includes('const url = new URL(request.url)'), 'url is used but never defined in this route');

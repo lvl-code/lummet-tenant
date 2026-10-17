@@ -608,3 +608,13 @@ A production database dump (`docs/casinos/levelcasd1.sql` and `.zip`: users, pas
 - Still to do by hand: change admin passwords; replace anything secret stored in the database (check the Settings pages for API keys); regenerate postback endpoint tokens if you use conversion postbacks; ask GitHub Support to clear cached views of the old commits.
 
 Not changed: other tables that were in the dump (newsletter subscribers' emails, analytics) cannot be un-exposed; treat them as known to others.
+
+## 52. API restructured into modules (v22.14)
+
+`worker/api.js` was one function of about 5,500 lines (325 route blocks in a row) plus 800 lines of helpers. It is now a 52-line entry and 48 small files under `worker/api/`: `public.js` (signed-out routes), `gate.js` (sign-in and permission checks), `platform.js`, `helpers.js` and 43 route groups in `worker/api/routes/`, one per area. The layout, the request flow and how to add an endpoint are in `docs/ARCHITECTURE_API.md`.
+
+- The route blocks were moved without editing them. A scripted comparison sent the same 3,392 requests (424 paths, 4 roles, GET and POST) to the old and the new code: 3,365 answers are identical.
+- **One deliberate difference:** a validation error in 18 create/update/delete endpoints (for example "slug is required" on `casino/create`) used to escape the API's error handler and reach the site-wide maintenance fallback. It is now returned like every other API error: `500 {"success": false, "error": "slug is required"}`. The endpoints: `casino/create|update|delete`, `news/create|update|delete`, `page/create|update`, `review/create|update`, `platform-updates/create|update|delete`, `seo-pages/create|update|delete|generate-draft`, `ai/review`.
+- Tests that read the API source as text now read all the API files through `test/support/api-source.js`. New `test/api-structure.test.js` guards the layout (every group registered, one place per route, entry file small, files under 600 lines) and the behaviour above.
+
+No migration, no change to any page, style or script.

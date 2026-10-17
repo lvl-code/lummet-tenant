@@ -11,6 +11,7 @@ import {
 import { FIELDS } from '../worker/header-hero.js';
 import { renderComponent } from '../worker/component-engine.js';
 import { Renderer } from '../worker/render.js';
+import { readApiSource } from './support/api-source.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const real = new Renderer({}, new Request('https://example.test/en'));
@@ -131,7 +132,7 @@ describe('saving', () => {
     assert.equal(cleanHeroSettingsJson(once), once);
   });
   test('the api cleans hero settings on create and update, and the preview endpoint exists', () => {
-    const api = read('worker/api.js');
+    const api = readApiSource();
     assert.equal((api.match(/cleanComponentSettings\(body\.type, body\.settings_json\)/g) || []).length, 2);
     assert.match(api, /if \(type === "hero"\) return cleanHeroSettingsJson\(text\)/);
     assert.match(api, /\/api\/v1\/component\/hero-preview/);

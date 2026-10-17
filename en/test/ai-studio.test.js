@@ -12,6 +12,7 @@ import {
   parseJsonLoose, textToHtml, checkUrl, fetchSourceText, stripHtml, runTask, listTasks, TASKS,
   applyResult, auditContent, handleAiStudio, recordHistory, readHistory
 } from '../worker/ai/studio.js';
+import { readApiSource } from './support/api-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -276,7 +277,7 @@ describe('wiring', () => {
     assert.match(read('static/css/header-hero.css'), /^\.as-card/m);
     const js = read('static/js/ai-studio.js');
     assert.ok(!/innerHTML|insertAdjacentHTML|document\.write/.test(js), 'ai-studio.js must not write HTML strings');
-    assert.match(read('worker/api.js'), /"\/api\/v1\/ai-studio": null/);
+    assert.match(readApiSource(), /"\/api\/v1\/ai-studio": null/);
   });
 });
 

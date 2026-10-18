@@ -659,3 +659,13 @@ No migration, no change to any page, style or behaviour.
 - Needs a browser with import maps (Chrome 89+, Firefox 108+, Safari 16.4+), which is also what TinyMCE 7 needs for the admin.
 
 No migration, no change to any page or behaviour.
+
+## 57. Site settings split into modules (v22.19)
+
+`worker/site-settings.js` (1,771 lines) is now a facade over 9 modules in `worker/site-settings/` (defaults, manifest, helpers, get-site-settings, homepage-cards, homepage-sections, analytics, compliance, theme). The public import path and API are unchanged. Layout and rules: `docs/ARCHITECTURE_SITE_SETTINGS.md`.
+
+- Token for token the same code (only `import`/`export` lines added), imports generated from scope analysis.
+- Differential: 6,535 calls of the eight public functions with 61 settings fuzzed 16 ways, plus homepage-section variants: identical output old vs new. 298 rendered pages (anonymous and admin): identical.
+- New `test/site-settings-structure.test.js` (4 tests).
+
+No migration, no change to any page or behaviour.

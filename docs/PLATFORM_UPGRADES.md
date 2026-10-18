@@ -734,3 +734,13 @@ No migration, no behaviour change.
 - New `test/reports-structure.test.js` (3 tests).
 
 No migration, no behaviour change.
+
+## 65. Template renderer split into mixins (v22.27)
+
+`worker/render.js` (908 lines, one class) now keeps the core of `Renderer` (constructor, `getSiteContext`, `loadTemplate`, `render`) and 20 other methods moved to five files in `worker/render/` (variables, components, navigation, seo, assets) plus `install-methods.js`, which defines them on the prototype exactly as a class body would. Exports and every importer are unchanged. Details: `docs/ARCHITECTURE_RENDERER.md`.
+
+- Checked by loading both versions: the same 25 prototype members with the same descriptors (not enumerable, writable, configurable), the same function names, lengths and source text (apart from the lazy `import()` paths, which moved one folder deeper), the same `for...in` keys on an instance.
+- 298 rendered pages (anonymous and admin): identical old vs new.
+- New `test/render-structure.test.js` (4 tests).
+
+No migration, no behaviour change.

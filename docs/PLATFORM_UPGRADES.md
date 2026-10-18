@@ -744,3 +744,13 @@ No migration, no behaviour change.
 - New `test/render-structure.test.js` (4 tests).
 
 No migration, no behaviour change.
+
+## 66. AI retrieval: the 719-line `retrieve` function split into 15 searches (v22.28)
+
+`worker/ai/retrieval/retrieve.js` (719 lines, one function) now only works out the search parameters and calls 15 functions, one per table group, in the old order. They live in 7 files in `worker/ai/retrieval/search/` (casinos, reviews and news, content and research items, platform updates, pages/FAQs/authors, countries/categories/SEO, payment methods/navigation/homepage sections). The code of every block is unchanged; each function gets the shared values through one `ctx` object. Details: `docs/ARCHITECTURE_AI_RETRIEVAL.md`.
+
+- Every code line of the old function is present in the new files (checked line by line; only the function wrappers, imports and the `ctx` unpacking are new).
+- Differential run, old vs new, against a seeded test database: 12,792 cases (26 queries x 4 countries x 40 plans, plus each of 14 tables failing) comparing the returned results, every SQL statement with its bound values in order, and every logged error. All identical. The same run does detect a swap of two calls.
+- New tests in `test/ai-retrieval-structure.test.js` (4): file layout and size, call order and that `retrieve.js` runs no query itself, the shape of an empty result.
+
+No migration, no behaviour change.

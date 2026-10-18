@@ -724,3 +724,13 @@ No migration, no change to any page.
 The old "container not found" console message on admin pages (from the inline `"#media-library-container"` call in `base.html`) was already there and is unchanged.
 
 No migration, no behaviour change.
+
+## 64. Report engine split into modules (v22.26)
+
+`worker/database/reports.js` (1,014 lines) is now a facade over 8 modules in `worker/database/reports/` (columns, handlers-core, reconciliation, cohort-ltv, operational-health, run, export, scheduling). Importers are unchanged. Details: `docs/ARCHITECTURE_DATABASE_REPORTS.md`.
+
+- Token for token the same code, with one path fixed on purpose: the lazy `import('../reports/delivery.js')` in the scheduling part became `../../reports/delivery.js` (the first differential run caught it; a test now checks that every dynamic import resolves).
+- Differential on a seeded affiliate graph with conversions, an import batch and three report definitions: 942 checks (19 report types x 3 users x 6 filter sets, with CSV and HTML output, column options, definitions, report runs and both schedule runners): identical old vs new.
+- New `test/reports-structure.test.js` (3 tests).
+
+No migration, no behaviour change.

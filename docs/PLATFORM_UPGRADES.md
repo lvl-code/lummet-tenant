@@ -754,3 +754,13 @@ No migration, no behaviour change.
 - New tests in `test/ai-retrieval-structure.test.js` (4): file layout and size, call order and that `retrieve.js` runs no query itself, the shape of an empty result.
 
 No migration, no behaviour change.
+
+## 67. Big stylesheets generated from source parts (v22.29)
+
+`main.css` (2,559 lines), `dashboard.css` (2,069) and `supportive.css` (1,948) are now written as 26 parts in `en/css-src/<name>/NN-title.css` and generated into the same single files in `static/css/` by `scripts/build-css.mjs` (committed, no build step at deploy; `--check` mode for tests). URLs, bytes and the asset version are unchanged: one request per stylesheet as before. Details: `docs/ARCHITECTURE_CSS.md`.
+
+- Proof: the three generated files are byte-identical to the v22.28 files (`cmp`), and `node scripts/asset-version.mjs --check` still passes with the same hash.
+- 11 new tests in `test/css-build.test.js`: generated = concatenation of parts, numbering and part size, every part brace-balanced, the scripts' `--check` pass. Editing a part without rebuilding fails the suite.
+- Found, not changed: `supportive.css` line 403 leaves an `@media (max-width:520px){` unclosed, so its last ~1,540 lines apply only at 520px and below. Kept as is; to be fixed in its own release.
+
+No migration, no behaviour change.

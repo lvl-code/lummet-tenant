@@ -712,3 +712,15 @@ No migration, no change to any page.
 ## 62. Homepage builder script cut in three (v22.24)
 
 `static/js/admin/homepage-builder.js` (1,175 lines) is now `homepage-builder-items.js` (148), `homepage-builder-render.js` (852, one function) and `homepage-builder-collect.js` (178), loaded in the same place and order by `base.html`. Joined in order they are byte-identical to the old file (md5 checked). Browser check on 59 admin pages: same global functions, same unresolved-handler list, same console messages (old vs new); scripts per admin page 94 to 96. `test/admin-js-structure.test.js` has the new order. No migration, no behaviour change.
+
+## 63. Media library split into ES modules (v22.25)
+
+`static/js/media-library.js` (1,036 lines, one closure) is now an entry module plus 6 modules in `static/js/media-library/` (config, utils, actions, views, modals, events), loaded like the rich editor: `<script type="module">` and one shared import map in `base.html` (it now lists both editors' parts and sits before the first module script). The media page loads the entry as a module as well. `window.MediaLibrary.init/loadMedia/loadFolders` are unchanged. Details: `docs/ARCHITECTURE_MEDIA_LIBRARY.md`.
+
+- Token for token the same code (only `import`/`export` added, indentation removed).
+- Browser check on the media page with a mocked API, old vs new: the same screen after each of 10 interactions (filter, sort, search, clear, new-folder modal, close, page 2, item click, folder click, folder menu), the same 8 API requests, the same exports. The editor and global-function check on 60 admin pages is unchanged (no differences).
+- New `test/media-library-structure.test.js` (3 tests); `rich-editor-structure.test.js` knows the shared import map.
+
+The old "container not found" console message on admin pages (from the inline `"#media-library-container"` call in `base.html`) was already there and is unchanged.
+
+No migration, no behaviour change.

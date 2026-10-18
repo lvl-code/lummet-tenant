@@ -2,7 +2,7 @@
 // in base.html that lists every part (the worker adds ?v=<hash> to it).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, richEditorPartNames } from './support/rich-editor-source.js';
 
@@ -23,12 +23,13 @@ describe('rich editor layout', () => {
     assert.ok(map, 'import map present');
     const imports = JSON.parse(map[1]).imports;
     const keys = Object.keys(imports).sort();
-    assert.deepEqual(keys, richEditorPartNames().map((n) => `/static/js/rich-editor/${n}.js`));
+    const media = readdirSync(join(ROOT, 'static/js/media-library')).filter((f) => f.endsWith('.js')).map((f) => `/static/js/media-library/${f}`);
+    assert.deepEqual(keys, [...richEditorPartNames().map((n) => `/static/js/rich-editor/${n}.js`), ...media].sort());
     for (const [k, v] of Object.entries(imports)) { assert.equal(k, v); assert.ok(existsSync(join(ROOT, k.slice(1))), k); }
   });
 
-  test('the import map comes before the entry module, inside the admin-only block', () => {
-    const i = base.indexOf('<script type="importmap">'), e = base.indexOf('src="/static/js/rich-editor.js"');
+  test('the import map comes before the first module script, inside the admin-only block', () => {
+    const i = base.indexOf('<script type="importmap">'), e = base.indexOf('<script type="module"');
     assert.ok(i > 0 && i < e);
     const open = base.lastIndexOf('<!--@full-->', i), close = base.indexOf('<!--@/full-->', i);
     assert.ok(open > 0 && close > e, 'inside @full');

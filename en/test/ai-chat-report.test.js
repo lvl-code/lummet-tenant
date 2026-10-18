@@ -8,6 +8,7 @@ import { createTestDb, applyMigrations } from './support/d1-shim.js';
 import { handleAiStudio } from '../worker/ai/studio.js';
 import { getRecipients, sendChatQualityReport } from '../worker/ai/report.js';
 import { runChatQualityReport } from '../worker/cron.js';
+import { readIndexSource } from './support/index-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -71,7 +72,7 @@ describe('weekly chat-quality report', () => {
     env.RESEND_API_KEY = '';
     const r = await sendChatQualityReport(env, null, { onlyUserId: 1 });
     assert.equal(r.failed, 1); assert.match(r.error, /RESEND_API_KEY/);
-    assert.match(read('worker/index.js'), /runChatQualityReport\(env\)/);
+    assert.match(readIndexSource(), /runChatQualityReport\(env\)/);
     const ui = read('static/js/ai-studio.js');
     for (const t of ['feedback/report', 'Email me this report every week', 'Send me one now']) assert.ok(ui.includes(t), t);
     assert.ok(!/innerHTML/.test(ui));

@@ -13,6 +13,7 @@ import {
   applyResult, auditContent, handleAiStudio, recordHistory, readHistory
 } from '../worker/ai/studio.js';
 import { readApiSource } from './support/api-source.js';
+import { readIndexSource } from './support/index-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -272,7 +273,7 @@ describe('wiring', () => {
     assert.match(read('templates/pages/admin/ai-studio.html'), /id="asRoot"/);
     assert.match(read('templates/pages/admin/ai.html'), /aiForm/);
     assert.match(read('worker/routes.js'), /\/en\/dashboard\/ai-studio/);
-    assert.match(read('worker/index.js'), /case "dashboardAiStudio"/);
+    assert.match(readIndexSource(), /case "dashboardAiStudio"/);
     assert.match(read('templates/layout/base.html'), /ai-studio\.js/);
     assert.match(read('static/css/header-hero.css'), /^\.as-card/m);
     const js = read('static/js/ai-studio.js');

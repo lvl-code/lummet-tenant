@@ -44,7 +44,7 @@ describe('site-wide search', () => {
   });
   test('route, page template, script and reserved slug exist', () => {
     assert.ok(read('worker/routes.js').includes('"/en/search"'));
-    assert.ok(read('worker/index.js').includes('renderSiteSearch'));
+    assert.ok(readIndexSource().includes('renderSiteSearch'));
     assert.ok(read('templates/pages/search.html').includes('results_html'));
     assert.ok(read('static/js/search.js').includes('/en/api/v1/public/search'));
     assert.ok(read('worker/reserved-slugs.js').includes('"search"'));
@@ -192,6 +192,7 @@ import { cleanSections, renderComparisonSections } from '../worker/comparison-de
 import { loadRelatedValues } from '../worker/comparison-fields.js';
 import { readControllersSource } from './support/controllers-source.js';
 import { readDashboardSource } from './support/dashboard-js-source.js';
+import { readIndexSource } from './support/index-source.js';
 
 describe('comparison sections, related fields, remove item', () => {
   test('sections: only known blocks, plain text, safe links', () => {

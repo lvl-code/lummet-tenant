@@ -669,3 +669,13 @@ No migration, no change to any page or behaviour.
 - New `test/site-settings-structure.test.js` (4 tests).
 
 No migration, no change to any page or behaviour.
+
+## 58. Request router split (v22.20)
+
+`worker/index.js` (891 lines: a 143-case switch, the cron handler, the maintenance page, the cache wrapper) is now a 57-line wrapper plus `worker/app/`: `app-worker.js`, `scheduled.js`, `maintenance.js` and seven route groups in `worker/app/routes/`. Each group is one switch that returns `NOT_HANDLED` for other types, and `app-worker.js` tries them in turn, then the 404 page. Layout and rules: `docs/ARCHITECTURE_ROUTER.md`.
+
+- Token for token the same: all 143 cases, the cron body, the maintenance page, the wrapper and the code before the switch (only imports moved and one dynamic import path became `../site-settings.js`).
+- Differential old vs new: 298 rendered pages (anonymous and admin) identical; the cron run gives the same 11 background tasks, results and SQL.
+- New `test/index-structure.test.js` (5 tests): wrapper size, group registry, one owner per route type, every `getRoute()` type has a case. Five older tests that read `index.js` as text use `test/support/index-source.js`.
+
+No migration, no change to any page or behaviour.

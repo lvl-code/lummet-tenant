@@ -699,3 +699,12 @@ No migration, no change to any behaviour.
 - New `test/ai-retrieval-structure.test.js` (3 tests); `ai-studio.test.js` reads the parts through `test/support/retrieval-source.js`.
 
 No migration, no change to any behaviour.
+
+## 61. Template includes, and the settings page split (v22.23)
+
+Templates can now include other templates: `<!--@include pages/admin/settings/general.html-->` is replaced by that file's exact text when the template is loaded (`expandIncludes` in `worker/render.js`; nested up to 4 levels; a missing part or a loop throws). `templates/pages/admin/settings.html` (1,275 lines) is a 54-line skeleton that includes 17 parts in `templates/pages/admin/settings/`. Details: `docs/ARCHITECTURE_TEMPLATE_INCLUDES.md`.
+
+- The expanded template is byte-identical to the old file (checked while splitting), and the 298-page render differential (anonymous and admin, including `/en/dashboard/settings`) is identical.
+- New `test/template-includes.test.js` (7 tests: expansion, `$` patterns, nesting, missing part, loop, `loadTemplate`, the settings layout). Three older tests that read the page as text use `test/support/template-source.js`.
+
+No migration, no change to any page.

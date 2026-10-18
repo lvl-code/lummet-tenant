@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { getSiteSettings } from '../worker/site-settings.js';
 import { readControllersSource } from './support/controllers-source.js';
+import { readTemplateSource } from './support/template-source.js';
 
 const fakeDb = (rows) => ({
   prepare: () => ({ all: async () => ({ results: rows }), bind() { return this; } })
@@ -19,7 +20,7 @@ test('getSiteSettings exposes title/description empty by default (hardcoded fall
 });
 
 test('admin settings form has a Site Title field', () => {
-  const html = readFileSync(new URL('../templates/pages/admin/settings.html', import.meta.url), 'utf8');
+  const html = readTemplateSource('templates/pages/admin/settings.html');
   assert.match(html, /name="site_title"/);
   assert.match(html, /name="site_description"/);
 });

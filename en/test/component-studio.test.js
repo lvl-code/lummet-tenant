@@ -99,7 +99,7 @@ describe('rendering', () => {
 });
 
 import { readFileSync } from 'node:fs';
-const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+const read = (p) => readTemplateSource(p);
 describe('wiring', () => {
   test('page offers the new types and the visual panel', () => {
     const page = read('templates/pages/admin/components.html');
@@ -168,6 +168,7 @@ describe('api routes declare what they use', () => {
 import { handleAPI } from '../worker/api.js';
 import { readControllersSource } from './support/controllers-source.js';
 import { readAdminSource } from './support/admin-js-source.js';
+import { readTemplateSource } from './support/template-source.js';
 describe('real handleAPI() for the studio routes', () => {
   const admin = { user_id: 1, role: 'admin', email: 'a@test.com' };
   const req = (method, url, body) => ({ method, url, headers: new Headers(), json: async () => body });

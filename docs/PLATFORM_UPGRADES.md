@@ -679,3 +679,13 @@ No migration, no change to any page or behaviour.
 - New `test/index-structure.test.js` (5 tests): wrapper size, group registry, one owner per route type, every `getRoute()` type has a case. Five older tests that read `index.js` as text use `test/support/index-source.js`.
 
 No migration, no change to any page or behaviour.
+
+## 59. Super API handlers split into modules (v22.21)
+
+`worker/super/handlers.js` (1,359 lines, 123 handlers) is now a facade over 17 modules in `worker/super/handlers/` (helpers, system, casinos, reviews-news, pages-categories, research, payments-seo-meta, countries-authors, media, settings-users, components-blocks, permissions-access, review-blocks-ad-rules, nav-banners, platform-updates, seo-pages, inbox-subscribers). The router and every importer are unchanged. Layout and rules: `docs/ARCHITECTURE_SUPER_HANDLERS.md`.
+
+- Token for token the same code (only `import`/`export` lines added), imports generated from scope analysis.
+- Differential: all 123 handlers called 3,075 ways (5 ids x 5 bodies, including bad JSON and secret settings) against a seeded test database: identical status and body old vs new.
+- New `test/super-handlers-structure.test.js` (4 tests).
+
+No migration, no change to any behaviour.

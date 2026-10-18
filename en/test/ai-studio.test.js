@@ -14,6 +14,7 @@ import {
 } from '../worker/ai/studio.js';
 import { readApiSource } from './support/api-source.js';
 import { readIndexSource } from './support/index-source.js';
+import { readRetrievalSource } from './support/retrieval-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -262,7 +263,7 @@ describe('public chat sees more content', () => {
 
   test('the planner and retrieval both know the new tables', () => {
     assert.match(read('worker/ai/understand.js'), /'content_items', 'research_items'/);
-    assert.match(read('worker/ai/retrieval.js'), /'content_items','research_items'/);
+    assert.match(readRetrievalSource(), /'content_items','research_items'/);
   });
 });
 

@@ -689,3 +689,13 @@ No migration, no change to any page or behaviour.
 - New `test/super-handlers-structure.test.js` (4 tests).
 
 No migration, no change to any behaviour.
+
+## 60. AI retrieval split into modules (v22.22)
+
+`worker/ai/retrieval.js` (1,230 lines) is now a facade over 6 modules in `worker/ai/retrieval/` (match-helpers, retrieve, search-helpers, context-string, url-guard, geo-guard). Importers are unchanged. Layout and rules: `docs/ARCHITECTURE_AI_RETRIEVAL.md`.
+
+- Token for token the same code; imports generated from scope analysis.
+- Differential: 1,212 calls (15 queries x 4 countries x 5 search plans through `retrieve`, `buildContextString`, `extractContextUrls`, `guardGeoFacts`, plus URL sanitizer cases) against a seeded test database: identical results old vs new.
+- New `test/ai-retrieval-structure.test.js` (3 tests); `ai-studio.test.js` reads the parts through `test/support/retrieval-source.js`.
+
+No migration, no change to any behaviour.

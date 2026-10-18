@@ -1,2 +1,3 @@
-78b2a324f914d9a6516dd85c3bc824a4a6fc5f20d965bfc6e9f447d959d8c948  docs/PLATFORM_UPGRADES.md
-ac76aea040ca834ae1f1a69f4ffed008fcd3d12bc54a95feb84e7893afb9ff4e  en/worker/super/handlers.js
+ab8e6bf7e1e7f142c2ffb282d12f6b6d6c5c5f0916bd52344d5404b47ef48ae4  docs/PLATFORM_UPGRADES.md
+c7988009b90955bff69d05e490e1b9c30e9ba3c8b36440db784dc865c689a49e  en/test/ai-studio.test.js
+07d88e606c75ea2c85964fc2c63a23cbe88d80bb62b09d8d6ddf8a825445d094  en/worker/ai/retrieval.js

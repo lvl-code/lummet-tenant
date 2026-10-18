@@ -13,7 +13,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
 
 // The order is the order the code had in the single file. Listeners and top-level
 // declarations depend on it, so changing it needs a reason.
-const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder', 'theme-presets', 'settings-form', 'ai-generator',
+const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'ai-generator',
   'categories', 'countries', 'research', 'research-content-builder', 'research-sources-claims', 'research-relations', 'research-versions',
   'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'html-escape',
   'platform-updates-init', 'ad-rules', 'seo-pages', 'country-pages', 'category-country-pages'];

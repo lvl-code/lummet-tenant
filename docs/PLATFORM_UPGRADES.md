@@ -708,3 +708,7 @@ Templates can now include other templates: `<!--@include pages/admin/settings/ge
 - New `test/template-includes.test.js` (7 tests: expansion, `$` patterns, nesting, missing part, loop, `loadTemplate`, the settings layout). Three older tests that read the page as text use `test/support/template-source.js`.
 
 No migration, no change to any page.
+
+## 62. Homepage builder script cut in three (v22.24)
+
+`static/js/admin/homepage-builder.js` (1,175 lines) is now `homepage-builder-items.js` (148), `homepage-builder-render.js` (852, one function) and `homepage-builder-collect.js` (178), loaded in the same place and order by `base.html`. Joined in order they are byte-identical to the old file (md5 checked). Browser check on 59 admin pages: same global functions, same unresolved-handler list, same console messages (old vs new); scripts per admin page 94 to 96. `test/admin-js-structure.test.js` has the new order. No migration, no behaviour change.

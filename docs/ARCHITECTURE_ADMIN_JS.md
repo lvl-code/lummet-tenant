@@ -1,6 +1,6 @@
 # Architecture: the admin script (`static/js/admin/`)
 
-Since v22.16 the old `static/js/admin.js` (8,051 lines) is 27 files in `en/static/js/admin/`. They are plain classic scripts, loaded one after another by `templates/layout/base.html` in the admin-only block, exactly where `admin.js` was. Nothing else changed: the files, joined in the order below, are byte-for-byte the old file.
+Since v22.16 the old `static/js/admin.js` (8,051 lines) is 27 files in `en/static/js/admin/` (29 since v22.24, when the homepage builder was cut in three; numbers 6a and 6b below). They are plain classic scripts, loaded one after another by `templates/layout/base.html` in the admin-only block, exactly where `admin.js` was. Nothing else changed: the files, joined in the order below, are byte-for-byte the old file.
 
 ## Why the order matters
 
@@ -19,7 +19,9 @@ The scripts share one global scope, like the single file did. Functions are call
 | 3 | `admin/news.js` | News table, news form, image pickers | 229 |
 | 4 | `admin/pages.js` | Pages table and page form | 110 |
 | 5 | `admin/settings.js` | Settings form loader and compliance rows | 381 |
-| 6 | `admin/homepage-builder.js` | Homepage section builder (render and collect) | 1176 |
+| 6 | `admin/homepage-builder-items.js` | Homepage builder: the section list, id and escape helpers, new card and new section | 148 |
+| 6a | `admin/homepage-builder-render.js` | Homepage builder: `renderHomepageSections` (one 850-line function) | 852 |
+| 6b | `admin/homepage-builder-collect.js` | Homepage builder: `collectHomepageSections` | 178 |
 | 7 | `admin/theme-presets.js` | Theme presets | 174 |
 | 8 | `admin/settings-form.js` | Settings form submit and wiring | 676 |
 | 9 | `admin/ai-generator.js` | AI review generator | 69 |

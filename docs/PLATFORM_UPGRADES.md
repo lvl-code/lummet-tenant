@@ -837,3 +837,14 @@ No migration, no behaviour change.
 
 No migration, no behaviour change.
 
+## 75. Newsroom database layer split into 4 parts (v22.37)
+
+`worker/database/newsroom.js` (704 lines) is now a facade over `worker/database/newsroom/{base,editorial,public,discovery}.js`, made with the generic splitter. See `docs/ARCHITECTURE_NEWSROOM_DB.md`.
+
+- One deliberate move: the `LIVE` SQL constant went from the middle of the file to `base.js` (exported), because two parts use it.
+- All 59 exports keep their names, source text and `length`. Token check: nothing is missing except the two import paths, which changed from `./` to `../`.
+- Differential run, old vs new: 8,801 calls on all 49 exported functions (argument combinations, permissions, flags, state-changing calls in the same order) on a seeded database, with every SQL statement and bound value recorded: **0 differences** (709 distinct outcomes). A changed `ORDER BY` is detected (156 differences).
+- New `test/newsroom-structure.test.js` (4 tests).
+
+No migration, no behaviour change.
+

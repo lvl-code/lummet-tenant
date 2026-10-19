@@ -827,3 +827,13 @@ No migration, no behaviour change.
 
 No migration, no behaviour change.
 
+## 74. Research content builder split into 5 files (v22.36)
+
+`static/js/admin/research-content-builder.js` (705 lines) is now five classic scripts loaded in the same order: `research-content-builder.js` (state, type lists, caches, editor helpers), `-fields.js` (per-type card renderers), `-sections.js` (card html, render, sync, defaults), `-wire.js` (`wireResearchSectionBuilder`) and `-init.js` (one-click templates, `initResearchForm`). Only the first part has top-level statements; the rest are function declarations, so the cut is by line range.
+
+- The five files joined in load order are **byte-identical** to the old file (`cmp`).
+- Headless Chromium on `/en/dashboard/research`, old vs new (clock and random fixed): all 12 section types added, fields edited, sync from the DOM, every button in the section cards (60 clicks), the four one-click templates and an unknown one, a submit: 65 snapshots of the cards and the state and the request body are **identical**. A one-word change in a template is detected.
+- `test/admin-js-structure.test.js`: new load order and a test that each part defines its own functions.
+
+No migration, no behaviour change.
+

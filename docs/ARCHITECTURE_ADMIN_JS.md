@@ -31,7 +31,11 @@ The scripts share one global scope, like the single file did. Functions are call
 | 10 | `admin/categories.js` | Categories table and form | 167 |
 | 11 | `admin/countries.js` | Countries table and form | 192 |
 | 12 | `admin/research.js` | Research items table | 148 |
-| 13 | `admin/research-content-builder.js` | Research content (visual section builder) and the research form | 706 |
+| 13 | `admin/research-content-builder.js` | Research content builder: section state, type lists, item/dataset caches, editor helpers | 94 |
+| 13a | `admin/research-content-fields.js` | Research content builder: the per-type card body renderers | 200 |
+| 13b | `admin/research-content-sections.js` | Research content builder: card html, `renderResearchFormSections`, sync from DOM, defaults | 146 |
+| 13c | `admin/research-content-wire.js` | Research content builder: `wireResearchSectionBuilder` (all the buttons) | 163 |
+| 13d | `admin/research-content-init.js` | Research content builder: one-click templates and `initResearchForm` | 103 |
 | 14 | `admin/research-sources-claims.js` | Research sources and claims | 315 |
 | 15 | `admin/research-relations.js` | Research relations | 162 |
 | 16 | `admin/research-versions.js` | Research version history | 108 |

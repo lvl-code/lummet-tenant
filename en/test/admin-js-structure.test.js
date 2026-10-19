@@ -14,7 +14,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
 // The order is the order the code had in the single file. Listeners and top-level
 // declarations depend on it, so changing it needs a reason.
 const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-section', 'homepage-builder-content', 'homepage-builder-controls', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'ai-generator',
-  'categories', 'countries', 'research', 'research-content-builder', 'research-sources-claims', 'research-relations', 'research-versions',
+  'categories', 'countries', 'research', 'research-content-builder', 'research-content-fields', 'research-content-sections', 'research-content-wire', 'research-content-init', 'research-sources-claims', 'research-relations', 'research-versions',
   'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'platform-updates-form', 'platform-updates-edit', 'platform-updates-actions', 'html-escape',
   'platform-updates-init', 'ad-rules', 'seo-pages', 'country-pages', 'category-country-pages'];
 
@@ -90,6 +90,20 @@ describe('homepage builder render parts (v22.32)', () => {
       const src = read(`static/js/admin/${file}.js`);
       const defined = [...src.matchAll(/^(?:async )?function (\w+)/gm)].map((m) => m[1]);
       assert.deepEqual(defined, fns, file);
+    }
+  });
+
+  test('research content builder: each part defines its own functions, in the original order', () => {
+    const want = {
+      'research-content-builder': ['fetchResearchItemsCached', 'fetchResearchDatasetsCached', 'fetchResearchDatasetVersionsFor', 'researchEditorIdFor', 'destroyResearchSectionEditors', 'initResearchSectionEditors', 'researchEditorValue'],
+      'research-content-fields': ['researchRichTextarea', 'researchFieldsHtml_heading', 'researchFieldsHtml_rich_text', 'researchFieldsHtml_statistic', 'researchTimelineEventRow', 'researchFieldsHtml_timeline', 'researchTableRow', 'researchFieldsHtml_table', 'researchFieldsHtml_source_citation', 'researchFieldsHtml_fact_card', 'researchFaqItemRow', 'researchFieldsHtml_faq', 'researchLinkRow', 'researchFieldsHtml_internal_links', 'researchFieldsHtml_research_reference', 'researchFieldsHtml_dataset_table', 'researchFieldsHtml_image'],
+      'research-content-sections': ['researchSectionCardHtml', 'renderResearchFormSections', 'syncResearchSectionsFromDom', 'researchDefaultSectionFor'],
+      'research-content-wire': ['wireResearchSectionBuilder'],
+      'research-content-init': ['insertResearchTemplate', 'initResearchForm'],
+    };
+    for (const [file, fns] of Object.entries(want)) {
+      const src = read(`static/js/admin/${file}.js`);
+      assert.deepEqual([...src.matchAll(/^(?:async )?function (\w+)/gm)].map((m) => m[1]), fns, file);
     }
   });
 });

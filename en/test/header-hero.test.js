@@ -17,6 +17,7 @@ import { readControllersSource } from './support/controllers-source.js';
 import { readAdminSource } from './support/admin-js-source.js';
 import { readIndexSource } from './support/index-source.js';
 import { readTemplateSource } from './support/template-source.js';
+import { readHeaderHeroAdminSource } from './support/header-hero-admin-source.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -358,7 +359,7 @@ describe('admin page', () => {
   });
 
   test('the admin script avoids dynamic-code sinks and only calls the settings endpoints', () => {
-    const js = stripComments(read('static/js/header-hero-admin.js'));
+    const js = stripComments(readHeaderHeroAdminSource());
     assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
     const urls = [...js.matchAll(/fetch\("([^"]+)"/g)].map((m) => m[1]);
     assert.ok(urls.length >= 2);
@@ -378,7 +379,7 @@ describe('admin page', () => {
   });
 
   test('the preset names offered exist in the script', () => {
-    const js = read('static/js/header-hero-admin.js');
+    const js = readHeaderHeroAdminSource();
     for (const m of page.matchAll(/data-preset="([a-z]+)"/g)) assert.match(js, new RegExp(`\\b${m[1]}:`), m[1]);
   });
 });
@@ -451,7 +452,7 @@ describe('custom colours and fonts', () => {
   });
 
   test('the admin script offers exactly the same stacks as the server', () => {
-    const js = read('static/js/header-hero-admin.js');
+    const js = readHeaderHeroAdminSource();
     for (const [key, stack] of Object.entries(FONT_STACKS)) {
       if (!stack) continue;
       assert.ok(js.includes(stack), `admin script is missing the ${key} stack`);
@@ -590,7 +591,7 @@ describe('hero media: slides and pictures', () => {
   });
 
   test('the admin script stays free of innerHTML and uses the Media library', () => {
-    const js = stripComments(read('static/js/header-hero-admin.js'));
+    const js = stripComments(readHeaderHeroAdminSource());
     assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
     assert.match(js, /MediaPicker/);
   });

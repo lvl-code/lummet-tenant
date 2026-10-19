@@ -24,7 +24,8 @@ describe('rich editor layout', () => {
     const imports = JSON.parse(map[1]).imports;
     const keys = Object.keys(imports).sort();
     const media = readdirSync(join(ROOT, 'static/js/media-library')).filter((f) => f.endsWith('.js')).map((f) => `/static/js/media-library/${f}`);
-    assert.deepEqual(keys, [...richEditorPartNames().map((n) => `/static/js/rich-editor/${n}.js`), ...media].sort());
+    const hh = readdirSync(join(ROOT, 'static/js/header-hero-admin')).filter((f) => f.endsWith('.js')).map((f) => `/static/js/header-hero-admin/${f}`);
+    assert.deepEqual(keys, [...richEditorPartNames().map((n) => `/static/js/rich-editor/${n}.js`), ...media, ...hh].sort());
     for (const [k, v] of Object.entries(imports)) { assert.equal(k, v); assert.ok(existsSync(join(ROOT, k.slice(1))), k); }
   });
 

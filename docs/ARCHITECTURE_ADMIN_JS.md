@@ -54,3 +54,5 @@ Every file is served with `?v=<hash>` and cached for a year; `scripts/asset-vers
 ## Next in the restructuring
 
 `static/js/dashboard.js` (1,995 lines), `static/js/rich-editor.js` (1,927), then `worker/index.js` routing and `worker/site-settings.js`.
+
+`header-hero-admin.js` is no longer a classic script: it is an ES module entry with parts in `header-hero-admin/` (see `ARCHITECTURE_HEADER_HERO_ADMIN.md`).

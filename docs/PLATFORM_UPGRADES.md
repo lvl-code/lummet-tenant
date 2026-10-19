@@ -794,3 +794,16 @@ No migration, no behaviour change.
 - `test/admin-js-structure.test.js` updated for the new order.
 
 No migration, no behaviour change.
+
+## 71. Header & Hero admin script split into ES modules (v22.33)
+
+`static/js/header-hero-admin.js` (811 lines, one IIFE) is now a 76-line module entry plus six parts in `static/js/header-hero-admin/` (state, fields, validate, repeater, preview, actions), wired by the import map in `base.html`. See `docs/ARCHITECTURE_HEADER_HERO_ADMIN.md`.
+
+- Three deliberate code changes, all documented there: `if (!form) return;` became `if (form) { ... }` (no top-level `return` in a module), `setMobilePreview()` is the only writer of `mobilePreview`, and `"use strict"` is implicit.
+- Token check: every token of the old file is in the new files except `"use strict"`, the `!`/`return` of the guard; additions are import/export lines, the `if`, and `setMobilePreview`.
+- Headless Chromium on `/en/dashboard/header-hero`, old vs new: 117 snapshots (every one of the 66 form fields changed, every style preset, every repeater add and row button, colour clear, token insert, mobile/desktop preview, resize, invalid save, reset, discard, valid save) are **identical**, as is the save request body. A one-word change in a status message is detected.
+- 59 admin pages: same output and the same errors as before.
+- The first draft of the split did not build the repeaters (nothing imported `repeater.js`); the differential run caught it and the entry now imports it. `test/header-hero-admin-structure.test.js` (5 tests) guards this.
+
+No migration.
+

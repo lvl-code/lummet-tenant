@@ -848,3 +848,13 @@ No migration, no behaviour change.
 
 No migration, no behaviour change.
 
+## 76. News controller split into 3 parts (v22.38)
+
+`worker/controllers/news.js` (683 lines) is now a facade over `worker/controllers/news/{landing,article,list}.js`, made with the generic splitter. See `docs/ARCHITECTURE_NEWS_CONTROLLER.md`.
+
+- Token check: nothing missing except the import paths (`../x.js` re-declared per part); no new code.
+- Page-level differential, old vs new, through `worker.fetch`: 1,584 requests (36 URLs: news home with paging, search, filters, articles live/draft/scheduled/missing, redirect, section, region, country, topic, entity, series; 11 flag settings: all off, all on, each flag alone; with and without a session; GET and HEAD) compare status, headers and a hash of the body: **0 differences** (200, 301 and 404 all covered). Changing one flag name in a part is detected (40 differences).
+- `test/support/controllers-source.js` also reads sub-folders of `worker/controllers/`. New `test/news-controller-structure.test.js` (4 tests).
+
+No migration, no behaviour change.
+

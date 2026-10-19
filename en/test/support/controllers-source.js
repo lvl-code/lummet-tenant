@@ -9,7 +9,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export function controllerFiles() {
   const dir = join(ROOT, 'worker/controllers');
-  return ['worker/controllers.js', ...readdirSync(dir).filter((f) => f.endsWith('.js')).sort().map((f) => `worker/controllers/${f}`)];
+  const top = readdirSync(dir, { withFileTypes: true });
+  const files = top.filter((e) => e.isFile() && e.name.endsWith('.js')).map((e) => `worker/controllers/${e.name}`);
+  // modules split into a folder of parts (for example controllers/news.js + controllers/news/*.js)
+  for (const e of top.filter((x) => x.isDirectory())) for (const f of readdirSync(join(dir, e.name)).filter((n) => n.endsWith('.js'))) files.push(`worker/controllers/${e.name}/${f}`);
+  return ['worker/controllers.js', ...files.sort()];
 }
 
 export function readControllersSource() {

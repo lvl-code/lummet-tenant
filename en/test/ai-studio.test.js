@@ -15,6 +15,7 @@ import {
 import { readApiSource } from './support/api-source.js';
 import { readIndexSource } from './support/index-source.js';
 import { readRetrievalSource } from './support/retrieval-source.js';
+import { readRoutesSource } from './support/routes-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -273,7 +274,7 @@ describe('wiring', () => {
     assert.match(read('templates/layout/admin-nav.html'), /href="\/en\/dashboard\/ai"/);
     assert.match(read('templates/pages/admin/ai-studio.html'), /id="asRoot"/);
     assert.match(read('templates/pages/admin/ai.html'), /aiForm/);
-    assert.match(read('worker/routes.js'), /\/en\/dashboard\/ai-studio/);
+    assert.match(readRoutesSource(), /\/en\/dashboard\/ai-studio/);
     assert.match(readIndexSource(), /case "dashboardAiStudio"/);
     assert.match(read('templates/layout/base.html'), /ai-studio\.js/);
     assert.match(read('static/css/header-hero.css'), /^\.as-card/m);

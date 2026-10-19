@@ -7,6 +7,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROUTE_GROUPS } from '../worker/app/routes/index.js';
 import { NOT_HANDLED } from '../worker/app/routes/not-handled.js';
+import { readRoutesSource } from './support/routes-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
@@ -35,7 +36,7 @@ describe('worker/index.js layout', () => {
 
   test('every route type returned by getRoute() has a case', () => {
     const all = new Set(groupFiles.flatMap(cases));
-    const types = new Set([...read('worker/routes.js').matchAll(/type:\s*["']([A-Za-z-]+)["']/g)].map((m) => m[1]));
+    const types = new Set([...readRoutesSource().matchAll(/type:\s*["']([A-Za-z-]+)["']/g)].map((m) => m[1]));
     const missing = [...types].filter((t) => !all.has(t));
     assert.deepEqual(missing, [], 'route types without a case would fall to the 404 page');
   });

@@ -817,3 +817,13 @@ No migration.
 
 No migration, no behaviour change.
 
+## 73. Router split into four ordered groups (v22.35)
+
+`worker/routes.js` (714 lines, one function) is now a 37-line entry plus `worker/routing/{public,content,dashboard,system}.js`. Each group holds the original statements in the original order and returns `null` when nothing matches; `getRoute` returns the first hit, else `not_found`. See `docs/ARCHITECTURE_ROUTES.md`.
+
+- Differential run, old vs new `getRoute`: 111,840 requests (every path literal and pattern in the file with sample segments, trailing slash, query, GET/POST/HEAD/DELETE) reach 143 distinct route types with **0 differences**; a one-word change to one route is detected (16 differences).
+- No free variables in the new files except `parseInt`.
+- New `test/routes-structure.test.js` (4 tests).
+
+No migration, no behaviour change.
+

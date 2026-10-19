@@ -18,6 +18,7 @@ import { readAdminSource } from './support/admin-js-source.js';
 import { readIndexSource } from './support/index-source.js';
 import { readTemplateSource } from './support/template-source.js';
 import { readHeaderHeroAdminSource } from './support/header-hero-admin-source.js';
+import { readRoutesSource } from './support/routes-source.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -344,7 +345,7 @@ describe('admin page', () => {
   });
 
   test('is wired: route, controller, navigation entry', () => {
-    assert.match(read('worker/routes.js'), /"\/en\/dashboard\/header-hero"\) return \{ type: "dashboardHeaderHero" \}/);
+    assert.match(readRoutesSource(), /"\/en\/dashboard\/header-hero"\) return \{ type: "dashboardHeaderHero" \}/);
     assert.match(readIndexSource(), /case "dashboardHeaderHero":\s*return renderDashboardHeaderHero/);
     assert.match(readControllersSource(), /renderAdminPage\(request, env, "admin\/header-hero\.html"/);
     assert.match(read('templates/layout/admin-nav.html'), /href="\/en\/dashboard\/header-hero"/);

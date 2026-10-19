@@ -20,11 +20,6 @@ function netDepth(css) {
   return d;
 }
 
-// supportive.css has a known pre-existing defect: the `@media (max-width:520px){` that ends part 02 is never closed, so
-// every later part is parsed inside it. Parts 03-07 are balanced relative to that open block. Fixing it is a separate,
-// visible change (see docs/ARCHITECTURE_CSS.md); when it is fixed, remove this entry.
-const OPEN_BLOCK = { 'supportive/02-responsive-print-core-typography.css': 1 };
-
 describe('stylesheet build', () => {
   test('the three bundles have source folders and nothing else is in css-src', () => {
     assert.deepEqual(BUNDLES, ['main', 'dashboard', 'supportive']);
@@ -47,8 +42,9 @@ describe('stylesheet build', () => {
         assert.ok(s.split('\n').length <= 320, `${f} is over 320 lines`);
       }
     });
-    test(`${name}: every part is brace-balanced (known exceptions listed)`, () => {
-      for (const f of partsOf(name)) assert.equal(netDepth(read(`css-src/${name}/${f}`)), OPEN_BLOCK[`${name}/${f}`] || 0, `${name}/${f}`);
+    test(`${name}: every part and the whole file are brace-balanced (an unclosed block would swallow the rest of the sheet)`, () => {
+      for (const f of partsOf(name)) assert.equal(netDepth(read(`css-src/${name}/${f}`)), 0, `${name}/${f}`);
+      assert.equal(netDepth(read(`static/css/${name}.css`)), 0);
     });
   }
   test('the build script --check passes and the asset version is current', () => {

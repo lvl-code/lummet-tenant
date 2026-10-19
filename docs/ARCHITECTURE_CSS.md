@@ -6,7 +6,7 @@ Since v22.29 the three largest stylesheets are written as source parts and gener
 |---|---:|---|
 | `static/css/main.css` | 2,559 | 11 in `css-src/main/` |
 | `static/css/dashboard.css` | 2,069 | 8 in `css-src/dashboard/` |
-| `static/css/supportive.css` | 1,948 | 7 in `css-src/supportive/` |
+| `static/css/supportive.css` | 1,948 (2,019 since v22.30) | 8 in `css-src/supportive/` |
 
 The browser still gets **one file per stylesheet**: no extra requests, no `@import`, no build step at deploy (the generated files are committed, like `worker/asset-version.js`). `css-src/` is outside `/static/`, so it is not served.
 
@@ -62,16 +62,17 @@ node scripts/build-css.mjs --check  # CI/test: fails if a generated file is stal
 | `css-src/supportive/02-responsive-print-core-typography.css` | 261 |
 | `css-src/supportive/03-content-metadata-news-cards.css` | 281 |
 | `css-src/supportive/04-cards-sidebar-tables-forms-footer.css` | 285 |
-| `css-src/supportive/05-mobile-contrast-links-section-rhythm.css` | 279 |
+| `css-src/supportive/05-mobile-contrast-links-section-rhythm.css` | 273 |
 | `css-src/supportive/06-spacing-and-rhythm.css` | 285 |
 | `css-src/supportive/07-forms-dashboard-mobile-spacing.css` | 259 |
+| `css-src/supportive/08-theme-text-on-dark-surfaces.css` | 50 |
 
-## Known defect in supportive.css (not changed by the split)
+## The `supportive.css` brace (fixed in v22.30)
 
-Line 403 of `supportive.css` (end of `css-src/supportive/02-responsive-print-core-typography.css`) opens `@media (max-width:520px){` and never closes it. The browser therefore parses every rule after it (sections 31.1 to 32.24: core typography, readability, section spacing, forms; about 1,540 lines) **inside** that media query, so they apply only on screens 520px wide or narrower. Checked in Chromium: the last top-level rule of the sheet is that media rule with 131 nested rules.
+Until v22.29 line 403 of `supportive.css` opened `@media (max-width:520px){` and never closed it, so the browser parsed the last ~1,540 lines (sections 31.1 to 32.24: typography, readability, spacing, forms) inside that media query: they applied only at 520px and below. Closing it makes them apply everywhere, as the file intended. Those sections were written for a light page, while the site theme is dark (`--theme-text` is forced to white in `main.css`), so v22.30 also adds part `08-theme-text-on-dark-surfaces.css`: headings, section intros, admin headings and form labels that sit directly on the page background use the theme text colours, and the white dashboard cards keep dark text (the card list is at the top of that part). In v22.30 `.main-content a` link colours were also made low-specificity (`:where(...)`), so component links (breadcrumbs, tabs) keep their own colours.
 
-The split keeps this exactly as it was so the release is provably identical. Closing the brace would make those rules apply on desktop and tablet too, which changes how the site looks and needs a visual check. It is planned as its own release. When it is fixed, remove the entry in `OPEN_BLOCK` in `test/css-build.test.js`.
+Checked with a contrast audit of every visible text element on 88 pages at 1280, 768 and 390px (264 page views): 1,379 elements that were unreadable (for example white on white card titles on desktop, dark on dark headings on phones) are now readable and none got worse; no new horizontal overflow. When you add a new white card to the dashboard and its text is hard to read, add its class to the card list in part 08.
 
 ## Next in the restructuring
 
-Fixing the `supportive.css` brace (with before/after screenshots), then the remaining 800-line stylesheet `header-hero.css` and `responsive.css` if wanted.
+`header-hero.css` (812 lines) and `responsive.css` (742) if wanted.

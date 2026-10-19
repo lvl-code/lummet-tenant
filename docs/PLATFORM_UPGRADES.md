@@ -764,3 +764,13 @@ No migration, no behaviour change.
 - Found, not changed: `supportive.css` line 403 leaves an `@media (max-width:520px){` unclosed, so its last ~1,540 lines apply only at 520px and below. Kept as is; to be fixed in its own release.
 
 No migration, no behaviour change.
+
+## 68. supportive.css: unclosed media query closed, text readable on the dark theme (v22.30)
+
+The `@media (max-width:520px){` at line 403 of `supportive.css` was never closed, so ~1,540 lines (typography, readability, spacing, forms) applied only on phones. The brace is closed (`css-src/supportive/02-...`). Because those rules assumed a light page, a new part `css-src/supportive/08-theme-text-on-dark-surfaces.css` makes headings, section intros, admin headings and form labels on the page background follow the theme text colours (white cards keep dark text), and the `.main-content a` link rule is wrapped in `:where()` so component links keep their colours. Details: `docs/ARCHITECTURE_CSS.md`.
+
+- Contrast audit, old vs new CSS, 88 pages x 3 widths: 1,379 elements newly readable, 0 got worse (thresholds 3 and 4.5), no new horizontal overflow, page height changes -62 to +248px.
+- `test/css-build.test.js`: every part and every generated sheet must now be brace-balanced (an unclosed block fails the suite); the known-exception list is gone.
+- Visible change on desktop and tablet: sidebar widget titles, dashboard card titles and several admin labels that were invisible are readable; typography sizes from sections 31/32 now apply everywhere; the hero badge text is white instead of gold.
+
+No migration.

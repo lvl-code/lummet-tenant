@@ -198,18 +198,12 @@ h6) {
    31.23 LINKS
    -------------------------------------------------------------------------- */
 
-.main-content a,
-.page-content a,
-.review-content a,
-.news-content a {
+:where(.main-content, .page-content, .review-content, .news-content) a {
   color: var(--support-primary-dark);
   font-weight: 600;
 }
 
-.main-content a:hover,
-.page-content a:hover,
-.review-content a:hover,
-.news-content a:hover {
+:where(.main-content, .page-content, .review-content, .news-content) a:hover {
   color: var(--support-primary);
 }
 

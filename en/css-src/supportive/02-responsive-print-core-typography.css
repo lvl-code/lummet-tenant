@@ -102,7 +102,7 @@ small,
  .breadcrumbs{width:100%;max-width:100%;overflow-x:auto;flex-wrap:nowrap;white-space:nowrap;scrollbar-width:none}
  .breadcrumbs::-webkit-scrollbar{display:none}
 }
-@media (max-width:520px){.breadcrumbs{margin-bottom:14px;padding:7px 10px;font-size:12px}.site-footer{margin-top:20px}
+@media (max-width:520px){.breadcrumbs{margin-bottom:14px;padding:7px 10px;font-size:12px}.site-footer{margin-top:20px}}
 
 /* --------------------------------------------------------------------------
    31.1 CORE TYPOGRAPHY

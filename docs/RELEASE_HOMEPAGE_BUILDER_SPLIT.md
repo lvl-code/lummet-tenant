@@ -1,208 +1,85 @@
-# Release: homepage builder script cut in three (tenant v22.24)
+# Release: homepage builder render function split (tenant v22.32)
 
-Built on tenant v22.23. Control plane untouched. **No migration.** `en/static/js/admin/homepage-builder.js` (1,175 lines) is deleted and replaced by three files that, joined in order, are byte-identical to it.
+Built on tenant v22.31. Control plane untouched. **No migration. No behaviour change.** `en/static/js/admin/homepage-builder-render.js` (854 lines, a single function) becomes a 28-line entry plus three files.
+
+## Why
+
+`renderHomepageSections` built the section card, its paragraphs and cards, and wired every button in one function. The four blocks share only `wrapper`, `section` and `sectionIndex`, so they could be cut without changing the code.
 
 ## What changed
 
-- **`en/static/js/admin/homepage-builder-items.js`** (148 lines): the section list, id and escape helpers, new card, new section.
-- **`en/static/js/admin/homepage-builder-render.js`** (852 lines): `renderHomepageSections`, which is one 850-line function. It was moved, not rewritten; cutting it up changes behaviour and is a separate step.
-- **`en/static/js/admin/homepage-builder-collect.js`** (178 lines): `collectHomepageSections`.
-- `en/templates/layout/base.html` loads the three in the old place and order; `en/worker/asset-version.js` regenerated.
-- `test/admin-js-structure.test.js` has the new order. `docs/ARCHITECTURE_ADMIN_JS.md`, `docs/PLATFORM_UPGRADES.md` section 62.
+- **`homepage-builder-section.js`**: `renderHomepageSectionShell(section, sectionIndex)`: the section card with its fields, returns the wrapper.
+- **`homepage-builder-content.js`**: `renderHomepageParagraphs(wrapper, section)` and `renderHomepageCards(wrapper, section)`.
+- **`homepage-builder-controls.js`**: `bindHomepageSectionControls(wrapper, section, sectionIndex)`: move up/down, duplicate, remove, add card and paragraph.
+- **`homepage-builder-render.js`** (28 lines): `renderHomepageSections()` loops over the sections and calls the four functions, then appends the wrapper.
+- Classic scripts sharing the global scope, as before. `templates/layout/base.html` loads them in the order items, section, content, controls, render, collect; `worker/asset-version.js` updated.
+- `test/admin-js-structure.test.js` updated (new order, 206 top-level functions instead of 202, one new test). Docs: `docs/ARCHITECTURE_ADMIN_JS.md`, `docs/PLATFORM_UPGRADES.md` section 70.
 
 ## Proof the behaviour is the same
 
-- The three files joined in order are **byte-identical** to the old file (checked by hash).
-- **Headless Chromium, 59 admin pages**, old vs new: the same global functions on every page, the same list of unresolved inline handlers (none), the same console messages (apart from service-worker and stats-request noise from the test setup, which varies from run to run). Scripts per admin page: 94 to 96.
+- **Tokens:** every token of the old file is in the new files. The only additions are the four function headers, their calls and one `return wrapper`. Template text is byte-identical (only code lines were re-indented).
+- **Headless Chromium on the settings page, old vs new:** 8 section types rendered with quotes and HTML in the values, then 20 clicks (add/remove card and paragraph, move up/down, duplicate, remove section), a field edit and `collectHomepageSections()`. 23 snapshots of the HTML, the state and the collected data are **identical**. A one-character label change is detected.
+- **59 admin pages:** same global functions, handlers, editor setup and errors, apart from the four new function names.
 
 ## Numbers
 
-Counted with `git diff --numstat` against v22.23, excluding the generated files. Moved code counts as added and deleted.
+Counted with `git diff --numstat` against v22.31, excluding the generated files. Moved code counts as added and deleted.
 
 | | Files | Lines added | Lines deleted |
 |---|---:|---:|---:|
-| **Total** | **9** | **1188** | **1180** |
+| **Total** | **9** | **883** | **836** |
 
-New: 3, modified: 5, deleted: 1. Tests: **1,206 pass** (no new tests; the admin structure test was updated). Migrations: **none**.
+New: 3, modified: 6, deleted: 0. Tests: **1,236 pass** (1,235 before + 1 new). Migrations: **none**.
 
 ## New files (3)
 
 | File | + | - |
 |---|---:|---:|
-| `en/static/js/admin/homepage-builder-collect.js` | 177 | 0 |
-| `en/static/js/admin/homepage-builder-items.js` | 144 | 0 |
-| `en/static/js/admin/homepage-builder-render.js` | 854 | 0 |
+| `en/static/js/admin/homepage-builder-content.js` | 351 | 0 |
+| `en/static/js/admin/homepage-builder-controls.js` | 160 | 0 |
+| `en/static/js/admin/homepage-builder-section.js` | 330 | 0 |
 
-## Deleted files (1)
-
-| File | + | - |
-|---|---:|---:|
-| `en/static/js/admin/homepage-builder.js` | 0 | 1175 |
-
-## Modified files (5)
+## Deleted files (0)
 
 | File | + | - |
 |---|---:|---:|
-| `docs/ARCHITECTURE_ADMIN_JS.md` | 4 | 2 |
-| `docs/PLATFORM_UPGRADES.md` | 4 | 0 |
-| `en/templates/layout/base.html` | 3 | 1 |
-| `en/test/admin-js-structure.test.js` | 1 | 1 |
+
+
+## Modified files (6)
+
+| File | + | - |
+|---|---:|---:|
+| `docs/ARCHITECTURE_ADMIN_JS.md` | 5 | 2 |
+| `docs/PLATFORM_UPGRADES.md` | 10 | 0 |
+| `en/static/js/admin/homepage-builder-render.js` | 5 | 831 |
+| `en/templates/layout/base.html` | 3 | 0 |
+| `en/test/admin-js-structure.test.js` | 18 | 2 |
 | `en/worker/asset-version.js` | 1 | 1 |
 
 ## Install (Termux)
 
-Needs v22.23 applied first.
+Needs v22.31 applied first.
 
 ```bash
 cd ~/lummet/lummet-tenant && git status --short
-git apply --check ~/storage/downloads/lummet-tenant-v22-24-homepage-builder-split.patch
-git apply ~/storage/downloads/lummet-tenant-v22-24-homepage-builder-split.patch
+git apply --check ~/storage/downloads/lummet-tenant-v22-32-homepage-builder-split.patch
+git apply ~/storage/downloads/lummet-tenant-v22-32-homepage-builder-split.patch
 ```
 
 ## Test, commit, deploy
 
 ```bash
 cd ~/lummet/lummet-tenant/en
-node scripts/asset-version.mjs --check
+node --test --test-concurrency=1 test/admin-js-structure.test.js 2>&1 | tail -10
 node --test --test-concurrency=1 test/*.test.js 2>&1 | tail -12
-cd .. && git add -A && git commit -m "Tenant v22.24: homepage builder script cut in three"
+cd .. && git add -A && git commit -m "Tenant v22.32: homepage builder render function split into 4 files"
 gh auth switch -u lvl-code && gh auth setup-git
 git push origin main
 gh workflow run multiple.yml && gh workflow run deploy-to-second.yml
 ```
-Expect `asset version is current` and the full suite `pass 1206`, `fail 0`.
+Expect the full suite `pass 1236`, `fail 0`.
 
-After deploy, open Dashboard -> Settings and the homepage content section: adding a section and a card should work, and Save should keep them.
-
-## Rollback
-
-```bash
-cd ~/lummet/lummet-tenant && git revert --no-edit HEAD && git push origin main
-gh workflow run multiple.yml && gh workflow run deploy-to-second.yml
-```
-## Numbers
-
-Counted with `git diff --numstat` against v22.22, excluding the generated files. Moved code counts as added and deleted.
-
-| | Files | Lines added | Lines deleted |
-|---|---:|---:|---:|
-| **Total** | **9** | **1188** | **1180** |
-
-New: 3, modified: 5, deleted: 1. Tests: **1,206 pass** (1,199 before + 7 new). Migrations: **none**.
-
-## New files (3)
-
-| File | + | - |
-|---|---:|---:|
-| `en/static/js/admin/homepage-builder-collect.js` | 177 | 0 |
-| `en/static/js/admin/homepage-builder-items.js` | 144 | 0 |
-| `en/static/js/admin/homepage-builder-render.js` | 854 | 0 |
-
-## Deleted files (1)
-
-| File | + | - |
-|---|---:|---:|
-| `en/static/js/admin/homepage-builder.js` | 0 | 1175 |
-
-## Modified files (5)
-
-| File | + | - |
-|---|---:|---:|
-| `docs/ARCHITECTURE_ADMIN_JS.md` | 4 | 2 |
-| `docs/PLATFORM_UPGRADES.md` | 4 | 0 |
-| `en/templates/layout/base.html` | 3 | 1 |
-| `en/test/admin-js-structure.test.js` | 1 | 1 |
-| `en/worker/asset-version.js` | 1 | 1 |
-
-## Install (Termux)
-
-Needs v22.22 applied first.
-
-```bash
-cd ~/lummet/lummet-tenant && git status --short
-git apply --check ~/storage/downloads/lummet-tenant-v22-24-homepage-builder-split.patch
-git apply ~/storage/downloads/lummet-tenant-v22-24-homepage-builder-split.patch
-```
-
-## Test, commit, deploy
-
-```bash
-cd ~/lummet/lummet-tenant/en
-node --test --test-concurrency=1 test/template-includes.test.js test/header-hero.test.js test/component-studio.test.js 2>&1 | tail -10
-node --test --test-concurrency=1 test/*.test.js 2>&1 | tail -12
-cd .. && git add -A && git commit -m "Tenant v22.23: template includes, settings page split into parts"
-gh auth switch -u lvl-code && gh auth setup-git
-git push origin main
-gh workflow run multiple.yml && gh workflow run deploy-to-second.yml
-```
-Expect the full suite `pass 1206`, `fail 0`. Deploy failures at "cron triggers" (code 10072) are the Free plan's limit of 5, not this release.
-
-After deploy, open Dashboard -> Settings: all sections should be there, the contents bar should highlight as you scroll, and Save should work.
-
-## Rollback
-
-```bash
-cd ~/lummet/lummet-tenant && git revert --no-edit HEAD && git push origin main
-gh workflow run multiple.yml && gh workflow run deploy-to-second.yml
-```
-## Numbers
-
-Counted with `git diff --numstat` against v22.21, excluding the generated files. Moved code counts as added and deleted.
-
-| | Files | Lines added | Lines deleted |
-|---|---:|---:|---:|
-| **Total** | **9** | **1188** | **1180** |
-
-New: 3, modified: 5, deleted: 1. Tests: **1,199 pass** (1,196 before + 3 new). Migrations: **none**.
-
-## New files (3)
-
-| File | + | - |
-|---|---:|---:|
-| `en/static/js/admin/homepage-builder-collect.js` | 177 | 0 |
-| `en/static/js/admin/homepage-builder-items.js` | 144 | 0 |
-| `en/static/js/admin/homepage-builder-render.js` | 854 | 0 |
-
-## Deleted files (1)
-
-| File | + | - |
-|---|---:|---:|
-| `en/static/js/admin/homepage-builder.js` | 0 | 1175 |
-
-## Modified files (5)
-
-| File | + | - |
-|---|---:|---:|
-| `docs/ARCHITECTURE_ADMIN_JS.md` | 4 | 2 |
-| `docs/PLATFORM_UPGRADES.md` | 4 | 0 |
-| `en/templates/layout/base.html` | 3 | 1 |
-| `en/test/admin-js-structure.test.js` | 1 | 1 |
-| `en/worker/asset-version.js` | 1 | 1 |
-
-## Install (Termux)
-
-Needs v22.21 applied first.
-
-```bash
-cd ~/lummet/lummet-tenant && git status --short
-git apply --check ~/storage/downloads/lummet-tenant-v22-24-homepage-builder-split.patch
-git apply ~/storage/downloads/lummet-tenant-v22-24-homepage-builder-split.patch
-```
-
-## Test, commit, deploy
-
-```bash
-cd ~/lummet/lummet-tenant/en
-node --test --test-concurrency=1 test/ai-retrieval-structure.test.js test/ai-studio.test.js test/ai-feedback-fix.test.js 2>&1 | tail -10
-node --test --test-concurrency=1 test/*.test.js 2>&1 | tail -12
-cd .. && git add -A && git commit -m "Tenant v22.22: AI retrieval split into worker/ai/retrieval/"
-gh auth switch -u lvl-code && gh auth setup-git
-git push origin main
-gh workflow run multiple.yml && gh workflow run deploy-to-second.yml
-```
-Expect the full suite `pass 1199`, `fail 0`. Deploy failures at "cron triggers" (code 10072) are the Free plan's limit of 5, not this release.
-
-After deploy, ask the AI assistant on the site a question about a casino (and one with a country) and check the answer still names the right casinos and links.
+After deploy (hard refresh once) open Dashboard -> Settings -> Homepage content. The sections must show as before: add and remove a card, add a paragraph, move a section up and down, duplicate one, then Save and reload.
 
 ## Rollback
 

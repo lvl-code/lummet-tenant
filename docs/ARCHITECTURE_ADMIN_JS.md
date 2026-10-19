@@ -20,8 +20,11 @@ The scripts share one global scope, like the single file did. Functions are call
 | 4 | `admin/pages.js` | Pages table and page form | 110 |
 | 5 | `admin/settings.js` | Settings form loader and compliance rows | 381 |
 | 6 | `admin/homepage-builder-items.js` | Homepage builder: the section list, id and escape helpers, new card and new section | 148 |
-| 6a | `admin/homepage-builder-render.js` | Homepage builder: `renderHomepageSections` (one 850-line function) | 852 |
-| 6b | `admin/homepage-builder-collect.js` | Homepage builder: `collectHomepageSections` | 178 |
+| 6a | `admin/homepage-builder-section.js` | Homepage builder: `renderHomepageSectionShell` (the section card with its fields) | 330 |
+| 6b | `admin/homepage-builder-content.js` | Homepage builder: `renderHomepageParagraphs`, `renderHomepageCards` | 351 |
+| 6c | `admin/homepage-builder-controls.js` | Homepage builder: `bindHomepageSectionControls` (move, duplicate, remove, add) | 160 |
+| 6d | `admin/homepage-builder-render.js` | Homepage builder: `renderHomepageSections` (entry: loops over the sections and calls the four above) | 28 |
+| 6e | `admin/homepage-builder-collect.js` | Homepage builder: `collectHomepageSections` | 178 |
 | 7 | `admin/theme-presets.js` | Theme presets | 174 |
 | 8 | `admin/settings-form.js` | Settings form submit and wiring | 676 |
 | 9 | `admin/ai-generator.js` | AI review generator | 69 |

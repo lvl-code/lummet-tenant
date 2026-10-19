@@ -784,3 +784,13 @@ No migration.
 - The 141 existing studio-related tests pass unchanged. New `test/ai-studio-structure.test.js` (4 tests).
 
 No migration, no behaviour change.
+
+## 70. Homepage builder render function split (v22.32)
+
+`static/js/admin/homepage-builder-render.js` (854 lines, one function) is now 4 classic scripts plus a 28-line entry: `homepage-builder-section.js` (`renderHomepageSectionShell`), `-content.js` (`renderHomepageParagraphs`, `renderHomepageCards`), `-controls.js` (`bindHomepageSectionControls`) and `-render.js` (`renderHomepageSections`). The four blocks shared no variables except `wrapper`, `section` and `sectionIndex`, which are now parameters. Order in `base.html`: items, section, content, controls, render, collect. See `docs/ARCHITECTURE_ADMIN_JS.md`.
+
+- Token check: every token of the old file is in the new files; the only additions are the four function headers, their calls and one `return wrapper`. Template literal text is byte-identical (only code lines were re-indented).
+- Headless Chromium on the settings page, old vs new: 8 section types rendered with quotes and HTML in the values, then 20 clicks (add/remove card and paragraph, move up/down, duplicate, remove section), a field edit and `collectHomepageSections()`; 23 snapshots of the HTML, the state array and the collected data are identical (a one-character label change is detected). 59 admin pages: same globals, handlers, editor setup and errors, apart from the four new function names.
+- `test/admin-js-structure.test.js` updated for the new order.
+
+No migration, no behaviour change.

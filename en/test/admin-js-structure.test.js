@@ -13,7 +13,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
 
 // The order is the order the code had in the single file. Listeners and top-level
 // declarations depend on it, so changing it needs a reason.
-const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'ai-generator',
+const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-section', 'homepage-builder-content', 'homepage-builder-controls', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'ai-generator',
   'categories', 'countries', 'research', 'research-content-builder', 'research-sources-claims', 'research-relations', 'research-versions',
   'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'html-escape',
   'platform-updates-init', 'ad-rules', 'seo-pages', 'country-pages', 'category-country-pages'];
@@ -60,6 +60,22 @@ describe('admin script layout', () => {
     assert.equal(listeners.length, 4, 'DOMContentLoaded listeners registered by the admin script');
     assert.ok(listeners.every((l) => l.type === 'DOMContentLoaded'));
     const all = ORDER.map((n) => read(`static/js/admin/${n}.js`)).join('');
-    assert.equal((all.match(/^(?:async\s+)?function\s+\w+/gm) || []).length, 202, 'top-level functions in the original single file');
+    // 202 in the original single file, +4 since v22.32 (renderHomepageSections was cut into 4 helpers)
+    assert.equal((all.match(/^(?:async\s+)?function\s+\w+/gm) || []).length, 206, 'top-level functions');
+  });
+});
+
+describe('homepage builder render parts (v22.32)', () => {
+  test('the entry only loops over the sections and calls the four helpers, each helper has its own file', () => {
+    const entry = read('static/js/admin/homepage-builder-render.js');
+    assert.ok(entry.split('\n').length < 40);
+    for (const fn of ['renderHomepageSectionShell', 'renderHomepageParagraphs', 'renderHomepageCards', 'bindHomepageSectionControls']) assert.match(entry, new RegExp(`${fn}\\(`));
+    const files = { 'homepage-builder-section': 'renderHomepageSectionShell', 'homepage-builder-content': 'renderHomepageParagraphs', 'homepage-builder-controls': 'bindHomepageSectionControls' };
+    for (const [f, fn] of Object.entries(files)) {
+      const s = read(`static/js/admin/${f}.js`);
+      assert.match(s, new RegExp(`^function ${fn}\\(`, 'm'));
+      assert.ok(s.split('\n').length < 400, `${f} too long`);
+    }
+    assert.match(read('static/js/admin/homepage-builder-content.js'), /^function renderHomepageCards\(wrapper, section\)/m);
   });
 });

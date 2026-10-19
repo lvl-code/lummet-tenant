@@ -807,3 +807,13 @@ No migration, no behaviour change.
 
 No migration.
 
+## 72. Platform updates admin script split into 4 files (v22.34)
+
+`static/js/admin/platform-updates.js` (793 lines) is now four classic scripts loaded in the same order: `platform-updates.js` (the list), `-form.js` (featured-image helpers, `initPlatformUpdateForm`), `-edit.js` (`editPlatformUpdate`) and `-actions.js` (delete, cancel, reset, alert, `formatDateTimeLocal`). The old file had only top-level function declarations, so the cut is by line range.
+
+- The four files joined in load order are **byte-identical** to the old file (`cmp`).
+- Headless Chromium on `/en/dashboard/updates`, old vs new: list render, edit of two rows and a missing one, cancel, update submit, create submit, success and error alerts, delete, image set/clear, `formatDateTimeLocal` on 5 inputs: 12 snapshots and the three request bodies are **identical**; a one-class change is detected. All 11 functions are still global.
+- `test/admin-js-structure.test.js`: new order, plus a test that each part defines exactly its functions.
+
+No migration, no behaviour change.
+

@@ -39,7 +39,10 @@ The scripts share one global scope, like the single file did. Functions are call
 | 18 | `admin/research-datasets.js` | Research datasets (spreadsheet-style grid) | 368 |
 | 19 | `admin/content-edit-actions.js` | Edit and delete actions for reviews, news, pages, categories, countries | 516 |
 | 20 | `admin/payment-methods.js` | Payment methods | 289 |
-| 21 | `admin/platform-updates.js` | Platform updates | 794 |
+| 21 | `admin/platform-updates.js` | Platform updates: `loadPlatformUpdatesTable` (the list) | 143 |
+| 21a | `admin/platform-updates-form.js` | Platform updates: featured-image helpers, `initPlatformUpdateForm` (submit) | 247 |
+| 21b | `admin/platform-updates-edit.js` | Platform updates: `editPlatformUpdate` | 206 |
+| 21c | `admin/platform-updates-actions.js` | Platform updates: delete, cancel, reset, alert, `formatDateTimeLocal` | 198 |
 | 22 | `admin/html-escape.js` | escapeHtml and escapeJs | 22 |
 | 23 | `admin/platform-updates-init.js` | Platform updates DOMContentLoaded handler | 25 |
 | 24 | `admin/ad-rules.js` | Ad rules | 242 |

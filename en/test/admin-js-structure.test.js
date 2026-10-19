@@ -15,7 +15,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
 // declarations depend on it, so changing it needs a reason.
 const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-section', 'homepage-builder-content', 'homepage-builder-controls', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'ai-generator',
   'categories', 'countries', 'research', 'research-content-builder', 'research-sources-claims', 'research-relations', 'research-versions',
-  'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'html-escape',
+  'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'platform-updates-form', 'platform-updates-edit', 'platform-updates-actions', 'html-escape',
   'platform-updates-init', 'ad-rules', 'seo-pages', 'country-pages', 'category-country-pages'];
 
 describe('admin script layout', () => {
@@ -77,5 +77,19 @@ describe('homepage builder render parts (v22.32)', () => {
       assert.ok(s.split('\n').length < 400, `${f} too long`);
     }
     assert.match(read('static/js/admin/homepage-builder-content.js'), /^function renderHomepageCards\(wrapper, section\)/m);
+  });
+
+  test('platform updates: each part holds its functions, and nothing else defines them', () => {
+    const want = {
+      'platform-updates': ['loadPlatformUpdatesTable'],
+      'platform-updates-form': ['openUpdateFeaturedImagePicker', 'setUpdateFeaturedImage', 'clearUpdateFeaturedImage', 'initPlatformUpdateForm'],
+      'platform-updates-edit': ['editPlatformUpdate'],
+      'platform-updates-actions': ['deletePlatformUpdate', 'cancelPlatformUpdateEdit', 'resetPlatformUpdateForm', 'showPlatformUpdateAlert', 'formatDateTimeLocal'],
+    };
+    for (const [file, fns] of Object.entries(want)) {
+      const src = read(`static/js/admin/${file}.js`);
+      const defined = [...src.matchAll(/^(?:async )?function (\w+)/gm)].map((m) => m[1]);
+      assert.deepEqual(defined, fns, file);
+    }
   });
 });

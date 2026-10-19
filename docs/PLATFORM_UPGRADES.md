@@ -774,3 +774,13 @@ The `@media (max-width:520px){` at line 403 of `supportive.css` was never closed
 - Visible change on desktop and tablet: sidebar widget titles, dashboard card titles and several admin labels that were invisible are readable; typography sizes from sections 31/32 now apply everywhere; the hero badge text is white instead of gold.
 
 No migration.
+
+## 69. AI Studio split into 9 modules (v22.31)
+
+`worker/ai/studio.js` (878 lines) is now a facade over `worker/ai/studio/` (config, text-utils, facts, tasks, run-task, apply-result, audit, history, http), made with the same generic splitter as the other server modules. Public names and import paths are unchanged. Details: `docs/ARCHITECTURE_STUDIO.md`.
+
+- All 24 exports have identical names, function source text, `length` and values (TASKS compared deeply).
+- Differential run, old vs new: 1,249 calls (every task x 5 inputs x 9 role/permission combinations, every route with GET and POST, `applyResult` with 6 targets, audit, history, feedback fix) with a fake model and a seeded database, comparing responses, every SQL statement with bound values, every prompt sent to the model and every logged error: all identical (261 distinct outcomes; a one-character message change is detected).
+- The 141 existing studio-related tests pass unchanged. New `test/ai-studio-structure.test.js` (4 tests).
+
+No migration, no behaviour change.

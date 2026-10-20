@@ -6,6 +6,7 @@ import {
   cleanGridSettings, cleanTableSettings, cleanSectionSettings, cleanRichText, cleanPicks,
   cleanStudioSettingsJson, cleanLegacySettingsJson, renderStudioComponent, renderSection
 } from '../worker/component-studio.js';
+import { readComponentStudioSource } from './support/component-studio-source.js';
 import { searchSource, resolvePicks, latestItems, searchLinks, isValidKey } from '../worker/component-sources.js';
 import { renderComponent } from '../worker/component-engine.js';
 import { Renderer } from '../worker/render.js';
@@ -111,7 +112,7 @@ describe('wiring', () => {
     assert.ok(base.includes('component-studio.js') && base.includes('component-blocks.css'));
   });
   test('editor script never writes HTML strings', () => {
-    const js = read('static/js/component-studio.js');
+    const js = readComponentStudioSource();
     assert.ok(!/\.innerHTML\s*=/.test(js.replace(/tmp\.innerHTML;/g, '')), 'innerHTML assignment found');
     assert.ok(!/insertAdjacentHTML|document\.write/.test(js));
   });

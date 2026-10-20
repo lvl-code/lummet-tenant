@@ -918,3 +918,13 @@ No migration, no behaviour change.
 - New `test/research-controller-structure.test.js` (5 tests).
 
 No migration, no behaviour change.
+
+## 83. Component Studio script split into 8 parts (v22.45)
+
+`static/js/component-studio.js` (649 lines, one function) is now an entry module plus `static/js/component-studio/{context,preview,widgets,forms,content,data,section,main}.js`, wired by the import map. See `docs/ARCHITECTURE_COMPONENT_STUDIO.md`.
+
+- What changed in the code, and nothing else: the two values that are reassigned across parts (`S`, `busy`) are now `st.S` and `st.busy`; three element lookups got a `form &&` guard so the module can load on a page without the editor; the early `return` became a guard in the entry; the event wiring is one function, `initComponentStudio()`. Token check against the old file: the only differences are those, the imports/exports, and the removed `"use strict"` (modules are strict).
+- Headless Chromium on `/en/dashboard/components`, old vs new (clock and random fixed, picker and media stubs): all 14 types; every field filled and toggled; up to 70 button clicks per type (add, remove, move, link, rich text commands); Advanced on and off; raw Settings and Content edits; `component:loaded`; reset; the invalid-Settings submit alert; mobile and desktop preview; five preview answers (ok, error with and without a message, network failure, empty): 200 snapshots, 129 preview and resolve requests and 11 alerts are **identical**; the old file run twice also matches itself, so the check is stable. Changing one message in each of four parts is detected.
+- `test/component-studio-structure.test.js` (8 tests) and `test/support/component-studio-source.js`; `component-studio.test.js` reads all parts.
+
+No migration, no server change.

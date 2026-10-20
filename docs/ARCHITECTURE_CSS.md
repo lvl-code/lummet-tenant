@@ -1,6 +1,6 @@
 # Architecture: stylesheets (`en/css-src/` + `scripts/build-css.mjs`)
 
-Since v22.29 the largest stylesheets (a fourth, `header-hero.css`, since v22.42) are written as source parts and generated into the same single files as before:
+Since v22.29 the largest stylesheets (`header-hero.css` since v22.42, `responsive.css` since v22.43) are written as source parts and generated into the same single files as before:
 
 | Served file (unchanged URL) | Lines | Source parts |
 |---|---:|---|
@@ -8,6 +8,7 @@ Since v22.29 the largest stylesheets (a fourth, `header-hero.css`, since v22.42)
 | `static/css/dashboard.css` | 2,069 | 8 in `css-src/dashboard/` |
 | `static/css/supportive.css` | 1,948 (2,019 since v22.30) | 8 in `css-src/supportive/` |
 | `static/css/header-hero.css` | 812 | 8 in `css-src/header-hero/` |
+| `static/css/responsive.css` | 742 | 6 in `css-src/responsive/` |
 
 The browser still gets **one file per stylesheet**: no extra requests, no `@import`, no build step at deploy (the generated files are committed, like `worker/asset-version.js`). `css-src/` is outside `/static/`, so it is not served.
 

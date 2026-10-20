@@ -899,3 +899,12 @@ No migration, no behaviour change.
 - `test/css-build.test.js` now covers four bundles (numbering, size, brace balance, up-to-date check).
 
 No migration, no behaviour change.
+
+## 81. Responsive stylesheet written as 6 parts (v22.43)
+
+`static/css/responsive.css` (742 lines) is now generated from `css-src/responsive/01…06-*.css` by `scripts/build-css.mjs` (fifth bundle). Parts: breakpoints and global tweaks, bottom navigation / sticky CTA / scroll-to-top, typography / admin tables / layout, footer / nav toggle / search / auth / chips, card refinements / logo / news search, full-bleed containers and card borders. The cuts are between top-level blocks, so the cascade order is unchanged. See `docs/ARCHITECTURE_CSS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`): same URL, same bytes, same asset version.
+- `test/css-build.test.js` covers five bundles.
+
+No migration, no behaviour change.

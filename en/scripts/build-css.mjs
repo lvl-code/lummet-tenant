@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export const BUNDLES = ["main", "dashboard", "supportive", "header-hero"];
+export const BUNDLES = ["main", "dashboard", "supportive", "header-hero", "responsive"];
 
 export function partsOf(name, base = root) {
   const dir = join(base, "css-src", name);

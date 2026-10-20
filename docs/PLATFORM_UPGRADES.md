@@ -870,3 +870,13 @@ No migration, no behaviour change.
 - Test shim is strict; `test/migrations.test.js` (18 tests) guards the rules above. Removed: `schema-lummet.sql`, `production-snapshot.test.js`, two stray `router.js.before-*` files.
 
 Known and not changed: `worker/lummet/admin-api.js` reads `users.password` and `sessions.token`, which no database has, so `/api/admin/login` of that module cannot work.
+
+## 78. Header and hero module split into 3 parts (v22.40)
+
+`worker/header-hero.js` (689 lines) is now a facade over `worker/header-hero/{schema,clean,render}.js`, made with the generic splitter. See `docs/ARCHITECTURE_HEADER_HERO.md`.
+
+- All 27 exports keep their names. Token check: nothing missing except the import paths.
+- Differential run, old vs new: 81,599 calls on every exported function (random and hostile values: markup, `javascript:` links, bad JSON, oversized text, video URLs, slides and cards, all `FIELDS`), 21,680 distinct outcomes: **0 differences**. Changing one pixel value in a part is detected (32 differences).
+- New `test/header-hero-structure.test.js` (4 tests).
+
+No migration, no behaviour change.

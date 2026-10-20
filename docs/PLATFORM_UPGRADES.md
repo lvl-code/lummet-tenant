@@ -890,3 +890,12 @@ No migration, no behaviour change.
 - `test/admin-js-structure.test.js`: new load order. New `test/settings-form-structure.test.js` (3 tests).
 
 No migration, no behaviour change.
+
+## 80. Header and hero stylesheet written as 8 parts (v22.42)
+
+`static/css/header-hero.css` (812 lines) is now generated from `css-src/header-hero/01…08-*.css` by `scripts/build-css.mjs`, like the three bigger sheets (`header-hero` is the fourth bundle). Parts: header and announcement bar, hero layout and colours, hero media and video, hero parts, admin hero editor, admin panels and search, generic reviews and section builder, geo rules and AI Studio. See `docs/ARCHITECTURE_CSS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`), so the browser, the URL and the asset version are unchanged.
+- `test/css-build.test.js` now covers four bundles (numbering, size, brace balance, up-to-date check).
+
+No migration, no behaviour change.

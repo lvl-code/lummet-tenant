@@ -21,8 +21,8 @@ function netDepth(css) {
 }
 
 describe('stylesheet build', () => {
-  test('the three bundles have source folders and nothing else is in css-src', () => {
-    assert.deepEqual(BUNDLES, ['main', 'dashboard', 'supportive']);
+  test('the four bundles have source folders and nothing else is in css-src', () => {
+    assert.deepEqual(BUNDLES, ['main', 'dashboard', 'supportive', 'header-hero']);
     const dirs = readdirSync(join(ROOT, 'css-src'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     assert.deepEqual(dirs, [...BUNDLES].sort());
   });

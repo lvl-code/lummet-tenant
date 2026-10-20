@@ -1,4 +1,4 @@
-// Builds the three big stylesheets from their source parts.
+// Builds the big stylesheets from their source parts.
 //
 //   css-src/<name>/NN-title.css  --(concatenated in file-name order)-->  static/css/<name>.css
 //
@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export const BUNDLES = ["main", "dashboard", "supportive"];
+export const BUNDLES = ["main", "dashboard", "supportive", "header-hero"];
 
 export function partsOf(name, base = root) {
   const dir = join(base, "css-src", name);

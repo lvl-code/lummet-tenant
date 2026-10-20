@@ -220,11 +220,13 @@ describe('CONTENT_VIEW analytics logging (migration 0059)', () => {
     assert.equal((await renderSportsbook(new Request('https://site.test/en/sportsbook/a'), env, 'a', null)).status, 200);
   });
 
-  test('migration 0059 is additive: only ADD COLUMN + CREATE INDEX IF NOT EXISTS', () => {
-    const sql = readFileSync(join(ROOT, 'migrations/0059_analytics_content_item.sql'), 'utf-8').replace(/--.*$/gm, '');
-    assert.doesNotMatch(sql, /\bDROP\b|\bDELETE\b|\bUPDATE\b|\bRENAME\b/i);
-    assert.match(sql, /ALTER TABLE analytics_events ADD COLUMN content_item_id/);
-    assert.match(sql, /CREATE INDEX IF NOT EXISTS/);
+  test('analytics_events has a nullable content_item_id column and an index on it', async () => {
+    const { DB: db } = await mkEnv();
+    const col = (await db.prepare(`PRAGMA table_info(analytics_events)`).all()).results.find((c) => c.name === 'content_item_id');
+    assert.ok(col, 'column exists');
+    assert.equal(col.notnull, 0);
+    const idx = (await db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'analytics_events'`).all()).results;
+    assert.ok(idx.some((i) => /content_item_id/.test(i.sql)), 'index on content_item_id');
   });
 
   test('existing event types are unaffected: content_item_id is NULL for a casino event', async () => {

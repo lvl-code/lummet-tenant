@@ -33,12 +33,12 @@ test("signing in with an old unsalted SHA-256 hash upgrades it to salted PBKDF2"
   assert.equal(same.password_hash.includes(":"), false);
 });
 
-test("migration 0066 removes every session and pending reset link", async () => {
+test("ops/invalidate_sessions.sql removes every session and pending reset link", async () => {
   const { readFileSync } = await import("node:fs");
   const db = createTestDb(); applyMigrations(db);
   await db.prepare("INSERT INTO users (email, password_hash, role) VALUES ('a@example.com','x:y','admin')").run();
   await db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES ('s1', 1, '2099-01-01')").run();
-  const sql = readFileSync(new URL("../migrations/0066_invalidate_sessions.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../ops/invalidate_sessions.sql", import.meta.url), "utf8");
   for (const stmt of sql.split(";").map((s) => s.replace(/^\s*--.*$/gm, "").trim()).filter(Boolean)) await db.prepare(stmt).run();
   assert.equal((await db.prepare("SELECT COUNT(*) AS c FROM sessions").first()).c, 0);
   assert.equal((await db.prepare("SELECT COUNT(*) AS c FROM password_resets").first()).c, 0);

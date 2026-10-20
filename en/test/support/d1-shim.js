@@ -32,6 +32,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { splitStatements } from '../../scripts/sql-statements.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, '..', '..', 'migrations');
@@ -76,7 +77,7 @@ function wrapStatement(sqliteDb, sql) {
 
 export function createTestDb() {
   const sqliteDb = new DatabaseSync(':memory:');
-  sqliteDb.exec('PRAGMA foreign_keys = OFF;'); // D1 doesn't enforce FKs by default either
+  sqliteDb.exec('PRAGMA foreign_keys = OFF;'); // off while the schema is built; applyMigrations() turns it on
 
   return {
     prepare(sql) {
@@ -137,48 +138,21 @@ export function createTestDb() {
  * real bug, not drift).
  */
 export function applyMigrations(testDb) {
-  const files = readdirSync(MIGRATIONS_DIR)
-    .filter(f => f.endsWith('.sql'))
-    // Rollback scripts (e.g. 0008_media_r2_rollback.sql) are manual,
-    // opt-in undo scripts -- never part of the standard forward
-    // migration sequence. Auto-running one here would undo an upgrade
-    // migration that later migrations may depend on.
-    .filter(f => !f.toLowerCase().includes('rollback'));
-
-  // schema.sql is the baseline and must run FIRST regardless of
-  // filename sort order -- alphabetically 's' (0x73) sorts after every
-  // digit (0x30-0x39), so a plain .sort() would run every numbered
-  // migration against tables that don't exist yet.
-  const ordered = [
-    ...files.filter(f => f === 'schema.sql'),
-    ...files.filter(f => f !== 'schema.sql').sort() // zero-padded numeric prefixes, e.g. 0026_..., so lexical sort == numeric order
-  ];
-
-  const tolerated = /duplicate column name|already exists/i;
-
-  for (const file of ordered) {
-    const rawSql = readFileSync(join(MIGRATIONS_DIR, file), 'utf-8');
-    // Strip `-- ...` line comments before splitting on ';' -- several
-    // migration files have prose comments that themselves contain a
-    // semicolon mid-sentence (e.g. "...won't fire automatically unless
-    // PRAGMA foreign_keys=ON; a defensive cleanup helper is also..."),
-    // which would otherwise break a naive statement split. None of
-    // these files are known to use '--' inside an actual string
-    // literal (they're DDL/seed-data files, not user content), so this
-    // is safe for this specific migration set.
-    const sql = rawSql.split('\n').map(line => {
-      const idx = line.indexOf('--');
-      return idx === -1 ? line : line.slice(0, idx);
-    }).join('\n');
-
-    const statements = sql.split(';').map(s => s.trim()).filter(Boolean);
-    for (const statement of statements) {
+  // en/migrations/ holds only numbered forward files (0001_..., 0002_...). Each one is idempotent
+  // (CREATE ... IF NOT EXISTS, INSERT OR IGNORE), so applying runs them in name order and any error
+  // is a real error: nothing is tolerated.
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+  for (const file of files) {
+    const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf-8');
+    for (const statement of splitStatements(sql)) {
       try {
-        testDb._exec(statement + ';');
+        testDb._exec(statement);
       } catch (e) {
-        if (tolerated.test(e.message)) continue;
         throw new Error(`Migration ${file} failed against the test DB on statement:\n${statement}\n\n${e.message}`);
       }
     }
   }
+  // D1 enforces foreign keys (ON DELETE CASCADE and friends). Switch it on once the schema is in place, so tests
+  // see the same behaviour; the earlier migrations did this with a PRAGMA inside the files.
+  testDb._exec('PRAGMA foreign_keys = ON;');
 }

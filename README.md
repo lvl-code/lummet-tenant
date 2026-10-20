@@ -21,7 +21,7 @@ Admin and user dashboards use a grouped menu with a menu toggle and an off-canva
 - `en/static/` — frontend assets
 - `en/migrations/` — D1 migrations
 - `en/lummet/` — Lummet AI
-- `en/schema.sql` — database schema
+- `en/migrations/` — database schema and seeds (20 ordered, idempotent files; see `docs/MIGRATIONS.md`)
 - `wrangler.jsonc` — Cloudflare configuration
 
 ## Analytics / Reporting / Alerting Platform

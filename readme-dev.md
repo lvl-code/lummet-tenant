@@ -89,7 +89,7 @@ lummet-tenant/
 │   ├── worker/            # All server-side logic (Cloudflare Worker)
 │   ├── templates/         # HTML templates (custom {{mustache}}-ish templating, see render.js)
 │   ├── static/             # CSS/JS/images served as Worker Assets
-│   ├── migrations/         # D1 SQL migrations (0002 → 0037 + schema.sql)
+│   ├── migrations/         # D1 migrations: 0001–0015 schema, 0016–0020 seeds (docs/MIGRATIONS.md)
 │   ├── docs/                # super-api.md, postback-api.md, country-directory.md
 │   ├── lummet/              # Static landing page for the AI-assistant subdomain
 │   └── test/                 # node:test suite (148 tests, zero deps)
@@ -482,16 +482,10 @@ dynamically.
 
 ### Migrations (lummet-tenant)
 
-`en/migrations/` — 36 sequential SQL migrations (`0002` → `0037`) plus
-a consolidated `schema.sql`. No automated migration-tracking table is
-configured; migrations are applied manually, in order, per tenant, via
-`wrangler d1 execute` (see [Integration commands](#integration--setup-commands)).
-
-Notable recent ones: `0026` country directory tiers, `0027`–`0032`
-analytics/reporting/alerting, `0033`–`0036` postback/import/
-reconciliation/adapters/player-LTV, `0037` `seo_keywords` across
-content types (casinos, reviews, news, pages, updates, countries,
-categories, seo_pages).
+`en/migrations/` — 20 ordered, forward-only, idempotent SQL files (`0001`–`0015` schema,
+`0016`–`0020` seeds). There are no rollbacks. They are applied by hand per database with
+`wrangler d1 execute --file` (see [Integration commands](#integration--setup-commands)).
+Full description: `docs/MIGRATIONS.md`.
 
 ---
 
@@ -654,8 +648,7 @@ wrangler kv namespace create CACHE
 wrangler r2 bucket create <brandname>-media
 # → set bucket_name in wrangler.jsonc under env.<brandname>.r2_buckets
 
-# 4. Apply the full schema, then every migration in order
-wrangler d1 execute <brandname>-db --remote --file=en/migrations/schema.sql
+# 4. Apply every migration in order (schema 0001-0015, then seeds 0016-0020)
 for f in en/migrations/00*.sql; do
   echo "Applying $f"
   wrangler d1 execute <brandname>-db --remote --file="$f"
@@ -684,7 +677,11 @@ wrangler deploy --env <brandname>
 ```bash
 cd lummet-tenant
 
-# Apply a NEW migration to an existing tenant (repeat per tenant/env — no automated migration tracking)
+# Check an existing tenant database against the migrations (export it first), then repair what is behind
+wrangler d1 export <brandname>-db --remote --no-data --output=/tmp/db.sql
+node en/scripts/check-schema.mjs /tmp/db.sql --fix   # prints CREATE ... IF NOT EXISTS / ALTER TABLE ADD COLUMN SQL
+
+# Add a NEW table or index: append it to the matching domain file (or a new numbered file), keep it idempotent
 wrangler d1 execute <brandname>-db --remote --file=en/migrations/00NN_description.sql
 
 # Run the test suite (zero external deps — Node's built-in test runner + sqlite)

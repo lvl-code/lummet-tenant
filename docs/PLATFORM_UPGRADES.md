@@ -858,3 +858,15 @@ No migration, no behaviour change.
 
 No migration, no behaviour change.
 
+
+## 77. Migrations rewritten: ordered, complete, no rollbacks (v22.39)
+
+`en/migrations/` is now 20 files: `0001`–`0015` schema (125 tables, 229 indexes, 2 triggers, grouped by domain) and `0016`–`0020` seeds. Everything is idempotent. See `docs/MIGRATIONS.md`.
+
+- Checked against the production export of 2026-10-19: tables, columns and their order, foreign keys, index and trigger SQL all equal. The only objects the export lacks are the three tables and five indexes of the newest changes.
+- Seed data equals what the old files produced (permission ids aside). The navigation seed no longer duplicates on a second run.
+- New `scripts/check-schema.mjs` compares any D1 export with the migrations and prints repair SQL. One-time data scripts moved to `en/ops/`.
+- `d1-migrate-ai-free-tier.yml` now runs `0013_ai_assistant.sql`. `seed-admin.yml` reads the password from `secrets.ADMIN_PASSWORD` instead of the source.
+- Test shim is strict; `test/migrations.test.js` (18 tests) guards the rules above. Removed: `schema-lummet.sql`, `production-snapshot.test.js`, two stray `router.js.before-*` files.
+
+Known and not changed: `worker/lummet/admin-api.js` reads `users.password` and `sessions.token`, which no database has, so `/api/admin/login` of that module cannot work.

@@ -51,21 +51,13 @@ describe('BUG FOUND: CONTENT_CLICK was missing from the event-type whitelist (lo
   });
 });
 
-describe('migrations 0060/0061 are additive-only', () => {
-  for (const file of ['0060_content_items_media_tracking.sql', '0061_content_landing_pages.sql']) {
-    test(`${file}: no DROP TABLE/DROP COLUMN, DELETE FROM, UPDATE ... SET, or RENAME statements`, () => {
-      // Matches actual destructive SQL *statements* only -- not the word
-      // "update"/"delete" appearing as a permission action value (e.g.
-      // INSERT INTO permissions (...) VALUES ('editor', ..., 'update', 1))
-      // or as part of "ON DELETE CASCADE" (a standard FK clause, not a
-      // destructive statement).
-      const sql = readFileSync(join(ROOT, 'migrations', file), 'utf-8').replace(/--.*$/gm, '');
-      assert.doesNotMatch(sql, /\bDROP\s+(TABLE|COLUMN)\b/i);
-      assert.doesNotMatch(sql, /\bDELETE\s+FROM\b/i);
-      assert.doesNotMatch(sql, /\bUPDATE\s+\w+\s+SET\b/i);
-      assert.doesNotMatch(sql, /\bRENAME\s+(TABLE|COLUMN)\b/i);
-    });
-  }
+describe('content landing pages and content item media columns exist in the migrations', () => {
+  test('content_items has tracking_url, logo_media_id and featured_image_media_id; the landing page tables exist', async () => {
+    const db = createTestDb(); applyMigrations(db);
+    const cols = (await db.prepare(`PRAGMA table_info(content_items)`).all()).results.map((c) => c.name);
+    for (const c of ['tracking_url', 'logo_media_id', 'featured_image_media_id']) assert.ok(cols.includes(c), c);
+    for (const t of ['content_landing_pages', 'content_landing_page_items']) assert.ok(await db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`).bind(t).first(), t);
+  });
 });
 
 describe('content_items.tracking_url + logo/hero media ids (gaps #2, #5, #6)', () => {

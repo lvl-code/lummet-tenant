@@ -1,6 +1,6 @@
 name: D1 Migrate - run one migration file on every site database
 
-# Run from the GitHub Actions tab or:  gh workflow run d1-migrate-file.yml -f file=0063_ai_feedback.sql
+# Run from the GitHub Actions tab or:  gh workflow run d1-migrate-file.yml -f file=0013_ai_assistant.sql
 # Applies en/migrations/<file> to every site database on BOTH Cloudflare accounts.
 # Migration files are written with IF NOT EXISTS, so running one twice is harmless.
 # A database that fails shows as a red job; the others still run.
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       file:
-        description: "Migration file name inside en/migrations, e.g. 0063_ai_feedback.sql"
+        description: "Migration file name inside en/migrations, e.g. 0013_ai_assistant.sql"
         required: true
 
 jobs:

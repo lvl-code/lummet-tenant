@@ -106,8 +106,10 @@ describe('wiring', () => {
   test('public path list, route and migration exist', () => {
     const api = readApiSource();
     assert.match(api, /"\/api\/v1\/ai\/chat\/clear",\s*"\/api\/v1\/ai\/feedback"/);
-    assert.match(read('migrations/0063_ai_feedback.sql'), /CREATE TABLE IF NOT EXISTS ai_feedback/);
-    assert.ok(!/user_id|ip_hash/.test(read('migrations/0063_ai_feedback.sql').replace(/--.*$/gm, '')), 'nothing identifying is stored');
+    const sql = read('migrations/0013_ai_assistant.sql');
+    assert.match(sql, /CREATE TABLE IF NOT EXISTS ai_feedback/);
+    const table = sql.slice(sql.indexOf('CREATE TABLE IF NOT EXISTS ai_feedback ('), sql.indexOf(');', sql.indexOf('CREATE TABLE IF NOT EXISTS ai_feedback (')));
+    assert.ok(!/user_id|ip_hash/.test(table), 'nothing identifying is stored');
   });
   test('the migration workflow checks the file name and covers every database on both accounts', () => {
     const y = read('../.github/workflows/d1-migrate-file.yml');

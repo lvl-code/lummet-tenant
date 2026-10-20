@@ -342,7 +342,7 @@ describe('history', () => {
   });
 
   test('migration and page are present', () => {
-    assert.match(read('migrations/0062_ai_studio_history.sql'), /CREATE TABLE IF NOT EXISTS ai_studio_history/);
+    assert.match(read('migrations/0013_ai_assistant.sql'), /CREATE TABLE IF NOT EXISTS ai_studio_history/);
     assert.match(read('static/js/ai-studio.js'), /api\("history\?kind="/);
     assert.ok(!/innerHTML/.test(read('static/js/ai-studio.js')));
   });

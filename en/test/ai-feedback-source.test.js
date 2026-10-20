@@ -56,9 +56,8 @@ describe('feedback source', () => {
     assert.equal(by.widget.helpful_pct, 100); assert.equal(by.subdomain.helpful_pct, 0);
   });
 
-  test('migration is one additive column; the digest shows it without innerHTML', () => {
-    const sql = read('migrations/0064_ai_feedback_source.sql').replace(/--.*$/gm, '').trim();
-    assert.match(sql, /^ALTER TABLE ai_feedback ADD COLUMN source TEXT;$/);
+  test('the table has the source column; the digest shows it without innerHTML', () => {
+    assert.match(read('migrations/0013_ai_assistant.sql'), /ai_feedback \([^;]*\n  source TEXT/);
     const ui = read('static/js/ai-studio.js');
     assert.match(ui, /by_source/); assert.ok(!/innerHTML/.test(ui));
   });

@@ -908,3 +908,13 @@ No migration, no behaviour change.
 - `test/css-build.test.js` covers five bundles.
 
 No migration, no behaviour change.
+
+## 82. Research controller split into 3 parts (v22.44)
+
+`worker/controllers/research.js` (668 lines) is now a facade over `worker/controllers/research/{sections,directory,pages}.js`, made with the generic splitter. See `docs/ARCHITECTURE_RESEARCH_CONTROLLER.md`.
+
+- Token check: nothing missing except the import paths (`../x.js` re-declared per part); no new code.
+- Page-level differential, old vs new, through `worker.fetch`: 244 requests (hub with all sort keys and a bad one, the seven type lists plus unknown and wrongly cased types, 14 item pages including a draft, bad JSON content and a bare array, every section type with valid and empty data, claims with sources, relations, a dataset table, site search with empty, short, long, markup and null-byte queries; with and without a session; GET and HEAD) compare status, headers and a hash of the body: **0 differences** (200 and 404 covered). Mutating one class name in each of the three parts is detected.
+- New `test/research-controller-structure.test.js` (5 tests).
+
+No migration, no behaviour change.

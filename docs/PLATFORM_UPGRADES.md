@@ -880,3 +880,13 @@ Known and not changed: `worker/lummet/admin-api.js` reads `users.password` and `
 - New `test/header-hero-structure.test.js` (4 tests).
 
 No migration, no behaviour change.
+
+## 79. Site settings form script split into 4 files (v22.41)
+
+`static/js/admin/settings-form.js` (675 lines, one function) is now an entry plus `settings-form-theme.js`, `settings-form-sections.js` and `settings-form-save.js`. See `docs/ARCHITECTURE_SETTINGS_FORM.md`.
+
+- The statements are the same: all 443 non-blank lines of the old function appear, in order, in the new files. Only the function wrappers are new; the one shared value, the form element, is passed as an argument.
+- Headless Chromium on `/en/dashboard/settings`, old vs new (generated ids normalised): every theme preset, all 12 colour inputs, both radius inputs, mouse enter and leave on the preview buttons, the four "add" buttons (7 clicks), edited fields, and four saves (success, HTTP error, `success:false`, success again) with the posted body and alert text: 39 snapshots and 4 request bodies **identical**. A changed alert message, and a changed preview value, are both detected.
+- `test/admin-js-structure.test.js`: new load order. New `test/settings-form-structure.test.js` (3 tests).
+
+No migration, no behaviour change.

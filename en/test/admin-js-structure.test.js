@@ -13,7 +13,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
 
 // The order is the order the code had in the single file. Listeners and top-level
 // declarations depend on it, so changing it needs a reason.
-const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-section', 'homepage-builder-content', 'homepage-builder-controls', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'ai-generator',
+const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-section', 'homepage-builder-content', 'homepage-builder-controls', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'settings-form-theme', 'settings-form-sections', 'settings-form-save', 'ai-generator',
   'categories', 'countries', 'research', 'research-content-builder', 'research-content-fields', 'research-content-sections', 'research-content-wire', 'research-content-init', 'research-sources-claims', 'research-relations', 'research-versions',
   'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'platform-updates-form', 'platform-updates-edit', 'platform-updates-actions', 'html-escape',
   'platform-updates-init', 'ad-rules', 'seo-pages', 'country-pages', 'category-country-pages'];
@@ -60,8 +60,8 @@ describe('admin script layout', () => {
     assert.equal(listeners.length, 4, 'DOMContentLoaded listeners registered by the admin script');
     assert.ok(listeners.every((l) => l.type === 'DOMContentLoaded'));
     const all = ORDER.map((n) => read(`static/js/admin/${n}.js`)).join('');
-    // 202 in the original single file, +4 since v22.32 (renderHomepageSections was cut into 4 helpers)
-    assert.equal((all.match(/^(?:async\s+)?function\s+\w+/gm) || []).length, 206, 'top-level functions');
+    // 202 in the original single file, +4 since v22.32 (renderHomepageSections was cut into 4 helpers), +3 since v22.41 (settings form parts)
+    assert.equal((all.match(/^(?:async\s+)?function\s+\w+/gm) || []).length, 209, 'top-level functions');
   });
 });
 

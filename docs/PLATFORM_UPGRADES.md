@@ -958,3 +958,12 @@ No migration, no behaviour change.
 - `test/js-build.test.js` (5 tests): the file equals its parts, numbering, size, each part parses on its own, `base.html` still loads one `app.js`, `--check` passes.
 
 No migration, no behaviour change.
+
+## 87. Chat widget script lummet-ai.js written as 8 parts (v22.49)
+
+`static/js/lummet-ai.js` (596 lines, one function wrapper) is now generated from `js-src/lummet-ai/_head.js`, eight numbered parts and `_tail.js` by `scripts/build-js.mjs`, which now supports a wrapper kept in `_head.js` and `_tail.js`. It stays one file, so the widget costs no extra request. See `docs/ARCHITECTURE_JS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`); `app.js` is unchanged.
+- `test/js-build.test.js` now covers both scripts: each part is checked inside the wrapper, head and tail must go together, and `base.html` still loads one of each.
+
+No migration, no behaviour change.

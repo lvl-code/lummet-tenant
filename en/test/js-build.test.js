@@ -1,4 +1,4 @@
-// The public script static/js/app.js is generated from js-src/app/NN-*.js by scripts/build-js.mjs (v22.48).
+// The public scripts static/js/app.js and lummet-ai.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -6,14 +6,14 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { BUNDLES, buildBundle, partsOf } from '../scripts/build-js.mjs';
+import { BUNDLES, buildBundle, partsOf, wrapOf } from '../scripts/build-js.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 describe('script build', () => {
   test('the bundles have source folders and nothing else is in js-src', () => {
-    assert.deepEqual(BUNDLES, ['app']);
+    assert.deepEqual(BUNDLES, ['app', 'lummet-ai']);
     const dirs = readdirSync(join(ROOT, 'js-src'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     assert.deepEqual(dirs, [...BUNDLES].sort());
   });
@@ -25,20 +25,23 @@ describe('script build', () => {
       const parts = partsOf(name);
       assert.ok(parts.length >= 3);
       parts.forEach((f, i) => assert.equal(f.slice(0, 2), String(i + 1).padStart(2, '0'), `${f} breaks the numbering`));
-      assert.deepEqual(readdirSync(join(ROOT, 'js-src', name)).filter((f) => !parts.includes(f)), [], 'file with a bad name in js-src');
+      assert.deepEqual(readdirSync(join(ROOT, 'js-src', name)).filter((f) => !parts.includes(f) && f !== '_head.js' && f !== '_tail.js'), [], 'file with a bad name in js-src');
+      const wrapped = wrapOf(name, '_head.js') !== '';
+      assert.equal(wrapOf(name, '_tail.js') !== '', wrapped, '_head.js and _tail.js go together');
+      if (wrapped) assert.doesNotThrow(() => new vm.Script(wrapOf(name, '_head.js') + wrapOf(name, '_tail.js')), 'head and tail do not close the wrapper');
       for (const f of parts) {
         const s = read(`js-src/${name}/${f}`);
         assert.ok(s.trim().length > 0, `${f} empty`);
         assert.ok(s.endsWith('\n'), `${f} must end with a newline`);
         assert.ok(s.split('\n').length <= 320, `${f} is over 320 lines`);
-        assert.doesNotThrow(() => new vm.Script(s, { filename: f }), `${f} does not parse on its own`);
+        assert.doesNotThrow(() => new vm.Script(wrapped ? wrapOf(name, '_head.js') + s + wrapOf(name, '_tail.js') : s, { filename: f }), `${f} does not parse on its own`);
       }
     });
   }
-  test('the page still loads one app.js (the split adds no request)', () => {
+  test('the page still loads one app.js and one lummet-ai.js (the split adds no request)', () => {
     const base = read('templates/layout/base.html');
-    assert.equal((base.match(/\/static\/js\/app\.js/g) || []).length, 1);
-    assert.ok(!/\/static\/js\/app-/.test(base));
+    for (const n of BUNDLES) assert.equal((base.match(new RegExp(`/static/js/${n}\\.js`, 'g')) || []).length, 1, n);
+    assert.ok(!/\/static\/js\/(app|lummet-ai)-/.test(base));
   });
   test('the build script --check passes and the asset version is current', () => {
     for (const script of ['build-js.mjs', 'build-css.mjs', 'asset-version.mjs']) {

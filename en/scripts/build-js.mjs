@@ -1,6 +1,9 @@
 // Builds the public scripts that are written as source parts.
 //
 //   js-src/<name>/NN-title.js  --(concatenated in file-name order)-->  static/js/<name>.js
+//   js-src/<name>/_head.js and _tail.js (optional) are put before and after the parts: a script that is one
+//   function wrapper keeps its opening line in _head.js and its closing line in _tail.js, and the parts are
+//   the statements inside it.
 //
 // The browser still receives ONE file per script (no extra requests, no build step at deploy):
 // the generated files are committed, like the stylesheets built by build-css.mjs. These are classic
@@ -17,16 +20,21 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export const BUNDLES = ["app"];
+export const BUNDLES = ["app", "lummet-ai"];
 
 export function partsOf(name, base = root) {
   const dir = join(base, "js-src", name);
   return readdirSync(dir).filter((f) => /^\d\d-[a-z0-9-]+\.js$/.test(f)).sort();
 }
 
+export function wrapOf(name, file, base = root) {
+  const p = join(base, "js-src", name, file);
+  return existsSync(p) ? readFileSync(p, "utf8") : "";
+}
+
 export function buildBundle(name, base = root) {
   const dir = join(base, "js-src", name);
-  return partsOf(name, base).map((f) => readFileSync(join(dir, f), "utf8")).join("");
+  return wrapOf(name, "_head.js", base) + partsOf(name, base).map((f) => readFileSync(join(dir, f), "utf8")).join("") + wrapOf(name, "_tail.js", base);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

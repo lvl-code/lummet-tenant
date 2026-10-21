@@ -1012,3 +1012,12 @@ No migration, no behaviour change.
 - `test/sanitize-structure.test.js` (6 tests).
 
 No migration, no behaviour change.
+
+## 93. Super API affiliate handlers written as 4 parts (v22.55)
+
+`worker/super/handlers-affiliate.js` (544 lines) is now a facade over `handlers-affiliate/{shared,partners,commercial,integrations}.js`, re-exporting the same 40 handlers. See `docs/ARCHITECTURE_HANDLERS_AFFILIATE.md`.
+
+- Proof: every handler was driven old against new through about 2,350 random operations on a real schema (create, edit, list with filters, get, delete, archive, rotate token) with valid, missing and hostile input, bad ids, bad JSON and foreign-key conflicts, with fixed clock and seeded randomness. Every status, header and body (list order and SQLite's own timestamps normalised), the final table counts and the offer version history are identical. Every handler succeeded at least once. Mutation checks on each part (response status and header, required fields, dependent checks, own-domain rule, change reason, limits, token field) were all detected; the only ones not detected are default arguments that no caller uses.
+- `test/handlers-affiliate-structure.test.js` (6 tests).
+
+No migration, no behaviour change.

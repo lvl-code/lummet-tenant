@@ -967,3 +967,12 @@ No migration, no behaviour change.
 - `test/js-build.test.js` now covers both scripts: each part is checked inside the wrapper, head and tail must go together, and `base.html` still loads one of each.
 
 No migration, no behaviour change.
+
+## 88. Analytics module written as 4 parts (v22.50)
+
+`worker/database/analytics.js` (604 lines) is now a facade over `analytics/{events,metrics,conversions,aggregation}.js`, re-exporting the same 12 names. See `docs/ARCHITECTURE_ANALYTICS.md`.
+
+- Proof: every export was run old against new on a seeded database (about 1,000 calls, valid and hostile inputs, six users with different item-access scopes, aggregation and backfill, a throwing database, the page-cache capture): all results and the resulting tables are identical. Mutation checks on each part were all detected.
+- `test/analytics-structure.test.js` (6 tests): the public names, the facade shape, no cross-imports, scoping stays in `metrics.js`, one place for the event types and the backfill cap, part size.
+
+No migration, no behaviour change.

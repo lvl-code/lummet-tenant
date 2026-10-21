@@ -949,3 +949,12 @@ No migration, no behaviour change.
 - New `test/auth-structure.test.js` (5 tests).
 
 No migration, no behaviour change.
+
+## 86. Public script app.js written as 5 parts (v22.48)
+
+`static/js/app.js` (622 lines) is now generated from `js-src/app/01…05-*.js` by the new `scripts/build-js.mjs`, the script twin of the stylesheet build. It is built into the same single file because a public page must not load more scripts (the public set is capped at 12 by `test/perf-assets.test.js`). See `docs/ARCHITECTURE_JS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`): same URL, same bytes, same asset version, one request.
+- `test/js-build.test.js` (5 tests): the file equals its parts, numbering, size, each part parses on its own, `base.html` still loads one `app.js`, `--check` passes.
+
+No migration, no behaviour change.

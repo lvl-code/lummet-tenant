@@ -939,3 +939,13 @@ No migration, no server change.
 Also in this release: the release notes of v22.39 to v22.45 (`docs/RELEASE_*.md`) are back. Each earlier release had removed the previous one's note because the work tree did not contain it.
 
 No migration, no behaviour change.
+
+## 85. Authentication module split into 4 parts (v22.47)
+
+`worker/auth.js` (622 lines) is now a facade over `worker/auth/{security,password,session,account}.js`, made with the generic splitter. See `docs/ARCHITECTURE_AUTH.md`.
+
+- The 12 public exports keep their names; the helpers that were private are exported only between the parts. Token check: nothing missing except the import paths.
+- Scenario differential, old vs new, with the clock, random numbers and Turnstile/Resend answers fixed: 313 steps (70 mixed register and login attempts with good and bad emails, passwords, tokens, IPs and hosts; a legacy SHA-256 account and its upgrade to PBKDF2; the rate limit hitting and then clearing as the clock moves 14.5 and 15.5 minutes; over 25 cookie shapes for `getCurrentUser` and `getCookie`; `requireRole` on every role pair; hashing and verifying, including odd stored hashes; forgot, reset and change password with the real emailed token; logout). Status codes, headers, bodies, the emails sent and the final contents of `users`, `sessions`, `password_resets`, `auth_attempts` and `newsletter_subscribers`: **0 differences**. Changing the iteration count, the rate-limit window or one message in a part is detected.
+- New `test/auth-structure.test.js` (5 tests).
+
+No migration, no behaviour change.

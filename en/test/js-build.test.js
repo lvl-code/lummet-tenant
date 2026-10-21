@@ -1,4 +1,4 @@
-// The public scripts static/js/app.js and lummet-ai.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49).
+// The public scripts static/js/app.js, lummet-ai.js and research-pdf-export.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49, v22.52).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -13,7 +13,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 describe('script build', () => {
   test('the bundles have source folders and nothing else is in js-src', () => {
-    assert.deepEqual(BUNDLES, ['app', 'lummet-ai']);
+    assert.deepEqual(BUNDLES, ['app', 'lummet-ai', 'research-pdf-export']);
     const dirs = readdirSync(join(ROOT, 'js-src'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     assert.deepEqual(dirs, [...BUNDLES].sort());
   });
@@ -38,10 +38,13 @@ describe('script build', () => {
       }
     });
   }
-  test('the page still loads one app.js and one lummet-ai.js (the split adds no request)', () => {
-    const base = read('templates/layout/base.html');
-    for (const n of BUNDLES) assert.equal((base.match(new RegExp(`/static/js/${n}\\.js`, 'g')) || []).length, 1, n);
-    assert.ok(!/\/static\/js\/(app|lummet-ai)-/.test(base));
+  test('each page still loads one file per script (the split adds no request)', () => {
+    const PAGE = { 'research-pdf-export': 'templates/pages/research.html' };
+    for (const n of BUNDLES) {
+      const html = read(PAGE[n] || 'templates/layout/base.html');
+      assert.equal((html.match(new RegExp(`/static/js/${n}\\.js`, 'g')) || []).length, 1, n);
+      assert.ok(!new RegExp(`/static/js/${n}-`).test(html), `${n} must not be split into several script tags`);
+    }
   });
   test('the build script --check passes and the asset version is current', () => {
     for (const script of ['build-js.mjs', 'build-css.mjs', 'asset-version.mjs']) {

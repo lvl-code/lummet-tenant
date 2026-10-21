@@ -985,3 +985,12 @@ No migration, no behaviour change.
 - `test/item-access-structure.test.js` (6 tests).
 
 No migration, no behaviour change.
+
+## 90. Research PDF export script written as 5 parts (v22.52)
+
+`static/js/research-pdf-export.js` (573 lines, one function wrapper) is now generated from `js-src/research-pdf-export/_head.js`, five numbered parts and `_tail.js` by `scripts/build-js.mjs`. It stays one file, loaded by the research item page only, so no request is added. See `docs/ARCHITECTURE_JS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`): same URL, same bytes, same asset version. Nothing else changed in the browser.
+- `test/js-build.test.js` now covers three scripts (9 tests): the file equals its parts, each part parses inside the wrapper, and each page still loads one file per script. A deliberate edit to one part makes it fail.
+
+No migration, no behaviour change.

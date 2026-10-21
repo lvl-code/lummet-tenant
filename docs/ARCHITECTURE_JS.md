@@ -1,6 +1,6 @@
 # Architecture: public scripts built from parts (`en/js-src/` + `scripts/build-js.mjs`)
 
-Two public scripts are built this way: `app.js` (v22.48) and `lummet-ai.js` (v22.49).
+Three public scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49) and `research-pdf-export.js` (v22.52).
 
 ## app.js
 
@@ -40,3 +40,19 @@ node scripts/asset-version.mjs     # then refresh the asset version
 | `_tail.js` | 1 | `})();` |
 
 The generated file is **byte-identical** to the old one: same URL, bytes and asset version.
+
+## research-pdf-export.js (the research PDF download)
+
+`static/js/research-pdf-export.js` (573 lines) is one function wrapper loaded only by the research item page (`templates/pages/research.html`). Built into the same single file from `js-src/research-pdf-export/`; the opening comment and `(function () {` are in `_head.js`, the closing `})();` in `_tail.js`.
+
+| Part | Lines | Holds |
+|---|---:|---|
+| `_head.js` | 26 | The explanatory header comment, `(function () {` |
+| `01-helpers.js` | 95 | Page constants, stage errors, reading the embedded PDF data, slug and HTML to paragraphs, logo loading |
+| `02-drawing.js` | 128 | The page cursor, headings, paragraphs, rules, tables (AutoTable with a text fallback) |
+| `03-sections.js` | 129 | Sections by type, claims, sources, item cover and sections |
+| `04-export.js` | 115 | Header and footer on every page, `exportResearchPdf` (named stages, related items merged) |
+| `05-page.js` | 79 | Status line, merge options, the download and share buttons |
+| `_tail.js` | 1 | `})();` |
+
+The generated file is **byte-identical** to the old one: same URL, bytes and asset version. `test/js-build.test.js` checks that this page still loads one `research-pdf-export.js` and no part files.

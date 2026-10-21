@@ -1003,3 +1003,12 @@ No migration, no behaviour change.
 - `test/media-upload-structure.test.js` (5 tests).
 
 No migration, no behaviour change.
+
+## 92. HTML sanitizer written as 4 parts (v22.54)
+
+`worker/sanitize.js` (586 lines) is now a facade over `sanitize/{policy,values,tags,pipeline}.js`, re-exporting the same 4 names. See `docs/ARCHITECTURE_SANITIZE.md`.
+
+- Proof: old and new were run side by side on 330,747 calls (about 87,000 of the inputs were changed by the sanitizer): a corpus of classic XSS payloads, 6,000 generated and randomly corrupted documents, every attribute on ten tags against 160 values (URLs with schemes hidden by tabs, entities and case, styles with expressions, comments and escapes, `target`, `rel`, booleans), mutated URLs and styles, and a second pass over its own output. All results are identical. Mutation checks on each part (tag and attribute lists, URL schemes, CSS patterns, entity decoding, control-character stripping, comment removal, `target` and `rel` rules, null bytes) were all detected. The only mutations not detected change nothing: a case flag on a name that is already lower-cased, and an iframe `http:` check that the earlier URL check makes unreachable (left as it was).
+- `test/sanitize-structure.test.js` (6 tests).
+
+No migration, no behaviour change.

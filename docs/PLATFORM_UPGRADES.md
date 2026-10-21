@@ -928,3 +928,14 @@ No migration, no behaviour change.
 - `test/component-studio-structure.test.js` (8 tests) and `test/support/component-studio-source.js`; `component-studio.test.js` reads all parts.
 
 No migration, no server change.
+
+## 84. Component Studio server module split into 5 parts (v22.46)
+
+`worker/component-studio.js` (645 lines) is now a facade over `worker/component-studio/{shared,grid,table,section,dispatch}.js`, made with the generic splitter. See `docs/ARCHITECTURE_COMPONENT_STUDIO_SERVER.md`.
+
+- All 21 exports keep their names and arity. Token check: nothing missing except the import paths.
+- Differential run, old vs new: 28,799 calls on every exported function (hostile and random settings for the grid, table and section: wrong types, oversized lists, markup, `javascript:` links, bad slugs, pick lists with unknown sources, JSON text and non-JSON; renders against a seeded database with casinos, news, authors, research and updates) with 5,306 distinct outcomes: **0 differences**. One change in each of five parts is detected.
+
+Also in this release: the release notes of v22.39 to v22.45 (`docs/RELEASE_*.md`) are back. Each earlier release had removed the previous one's note because the work tree did not contain it.
+
+No migration, no behaviour change.

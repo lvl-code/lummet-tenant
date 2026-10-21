@@ -994,3 +994,12 @@ No migration, no behaviour change.
 - `test/js-build.test.js` now covers three scripts (9 tests): the file equals its parts, each part parses inside the wrapper, and each page still loads one file per script. A deliberate edit to one part makes it fail.
 
 No migration, no behaviour change.
+
+## 91. Media upload module written as 5 parts (v22.53)
+
+`worker/media-upload.js` (572 lines) is now a facade over `media-upload/{http,files,upload,delete,serve}.js`, re-exporting the same 8 names. See `docs/ARCHITECTURE_MEDIA_UPLOAD.md`.
+
+- Proof: every export was run old against new with a fixed clock and seeded randomness against a seeded database and a recording R2 mock (about 900 calls): file validation over names, types and sizes at each limit, key and URL generation, byte ranges, 60 uploads (bad files, failing R2, no bucket, database down), deletes (owner, other editor, admin, viewer, missing, R2 failure) and serving (whole, ranges, HEAD, 304, missing, failing head). Responses, R2 calls, the saved rows and the logged errors are identical. Mutation checks on each part (limits, thumbnail widths, key shape, saved fields, owner rule, R2 delete, range maths, headers, status codes) were all detected.
+- `test/media-upload-structure.test.js` (5 tests).
+
+No migration, no behaviour change.

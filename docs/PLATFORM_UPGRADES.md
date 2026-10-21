@@ -976,3 +976,12 @@ No migration, no behaviour change.
 - `test/analytics-structure.test.js` (6 tests): the public names, the facade shape, no cross-imports, scoping stays in `metrics.js`, one place for the event types and the backfill cap, part size.
 
 No migration, no behaviour change.
+
+## 89. Item-level access engine written as 5 parts (v22.51)
+
+`worker/database/item-access.js` (469 lines) is now a facade over `item-access/{registry,policy,assignments,access,items}.js`, re-exporting the same 20 names. See `docs/ARCHITECTURE_ITEM_ACCESS.md`.
+
+- Proof: every export was run old against new on a seeded database (about 5,000 calls): all resources, actions and scopes including invalid and unknown ones, 15 users (admin, viewer, editors with each scope, a missing user, string and zero ids), assignments, hostile slugs and ids, a throwing database. All results are identical. Mutation checks on each part (registry entries, owner columns, default scope, scope validation, admin bypass, unregistered resource, owner comparison, null owner, unknown scope, missing user, id lookup) were all detected.
+- `test/item-access-structure.test.js` (6 tests).
+
+No migration, no behaviour change.

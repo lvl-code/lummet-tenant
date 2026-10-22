@@ -1066,3 +1066,12 @@ No migration, no behaviour change.
 - `test/js-build.test.js` now covers six scripts (15 tests).
 
 No migration, no behaviour change.
+
+## 99. Newsroom admin API split into 4 parts (v22.61)
+
+`worker/newsroom-api.js` (497 lines) is now a 26-line facade over `worker/newsroom-api/{shared,dispatch,helpers,hooks}.js`. Same 6 exports, same import path. See `docs/ARCHITECTURE_NEWSROOM_API.md`.
+
+- Proof: about 2,080 calls were run through `handleNewsroomApi` and the four hooks, old against new, on a real schema with a fixed clock and seeded randomness: every GET and POST route for seven kinds of caller (admin, editors with and without item-level update access, a role with no permissions, a viewer, no user, an unknown user), with the editorial workflow off and on, valid and invalid bodies, cross-origin and malformed `Origin`, wrong content types, malformed, empty, oversized and hostile JSON, unknown routes and methods, and the hooks on drafts, published and scheduled articles and a broken database. Every status and body, and the content of the 16 affected tables, are identical (search results with equal scores are compared sorted by id, because their order was already not fixed in the old code). Mutation checks on each part (limits, status codes, permission checks, access level, queue offset and limit, field limits, message text, hook conditions) were all detected, apart from the order of pins in one SQL query, which cannot change anything because pins are saved in position order.
+- `test/newsroom-api-structure.test.js` (6 tests).
+
+No migration, no behaviour change.

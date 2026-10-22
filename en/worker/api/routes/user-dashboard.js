@@ -1,7 +1,7 @@
 // Signed-in user: bookmarks, inquiries, notifications, submissions, profile.
 // Part of the admin API. Dispatched in order from worker/api.js (see worker/api/routes/index.js).
 import * as userDash from "../../database/user_dashboard.js";
-import { NOT_HANDLED, json, success, validate } from "../helpers.js";
+import { NOT_HANDLED, failure, json, success, validate } from "../helpers.js";
 
 export async function route({ request, env, path, user }) {
 
@@ -56,7 +56,7 @@ export async function route({ request, env, path, user }) {
     if (path === "/api/v1/user/notification/read" && request.method === "POST") {
       const body = await request.json();
       validate(body, ["id"]);
-      await userDash.markNotificationRead(env.DB, body.id);
+      await userDash.markNotificationRead(env.DB, body.id, user.user_id);
       return success();
     }
 
@@ -97,7 +97,18 @@ export async function route({ request, env, path, user }) {
 
     if (path === "/api/v1/user/profile/update" && request.method === "POST") {
       const body = await request.json();
-      await userDash.updateUserProfile(env.DB, user.user_id, body);
+      const email = String(body?.email ?? "").trim();
+      if (!email || email.length > 254 || !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(email)) {
+        return failure("Enter a valid email address");
+      }
+      try {
+        await userDash.updateUserProfile(env.DB, user.user_id, { email });
+      } catch (err) {
+        if (/UNIQUE|constraint/i.test(String(err?.message || err))) {
+          return failure("That email address is already in use", 409);
+        }
+        throw err;
+      }
       return success();
     }
 

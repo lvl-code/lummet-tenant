@@ -23,8 +23,8 @@ async function renderUserPage(request, env, template) {
   const html = await renderer.render(template, {
     seo_title: `${site.siteName} — Dashboard`,
     seo_description: `Manage your ${site.siteName} account`,
-    email: user.email,
-    role: user.role,
+    email: renderer.escapeHtml(String(user.email || "")),
+    role: renderer.escapeHtml(String(user.role || "")),
     user_nav: userNav
   });
 

@@ -63,3 +63,16 @@ Every file is served with `?v=<hash>` and cached for a year; `scripts/asset-vers
 `static/js/dashboard.js` (1,995 lines), `static/js/rich-editor.js` (1,927), then `worker/index.js` routing and `worker/site-settings.js`.
 
 `header-hero-admin.js` is no longer a classic script: it is an ES module entry with parts in `header-hero-admin/` (see `ARCHITECTURE_HEADER_HERO_ADMIN.md`).
+
+## Content edit actions (v22.58)
+
+`admin/content-edit-actions.js` (515 lines) was a run of global functions, so it is four files that `base.html` loads one after the other, in this order, right after `research-datasets.js`:
+
+| File | Lines | Functions |
+|---|---:|---|
+| `admin/content-edit-actions.js` | 139 | `deleteReview`, `deletePage`, `deleteNewsArticle`, `editReview`, `cancelReviewEdit` |
+| `admin/content-edit-news.js` | 101 | `editNews`, `toDatetimeLocal`, `cancelNewsEdit` |
+| `admin/content-edit-pages.js` | 157 | `editPage`, `cancelPageEdit` |
+| `admin/content-edit-taxonomy.js` | 118 | `editCategory`, `cancelCategoryEdit`, `editCountry`, `cancelCountryEdit` |
+
+The four files joined in order are byte-identical to the old file. The functions are only called from click handlers, so load order inside the group changes nothing, but the order is kept and tested (`test/admin-js-structure.test.js`).

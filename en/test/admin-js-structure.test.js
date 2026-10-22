@@ -15,7 +15,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf-8');
 // declarations depend on it, so changing it needs a reason.
 const ORDER = ['init', 'reviews', 'news', 'pages', 'settings', 'homepage-builder-items', 'homepage-builder-section', 'homepage-builder-content', 'homepage-builder-controls', 'homepage-builder-render', 'homepage-builder-collect', 'theme-presets', 'settings-form', 'settings-form-theme', 'settings-form-sections', 'settings-form-save', 'ai-generator',
   'categories', 'countries', 'research', 'research-content-builder', 'research-content-fields', 'research-content-sections', 'research-content-wire', 'research-content-init', 'research-sources-claims', 'research-relations', 'research-versions',
-  'research-review-queue', 'research-datasets', 'content-edit-actions', 'payment-methods', 'platform-updates', 'platform-updates-form', 'platform-updates-edit', 'platform-updates-actions', 'html-escape',
+  'research-review-queue', 'research-datasets', 'content-edit-actions', 'content-edit-news', 'content-edit-pages', 'content-edit-taxonomy', 'payment-methods', 'platform-updates', 'platform-updates-form', 'platform-updates-edit', 'platform-updates-actions', 'html-escape',
   'platform-updates-init', 'ad-rules', 'seo-pages', 'country-pages', 'category-country-pages'];
 
 describe('admin script layout', () => {
@@ -105,5 +105,19 @@ describe('homepage builder render parts (v22.32)', () => {
       const src = read(`static/js/admin/${file}.js`);
       assert.deepEqual([...src.matchAll(/^(?:async )?function (\w+)/gm)].map((m) => m[1]), fns, file);
     }
+  });
+
+  test('content edit actions (v22.58): each file holds its own functions, and nothing else defines them', () => {
+    const want = {
+      'content-edit-actions': ['deleteReview', 'deletePage', 'deleteNewsArticle', 'editReview', 'cancelReviewEdit'],
+      'content-edit-news': ['editNews', 'toDatetimeLocal', 'cancelNewsEdit'],
+      'content-edit-pages': ['editPage', 'cancelPageEdit'],
+      'content-edit-taxonomy': ['editCategory', 'cancelCategoryEdit', 'editCountry', 'cancelCountryEdit']
+    };
+    const defined = (n) => [...read(`static/js/admin/${n}.js`).matchAll(/^(?:async\s+)?function\s+(\w+)/gm)].map((m) => m[1]);
+    for (const [n, fns] of Object.entries(want)) assert.deepEqual(defined(n), fns, n);
+    const order = adminScriptNames();
+    assert.deepEqual(order.slice(order.indexOf('content-edit-actions'), order.indexOf('content-edit-actions') + 4), Object.keys(want));
+    for (const n of Object.keys(want)) assert.ok(read(`static/js/admin/${n}.js`).split('\n').length < 250, n);
   });
 });

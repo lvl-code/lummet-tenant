@@ -1039,3 +1039,12 @@ No migration, no behaviour change.
 - `test/js-build.test.js` now covers five scripts (13 tests); the newsroom page must load exactly one `newsroom-admin.js`.
 
 No migration, no behaviour change.
+
+## 96. Content edit actions script written as 4 files (v22.58)
+
+`static/js/admin/content-edit-actions.js` (515 lines, 14 global functions) is now four files loaded one after the other by `templates/layout/base.html`, the way the settings-form script was split in v22.41: `content-edit-actions.js` (deletes and review edit), `content-edit-news.js`, `content-edit-pages.js`, `content-edit-taxonomy.js` (category and country edit). See `docs/ARCHITECTURE_ADMIN_JS.md`.
+
+- Proof: the four files joined in load order are **byte-identical** to the old file, and loading them as four separate scripts in one context defines exactly the same 14 functions with identical source as loading the old file.
+- `test/admin-js-structure.test.js`: the order list has the three new files, the total of 209 top-level functions is unchanged, and a new test checks which file holds which function.
+
+These are admin-only scripts (inside the `@full` block), so no public page gets an extra request. No migration, no behaviour change.

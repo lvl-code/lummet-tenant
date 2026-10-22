@@ -1030,3 +1030,12 @@ No migration, no behaviour change.
 - `test/js-build.test.js` now covers four scripts (11 tests): the file equals its parts, each part parses inside the wrapper, and each page still loads one file per script.
 
 No migration, no behaviour change.
+
+## 95. Newsroom admin script written as 7 parts (v22.57)
+
+`static/js/newsroom-admin.js` (519 lines, one function wrapper) is now generated from `js-src/newsroom-admin/_head.js`, seven numbered parts and `_tail.js` by `scripts/build-js.mjs`. It stays one file, loaded only by the newsroom admin page. See `docs/ARCHITECTURE_JS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`): same URL, same bytes, same asset version. The existing tests that read it (safety rules and the vm end-to-end run) pass unchanged.
+- `test/js-build.test.js` now covers five scripts (13 tests); the newsroom page must load exactly one `newsroom-admin.js`.
+
+No migration, no behaviour change.

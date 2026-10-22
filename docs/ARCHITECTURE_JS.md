@@ -1,6 +1,6 @@
 # Architecture: public scripts built from parts (`en/js-src/` + `scripts/build-js.mjs`)
 
-Four scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49), `research-pdf-export.js` (v22.52) and the admin script `ai-studio.js` (v22.56).
+Five scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49), `research-pdf-export.js` (v22.52) and the admin scripts `ai-studio.js` (v22.56) and `newsroom-admin.js` (v22.57).
 
 ## app.js
 
@@ -74,3 +74,21 @@ The generated file is **byte-identical** to the old one: same URL, bytes and ass
 | `_tail.js` | 1 | `})();` |
 
 The generated file is **byte-identical** to the old one.
+
+## newsroom-admin.js (the newsroom admin page)
+
+`static/js/newsroom-admin.js` (519 lines) is one function wrapper loaded only by the newsroom admin page (`templates/pages/admin/newsroom.html`); public pages must not load it (a test checks). Built into one file from `js-src/newsroom-admin/`, so the page makes no extra request. The header comment and `(function () {` are in `_head.js`, the closing `})();` in `_tail.js`. The shared state (`state`, the `h` DOM helper, `api`, `notify`) is in part 01 and used by the others as before.
+
+| Part | Lines | Holds |
+|---|---:|---|
+| `_head.js` | 6 | Header comment (no `innerHTML` rule), `(function () {` |
+| `01-core.js` | 47 | `API`, `state`, DOM helper `h`, `put`, `$`, `label`, `notify`, `api` |
+| `02-tabs-and-queues.js` | 43 | `setTab`, `renderQueues` |
+| `03-article.js` | 143 | `renderArticle` (the article editor) |
+| `04-taxonomy-and-homepage.js` | 84 | Taxonomy, region mapping, homepage pins |
+| `05-search-and-analytics.js` | 92 | Search index maintenance, analytics, article performance |
+| `06-authors-flags-policies.js` | 96 | Authors, flags, policies |
+| `07-start.js` | 7 | On page load: tabs and first panel |
+| `_tail.js` | 1 | `})();` |
+
+The generated file is **byte-identical** to the old one. `test/newsroom-admin-ui.test.js` (safety rules: no HTML sinks, same-origin API only) and `test/newsroom-admin-ui-e2e.test.js` (runs the real script in a vm against a fake page) read the generated file and still pass.

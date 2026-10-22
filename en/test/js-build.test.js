@@ -1,4 +1,4 @@
-// The public scripts static/js/app.js, lummet-ai.js, research-pdf-export.js and ai-studio.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49, v22.52, v22.56).
+// The public scripts static/js/app.js, lummet-ai.js, research-pdf-export.js, ai-studio.js and newsroom-admin.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49, v22.52, v22.56, v22.57).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -13,7 +13,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 describe('script build', () => {
   test('the bundles have source folders and nothing else is in js-src', () => {
-    assert.deepEqual(BUNDLES, ['app', 'lummet-ai', 'research-pdf-export', 'ai-studio']);
+    assert.deepEqual(BUNDLES, ['app', 'lummet-ai', 'research-pdf-export', 'ai-studio', 'newsroom-admin']);
     const dirs = readdirSync(join(ROOT, 'js-src'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     assert.deepEqual(dirs, [...BUNDLES].sort());
   });
@@ -39,7 +39,7 @@ describe('script build', () => {
     });
   }
   test('each page still loads one file per script (the split adds no request)', () => {
-    const PAGE = { 'research-pdf-export': 'templates/pages/research.html' };
+    const PAGE = { 'research-pdf-export': 'templates/pages/research.html', 'newsroom-admin': 'templates/pages/admin/newsroom.html' };
     for (const n of BUNDLES) {
       const html = read(PAGE[n] || 'templates/layout/base.html');
       assert.equal((html.match(new RegExp(`/static/js/${n}\\.js`, 'g')) || []).length, 1, n);

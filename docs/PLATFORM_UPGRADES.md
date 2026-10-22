@@ -1057,3 +1057,12 @@ These are admin-only scripts (inside the `@full` block), so no public page gets 
 - `test/super-router-structure.test.js` (5 tests) compares the joined table with a fixture of the 227 routes; three tests that read the router's source now read it through `test/support/super-router-source.js`.
 
 No migration, no behaviour change.
+
+## 98. Component admin script written as 5 parts (v22.60)
+
+`static/js/component-admin.js` (512 lines, global functions) is now generated from `js-src/component-admin/01…05-*.js` by `scripts/build-js.mjs`. No wrapper, so no head or tail. It stays one file at the same path, so the page loads it once and the two tests that read it are unchanged. See `docs/ARCHITECTURE_JS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`): same URL, same bytes, same asset version.
+- `test/js-build.test.js` now covers six scripts (15 tests).
+
+No migration, no behaviour change.

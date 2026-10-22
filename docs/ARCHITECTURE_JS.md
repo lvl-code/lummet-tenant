@@ -1,6 +1,6 @@
 # Architecture: public scripts built from parts (`en/js-src/` + `scripts/build-js.mjs`)
 
-Five scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49), `research-pdf-export.js` (v22.52) and the admin scripts `ai-studio.js` (v22.56) and `newsroom-admin.js` (v22.57).
+Six scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49), `research-pdf-export.js` (v22.52) and the admin scripts `ai-studio.js` (v22.56), `newsroom-admin.js` (v22.57) and `component-admin.js` (v22.60).
 
 ## app.js
 
@@ -92,3 +92,17 @@ The generated file is **byte-identical** to the old one.
 | `_tail.js` | 1 | `})();` |
 
 The generated file is **byte-identical** to the old one. `test/newsroom-admin-ui.test.js` (safety rules: no HTML sinks, same-origin API only) and `test/newsroom-admin-ui-e2e.test.js` (runs the real script in a vm against a fake page) read the generated file and still pass.
+
+## component-admin.js (components, assignments, SEO meta)
+
+`static/js/component-admin.js` (512 lines) is a classic script of global functions with one `DOMContentLoaded` handler and one top-level `let currentFilter`. It has no function wrapper, so there is no head or tail; the five parts are joined as they are into the same single file, still loaded once by `templates/layout/base.html` (admin block). The file keeps its path, so the tests that read it (`component-hero`, `component-page-types`) are unchanged.
+
+| Part | Lines | Holds |
+|---|---:|---|
+| `01-components.js` | 150 | The `DOMContentLoaded` handler, `currentFilter`, components table, delete, component form |
+| `02-assignments.js` | 140 | Assign form, component dropdown, assignments table, toggle and remove |
+| `03-seo-meta.js` | 103 | SEO meta admin: table, form, delete |
+| `04-edit-actions.js` | 83 | Edit and cancel for a component, an assignment and SEO meta |
+| `05-custom-page-types.js` | 36 | Page types for custom content types |
+
+The generated file is **byte-identical** to the old one.

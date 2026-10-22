@@ -1,6 +1,6 @@
 # Architecture: public scripts built from parts (`en/js-src/` + `scripts/build-js.mjs`)
 
-Three public scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49) and `research-pdf-export.js` (v22.52).
+Four scripts are built this way: `app.js` (v22.48), `lummet-ai.js` (v22.49), `research-pdf-export.js` (v22.52) and the admin script `ai-studio.js` (v22.56).
 
 ## app.js
 
@@ -56,3 +56,21 @@ The generated file is **byte-identical** to the old one: same URL, bytes and ass
 | `_tail.js` | 1 | `})();` |
 
 The generated file is **byte-identical** to the old one: same URL, bytes and asset version. `test/js-build.test.js` checks that this page still loads one `research-pdf-export.js` and no part files.
+
+## ai-studio.js (the AI Studio admin screen)
+
+`static/js/ai-studio.js` (540 lines) is one function wrapper loaded by the dashboard layout (`templates/layout/base.html`). It is an admin script, but it is built into one file the same way, so the page makes no extra request and the file keeps one URL and one asset version. The header comment and `(function () {` are in `_head.js`, the closing `})();` in `_tail.js`. All state is the single `S` object and the helpers `el`, `api` and `say`, so the parts share them as they did inside the wrapper.
+
+| Part | Lines | Holds |
+|---|---:|---|
+| `_head.js` | 3 | Header comment, `(function () {` |
+| `01-core.js` | 63 | `root` check, state, DOM helper `el`, `api`, `say`, `taskInfo`, `labelled`, `picker`, item types |
+| `02-screens-and-run.js` | 121 | `render`, tool list, the form, chips, `run`, `field`, copy button, `save` |
+| `03-result.js` | 69 | `renderResult` |
+| `04-chat-settings-and-gaps.js` | 86 | Chat settings (`renderRules`) and content gaps |
+| `05-chat-feedback.js` | 134 | Chat feedback, its report toggle, digest, draft fix, draft FAQs |
+| `06-history-and-audit.js` | 58 | History and content audit |
+| `07-start.js` | 5 | Loads the tool list and draws the first screen |
+| `_tail.js` | 1 | `})();` |
+
+The generated file is **byte-identical** to the old one.

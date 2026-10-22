@@ -1021,3 +1021,12 @@ No migration, no behaviour change.
 - `test/handlers-affiliate-structure.test.js` (6 tests).
 
 No migration, no behaviour change.
+
+## 94. AI Studio admin script written as 7 parts (v22.56)
+
+`static/js/ai-studio.js` (540 lines, one function wrapper) is now generated from `js-src/ai-studio/_head.js`, seven numbered parts and `_tail.js` by `scripts/build-js.mjs`. It stays one file, so the dashboard makes no extra request. See `docs/ARCHITECTURE_JS.md`.
+
+- The generated file is **byte-identical** to the old one (`cmp`): same URL, same bytes, same asset version.
+- `test/js-build.test.js` now covers four scripts (11 tests): the file equals its parts, each part parses inside the wrapper, and each page still loads one file per script.
+
+No migration, no behaviour change.

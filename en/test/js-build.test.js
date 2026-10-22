@@ -1,4 +1,4 @@
-// The public scripts static/js/app.js, lummet-ai.js and research-pdf-export.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49, v22.52).
+// The public scripts static/js/app.js, lummet-ai.js, research-pdf-export.js and ai-studio.js are generated from js-src/<name>/NN-*.js by scripts/build-js.mjs (v22.48, v22.49, v22.52, v22.56).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -13,7 +13,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 describe('script build', () => {
   test('the bundles have source folders and nothing else is in js-src', () => {
-    assert.deepEqual(BUNDLES, ['app', 'lummet-ai', 'research-pdf-export']);
+    assert.deepEqual(BUNDLES, ['app', 'lummet-ai', 'research-pdf-export', 'ai-studio']);
     const dirs = readdirSync(join(ROOT, 'js-src'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     assert.deepEqual(dirs, [...BUNDLES].sort());
   });

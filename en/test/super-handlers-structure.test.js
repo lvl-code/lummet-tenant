@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as facade from '../worker/super/handlers.js';
+import { readRouterSource } from './support/super-router-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = join(ROOT, 'worker/super/handlers');
@@ -19,7 +20,7 @@ describe('super handlers layout', () => {
   });
 
   test('every handler the router uses exists on the facade', () => {
-    const router = readFileSync(join(ROOT, 'worker/super/router.js'), 'utf-8');
+    const router = readRouterSource();
     const used = [...new Set([...router.matchAll(/\bh\.(handle[A-Za-z]+)/g)].map((m) => m[1]))];
     assert.ok(used.length > 100, `router handlers: ${used.length}`);
     assert.deepEqual(used.filter((u) => typeof facade[u] !== 'function'), []);

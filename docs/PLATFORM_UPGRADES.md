@@ -1048,3 +1048,12 @@ No migration, no behaviour change.
 - `test/admin-js-structure.test.js`: the order list has the three new files, the total of 209 top-level functions is unchanged, and a new test checks which file holds which function.
 
 These are admin-only scripts (inside the `@full` block), so no public page gets an extra request. No migration, no behaviour change.
+
+## 97. Super API router: the route table written as 5 files (v22.59)
+
+`worker/super/router.js` (513 lines) kept 227 routes and the dispatcher in one file. The routes now live in `worker/super/routes/{core,affiliate,analytics,ai-newsroom,research}.js`; `router.js` (162 lines) joins them in the old order and keeps `matchRoute`, `actionForMethod` and `handleSuperApi`. See `docs/ARCHITECTURE_SUPER_ROUTER.md`.
+
+- Proof: the table (order, method, path, handler, resource) is identical to the old one, and about 1,050 signed requests were run through `handleSuperApi` old against new on a real schema with a fixed clock and seeded randomness: every route with several ids, queries and bodies, wrong methods, no configuration (503), missing and wrong credentials, a stale, future and invalid timestamp, a bad signature, a replayed nonce, and a burst that hits the rate limit (429). Every status, header and body, and the whole audit log table, are identical. Mutation checks (resource names, a deleted route, a changed path, a swapped handler, an unknown-id decode, the 429 message, the audit action and success flag, the body reading, the internal error message) were all detected, apart from swapping the order of two groups that share no path, which changes nothing.
+- `test/super-router-structure.test.js` (5 tests) compares the joined table with a fixture of the 227 routes; three tests that read the router's source now read it through `test/support/super-router-source.js`.
+
+No migration, no behaviour change.

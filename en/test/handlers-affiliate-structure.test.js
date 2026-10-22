@@ -6,6 +6,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as facade from '../worker/super/handlers-affiliate.js';
+import { readRouterSource } from './support/super-router-source.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = join(ROOT, 'worker/super/handlers-affiliate');
@@ -20,7 +21,7 @@ describe('super handlers-affiliate layout', () => {
     for (const n of ['json', 'ok', 'created', 'fail', 'readJsonBody', 'validateRequired']) assert.ok(!names.includes(n), n);
   });
   test('every handler the router calls exists', () => {
-    const router = readFileSync(join(ROOT, 'worker/super/router.js'), 'utf-8');
+    const router = readRouterSource();
     const used = new Set([...router.matchAll(/\bah\.(handle[A-Za-z]+)/g)].map((m) => m[1]));
     assert.ok(used.size >= 30);
     for (const n of used) assert.equal(typeof facade[n], 'function', n);
